@@ -2,7 +2,7 @@
 
 Nowy, natywny projekt dla iPhone’a i iPada (iOS 17+). Interfejs używa SwiftUI, mapa MapKit, GPS CoreLocation, a obliczenia Swift. Nie zawiera Capacitor, WKWebView ani JavaScriptCore. Poprzedni projekt `nordsweet-ios` pozostaje oddzielną wersją referencyjną.
 
-To pierwsza część migracji, a nie pełna zgodność funkcjonalna z rozbudowaną aplikacją webową. Źródła zostały przygotowane na Windowsie. Nie wykonano jeszcze kompilacji Xcode, testów XCTest ani instalacji na iOS. Projekt nie jest podpisany i nie został wysłany do TestFlight.
+To pierwsza część migracji, a nie pełna zgodność funkcjonalna z rozbudowaną aplikacją webową. Źródła przygotowano na Windowsie. GitHub Actions na macOS wykonał 6 testów XCTest bez błędów i zbudował aplikację dla symulatora w Xcode 16.4: [wynik kompilacji](https://github.com/Nordsweet/Nordsweet-FMS/actions/runs/36243663324). Nie wykonano jeszcze testów interfejsu ani instalacji na iPhonie. Projekt nie jest podpisany i nie został wysłany do TestFlight.
 
 ## Działania zaimplementowane w kodzie
 
@@ -44,13 +44,13 @@ bash scripts/verify-macos.sh
 open Nordsweet.xcodeproj
 ```
 
-Skrypt uruchamia `swift test` dla pakietu z obliczeniami, a następnie buduje aplikację na symulator bez podpisu. Samo przejście parsera składni na Windowsie nie gwarantuje zgodności typów, API Apple ani udanej kompilacji — wynik Xcode jest obowiązkowym następnym sprawdzeniem.
+Skrypt uruchamia `swift test` dla pakietu z obliczeniami, a następnie buduje aplikację na symulator bez podpisu. Oba kroki przeszły na macOS; zachowanie interfejsu i GPS wymaga jeszcze sprawdzenia na urządzeniu.
 
 ## Praca z Windowsa
 
-Można użyć hosta macOS w chmurze lub runnera GitHub Actions. W `.github/workflows/ios-check.yml` jest ręcznie uruchamiany workflow do testów i kompilacji symulatora. Po umieszczeniu zawartości tego katalogu jako głównego katalogu repozytorium workflow będzie widoczny w zakładce Actions. Jeżeli repozytorium zawiera cały nadrzędny workspace, przenieś workflow do jego głównego `.github/workflows`.
+Repozytorium `Nordsweet/Nordsweet-FMS` zawiera projekt w `nordsweet-swift`, a workflow w głównym `.github/workflows/ios-check.yml`. Push zmian projektu na gałąź `codex/swiftui-native` uruchamia testy i kompilację na runnerze macOS. Dostępny jest też trigger `workflow_dispatch` (przycisk ręcznego uruchomienia wymaga workflow na domyślnej gałęzi).
 
-Workflow nie został uruchomiony i nie wysyła aplikacji do Apple. Wygenerowany artefakt symulatora nie jest IPA i nie można go zainstalować przez TestFlight. Nie skonfigurowano jeszcze repozytorium ani zdalnego Maca dla tej wersji.
+Workflow przeszedł i zapisał artefakt `Nordsweet-simulator`. Nie wysyła aplikacji do Apple. Artefakt symulatora nie jest IPA i nie można go zainstalować przez TestFlight.
 
 ## TestFlight
 
@@ -73,7 +73,7 @@ Nie zapisuj certyfikatów ani kluczy w repozytorium. Do budowania i podpisywania
 - Sprawdzenie składni 13 plików Swift parserem tree-sitter (bez błędów; nie jest to kompilacja).
 - Sprawdzenie struktury projektu, plików zasobów, plist i schematu Xcode.
 
-Testy XCTest są przygotowane dla osiągów, odległości, TOC/TOD, TOC na punkcie trasy, nieosiągalnego profilu, importu NORD i zapisu/odczytu JSON/GPX. Ich wykonanie wymaga środowiska Swift; w tej sesji nie zostały uruchomione.
+Na macOS wykonano 6 testów XCTest dla osiągów (12 przypadków porównawczych), odległości, TOC na punkcie trasy, nieosiągalnego profilu, importu NORD i zapisu/odczytu JSON/GPX. Wynik: 0 błędów. Kompilacja aplikacji dla symulatora: BUILD SUCCEEDED.
 
 ## Aktualizowanie źródeł
 
@@ -81,4 +81,4 @@ Kod aplikacji: `Nordsweet/App` i `Nordsweet/Views`. Obliczenia i modele: `Packag
 
 `node scripts/generate-project.cjs` odtwarza projekt Xcode po dodaniu plików Swift do katalogu aplikacji. Nadpisuje ustawienia projektu, więc wykonuj go przed ustawieniem własnego Team i podpisywania lub przenieś te ustawienia do generatora.
 
-`node scripts/export-data.cjs` ponownie eksportuje bazę i przypadki porównawcze z sąsiedniego katalogu `nordsweet-ios/web-src`. Nie jest wymagany do zbudowania pobranej paczki — gotowe dane są już dołączone.
+`node scripts/export-data.cjs` ponownie eksportuje bazę i przypadki porównawcze z sąsiedniego katalogu `nordsweet-ios/web-src`, jeśli istnieje, albo z nadrzędnego katalogu aplikacji webowej w repozytorium. Nie jest wymagany do zbudowania pobranej paczki — gotowe dane są już dołączone.

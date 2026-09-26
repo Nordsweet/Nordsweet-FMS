@@ -1,5 +1,8 @@
 const fs=require('fs'),path=require('path'),vm=require('vm');
-const root=path.resolve(__dirname,'..'), source=path.resolve(root,'../nordsweet-ios/web-src');
+const root=path.resolve(__dirname,'..');
+const sourceCandidates=[path.resolve(root,'../nordsweet-ios/web-src'),path.resolve(root,'..')];
+const source=sourceCandidates.find(p=>fs.existsSync(path.join(p,'index.html'))&&fs.existsSync(path.join(p,'aircraft-data')));
+if(!source)throw Error('Place this project beside the web application, or provide ../nordsweet-ios/web-src.');
 const output=path.join(root,'Packages/NordsweetCore/Sources/NordsweetCore/Resources');
 const fixtures=path.join(root,'Packages/NordsweetCore/Tests/NordsweetCoreTests/Fixtures');
 fs.mkdirSync(output,{recursive:true});fs.mkdirSync(fixtures,{recursive:true});
