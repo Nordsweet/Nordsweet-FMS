@@ -1,0 +1,4132 @@
+[
+  {
+    "icao": "ACHA",
+    "name": "Łacha",
+    "elevation": 367,
+    "lat": 53.46675,
+    "lon": 21.758217
+  },
+  {
+    "icao": "EDAE",
+    "name": "Eisenhüttenstadt",
+    "elevation": 137,
+    "lat": 52.19725,
+    "lon": 14.585583
+  },
+  {
+    "icao": "EDAH",
+    "name": "Heringsdorf",
+    "elevation": 53,
+    "lat": 53.878833,
+    "lon": 14.151417
+  },
+  {
+    "icao": "EDAP",
+    "name": "Cottbus-Neuhausen",
+    "elevation": 279,
+    "lat": 51.686083,
+    "lon": 14.423667
+  },
+  {
+    "icao": "EDAV",
+    "name": "Eberswalde-Finow",
+    "elevation": 102,
+    "lat": 52.826333,
+    "lon": 13.701667
+  },
+  {
+    "icao": "EDAY",
+    "name": "Strausberg",
+    "elevation": 263,
+    "lat": 52.579967,
+    "lon": 13.9158
+  },
+  {
+    "icao": "EDBR",
+    "name": "Rothenburg-Gőrlitz",
+    "elevation": 517,
+    "lat": 51.363917,
+    "lon": 14.951033
+  },
+  {
+    "icao": "EDBX",
+    "name": "Gőrlitz",
+    "elevation": 778,
+    "lat": 51.159167,
+    "lon": 14.950967
+  },
+  {
+    "icao": "EDCA",
+    "name": "Anklam",
+    "elevation": 18,
+    "lat": 53.832783,
+    "lon": 13.668883
+  },
+  {
+    "icao": "EDCD",
+    "name": "Cottbus-Drewitz",
+    "elevation": 271,
+    "lat": 51.8895,
+    "lon": 14.532
+  },
+  {
+    "icao": "EDCE",
+    "name": "Eggersdorf",
+    "elevation": 223,
+    "lat": 52.482833,
+    "lon": 14.090833
+  },
+  {
+    "icao": "EDCV",
+    "name": "Pasewalk",
+    "elevation": 72,
+    "lat": 53.50555,
+    "lon": 13.9488
+  },
+  {
+    "icao": "EDON",
+    "name": "Neuhardenberg",
+    "elevation": 35,
+    "lat": 52.612967,
+    "lon": 14.242583
+  },
+  {
+    "icao": "EPAR",
+    "name": "Arłamów",
+    "elevation": 1455,
+    "lat": 49.658283,
+    "lon": 22.51425
+  },
+  {
+    "icao": "EPBA",
+    "name": "Bielsko Biała-Aleksandrowice",
+    "elevation": 1317,
+    "lat": 49.805,
+    "lon": 19.002033
+  },
+  {
+    "icao": "EPBB",
+    "name": "Babięta",
+    "elevation": 510,
+    "lat": 53.66825,
+    "lon": 21.254717
+  },
+  {
+    "icao": "EPBC",
+    "name": "Warszawa-Babice",
+    "elevation": 348,
+    "lat": 52.2692,
+    "lon": 20.907217
+  },
+  {
+    "icao": "EPBE",
+    "name": "Bełchatów-Kałduny",
+    "elevation": 701,
+    "lat": 51.401467,
+    "lon": 19.37845
+  },
+  {
+    "icao": "EPBI",
+    "name": "Brzeska Wola",
+    "elevation": 476,
+    "lat": 51.60775,
+    "lon": 21.004883
+  },
+  {
+    "icao": "EPBK",
+    "name": "Białystok-Krywlany",
+    "elevation": 509,
+    "lat": 53.10225,
+    "lon": 23.17105
+  },
+  {
+    "icao": "EPBO",
+    "name": "Borsk",
+    "elevation": 440,
+    "lat": 53.95175,
+    "lon": 17.943667
+  },
+  {
+    "icao": "EPBY",
+    "name": "Bydgoszcz-Szwederowo",
+    "elevation": 236,
+    "lat": 53.0968,
+    "lon": 17.977667
+  },
+  {
+    "icao": "EPCD",
+    "name": "Depułtycze Królewskie",
+    "elevation": 712,
+    "lat": 51.082717,
+    "lon": 23.43775
+  },
+  {
+    "icao": "EPCE",
+    "name": "Cewice",
+    "elevation": 495,
+    "lat": 54.41625,
+    "lon": 17.7633
+  },
+  {
+    "icao": "EPCH",
+    "name": "Hajnówka-Czyże",
+    "elevation": 508,
+    "lat": 52.784383,
+    "lon": 23.430867
+  },
+  {
+    "icao": "EPDA",
+    "name": "Darłowo",
+    "elevation": 7,
+    "lat": 54.404783,
+    "lon": 16.35305
+  },
+  {
+    "icao": "EPDB",
+    "name": "Debrzno",
+    "elevation": 509,
+    "lat": 53.524467,
+    "lon": 17.2585
+  },
+  {
+    "icao": "EPDE",
+    "name": "Dęblin",
+    "elevation": 388,
+    "lat": 51.551133,
+    "lon": 21.892033
+  },
+  {
+    "icao": "EPDK",
+    "name": "Dębowa Kłoda",
+    "elevation": 480,
+    "lat": 51.612583,
+    "lon": 23.007167
+  },
+  {
+    "icao": "EPDR",
+    "name": "Drawsko Pomorskie",
+    "elevation": 439,
+    "lat": 53.477783,
+    "lon": 15.731033
+  },
+  {
+    "icao": "EPEK",
+    "name": "Makosieje",
+    "elevation": 400,
+    "lat": 53.8073,
+    "lon": 22.540917
+  },
+  {
+    "icao": "EPEL",
+    "name": "Elbląg",
+    "elevation": 10,
+    "lat": 54.141167,
+    "lon": 19.423117
+  },
+  {
+    "icao": "EPGD",
+    "name": "Gdańsk-Rębiechowo",
+    "elevation": 488,
+    "lat": 54.376133,
+    "lon": 18.471967
+  },
+  {
+    "icao": "EPGE",
+    "name": "Giże",
+    "elevation": 500,
+    "lat": 53.983167,
+    "lon": 22.40195
+  },
+  {
+    "icao": "EPGI",
+    "name": "Grudziądz-Lisie Kąty",
+    "elevation": 115,
+    "lat": 53.524417,
+    "lon": 18.849467
+  },
+  {
+    "icao": "EPGL",
+    "name": "Gliwice-Trynek",
+    "elevation": 833,
+    "lat": 50.26995,
+    "lon": 18.672383
+  },
+  {
+    "icao": "EPGM",
+    "name": "Giżycko-Mazury Residence",
+    "elevation": 410,
+    "lat": 54.00545,
+    "lon": 21.8213
+  },
+  {
+    "icao": "EPGO",
+    "name": "Góraszka",
+    "elevation": 330,
+    "lat": 52.184417,
+    "lon": 21.281333
+  },
+  {
+    "icao": "EPGR",
+    "name": "Gryźliny",
+    "elevation": 520,
+    "lat": 53.608083,
+    "lon": 20.349583
+  },
+  {
+    "icao": "EPGW",
+    "name": "Gorzów Wlkp.-Ulim",
+    "elevation": 50,
+    "lat": 52.69345,
+    "lon": 15.216283
+  },
+  {
+    "icao": "EPGY",
+    "name": "Ostrów Mazowiecka-Grądy",
+    "elevation": 407,
+    "lat": 52.837033,
+    "lon": 21.777633
+  },
+  {
+    "icao": "EPHN",
+    "name": "Narew 2",
+    "elevation": 443,
+    "lat": 52.907667,
+    "lon": 23.54305
+  },
+  {
+    "icao": "EPIN",
+    "name": "Inowrocław",
+    "elevation": 270,
+    "lat": 52.806283,
+    "lon": 18.284867
+  },
+  {
+    "icao": "EPIR",
+    "name": "Inowrocław-Latkowo",
+    "elevation": 270,
+    "lat": 52.8287,
+    "lon": 18.330083
+  },
+  {
+    "icao": "EPIW",
+    "name": "Iwonicz",
+    "elevation": 975,
+    "lat": 49.6587,
+    "lon": 21.815083
+  },
+  {
+    "icao": "EPJA",
+    "name": "Jastarnia",
+    "elevation": 3,
+    "lat": 54.7108,
+    "lon": 18.644167
+  },
+  {
+    "icao": "EPJG",
+    "name": "Jelenia Góra",
+    "elevation": 1122,
+    "lat": 50.89875,
+    "lon": 15.785167
+  },
+  {
+    "icao": "EPJL",
+    "name": "Laszki",
+    "elevation": 614,
+    "lat": 50.008333,
+    "lon": 22.918333
+  },
+  {
+    "icao": "EPJS",
+    "name": "Jeżów Sudecki",
+    "elevation": 1780,
+    "lat": 50.944033,
+    "lon": 15.766533
+  },
+  {
+    "icao": "EPKA",
+    "name": "Kielce-Masłów",
+    "elevation": 1010,
+    "lat": 50.896867,
+    "lon": 20.731367
+  },
+  {
+    "icao": "EPKB",
+    "name": "Kazimierz Biskupi",
+    "elevation": 362,
+    "lat": 52.319283,
+    "lon": 18.16695
+  },
+  {
+    "icao": "EPKC",
+    "name": "Rakowice-Czyżyny",
+    "elevation": 732,
+    "lat": 50.084283,
+    "lon": 19.9905
+  },
+  {
+    "icao": "EPKD",
+    "name": "Końskie-Komaszyce",
+    "elevation": 845,
+    "lat": 51.255417,
+    "lon": 20.471167
+  },
+  {
+    "icao": "EPKE",
+    "name": "Kętrzyn-Wilamowo",
+    "elevation": 456,
+    "lat": 54.046883,
+    "lon": 21.42645
+  },
+  {
+    "icao": "EPKG",
+    "name": "Bagicz",
+    "elevation": 17,
+    "lat": 54.200283,
+    "lon": 15.6842
+  },
+  {
+    "icao": "EPKI",
+    "name": "Kikity",
+    "elevation": 564,
+    "lat": 53.982833,
+    "lon": 20.876883
+  },
+  {
+    "icao": "EPKK",
+    "name": "Krakow",
+    "elevation": 791,
+    "lat": 50.0777,
+    "lon": 19.7848
+  },
+  {
+    "icao": "EPKL",
+    "name": "Krasocin",
+    "elevation": 820,
+    "lat": 50.899167,
+    "lon": 20.12755
+  },
+  {
+    "icao": "EPKM",
+    "name": "Katowice-Muchowiec",
+    "elevation": 909,
+    "lat": 50.2385,
+    "lon": 19.037167
+  },
+  {
+    "icao": "EPKN",
+    "name": "Kamień Śląski",
+    "elevation": 682,
+    "lat": 50.530367,
+    "lon": 18.0805
+  },
+  {
+    "icao": "EPKO",
+    "name": "Korne",
+    "elevation": 515,
+    "lat": 54.129717,
+    "lon": 17.845283
+  },
+  {
+    "icao": "EPKP",
+    "name": "Kraków-Pobiednik Wielki",
+    "elevation": 664,
+    "lat": 50.086383,
+    "lon": 20.202383
+  },
+  {
+    "icao": "EPKR",
+    "name": "Krosno",
+    "elevation": 919,
+    "lat": 49.679217,
+    "lon": 21.745
+  },
+  {
+    "icao": "EPKS",
+    "name": "Poznań-Krzesiny",
+    "elevation": 275,
+    "lat": 52.331917,
+    "lon": 16.966583
+  },
+  {
+    "icao": "EPKT",
+    "name": "Katowice",
+    "elevation": 995,
+    "lat": 50.4743,
+    "lon": 19.08
+  },
+  {
+    "icao": "EPKU",
+    "name": "Kukały",
+    "elevation": 423,
+    "lat": 51.875333,
+    "lon": 21.003083
+  },
+  {
+    "icao": "EPKW",
+    "name": "Kaniów",
+    "elevation": 833,
+    "lat": 49.940867,
+    "lon": 19.020883
+  },
+  {
+    "icao": "EPKZ",
+    "name": "Koszalin-Zegrze Pomorskie",
+    "elevation": 236,
+    "lat": 54.0423,
+    "lon": 16.263667
+  },
+  {
+    "icao": "EPLB",
+    "name": "Lublin",
+    "elevation": 633,
+    "lat": 51.2402,
+    "lon": 22.713467
+  },
+  {
+    "icao": "EPLE",
+    "name": "Legnica",
+    "elevation": 407,
+    "lat": 51.18275,
+    "lon": 16.178
+  },
+  {
+    "icao": "EPLI",
+    "name": "Linowiec",
+    "elevation": 335,
+    "lat": 54.007883,
+    "lon": 18.500083
+  },
+  {
+    "icao": "EPLK",
+    "name": "Łask",
+    "elevation": 627,
+    "lat": 51.5517,
+    "lon": 19.179033
+  },
+  {
+    "icao": "EPLL",
+    "name": "Łódź-Lublinek",
+    "elevation": 604,
+    "lat": 51.71995,
+    "lon": 19.38925
+  },
+  {
+    "icao": "EPLR",
+    "name": "Lublin-Radawiec",
+    "elevation": 787,
+    "lat": 51.222833,
+    "lon": 22.395667
+  },
+  {
+    "icao": "EPLS",
+    "name": "Leszno-Strzyżewice",
+    "elevation": 312,
+    "lat": 51.835283,
+    "lon": 16.522667
+  },
+  {
+    "icao": "EPLU",
+    "name": "Lubin",
+    "elevation": 507,
+    "lat": 51.423,
+    "lon": 16.196167
+  },
+  {
+    "icao": "EPLY",
+    "name": "Łęczyca",
+    "elevation": 380,
+    "lat": 52.005,
+    "lon": 19.143917
+  },
+  {
+    "icao": "EPMB",
+    "name": "Malbork",
+    "elevation": 20,
+    "lat": 54.02655,
+    "lon": 19.135717
+  },
+  {
+    "icao": "EPMG",
+    "name": "Mrągowo",
+    "elevation": 490,
+    "lat": 53.82525,
+    "lon": 21.3185
+  },
+  {
+    "icao": "EPMI",
+    "name": "Mirosławiec",
+    "elevation": 495,
+    "lat": 53.395033,
+    "lon": 16.08275
+  },
+  {
+    "icao": "EPML",
+    "name": "Mielec",
+    "elevation": 548,
+    "lat": 50.322283,
+    "lon": 21.46175
+  },
+  {
+    "icao": "EPMM",
+    "name": "Mińsk Mazowiecki",
+    "elevation": 604,
+    "lat": 52.19555,
+    "lon": 21.655883
+  },
+  {
+    "icao": "EPMO",
+    "name": "Modlin",
+    "elevation": 341,
+    "lat": 52.451217,
+    "lon": 20.651883
+  },
+  {
+    "icao": "EPMR",
+    "name": "Mirosławice",
+    "elevation": 561,
+    "lat": 50.959167,
+    "lon": 16.768633
+  },
+  {
+    "icao": "EPMX",
+    "name": "Milewo",
+    "elevation": 330,
+    "lat": 52.66655,
+    "lon": 20.428217
+  },
+  {
+    "icao": "EPMY",
+    "name": "Myślibórz-Giżyn",
+    "elevation": 230,
+    "lat": 52.94125,
+    "lon": 15.0298
+  },
+  {
+    "icao": "EPNA",
+    "name": "Nadarzyce",
+    "elevation": 410,
+    "lat": 53.454967,
+    "lon": 16.48995
+  },
+  {
+    "icao": "EPNC",
+    "name": "Chrcynno",
+    "elevation": 350,
+    "lat": 52.574,
+    "lon": 20.871917
+  },
+  {
+    "icao": "EPNL",
+    "name": "Nowy Sącz-Łososina Dolna",
+    "elevation": 833,
+    "lat": 49.7452,
+    "lon": 20.62325
+  },
+  {
+    "icao": "EPNM",
+    "name": "Nowe Miasto n.Pilicą",
+    "elevation": 510,
+    "lat": 51.627583,
+    "lon": 20.535833
+  },
+  {
+    "icao": "EPNT",
+    "name": "Nowy Targ",
+    "elevation": 2060,
+    "lat": 49.462833,
+    "lon": 20.050667
+  },
+  {
+    "icao": "EPOA",
+    "name": "Oleśnica",
+    "elevation": 522,
+    "lat": 51.214783,
+    "lon": 17.438083
+  },
+  {
+    "icao": "EPOD",
+    "name": "Olsztyn-Dajtki",
+    "elevation": 436,
+    "lat": 53.773883,
+    "lon": 20.4135
+  },
+  {
+    "icao": "EPOK",
+    "name": "Oksywie",
+    "elevation": 148,
+    "lat": 54.579633,
+    "lon": 18.517167
+  },
+  {
+    "icao": "EPOM",
+    "name": "Ostrów Wielkopolski-Michałków",
+    "elevation": 469,
+    "lat": 51.70075,
+    "lon": 17.846367
+  },
+  {
+    "icao": "EPOP",
+    "name": "Opole-Polska Nowa Wieś",
+    "elevation": 617,
+    "lat": 50.632167,
+    "lon": 17.780667
+  },
+  {
+    "icao": "EPPA",
+    "name": "Pawłowiczki",
+    "elevation": 818,
+    "lat": 50.24475,
+    "lon": 18.023617
+  },
+  {
+    "icao": "EPPB",
+    "name": "Poznań-Bednary",
+    "elevation": 370,
+    "lat": 52.5348,
+    "lon": 17.216133
+  },
+  {
+    "icao": "EPPC",
+    "name": "Pińczów",
+    "elevation": 610,
+    "lat": 50.517833,
+    "lon": 20.515967
+  },
+  {
+    "icao": "EPPG",
+    "name": "Kąkolewo",
+    "elevation": 300,
+    "lat": 52.235,
+    "lon": 16.241117
+  },
+  {
+    "icao": "EPPI",
+    "name": "Piła",
+    "elevation": 272,
+    "lat": 53.169633,
+    "lon": 16.71055
+  },
+  {
+    "icao": "EPPK",
+    "name": "Poznań-Kobylnica",
+    "elevation": 282,
+    "lat": 52.434417,
+    "lon": 17.0442
+  },
+  {
+    "icao": "EPPL",
+    "name": "Płock-Kostrogaj",
+    "elevation": 331,
+    "lat": 52.561917,
+    "lon": 19.720917
+  },
+  {
+    "icao": "EPPN",
+    "name": "Kępa",
+    "elevation": 330,
+    "lat": 52.723583,
+    "lon": 20.420083
+  },
+  {
+    "icao": "EPPO",
+    "name": "Poznan-Lawica",
+    "elevation": 308,
+    "lat": 52.421,
+    "lon": 16.8263
+  },
+  {
+    "icao": "EPPR",
+    "name": "Pruszcz Gdański",
+    "elevation": 16,
+    "lat": 54.247717,
+    "lon": 18.6745
+  },
+  {
+    "icao": "EPPS",
+    "name": "Śmiłowo",
+    "elevation": 290,
+    "lat": 53.144967,
+    "lon": 16.882033
+  },
+  {
+    "icao": "EPPT",
+    "name": "Piotrków Trybunalski",
+    "elevation": 640,
+    "lat": 51.38255,
+    "lon": 19.688533
+  },
+  {
+    "icao": "EPPW",
+    "name": "Powidz",
+    "elevation": 371,
+    "lat": 52.379033,
+    "lon": 17.852133
+  },
+  {
+    "icao": "EPPZ",
+    "name": "Przasnysz",
+    "elevation": 384,
+    "lat": 53.01105,
+    "lon": 20.9337
+  },
+  {
+    "icao": "EPRA",
+    "name": "Radom-Sadków",
+    "elevation": 610,
+    "lat": 51.388833,
+    "lon": 21.211617
+  },
+  {
+    "icao": "EPRG",
+    "name": "Rybnik-Gotartowice",
+    "elevation": 837,
+    "lat": 50.071,
+    "lon": 18.629167
+  },
+  {
+    "icao": "EPRJ",
+    "name": "Rzeszów-Aeroklub",
+    "elevation": 650,
+    "lat": 50.104167,
+    "lon": 22.047083
+  },
+  {
+    "icao": "EPRP",
+    "name": "Radom-Piastów",
+    "elevation": 460,
+    "lat": 51.479,
+    "lon": 21.109617
+  },
+  {
+    "icao": "EPRS",
+    "name": "Rybno",
+    "elevation": 280,
+    "lat": 52.242283,
+    "lon": 20.126533
+  },
+  {
+    "icao": "EPRU",
+    "name": "Częstochowa-Rudniki",
+    "elevation": 860,
+    "lat": 50.8848,
+    "lon": 19.203
+  },
+  {
+    "icao": "EPRZ",
+    "name": "Rzeszow-Jasionka",
+    "elevation": 693,
+    "lat": 50.11,
+    "lon": 22.019
+  },
+  {
+    "icao": "EPSC",
+    "name": "Szczecin-Goleniów",
+    "elevation": 154,
+    "lat": 53.584717,
+    "lon": 14.9022
+  },
+  {
+    "icao": "EPSD",
+    "name": "Szczecin-Dąbie",
+    "elevation": 3,
+    "lat": 53.3907,
+    "lon": 14.632417
+  },
+  {
+    "icao": "EPSI",
+    "name": "Sieradz",
+    "elevation": 450,
+    "lat": 51.535633,
+    "lon": 18.801383
+  },
+  {
+    "icao": "EPSJ",
+    "name": "Sobienie Szlacheckie",
+    "elevation": 315,
+    "lat": 51.952717,
+    "lon": 21.352617
+  },
+  {
+    "icao": "EPSK",
+    "name": "Słupsk-Krępa",
+    "elevation": 246,
+    "lat": 54.409333,
+    "lon": 17.095967
+  },
+  {
+    "icao": "EPSN",
+    "name": "Świdwin",
+    "elevation": 381,
+    "lat": 53.790617,
+    "lon": 15.82625
+  },
+  {
+    "icao": "EPSS",
+    "name": "Krzczonów",
+    "elevation": 823,
+    "lat": 50.817033,
+    "lon": 16.581967
+  },
+  {
+    "icao": "EPST",
+    "name": "Stalowa Wola-Turbia",
+    "elevation": 480,
+    "lat": 50.626383,
+    "lon": 21.99905
+  },
+  {
+    "icao": "EPSU",
+    "name": "Suwałki",
+    "elevation": 587,
+    "lat": 54.074167,
+    "lon": 22.893617
+  },
+  {
+    "icao": "EPSW",
+    "name": "Świdnik",
+    "elevation": 664,
+    "lat": 51.232417,
+    "lon": 22.691667
+  },
+  {
+    "icao": "EPSY",
+    "name": "Olsztyn-Mazury",
+    "elevation": 464,
+    "lat": 53.481883,
+    "lon": 20.9378
+  },
+  {
+    "icao": "EPTM",
+    "name": "Tomaszów Mazowiecki",
+    "elevation": 570,
+    "lat": 51.5845,
+    "lon": 20.0972
+  },
+  {
+    "icao": "EPTO",
+    "name": "Toruń",
+    "elevation": 164,
+    "lat": 53.029033,
+    "lon": 18.546883
+  },
+  {
+    "icao": "EPWA",
+    "name": "Warszawa Chopin",
+    "elevation": 362,
+    "lat": 52.1657,
+    "lon": 20.9671
+  },
+  {
+    "icao": "EPWC",
+    "name": "Świebodzice",
+    "elevation": 879,
+    "lat": 50.8823,
+    "lon": 16.3188
+  },
+  {
+    "icao": "EPWE",
+    "name": "Szprotawa",
+    "elevation": 420,
+    "lat": 51.560967,
+    "lon": 15.58505
+  },
+  {
+    "icao": "EPWI",
+    "name": "Wicko Morskie",
+    "elevation": 7,
+    "lat": 54.5535,
+    "lon": 16.618
+  },
+  {
+    "icao": "EPWK",
+    "name": "Włocławek-Kruszyn",
+    "elevation": 217,
+    "lat": 52.584417,
+    "lon": 19.0125
+  },
+  {
+    "icao": "EPWR",
+    "name": "Wrocław-Strachowice",
+    "elevation": 402,
+    "lat": 51.103883,
+    "lon": 16.881917
+  },
+  {
+    "icao": "EPWS",
+    "name": "Wrocław-Szymanów",
+    "elevation": 390,
+    "lat": 51.20705,
+    "lon": 16.9983
+  },
+  {
+    "icao": "EPWT",
+    "name": "Watorowo",
+    "elevation": 298,
+    "lat": 53.298467,
+    "lon": 18.4135
+  },
+  {
+    "icao": "EPXX",
+    "name": "Test Airport",
+    "elevation": 1000,
+    "lat": 51.7,
+    "lon": 19.5
+  },
+  {
+    "icao": "EPZA",
+    "name": "Zamość-Mokre",
+    "elevation": 712,
+    "lat": 50.700917,
+    "lon": 23.204833
+  },
+  {
+    "icao": "EPZB",
+    "name": "Zborowo",
+    "elevation": 268,
+    "lat": 52.36205,
+    "lon": 16.63875
+  },
+  {
+    "icao": "EPZE",
+    "name": "Żerniki",
+    "elevation": 261,
+    "lat": 52.3225,
+    "lon": 17.040833
+  },
+  {
+    "icao": "EPZG",
+    "name": "Zielona Góra-Babimost",
+    "elevation": 194,
+    "lat": 52.1385,
+    "lon": 15.79855
+  },
+  {
+    "icao": "EPZK",
+    "name": "Konopnica",
+    "elevation": 545,
+    "lat": 51.360467,
+    "lon": 18.8225
+  },
+  {
+    "icao": "EPZL",
+    "name": "Zdziar-Łopatki",
+    "elevation": 443,
+    "lat": 52.63555,
+    "lon": 20.070333
+  },
+  {
+    "icao": "EPZP",
+    "name": "Zielona Góra-Przylep",
+    "elevation": 253,
+    "lat": 51.979533,
+    "lon": 15.46405
+  },
+  {
+    "icao": "EPZR",
+    "name": "Żar",
+    "elevation": 1292,
+    "lat": 49.770967,
+    "lon": 19.218133
+  },
+  {
+    "icao": "EPZW",
+    "name": "Zawiszyn",
+    "elevation": 724,
+    "lat": 54.27795,
+    "lon": 22.53795
+  },
+  {
+    "icao": "EYAL",
+    "name": "Alytus",
+    "elevation": 266,
+    "lat": 54.414583,
+    "lon": 24.055533
+  },
+  {
+    "icao": "EYDR",
+    "name": "Druskininkai",
+    "elevation": 295,
+    "lat": 54.015,
+    "lon": 23.943917
+  },
+  {
+    "icao": "EYKS",
+    "name": "Kaunas-S.Darius and S.Girenas",
+    "elevation": 246,
+    "lat": 54.879867,
+    "lon": 23.881383
+  },
+  {
+    "icao": "EYMM",
+    "name": "Sasnava",
+    "elevation": 230,
+    "lat": 54.663533,
+    "lon": 23.4505
+  },
+  {
+    "icao": "EYRD",
+    "name": "Rūdiškės",
+    "elevation": 515,
+    "lat": 54.49595,
+    "lon": 24.718083
+  },
+  {
+    "icao": "EYVP",
+    "name": "Paluknys",
+    "elevation": 466,
+    "lat": 54.479167,
+    "lon": 24.987333
+  },
+  {
+    "icao": "JASO",
+    "name": "Jasło",
+    "elevation": 740,
+    "lat": 49.75275,
+    "lon": 21.51145
+  },
+  {
+    "icao": "LISY",
+    "name": "Lisy",
+    "elevation": 420,
+    "lat": 54.219667,
+    "lon": 22.04505
+  },
+  {
+    "icao": "LKBR",
+    "name": "Broumov Airfield",
+    "elevation": 1342,
+    "lat": 50.561901,
+    "lon": 16.3428
+  },
+  {
+    "icao": "LKDK",
+    "name": "Dvůr Králové nad Labem Airfield",
+    "elevation": 932,
+    "lat": 50.4142,
+    "lon": 15.8369
+  },
+  {
+    "icao": "LKFR",
+    "name": "Frýdlant Airfield",
+    "elevation": 1440,
+    "lat": 49.589401,
+    "lon": 18.3792
+  },
+  {
+    "icao": "LKHD",
+    "name": "Hodkovice nad Mohelkou Airfield",
+    "elevation": 1480,
+    "lat": 50.6572,
+    "lon": 15.0778
+  },
+  {
+    "icao": "LKHN",
+    "name": "Hranice Airfield",
+    "elevation": 797,
+    "lat": 49.5461,
+    "lon": 17.704399
+  },
+  {
+    "icao": "LKJA",
+    "name": "Jaroměř Airfield",
+    "elevation": 889,
+    "lat": 50.331402,
+    "lon": 15.9539
+  },
+  {
+    "icao": "LKKR",
+    "name": "Krnov Airfield",
+    "elevation": 1230,
+    "lat": 50.074407,
+    "lon": 17.695219
+  },
+  {
+    "icao": "LKLB",
+    "name": "Liberec Airfield",
+    "elevation": 1329,
+    "lat": 50.767053,
+    "lon": 15.023071
+  },
+  {
+    "icao": "LKMI",
+    "name": "Mikulovice Airfield",
+    "elevation": 1381,
+    "lat": 50.301701,
+    "lon": 17.297501
+  },
+  {
+    "icao": "LKMT",
+    "name": "Leoš Janáček Airport Ostrava",
+    "elevation": 844,
+    "lat": 49.696301,
+    "lon": 18.111099
+  },
+  {
+    "icao": "LKNM",
+    "name": "Nové Město nad Metují Airfield",
+    "elevation": 1001,
+    "lat": 50.364201,
+    "lon": 16.1136
+  },
+  {
+    "icao": "LKSU",
+    "name": "Šumperk Airfield",
+    "elevation": 1099,
+    "lat": 49.960602,
+    "lon": 17.017799
+  },
+  {
+    "icao": "LKUO",
+    "name": "Ústí Nad Orlicí Airfield",
+    "elevation": 1342,
+    "lat": 49.9786,
+    "lon": 16.426399
+  },
+  {
+    "icao": "LKVP",
+    "name": "Velké Poříčí Airfield",
+    "elevation": 1322,
+    "lat": 50.4678,
+    "lon": 16.205601
+  },
+  {
+    "icao": "LKVR",
+    "name": "Vrchlabí Airfield",
+    "elevation": 1611,
+    "lat": 50.624199,
+    "lon": 15.6464
+  },
+  {
+    "icao": "LKZA",
+    "name": "Zábřeh Dolní Benešov Airfield",
+    "elevation": 791,
+    "lat": 49.928258,
+    "lon": 18.075557
+  },
+  {
+    "icao": "LKZM",
+    "name": "Žamberk Airfield",
+    "elevation": 1411,
+    "lat": 50.0839,
+    "lon": 16.443899
+  },
+  {
+    "icao": "LZJS",
+    "name": "Jasná Airfield",
+    "elevation": 2103,
+    "lat": 49.047939,
+    "lon": 19.506791
+  },
+  {
+    "icao": "LZKC",
+    "name": "Kamenica nad Cirochou Airfield",
+    "elevation": 560,
+    "lat": 48.936242,
+    "lon": 21.994196
+  },
+  {
+    "icao": "LZMA",
+    "name": "Martin Airfield",
+    "elevation": 1381,
+    "lat": 49.0653,
+    "lon": 18.9508
+  },
+  {
+    "icao": "LZRU",
+    "name": "Ružomberok Airfield",
+    "elevation": 1617,
+    "lat": 49.085485,
+    "lon": 19.368584
+  },
+  {
+    "icao": "LZRY",
+    "name": "Ražňany Airfield",
+    "elevation": 1050,
+    "lat": 49.078056,
+    "lon": 21.099722
+  },
+  {
+    "icao": "LZSK",
+    "name": "Svidník Airfield",
+    "elevation": 1161,
+    "lat": 49.3339,
+    "lon": 21.570299
+  },
+  {
+    "icao": "LZSV",
+    "name": "Spišská Nová Ves Airfield",
+    "elevation": 1624,
+    "lat": 48.940833,
+    "lon": 20.533889
+  },
+  {
+    "icao": "LZTT",
+    "name": "Poprad-Tatry Airport",
+    "elevation": 2356,
+    "lat": 49.070994,
+    "lon": 20.241394
+  },
+  {
+    "icao": "LZZI",
+    "name": "Žilina-Dolný Hričov Airport",
+    "elevation": 1020,
+    "lat": 49.233292,
+    "lon": 18.613386
+  },
+  {
+    "icao": "NYSA",
+    "name": "Nysa",
+    "elevation": 710,
+    "lat": 50.471217,
+    "lon": 17.266967
+  },
+  {
+    "icao": "OBEZ",
+    "name": "Łobez",
+    "elevation": 315,
+    "lat": 53.609,
+    "lon": 15.689133
+  },
+  {
+    "icao": "OMZA",
+    "name": "Łomża",
+    "elevation": 300,
+    "lat": 53.179167,
+    "lon": 22.093917
+  },
+  {
+    "icao": "PCIN",
+    "name": "Pcin",
+    "elevation": 520,
+    "lat": 51.27945,
+    "lon": 21.564033
+  },
+  {
+    "icao": "RYKI",
+    "name": "Ryki",
+    "elevation": 540,
+    "lat": 51.627633,
+    "lon": 21.910867
+  },
+  {
+    "icao": "AGOWIEC",
+    "name": "Łagowiec",
+    "elevation": 240,
+    "lat": 52.334617,
+    "lon": 15.666
+  },
+  {
+    "icao": "AGOWO",
+    "name": "Łagowo",
+    "elevation": 344,
+    "lat": 51.9715,
+    "lon": 16.992
+  },
+  {
+    "icao": "AKTAGORNA",
+    "name": "Łąkta Górna",
+    "elevation": 1031,
+    "lat": 49.83325,
+    "lon": 20.410917
+  },
+  {
+    "icao": "ANNOWO",
+    "name": "Annowo",
+    "elevation": 350,
+    "lat": 52.802,
+    "lon": 17.88055
+  },
+  {
+    "icao": "ANTONOWO",
+    "name": "Antonowo",
+    "elevation": 390,
+    "lat": 54.058167,
+    "lon": 21.746917
+  },
+  {
+    "icao": "BARANOW",
+    "name": "Baranów",
+    "elevation": 295,
+    "lat": 52.122083,
+    "lon": 20.48175
+  },
+  {
+    "icao": "BARYTKZOTORYI",
+    "name": "Baryt k.Złotoryi",
+    "elevation": 1420,
+    "lat": 51.055533,
+    "lon": 16.01345
+  },
+  {
+    "icao": "BASKA",
+    "name": "Baška",
+    "elevation": 1096,
+    "lat": 49.64305,
+    "lon": 18.351583
+  },
+  {
+    "icao": "BEZMIECHOWA",
+    "name": "Bezmiechowa",
+    "elevation": 1475,
+    "lat": 49.5135,
+    "lon": 22.407633
+  },
+  {
+    "icao": "BIAOUSY",
+    "name": "Białousy",
+    "elevation": 560,
+    "lat": 53.405417,
+    "lon": 23.228833
+  },
+  {
+    "icao": "BIBIANOW",
+    "name": "Bibianów",
+    "elevation": 460,
+    "lat": 51.9455,
+    "lon": 19.257167
+  },
+  {
+    "icao": "BOBROWNIKI",
+    "name": "Bobrowniki",
+    "elevation": 280,
+    "lat": 52.065833,
+    "lon": 20.03155
+  },
+  {
+    "icao": "BOHUMIN",
+    "name": "Bohumin",
+    "elevation": 630,
+    "lat": 49.925883,
+    "lon": 18.378833
+  },
+  {
+    "icao": "BOJSZOWY",
+    "name": "Bojszowy",
+    "elevation": 785,
+    "lat": 50.049917,
+    "lon": 19.09445
+  },
+  {
+    "icao": "BORAWE",
+    "name": "Borawe",
+    "elevation": 325,
+    "lat": 52.995917,
+    "lon": 21.566617
+  },
+  {
+    "icao": "BORNESULINOWO",
+    "name": "Borne Sulinowo",
+    "elevation": 469,
+    "lat": 53.5762,
+    "lon": 16.5272
+  },
+  {
+    "icao": "BORONOW",
+    "name": "Boronów",
+    "elevation": 939,
+    "lat": 50.680583,
+    "lon": 18.915467
+  },
+  {
+    "icao": "BOZYKOWO",
+    "name": "Bożykowo",
+    "elevation": 491,
+    "lat": 54.074833,
+    "lon": 21.8348
+  },
+  {
+    "icao": "BRODY",
+    "name": "Brody",
+    "elevation": 480,
+    "lat": 53.360167,
+    "lon": 23.133133
+  },
+  {
+    "icao": "BRUZYCZKAMAA",
+    "name": "Brużyczka Mała",
+    "elevation": 592,
+    "lat": 51.848033,
+    "lon": 19.329167
+  },
+  {
+    "icao": "BRZEZINY",
+    "name": "Brzeziny",
+    "elevation": 640,
+    "lat": 51.80855,
+    "lon": 19.738383
+  },
+  {
+    "icao": "BUCHARZEWO",
+    "name": "Bucharzewo",
+    "elevation": 145,
+    "lat": 52.678417,
+    "lon": 16.11195
+  },
+  {
+    "icao": "BUDYCZARNOCKIE",
+    "name": "Budy Czarnockie",
+    "elevation": 480,
+    "lat": 53.223167,
+    "lon": 22.11645
+  },
+  {
+    "icao": "BUKOWINABOBRZANSKA",
+    "name": "Bukowina Bobrzańska",
+    "elevation": 460,
+    "lat": 51.606333,
+    "lon": 15.423383
+  },
+  {
+    "icao": "BYCHLEW",
+    "name": "Bychlew",
+    "elevation": 605,
+    "lat": 51.637833,
+    "lon": 19.346
+  },
+  {
+    "icao": "BYDGOSZCZAEROKLUB",
+    "name": "Bydgoszcz-Aeroklub",
+    "elevation": 205,
+    "lat": 53.106617,
+    "lon": 17.960917
+  },
+  {
+    "icao": "BYSTRZYCAKODZKA",
+    "name": "Bystrzyca Kłodzka",
+    "elevation": 1247,
+    "lat": 50.3088,
+    "lon": 16.645967
+  },
+  {
+    "icao": "CEREKIEW",
+    "name": "Cerekiew",
+    "elevation": 597,
+    "lat": 50.092917,
+    "lon": 20.500583
+  },
+  {
+    "icao": "CESKYDUB",
+    "name": "Český Dub",
+    "elevation": 1247,
+    "lat": 50.6782,
+    "lon": 14.99975
+  },
+  {
+    "icao": "CHALIN1",
+    "name": "Chalin 1",
+    "elevation": 287,
+    "lat": 52.58595,
+    "lon": 16.03355
+  },
+  {
+    "icao": "CHALIN2",
+    "name": "Chalin 2",
+    "elevation": 240,
+    "lat": 52.59005,
+    "lon": 16.023633
+  },
+  {
+    "icao": "CHEMZAKUCZWAY",
+    "name": "Chełmża-Kuczwały",
+    "elevation": 290,
+    "lat": 53.159,
+    "lon": 18.64225
+  },
+  {
+    "icao": "CHEMZYCA",
+    "name": "Chełmżyca",
+    "elevation": 323,
+    "lat": 53.67045,
+    "lon": 19.46075
+  },
+  {
+    "icao": "CHOBOT",
+    "name": "Chobot",
+    "elevation": 387,
+    "lat": 52.250383,
+    "lon": 21.40645
+  },
+  {
+    "icao": "CHOCIANOW",
+    "name": "Chocianów",
+    "elevation": 485,
+    "lat": 51.4278,
+    "lon": 15.918033
+  },
+  {
+    "icao": "CHOJNA",
+    "name": "Chojna",
+    "elevation": 161,
+    "lat": 52.939417,
+    "lon": 14.430917
+  },
+  {
+    "icao": "CHOJNICE",
+    "name": "Chojnice",
+    "elevation": 535,
+    "lat": 53.680333,
+    "lon": 17.533133
+  },
+  {
+    "icao": "CHROMNA",
+    "name": "Chromna",
+    "elevation": 538,
+    "lat": 52.109133,
+    "lon": 22.377383
+  },
+  {
+    "icao": "CHWAOWICE",
+    "name": "Chwałowice",
+    "elevation": 636,
+    "lat": 50.765917,
+    "lon": 21.896117
+  },
+  {
+    "icao": "CIESZKOWO",
+    "name": "Cieszkowo",
+    "elevation": 320,
+    "lat": 52.700417,
+    "lon": 20.278217
+  },
+  {
+    "icao": "CRUSSOW",
+    "name": "Crussow",
+    "elevation": 173,
+    "lat": 53.013167,
+    "lon": 14.071033
+  },
+  {
+    "icao": "CZAPLINEKBROCZYNO",
+    "name": "Czaplinek-Broczyno",
+    "elevation": 508,
+    "lat": 53.519717,
+    "lon": 16.283583
+  },
+  {
+    "icao": "CZAPLINEKMACHLINYD",
+    "name": "Czaplinek-Machliny DOL",
+    "elevation": 452,
+    "lat": 53.457383,
+    "lon": 16.372633
+  },
+  {
+    "icao": "CZARZERAFA",
+    "name": "Czarże-Rafa",
+    "elevation": 50,
+    "lat": 53.213167,
+    "lon": 18.2167
+  },
+  {
+    "icao": "CZECHY",
+    "name": "Czechy",
+    "elevation": 775,
+    "lat": 50.212383,
+    "lon": 20.15425
+  },
+  {
+    "icao": "CZERSKSWIECKI",
+    "name": "Czersk Świecki",
+    "elevation": 280,
+    "lat": 53.5762,
+    "lon": 18.485417
+  },
+  {
+    "icao": "CZESTOCHOWAKAWODRZ",
+    "name": "Częstochowa-Kawodrza",
+    "elevation": 876,
+    "lat": 50.7825,
+    "lon": 19.049367
+  },
+  {
+    "icao": "DABCZE",
+    "name": "Dąbcze",
+    "elevation": 322,
+    "lat": 51.81875,
+    "lon": 16.66
+  },
+  {
+    "icao": "DABROWAGORNICZAOSI",
+    "name": "Dąbrowa Górnicza-Łosień",
+    "elevation": 1170,
+    "lat": 50.35,
+    "lon": 19.309367
+  },
+  {
+    "icao": "DABROWNO",
+    "name": "Dąbrowno",
+    "elevation": 280,
+    "lat": 51.87895,
+    "lon": 15.919467
+  },
+  {
+    "icao": "DEBNICAKASZUBSKADO",
+    "name": "Dębnica Kaszubska DOL",
+    "elevation": 210,
+    "lat": 54.368533,
+    "lon": 17.21095
+  },
+  {
+    "icao": "DEBNODARGOMYSL",
+    "name": "Dębno-Dargomyśl",
+    "elevation": 170,
+    "lat": 52.720083,
+    "lon": 14.629333
+  },
+  {
+    "icao": "DEBNOKWOOWA",
+    "name": "Dębno k.Wołowa",
+    "elevation": 310,
+    "lat": 51.334667,
+    "lon": 16.518083
+  },
+  {
+    "icao": "DMOSIN",
+    "name": "Dmosin",
+    "elevation": 480,
+    "lat": 51.938083,
+    "lon": 19.77855
+  },
+  {
+    "icao": "DOBIESAWICE",
+    "name": "Dobiesławice",
+    "elevation": 592,
+    "lat": 50.224417,
+    "lon": 20.574033
+  },
+  {
+    "icao": "DONIMIERZ",
+    "name": "Donimierz",
+    "elevation": 578,
+    "lat": 54.486833,
+    "lon": 18.167333
+  },
+  {
+    "icao": "DRAHIMEK",
+    "name": "Drahimek",
+    "elevation": 445,
+    "lat": 53.615,
+    "lon": 16.185533
+  },
+  {
+    "icao": "DRUZCOVULIPY",
+    "name": "Druzcov U Lipy",
+    "elevation": 1509,
+    "lat": 50.72775,
+    "lon": 14.92475
+  },
+  {
+    "icao": "DYLEW",
+    "name": "Dylew",
+    "elevation": 452,
+    "lat": 51.716,
+    "lon": 20.771617
+  },
+  {
+    "icao": "DZIAYN",
+    "name": "Działyń",
+    "elevation": 367,
+    "lat": 52.603833,
+    "lon": 17.47695
+  },
+  {
+    "icao": "DZWONOSIERBOWICE",
+    "name": "Dzwono-Sierbowice",
+    "elevation": 1223,
+    "lat": 50.51075,
+    "lon": 19.648217
+  },
+  {
+    "icao": "FLYTEAMGORA",
+    "name": "FlyTeam Góra",
+    "elevation": 346,
+    "lat": 51.689583,
+    "lon": 16.498283
+  },
+  {
+    "icao": "FOLWARKPIASKI",
+    "name": "Folwark-Piaski",
+    "elevation": 387,
+    "lat": 52.479583,
+    "lon": 17.768283
+  },
+  {
+    "icao": "GNIEWSKIEPOLE",
+    "name": "Gniewskie Pole",
+    "elevation": 36,
+    "lat": 53.7908,
+    "lon": 18.862583
+  },
+  {
+    "icao": "GOCZAKOWICE",
+    "name": "Goczałkowice",
+    "elevation": 870,
+    "lat": 49.95245,
+    "lon": 18.94225
+  },
+  {
+    "icao": "GOLEDZINOW",
+    "name": "Golędzinów",
+    "elevation": 456,
+    "lat": 51.262833,
+    "lon": 16.921417
+  },
+  {
+    "icao": "GOLENIOWKLINISKADO",
+    "name": "Goleniów-Kliniska DOL",
+    "elevation": 50,
+    "lat": 53.427417,
+    "lon": 14.80555
+  },
+  {
+    "icao": "GORKI",
+    "name": "Górki",
+    "elevation": 515,
+    "lat": 50.372583,
+    "lon": 21.2897
+  },
+  {
+    "icao": "GOROWOIAWECKIEWOJM",
+    "name": "Górowo Iławeckie-Wojmiany",
+    "elevation": 473,
+    "lat": 54.306383,
+    "lon": 20.527217
+  },
+  {
+    "icao": "GORZOWWLKPROZANKI",
+    "name": "Gorzów Wlkp.-Różanki",
+    "elevation": 200,
+    "lat": 52.772367,
+    "lon": 15.307033
+  },
+  {
+    "icao": "GOZDNICA",
+    "name": "Gozdnica",
+    "elevation": 450,
+    "lat": 51.4608,
+    "lon": 15.106133
+  },
+  {
+    "icao": "GRABOWIEC",
+    "name": "Grabowiec",
+    "elevation": 330,
+    "lat": 51.901467,
+    "lon": 15.270717
+  },
+  {
+    "icao": "GREBISZEW",
+    "name": "Grębiszew",
+    "elevation": 440,
+    "lat": 52.1178,
+    "lon": 21.511083
+  },
+  {
+    "icao": "GRONENFELDE",
+    "name": "Gronenfelde",
+    "elevation": 212,
+    "lat": 52.364033,
+    "lon": 14.495
+  },
+  {
+    "icao": "HATUHLUCINA",
+    "name": "Hať u Hlučína",
+    "elevation": 774,
+    "lat": 49.95195,
+    "lon": 18.265383
+  },
+  {
+    "icao": "HERBURTOWO",
+    "name": "Herburtowo",
+    "elevation": 130,
+    "lat": 52.9022,
+    "lon": 16.129533
+  },
+  {
+    "icao": "HORODEK",
+    "name": "Horodek",
+    "elevation": 1600,
+    "lat": 49.351283,
+    "lon": 22.481883
+  },
+  {
+    "icao": "IZDEBNOKOSCIELNE",
+    "name": "Izdebno Kościelne",
+    "elevation": 300,
+    "lat": 52.122333,
+    "lon": 20.527167
+  },
+  {
+    "icao": "JAROSAWIECDOL",
+    "name": "Jarosławiec DOL",
+    "elevation": 17,
+    "lat": 54.52345,
+    "lon": 16.502
+  },
+  {
+    "icao": "JARYSZEWO",
+    "name": "Jaryszewo",
+    "elevation": 200,
+    "lat": 52.692667,
+    "lon": 16.607
+  },
+  {
+    "icao": "JASIENNA",
+    "name": "Jasienna",
+    "elevation": 1720,
+    "lat": 49.716467,
+    "lon": 20.812
+  },
+  {
+    "icao": "JASTRZABKADOL",
+    "name": "Jastrząbka DOL",
+    "elevation": 780,
+    "lat": 50.1008,
+    "lon": 21.2565
+  },
+  {
+    "icao": "JAWORZE",
+    "name": "Jaworze",
+    "elevation": 346,
+    "lat": 53.311583,
+    "lon": 15.711867
+  },
+  {
+    "icao": "KACZOWICE",
+    "name": "Kaczowice",
+    "elevation": 940,
+    "lat": 50.69095,
+    "lon": 17.109883
+  },
+  {
+    "icao": "KADUBIA",
+    "name": "Kadłubia",
+    "elevation": 510,
+    "lat": 51.657883,
+    "lon": 15.166383
+  },
+  {
+    "icao": "KALISKA",
+    "name": "Kaliska",
+    "elevation": 279,
+    "lat": 52.48125,
+    "lon": 16.020633
+  },
+  {
+    "icao": "KAMIENICASZLACHECK",
+    "name": "Kamienica Szlachecka",
+    "elevation": 716,
+    "lat": 54.26555,
+    "lon": 17.958333
+  },
+  {
+    "icao": "KAMIENSK",
+    "name": "Kamieńsk",
+    "elevation": 980,
+    "lat": 51.225667,
+    "lon": 19.42075
+  },
+  {
+    "icao": "KAMIONKANOWE",
+    "name": "Kamionka-Nowe",
+    "elevation": 294,
+    "lat": 53.676533,
+    "lon": 18.631333
+  },
+  {
+    "icao": "KAMIONNA",
+    "name": "Kamionna",
+    "elevation": 180,
+    "lat": 52.552967,
+    "lon": 15.946467
+  },
+  {
+    "icao": "KAMYK",
+    "name": "Kamyk",
+    "elevation": 770,
+    "lat": 50.894667,
+    "lon": 18.9988
+  },
+  {
+    "icao": "KANICECHOCIWDOL",
+    "name": "Kanice-Chociw DOL",
+    "elevation": 535,
+    "lat": 51.656367,
+    "lon": 20.274083
+  },
+  {
+    "icao": "KARCZEW",
+    "name": "Karczew",
+    "elevation": 290,
+    "lat": 52.080417,
+    "lon": 21.22745
+  },
+  {
+    "icao": "KARMINEK",
+    "name": "Karminek",
+    "elevation": 450,
+    "lat": 51.82795,
+    "lon": 17.686367
+  },
+  {
+    "icao": "KAWECZYN",
+    "name": "Kawęczyn",
+    "elevation": 519,
+    "lat": 51.8823,
+    "lon": 20.220783
+  },
+  {
+    "icao": "KAZIMIERZAMAA",
+    "name": "Kazimierza Mała",
+    "elevation": 615,
+    "lat": 50.2608,
+    "lon": 20.5407
+  },
+  {
+    "icao": "KEPNO",
+    "name": "Kępno",
+    "elevation": 620,
+    "lat": 51.322,
+    "lon": 17.972417
+  },
+  {
+    "icao": "KLCOV",
+    "name": "Klčov",
+    "elevation": 1587,
+    "lat": 48.994333,
+    "lon": 20.664867
+  },
+  {
+    "icao": "KLESZCZEWO",
+    "name": "Kleszczewo",
+    "elevation": 420,
+    "lat": 54.209917,
+    "lon": 18.524717
+  },
+  {
+    "icao": "KLUCZEWO",
+    "name": "Kluczewo",
+    "elevation": 76,
+    "lat": 53.280133,
+    "lon": 14.96725
+  },
+  {
+    "icao": "KOBIELSKORUPY",
+    "name": "Kołbiel-Skorupy",
+    "elevation": 415,
+    "lat": 52.0553,
+    "lon": 21.428667
+  },
+  {
+    "icao": "KOBUCK",
+    "name": "Kłobuck",
+    "elevation": 764,
+    "lat": 50.885,
+    "lon": 18.9572
+  },
+  {
+    "icao": "KOLONIA",
+    "name": "Kolonia",
+    "elevation": 460,
+    "lat": 53.576,
+    "lon": 21.272967
+  },
+  {
+    "icao": "KOLONIASOJA",
+    "name": "Kolonia Słoja",
+    "elevation": 670,
+    "lat": 53.332883,
+    "lon": 23.617583
+  },
+  {
+    "icao": "KONARY",
+    "name": "Konary",
+    "elevation": 225,
+    "lat": 52.287417,
+    "lon": 20.277417
+  },
+  {
+    "icao": "KONOPISKA",
+    "name": "Konopiska",
+    "elevation": 890,
+    "lat": 50.7397,
+    "lon": 19.008333
+  },
+  {
+    "icao": "KONOPKI",
+    "name": "Konopki",
+    "elevation": 400,
+    "lat": 52.988883,
+    "lon": 20.507633
+  },
+  {
+    "icao": "KONSTANCINJEZIORNA",
+    "name": "Konstancin Jeziorna",
+    "elevation": 260,
+    "lat": 52.076217,
+    "lon": 21.187867
+  },
+  {
+    "icao": "KOO",
+    "name": "Koło",
+    "elevation": 312,
+    "lat": 52.175133,
+    "lon": 18.6953
+  },
+  {
+    "icao": "KOSCIELECZKI",
+    "name": "Kościeleczki",
+    "elevation": 18,
+    "lat": 54.0647,
+    "lon": 19.004783
+  },
+  {
+    "icao": "KOSLINKA",
+    "name": "Koślinka",
+    "elevation": 125,
+    "lat": 53.963167,
+    "lon": 19.08175
+  },
+  {
+    "icao": "KRAPLEWICE",
+    "name": "Krąplewice",
+    "elevation": 280,
+    "lat": 53.512967,
+    "lon": 18.425
+  },
+  {
+    "icao": "KREPSKO",
+    "name": "Krępsko",
+    "elevation": 230,
+    "lat": 53.250533,
+    "lon": 16.7518
+  },
+  {
+    "icao": "KROSNIEWICE",
+    "name": "Krośniewice",
+    "elevation": 397,
+    "lat": 52.25555,
+    "lon": 19.151283
+  },
+  {
+    "icao": "KRUTECZEK",
+    "name": "Kruteczek",
+    "elevation": 213,
+    "lat": 52.834283,
+    "lon": 16.4572
+  },
+  {
+    "icao": "KRYNICEKOLONIA",
+    "name": "Krynice Kolonia",
+    "elevation": 580,
+    "lat": 53.23125,
+    "lon": 23.045217
+  },
+  {
+    "icao": "KRZESZYCE",
+    "name": "Krzeszyce",
+    "elevation": 30,
+    "lat": 52.59975,
+    "lon": 14.9955
+  },
+  {
+    "icao": "KRZYWA",
+    "name": "Krzywa",
+    "elevation": 670,
+    "lat": 51.309217,
+    "lon": 15.741383
+  },
+  {
+    "icao": "KSIEGINKI",
+    "name": "Księginki",
+    "elevation": 334,
+    "lat": 51.95645,
+    "lon": 17.07575
+  },
+  {
+    "icao": "KUCZYN",
+    "name": "Kuczyn",
+    "elevation": 396,
+    "lat": 52.721967,
+    "lon": 22.521883
+  },
+  {
+    "icao": "KURNATOWICE",
+    "name": "Kurnatowice",
+    "elevation": 280,
+    "lat": 52.592,
+    "lon": 16.086783
+  },
+  {
+    "icao": "KUTNO",
+    "name": "Kutno",
+    "elevation": 318,
+    "lat": 52.208583,
+    "lon": 19.390667
+  },
+  {
+    "icao": "KUZNIARACIBORSKA",
+    "name": "Kuźnia Raciborska",
+    "elevation": 640,
+    "lat": 50.221383,
+    "lon": 18.32555
+  },
+  {
+    "icao": "KVASINY",
+    "name": "Kvasiny",
+    "elevation": 1299,
+    "lat": 50.20445,
+    "lon": 16.2735
+  },
+  {
+    "icao": "LASOCIN",
+    "name": "Lasocin",
+    "elevation": 303,
+    "lat": 51.734417,
+    "lon": 15.6807
+  },
+  {
+    "icao": "LEDZIECHOWO",
+    "name": "Lędziechowo",
+    "elevation": 290,
+    "lat": 54.668583,
+    "lon": 17.743133
+  },
+  {
+    "icao": "LELOW",
+    "name": "Lelów",
+    "elevation": 840,
+    "lat": 50.708467,
+    "lon": 19.6398
+  },
+  {
+    "icao": "LEWICKIE",
+    "name": "Lewickie",
+    "elevation": 430,
+    "lat": 53.029083,
+    "lon": 23.134633
+  },
+  {
+    "icao": "LGOTAMUROWANA",
+    "name": "Lgota Murowana",
+    "elevation": 1200,
+    "lat": 50.526583,
+    "lon": 19.559833
+  },
+  {
+    "icao": "LIPINKIOSIEDOL",
+    "name": "Lipinki-Osie DOL",
+    "elevation": 277,
+    "lat": 53.608633,
+    "lon": 18.451583
+  },
+  {
+    "icao": "LIPKIWIELKIE",
+    "name": "Lipki Wielkie",
+    "elevation": 136,
+    "lat": 52.71575,
+    "lon": 15.5108
+  },
+  {
+    "icao": "LIPTOVSKYONDREJ",
+    "name": "Liptovský Ondrej",
+    "elevation": 2581,
+    "lat": 49.096033,
+    "lon": 19.7345
+  },
+  {
+    "icao": "LISEWO",
+    "name": "Lisewo",
+    "elevation": 360,
+    "lat": 52.6068,
+    "lon": 20.478333
+  },
+  {
+    "icao": "LIWJARNICE",
+    "name": "Liw-Jarnice",
+    "elevation": 384,
+    "lat": 52.36245,
+    "lon": 21.983467
+  },
+  {
+    "icao": "LIWKRYPY",
+    "name": "Liw-Krypy",
+    "elevation": 390,
+    "lat": 52.38825,
+    "lon": 21.988633
+  },
+  {
+    "icao": "LOMNICENADPOPELKOU",
+    "name": "Lomnice nad Popelkou",
+    "elevation": 1673,
+    "lat": 50.540217,
+    "lon": 15.387833
+  },
+  {
+    "icao": "MAJDANNOWY1",
+    "name": "Majdan Nowy 1",
+    "elevation": 660,
+    "lat": 50.4597,
+    "lon": 22.74655
+  },
+  {
+    "icao": "MAJDANNOWY2",
+    "name": "Majdan Nowy 2",
+    "elevation": 700,
+    "lat": 50.461667,
+    "lon": 22.76395
+  },
+  {
+    "icao": "MAJORY",
+    "name": "Majory",
+    "elevation": 550,
+    "lat": 51.4317,
+    "lon": 18.05845
+  },
+  {
+    "icao": "MAKOWICE",
+    "name": "Makowice",
+    "elevation": 154,
+    "lat": 53.760967,
+    "lon": 15.2903
+  },
+  {
+    "icao": "MARIANKA",
+    "name": "Marianka",
+    "elevation": 246,
+    "lat": 51.75775,
+    "lon": 14.7403
+  },
+  {
+    "icao": "MELLENTHIN",
+    "name": "Mellenthin",
+    "elevation": 66,
+    "lat": 53.9178,
+    "lon": 14.0322
+  },
+  {
+    "icao": "MIEDZNAZELEZNIKI",
+    "name": "Miedzna-Żeleźniki",
+    "elevation": 507,
+    "lat": 52.450967,
+    "lon": 22.093083
+  },
+  {
+    "icao": "MIEDZYRZECPODLASKI",
+    "name": "Międzyrzec Podlaski",
+    "elevation": 500,
+    "lat": 52.0175,
+    "lon": 22.734283
+  },
+  {
+    "icao": "MIEDZYRZECZ1",
+    "name": "Międzyrzecz 1",
+    "elevation": 164,
+    "lat": 52.441133,
+    "lon": 15.619633
+  },
+  {
+    "icao": "MIEDZYRZECZ2",
+    "name": "Międzyrzecz 2",
+    "elevation": 210,
+    "lat": 52.419217,
+    "lon": 15.580217
+  },
+  {
+    "icao": "MIEROSZOW",
+    "name": "Mieroszów",
+    "elevation": 1740,
+    "lat": 50.668,
+    "lon": 16.20425
+  },
+  {
+    "icao": "MIESZKOWICEDOL",
+    "name": "Mieszkowice DOL",
+    "elevation": 150,
+    "lat": 52.75075,
+    "lon": 14.511367
+  },
+  {
+    "icao": "MISTEK",
+    "name": "Místek",
+    "elevation": 1066,
+    "lat": 49.652,
+    "lon": 18.346033
+  },
+  {
+    "icao": "MOLENDY",
+    "name": "Molendy",
+    "elevation": 420,
+    "lat": 51.515033,
+    "lon": 21.613
+  },
+  {
+    "icao": "MORAVSKYBEROUN",
+    "name": "Moravský Beroun",
+    "elevation": 2218,
+    "lat": 49.786117,
+    "lon": 17.486117
+  },
+  {
+    "icao": "MOSTKI",
+    "name": "Mostki",
+    "elevation": 340,
+    "lat": 52.271167,
+    "lon": 15.372333
+  },
+  {
+    "icao": "MOSTOWODOL",
+    "name": "Mostowo DOL",
+    "elevation": 277,
+    "lat": 54.0695,
+    "lon": 16.536533
+  },
+  {
+    "icao": "MYSLECIN",
+    "name": "Myślęcin",
+    "elevation": 380,
+    "lat": 52.5377,
+    "lon": 17.485333
+  },
+  {
+    "icao": "NACHOD",
+    "name": "Náchod",
+    "elevation": 1444,
+    "lat": 50.41345,
+    "lon": 16.121083
+  },
+  {
+    "icao": "NADMA",
+    "name": "Nadma",
+    "elevation": 270,
+    "lat": 52.36375,
+    "lon": 21.171917
+  },
+  {
+    "icao": "NADOLNA",
+    "name": "Nadolna",
+    "elevation": 611,
+    "lat": 51.913333,
+    "lon": 19.85625
+  },
+  {
+    "icao": "NADRYBIE",
+    "name": "Nadrybie",
+    "elevation": 550,
+    "lat": 51.3503,
+    "lon": 23.025833
+  },
+  {
+    "icao": "NAKONADNOTECIA",
+    "name": "Nakło nad Notecią",
+    "elevation": 285,
+    "lat": 53.145783,
+    "lon": 17.5565
+  },
+  {
+    "icao": "NATOLIN",
+    "name": "Natolin",
+    "elevation": 790,
+    "lat": 51.01605,
+    "lon": 18.7545
+  },
+  {
+    "icao": "NIEBOROW",
+    "name": "Nieborów",
+    "elevation": 286,
+    "lat": 52.070117,
+    "lon": 20.06055
+  },
+  {
+    "icao": "NIEGOWONICZKI",
+    "name": "Niegowoniczki",
+    "elevation": 1043,
+    "lat": 50.372883,
+    "lon": 19.420533
+  },
+  {
+    "icao": "NOWAWIES",
+    "name": "Nowa Wieś",
+    "elevation": 400,
+    "lat": 51.802533,
+    "lon": 21.078667
+  },
+  {
+    "icao": "NOWECIN",
+    "name": "Nowęcin",
+    "elevation": 10,
+    "lat": 54.746417,
+    "lon": 17.601833
+  },
+  {
+    "icao": "NOWELASKIMIROSAWIE",
+    "name": "Nowe Laski-Mirosławiec DOL",
+    "elevation": 498,
+    "lat": 53.3853,
+    "lon": 16.1557
+  },
+  {
+    "icao": "NOWOGROD",
+    "name": "Nowogród",
+    "elevation": 320,
+    "lat": 53.24075,
+    "lon": 21.7105
+  },
+  {
+    "icao": "NOWYTOMYSL",
+    "name": "Nowy Tomyśl",
+    "elevation": 185,
+    "lat": 52.307617,
+    "lon": 16.1457
+  },
+  {
+    "icao": "OBORNIKI",
+    "name": "Oborniki",
+    "elevation": 204,
+    "lat": 52.666867,
+    "lon": 16.774417
+  },
+  {
+    "icao": "OLESZYCE",
+    "name": "Oleszyce",
+    "elevation": 768,
+    "lat": 50.1703,
+    "lon": 23.057717
+  },
+  {
+    "icao": "OLEWIN",
+    "name": "Olewin",
+    "elevation": 610,
+    "lat": 51.2145,
+    "lon": 18.63155
+  },
+  {
+    "icao": "OLSZANKA",
+    "name": "Olszanka",
+    "elevation": 530,
+    "lat": 52.149467,
+    "lon": 22.668633
+  },
+  {
+    "icao": "OMNICA",
+    "name": "Łomnica",
+    "elevation": 550,
+    "lat": 51.8198,
+    "lon": 21.8613
+  },
+  {
+    "icao": "OMZA2",
+    "name": "Łomża 2",
+    "elevation": 314,
+    "lat": 53.193883,
+    "lon": 22.048367
+  },
+  {
+    "icao": "OPAVA",
+    "name": "Opava",
+    "elevation": 873,
+    "lat": 49.940667,
+    "lon": 17.984917
+  },
+  {
+    "icao": "OPOLELUBELSKIE",
+    "name": "Opole Lubelskie",
+    "elevation": 475,
+    "lat": 51.146333,
+    "lon": 21.990917
+  },
+  {
+    "icao": "ORNETA",
+    "name": "Orneta",
+    "elevation": 175,
+    "lat": 54.128667,
+    "lon": 20.094533
+  },
+  {
+    "icao": "OSICE",
+    "name": "Łosice",
+    "elevation": 510,
+    "lat": 52.238367,
+    "lon": 22.711333
+  },
+  {
+    "icao": "OSIECZANY",
+    "name": "Osieczany",
+    "elevation": 884,
+    "lat": 49.848867,
+    "lon": 19.98755
+  },
+  {
+    "icao": "OSIECZNA",
+    "name": "Osieczna",
+    "elevation": 316,
+    "lat": 51.915883,
+    "lon": 16.708583
+  },
+  {
+    "icao": "OSIEK",
+    "name": "Osiek",
+    "elevation": 340,
+    "lat": 53.1847,
+    "lon": 19.390967
+  },
+  {
+    "icao": "OSTROWYOBODNODOL",
+    "name": "Ostrowy-Łobodno DOL",
+    "elevation": 822,
+    "lat": 50.960917,
+    "lon": 19.035133
+  },
+  {
+    "icao": "OWICZ",
+    "name": "Łowicz",
+    "elevation": 300,
+    "lat": 52.08405,
+    "lon": 19.859033
+  },
+  {
+    "icao": "OZAROW",
+    "name": "Ożarów",
+    "elevation": 592,
+    "lat": 50.9022,
+    "lon": 21.657
+  },
+  {
+    "icao": "PACOTOWO",
+    "name": "Pacółtowo",
+    "elevation": 645,
+    "lat": 53.53095,
+    "lon": 20.1537
+  },
+  {
+    "icao": "PAOWO",
+    "name": "Pałowo",
+    "elevation": 137,
+    "lat": 54.446333,
+    "lon": 16.81775
+  },
+  {
+    "icao": "PIENIEZNICA",
+    "name": "Pieniężnica",
+    "elevation": 530,
+    "lat": 53.871533,
+    "lon": 17.003083
+  },
+  {
+    "icao": "PIJANOW",
+    "name": "Pijanów",
+    "elevation": 774,
+    "lat": 51.028833,
+    "lon": 20.154667
+  },
+  {
+    "icao": "PISARZOWICE",
+    "name": "Pisarzowice",
+    "elevation": 885,
+    "lat": 51.149,
+    "lon": 15.233533
+  },
+  {
+    "icao": "PISZROSTKI",
+    "name": "Pisz-Rostki",
+    "elevation": 375,
+    "lat": 53.709083,
+    "lon": 21.90725
+  },
+  {
+    "icao": "POBIEROWOUKECINDOL",
+    "name": "Pobierowo-Łukęcin DOL",
+    "elevation": 52,
+    "lat": 54.045283,
+    "lon": 14.905083
+  },
+  {
+    "icao": "PODBORZE",
+    "name": "Podborze",
+    "elevation": 580,
+    "lat": 50.243717,
+    "lon": 21.3143
+  },
+  {
+    "icao": "PODTRZCIANNA",
+    "name": "Podtrzcianna",
+    "elevation": 425,
+    "lat": 51.922033,
+    "lon": 20.192833
+  },
+  {
+    "icao": "POKRZYWKI",
+    "name": "Pokrzywki",
+    "elevation": 355,
+    "lat": 53.307333,
+    "lon": 19.422917
+  },
+  {
+    "icao": "POLANKIOSIECKIE",
+    "name": "Polanki Osieckie",
+    "elevation": 437,
+    "lat": 51.988467,
+    "lon": 21.411
+  },
+  {
+    "icao": "POREBA",
+    "name": "Poręba",
+    "elevation": 1056,
+    "lat": 50.487717,
+    "lon": 19.376717
+  },
+  {
+    "icao": "POWODOWO",
+    "name": "Powodowo",
+    "elevation": 197,
+    "lat": 52.11725,
+    "lon": 16.04755
+  },
+  {
+    "icao": "PRABUTY",
+    "name": "Prabuty",
+    "elevation": 340,
+    "lat": 53.724867,
+    "lon": 19.206383
+  },
+  {
+    "icao": "PRUSZCZGDANSKIAERO",
+    "name": "Pruszcz Gdański-Aeroklub",
+    "elevation": 16,
+    "lat": 54.2518,
+    "lon": 18.670917
+  },
+  {
+    "icao": "PRZEDECZ",
+    "name": "Przedecz",
+    "elevation": 365,
+    "lat": 52.324083,
+    "lon": 18.90675
+  },
+  {
+    "icao": "PRZYBOROW",
+    "name": "Przyborów",
+    "elevation": 240,
+    "lat": 51.801967,
+    "lon": 15.801967
+  },
+  {
+    "icao": "PRZYTUY",
+    "name": "Przytuły",
+    "elevation": 330,
+    "lat": 53.117583,
+    "lon": 21.71675
+  },
+  {
+    "icao": "PRZYWIDZKATARYNKI",
+    "name": "Przywidz-Katarynki",
+    "elevation": 810,
+    "lat": 54.215533,
+    "lon": 18.33955
+  },
+  {
+    "icao": "PSTROKONIE",
+    "name": "Pstrokonie",
+    "elevation": 442,
+    "lat": 51.517633,
+    "lon": 18.875083
+  },
+  {
+    "icao": "RADZYNPODLASKIMARY",
+    "name": "Radzyń Podlaski-Marynin",
+    "elevation": 470,
+    "lat": 51.748117,
+    "lon": 22.629333
+  },
+  {
+    "icao": "RAWICZ",
+    "name": "Rawicz",
+    "elevation": 305,
+    "lat": 51.61525,
+    "lon": 16.904
+  },
+  {
+    "icao": "RECZAJE",
+    "name": "Ręczaje",
+    "elevation": 310,
+    "lat": 52.319667,
+    "lon": 21.324783
+  },
+  {
+    "icao": "REWALNINIKOWO",
+    "name": "Rewal-Ninikowo",
+    "elevation": 28,
+    "lat": 54.062883,
+    "lon": 15.029133
+  },
+  {
+    "icao": "ROBAKOWO",
+    "name": "Robakowo",
+    "elevation": 274,
+    "lat": 53.354467,
+    "lon": 18.66725
+  },
+  {
+    "icao": "ROGOZNO",
+    "name": "Rogóźno",
+    "elevation": 245,
+    "lat": 53.548283,
+    "lon": 18.9553
+  },
+  {
+    "icao": "ROSANOW",
+    "name": "Rosanów",
+    "elevation": 534,
+    "lat": 51.910583,
+    "lon": 19.39975
+  },
+  {
+    "icao": "ROSSOSZYCAWARTADOL",
+    "name": "Rossoszyca-Warta DOL",
+    "elevation": 449,
+    "lat": 51.703883,
+    "lon": 18.719
+  },
+  {
+    "icao": "RUDAKOSCIELNA",
+    "name": "Ruda Kościelna",
+    "elevation": 580,
+    "lat": 50.954367,
+    "lon": 21.529333
+  },
+  {
+    "icao": "RYKI2",
+    "name": "Ryki 2",
+    "elevation": 557,
+    "lat": 51.644383,
+    "lon": 21.947283
+  },
+  {
+    "icao": "RYPIN",
+    "name": "Rypin",
+    "elevation": 360,
+    "lat": 53.0473,
+    "lon": 19.425533
+  },
+  {
+    "icao": "RYSIE",
+    "name": "Rysie",
+    "elevation": 442,
+    "lat": 52.2203,
+    "lon": 21.473533
+  },
+  {
+    "icao": "RYTELUBOGA",
+    "name": "Rytel-Uboga",
+    "elevation": 405,
+    "lat": 53.7398,
+    "lon": 17.830967
+  },
+  {
+    "icao": "RZEDOWKTURAWY",
+    "name": "Rzędów k.Turawy",
+    "elevation": 580,
+    "lat": 50.759633,
+    "lon": 18.128783
+  },
+  {
+    "icao": "RZEPIN",
+    "name": "Rzepin",
+    "elevation": 150,
+    "lat": 52.32205,
+    "lon": 14.8105
+  },
+  {
+    "icao": "SADYKOLONIA",
+    "name": "Sady-Kolonia",
+    "elevation": 500,
+    "lat": 51.457667,
+    "lon": 20.6798
+  },
+  {
+    "icao": "SAPOLNO",
+    "name": "Sąpolno",
+    "elevation": 490,
+    "lat": 53.825333,
+    "lon": 17.3525
+  },
+  {
+    "icao": "SARZYNA",
+    "name": "Sarzyna",
+    "elevation": 543,
+    "lat": 50.363533,
+    "lon": 22.339033
+  },
+  {
+    "icao": "SASPOW",
+    "name": "Sąspów",
+    "elevation": 1490,
+    "lat": 50.2227,
+    "lon": 19.7848
+  },
+  {
+    "icao": "SAWNO",
+    "name": "Sławno",
+    "elevation": 100,
+    "lat": 54.393,
+    "lon": 16.682117
+  },
+  {
+    "icao": "SEDLISTE",
+    "name": "Sedliště",
+    "elevation": 1132,
+    "lat": 49.722117,
+    "lon": 18.37495
+  },
+  {
+    "icao": "SIEDLIKOW",
+    "name": "Siedlików",
+    "elevation": 575,
+    "lat": 51.477917,
+    "lon": 17.944133
+  },
+  {
+    "icao": "SIENSK",
+    "name": "Sieńsk",
+    "elevation": 190,
+    "lat": 51.86105,
+    "lon": 14.7937
+  },
+  {
+    "icao": "SKEPE",
+    "name": "Skępe",
+    "elevation": 340,
+    "lat": 52.83045,
+    "lon": 19.386917
+  },
+  {
+    "icao": "SKIERNIEWICEPSARY",
+    "name": "Skierniewice-Psary",
+    "elevation": 485,
+    "lat": 51.88605,
+    "lon": 20.325033
+  },
+  {
+    "icao": "SLEZSKAHARTA",
+    "name": "Slezská Harta",
+    "elevation": 1909,
+    "lat": 49.926833,
+    "lon": 17.5393
+  },
+  {
+    "icao": "SMARCHOWICEWIELKIE",
+    "name": "Smarchowice Wielkie",
+    "elevation": 500,
+    "lat": 51.053417,
+    "lon": 17.689417
+  },
+  {
+    "icao": "SMOLNIK",
+    "name": "Smolnik",
+    "elevation": 1950,
+    "lat": 49.281783,
+    "lon": 22.11875
+  },
+  {
+    "icao": "SNIATOWO",
+    "name": "Śniatowo",
+    "elevation": 30,
+    "lat": 53.8783,
+    "lon": 14.865167
+  },
+  {
+    "icao": "SOCHACZEW",
+    "name": "Sochaczew",
+    "elevation": 290,
+    "lat": 52.199383,
+    "lon": 20.286367
+  },
+  {
+    "icao": "SOLECKUJAWSKI",
+    "name": "Solec Kujawski",
+    "elevation": 110,
+    "lat": 53.0708,
+    "lon": 18.195633
+  },
+  {
+    "icao": "SOWINIEC",
+    "name": "Sowiniec",
+    "elevation": 190,
+    "lat": 52.237633,
+    "lon": 16.889383
+  },
+  {
+    "icao": "STARAWIES",
+    "name": "Stara Wieś",
+    "elevation": 1000,
+    "lat": 49.722967,
+    "lon": 22.025333
+  },
+  {
+    "icao": "STAREJUCHY",
+    "name": "Stare Juchy",
+    "elevation": 377,
+    "lat": 53.90725,
+    "lon": 22.233417
+  },
+  {
+    "icao": "STARYKRASZEW",
+    "name": "Stary Kraszew",
+    "elevation": 280,
+    "lat": 52.4123,
+    "lon": 21.249367
+  },
+  {
+    "icao": "STRASZEWY",
+    "name": "Straszewy",
+    "elevation": 530,
+    "lat": 53.154633,
+    "lon": 19.9135
+  },
+  {
+    "icao": "STROZE",
+    "name": "Stróże",
+    "elevation": 1300,
+    "lat": 49.679883,
+    "lon": 20.972533
+  },
+  {
+    "icao": "STRZEGOMSTAWISKA",
+    "name": "Strzegom-Stawiska",
+    "elevation": 760,
+    "lat": 50.928583,
+    "lon": 16.326917
+  },
+  {
+    "icao": "STRZELCEMAESZCZURO",
+    "name": "Strzelce Małe-Szczurowa",
+    "elevation": 578,
+    "lat": 50.118783,
+    "lon": 20.6025
+  },
+  {
+    "icao": "STUDENEC",
+    "name": "Studenec",
+    "elevation": 1804,
+    "lat": 50.54945,
+    "lon": 15.536117
+  },
+  {
+    "icao": "SULISZEW1",
+    "name": "Suliszew 1",
+    "elevation": 400,
+    "lat": 51.927283,
+    "lon": 20.275283
+  },
+  {
+    "icao": "SULISZEW2",
+    "name": "Suliszew 2",
+    "elevation": 430,
+    "lat": 51.927167,
+    "lon": 20.265
+  },
+  {
+    "icao": "SUMVALD",
+    "name": "Šumvald",
+    "elevation": 902,
+    "lat": 49.845283,
+    "lon": 17.1382
+  },
+  {
+    "icao": "SUPIADEBRZNODOL",
+    "name": "Słupia-Debrzno DOL",
+    "elevation": 528,
+    "lat": 53.571533,
+    "lon": 17.261883
+  },
+  {
+    "icao": "SWIEBODZIN",
+    "name": "Świebodzin",
+    "elevation": 252,
+    "lat": 52.252333,
+    "lon": 15.566917
+  },
+  {
+    "icao": "SWIETAKATARZYNA",
+    "name": "Święta Katarzyna",
+    "elevation": 415,
+    "lat": 51.016117,
+    "lon": 17.105
+  },
+  {
+    "icao": "SZABRUK",
+    "name": "Sząbruk",
+    "elevation": 407,
+    "lat": 53.7383,
+    "lon": 20.321667
+  },
+  {
+    "icao": "SZADEK",
+    "name": "Szadek",
+    "elevation": 548,
+    "lat": 51.70095,
+    "lon": 18.999617
+  },
+  {
+    "icao": "SZKLARKAPRZYGODZIC",
+    "name": "Szklarka Przygodzicka",
+    "elevation": 438,
+    "lat": 51.488167,
+    "lon": 17.79505
+  },
+  {
+    "icao": "SZORCE",
+    "name": "Szorce",
+    "elevation": 360,
+    "lat": 53.285383,
+    "lon": 22.6742
+  },
+  {
+    "icao": "TARNOW",
+    "name": "Tarnów",
+    "elevation": 676,
+    "lat": 50.001833,
+    "lon": 21.00425
+  },
+  {
+    "icao": "TCZEW",
+    "name": "Tczew",
+    "elevation": 4,
+    "lat": 54.106,
+    "lon": 18.75945
+  },
+  {
+    "icao": "TRNAVKA",
+    "name": "Trnávka",
+    "elevation": 919,
+    "lat": 49.691583,
+    "lon": 18.163917
+  },
+  {
+    "icao": "TROJCA",
+    "name": "Trójca",
+    "elevation": 705,
+    "lat": 51.152967,
+    "lon": 15.098367
+  },
+  {
+    "icao": "TRUSKOLASY",
+    "name": "Truskolasy",
+    "elevation": 981,
+    "lat": 50.8728,
+    "lon": 18.848783
+  },
+  {
+    "icao": "TRUTNOV",
+    "name": "Trutnov",
+    "elevation": 1490,
+    "lat": 50.567417,
+    "lon": 15.865383
+  },
+  {
+    "icao": "TRUTNOWO",
+    "name": "Trutnowo",
+    "elevation": 344,
+    "lat": 53.464533,
+    "lon": 18.09425
+  },
+  {
+    "icao": "TRZCIANO",
+    "name": "Trzciano",
+    "elevation": 243,
+    "lat": 53.809133,
+    "lon": 19.074967
+  },
+  {
+    "icao": "TRZEBICZNOWY",
+    "name": "Trzebicz Nowy",
+    "elevation": 157,
+    "lat": 52.799717,
+    "lon": 15.796833
+  },
+  {
+    "icao": "TRZEBIELINO",
+    "name": "Trzebielino",
+    "elevation": 289,
+    "lat": 54.210883,
+    "lon": 17.069417
+  },
+  {
+    "icao": "TUCZNO",
+    "name": "Tuczno",
+    "elevation": 319,
+    "lat": 53.207717,
+    "lon": 16.136133
+  },
+  {
+    "icao": "TUROSNKOSCIELNA",
+    "name": "Turośń Kościelna",
+    "elevation": 433,
+    "lat": 53.001033,
+    "lon": 23.0555
+  },
+  {
+    "icao": "TUSZOWNARODOWY",
+    "name": "Tuszów Narodowy",
+    "elevation": 500,
+    "lat": 50.37325,
+    "lon": 21.485467
+  },
+  {
+    "icao": "TWORZYJANOW",
+    "name": "Tworzyjanów",
+    "elevation": 577,
+    "lat": 50.922833,
+    "lon": 16.67895
+  },
+  {
+    "icao": "UEZ",
+    "name": "Ułęż",
+    "elevation": 560,
+    "lat": 51.619117,
+    "lon": 22.101417
+  },
+  {
+    "icao": "UKOWGREZOWKA",
+    "name": "Łuków-Gręzówka",
+    "elevation": 550,
+    "lat": 51.993867,
+    "lon": 22.322333
+  },
+  {
+    "icao": "WAGROWIECEGOWO",
+    "name": "Wągrowiec-Łęgowo",
+    "elevation": 270,
+    "lat": 52.775583,
+    "lon": 17.167117
+  },
+  {
+    "icao": "WALENDOW",
+    "name": "Walendów",
+    "elevation": 343,
+    "lat": 52.080667,
+    "lon": 20.853083
+  },
+  {
+    "icao": "WAOWICE",
+    "name": "Wałowice",
+    "elevation": 140,
+    "lat": 52.003533,
+    "lon": 14.7968
+  },
+  {
+    "icao": "WARKA",
+    "name": "Warka",
+    "elevation": 360,
+    "lat": 51.744583,
+    "lon": 21.202583
+  },
+  {
+    "icao": "WAYCZYK",
+    "name": "Wałyczyk",
+    "elevation": 285,
+    "lat": 53.243583,
+    "lon": 18.98625
+  },
+  {
+    "icao": "WEREMIEN",
+    "name": "Weremień",
+    "elevation": 1330,
+    "lat": 49.44595,
+    "lon": 22.31945
+  },
+  {
+    "icao": "WIECKOWY",
+    "name": "Więckowy",
+    "elevation": 517,
+    "lat": 54.062333,
+    "lon": 18.367583
+  },
+  {
+    "icao": "WIELBARKDOL",
+    "name": "Wielbark DOL",
+    "elevation": 439,
+    "lat": 53.3667,
+    "lon": 20.792617
+  },
+  {
+    "icao": "WIELKILUBIEN",
+    "name": "Wielki Lubień",
+    "elevation": 44,
+    "lat": 53.5277,
+    "lon": 18.733633
+  },
+  {
+    "icao": "WILCZELASKI",
+    "name": "Wilcze Laski",
+    "elevation": 525,
+    "lat": 53.59445,
+    "lon": 16.72405
+  },
+  {
+    "icao": "WILGA",
+    "name": "Wilga",
+    "elevation": 304,
+    "lat": 51.881333,
+    "lon": 21.369367
+  },
+  {
+    "icao": "WILKOWSREDZKI",
+    "name": "Wilków Średzki",
+    "elevation": 489,
+    "lat": 51.064283,
+    "lon": 16.699633
+  },
+  {
+    "icao": "WINCENTOW1",
+    "name": "Wincentów 1",
+    "elevation": 340,
+    "lat": 51.937833,
+    "lon": 21.164667
+  },
+  {
+    "icao": "WINCENTOW2",
+    "name": "Wincentów 2",
+    "elevation": 350,
+    "lat": 51.9398,
+    "lon": 21.148867
+  },
+  {
+    "icao": "WISNIEW",
+    "name": "Wiśniew",
+    "elevation": 500,
+    "lat": 52.080583,
+    "lon": 22.264
+  },
+  {
+    "icao": "WISZNICE",
+    "name": "Wisznice",
+    "elevation": 505,
+    "lat": 51.778783,
+    "lon": 23.166383
+  },
+  {
+    "icao": "WITNICA",
+    "name": "Witnica",
+    "elevation": 63,
+    "lat": 52.673217,
+    "lon": 14.869133
+  },
+  {
+    "icao": "WLEWSK",
+    "name": "Wlewsk",
+    "elevation": 530,
+    "lat": 53.275333,
+    "lon": 19.760533
+  },
+  {
+    "icao": "WOLAKORYTNICKA",
+    "name": "Wola Korytnicka",
+    "elevation": 450,
+    "lat": 52.412583,
+    "lon": 21.821617
+  },
+  {
+    "icao": "WOLAKRAKOWIANSKA1",
+    "name": "Wola Krakowiańska 1",
+    "elevation": 430,
+    "lat": 52.027117,
+    "lon": 20.807283
+  },
+  {
+    "icao": "WOLAKRAKOWIANSKA2",
+    "name": "Wola Krakowiańska 2",
+    "elevation": 430,
+    "lat": 52.02695,
+    "lon": 20.811217
+  },
+  {
+    "icao": "WOLICAUGOWA",
+    "name": "Wolica Ługowa",
+    "elevation": 700,
+    "lat": 50.0977,
+    "lon": 21.7255
+  },
+  {
+    "icao": "WRZESNIA",
+    "name": "Września",
+    "elevation": 346,
+    "lat": 52.3058,
+    "lon": 17.558383
+  },
+  {
+    "icao": "WYSOKA",
+    "name": "Wysoka",
+    "elevation": 250,
+    "lat": 52.762783,
+    "lon": 15.004383
+  },
+  {
+    "icao": "WYSZONOWICE",
+    "name": "Wyszonowice",
+    "elevation": 497,
+    "lat": 50.783467,
+    "lon": 17.161133
+  },
+  {
+    "icao": "ZABIAWOLA",
+    "name": "Żabia Wola",
+    "elevation": 470,
+    "lat": 52.038,
+    "lon": 20.678833
+  },
+  {
+    "icao": "ZAGAN",
+    "name": "Żagań",
+    "elevation": 500,
+    "lat": 51.6278,
+    "lon": 15.408033
+  },
+  {
+    "icao": "ZAJACZKOWO",
+    "name": "Zajączkowo",
+    "elevation": 290,
+    "lat": 53.21555,
+    "lon": 18.773333
+  },
+  {
+    "icao": "ZATOR",
+    "name": "Zator",
+    "elevation": 833,
+    "lat": 49.95995,
+    "lon": 19.402833
+  },
+  {
+    "icao": "ZBUCZYN",
+    "name": "Zbuczyn",
+    "elevation": 521,
+    "lat": 52.092583,
+    "lon": 22.414633
+  },
+  {
+    "icao": "ZERNICA",
+    "name": "Żernica",
+    "elevation": 1612,
+    "lat": 49.362417,
+    "lon": 22.330633
+  },
+  {
+    "icao": "ZOBEKMAY",
+    "name": "Żłobek Mały",
+    "elevation": 515,
+    "lat": 51.454617,
+    "lon": 23.542467
+  },
+  {
+    "icao": "ZODYN",
+    "name": "Żodyń",
+    "elevation": 181,
+    "lat": 52.116033,
+    "lon": 15.976917
+  },
+  {
+    "icao": "ZOFIANOW",
+    "name": "Zofianów",
+    "elevation": 540,
+    "lat": 51.7867,
+    "lon": 20.388833
+  },
+  {
+    "icao": "ZYROW",
+    "name": "Żyrów",
+    "elevation": 390,
+    "lat": 51.880083,
+    "lon": 20.965667
+  },
+  {
+    "icao": "ZYTNIOW",
+    "name": "Żytniów",
+    "elevation": 693,
+    "lat": 51.025467,
+    "lon": 18.553967
+  },
+  {
+    "icao": "ZYZDROJOWAWOLA",
+    "name": "Zyzdrojowa Wola",
+    "elevation": 450,
+    "lat": 53.657467,
+    "lon": 21.277417
+  },
+  {
+    "icao": "LKBA",
+    "name": "Břeclav Airfield",
+    "elevation": 531,
+    "lat": 48.790439,
+    "lon": 16.892531
+  },
+  {
+    "icao": "LKBE",
+    "name": "Benešov Airfield",
+    "elevation": 1319,
+    "lat": 49.740799,
+    "lon": 14.6447
+  },
+  {
+    "icao": "LKBO",
+    "name": "Bohuňovice Airfield",
+    "elevation": 771,
+    "lat": 49.670601,
+    "lon": 17.295
+  },
+  {
+    "icao": "LKBU",
+    "name": "Bubovice Airfield",
+    "elevation": 1401,
+    "lat": 49.9744,
+    "lon": 14.1781
+  },
+  {
+    "icao": "LKCB",
+    "name": "Cheb Airfield",
+    "elevation": 1585,
+    "lat": 50.066101,
+    "lon": 12.4117
+  },
+  {
+    "icao": "LKCE",
+    "name": "Česká Lípa Airfield",
+    "elevation": 932,
+    "lat": 50.7094,
+    "lon": 14.5667
+  },
+  {
+    "icao": "LKCH",
+    "name": "Chomutov Airfield",
+    "elevation": 1132,
+    "lat": 50.468899,
+    "lon": 13.4681
+  },
+  {
+    "icao": "LKCM",
+    "name": "Medlánky Airfield",
+    "elevation": 853,
+    "lat": 49.236698,
+    "lon": 16.555
+  },
+  {
+    "icao": "LKCR",
+    "name": "Chrudim Airfield",
+    "elevation": 981,
+    "lat": 49.936401,
+    "lon": 15.7806
+  },
+  {
+    "icao": "LKCS",
+    "name": "České Budějovice South Bohemian Airport",
+    "elevation": 1417,
+    "lat": 48.948171,
+    "lon": 14.42832
+  },
+  {
+    "icao": "LKCT",
+    "name": "Chotěboř Airfield",
+    "elevation": 1949,
+    "lat": 49.685799,
+    "lon": 15.6761
+  },
+  {
+    "icao": "LKCV",
+    "name": "Čáslav Air Base",
+    "elevation": 794,
+    "lat": 49.939701,
+    "lon": 15.3818
+  },
+  {
+    "icao": "LKER",
+    "name": "Erpužice Airfield",
+    "elevation": 1572,
+    "lat": 49.802799,
+    "lon": 13.0381
+  },
+  {
+    "icao": "LKHB",
+    "name": "Havlíčkův Brod Airfield",
+    "elevation": 1519,
+    "lat": 49.597198,
+    "lon": 15.5492
+  },
+  {
+    "icao": "LKHC",
+    "name": "Hořice Airfield",
+    "elevation": 922,
+    "lat": 50.3576,
+    "lon": 15.576983
+  },
+  {
+    "icao": "LKHK",
+    "name": "Hradec Králové Airport",
+    "elevation": 791,
+    "lat": 50.253201,
+    "lon": 15.8452
+  },
+  {
+    "icao": "LKHS",
+    "name": "Hosín Airfield",
+    "elevation": 1621,
+    "lat": 49.040001,
+    "lon": 14.495
+  },
+  {
+    "icao": "LKHV",
+    "name": "Hořovice Airfield",
+    "elevation": 1214,
+    "lat": 49.848099,
+    "lon": 13.8935
+  },
+  {
+    "icao": "LKJC",
+    "name": "Jičín Airfield",
+    "elevation": 863,
+    "lat": 50.43,
+    "lon": 15.3331
+  },
+  {
+    "icao": "LKJH",
+    "name": "Jindřichův Hradec Airfield",
+    "elevation": 1667,
+    "lat": 49.150682,
+    "lon": 14.972413
+  },
+  {
+    "icao": "LKJI",
+    "name": "Jihlava Airfield",
+    "elevation": 1821,
+    "lat": 49.419399,
+    "lon": 15.6353
+  },
+  {
+    "icao": "LKKA",
+    "name": "Křižanov Airfield",
+    "elevation": 1831,
+    "lat": 49.368301,
+    "lon": 16.1161
+  },
+  {
+    "icao": "LKKB",
+    "name": "Prague–Kbely Air Base",
+    "elevation": 939,
+    "lat": 50.121399,
+    "lon": 14.5436
+  },
+  {
+    "icao": "LKKC",
+    "name": "Kříženec Planá Airfield",
+    "elevation": 2076,
+    "lat": 49.870602,
+    "lon": 12.7725
+  },
+  {
+    "icao": "LKKL",
+    "name": "Kladno Airfield",
+    "elevation": 1421,
+    "lat": 50.112801,
+    "lon": 14.0897
+  },
+  {
+    "icao": "LKKM",
+    "name": "Kroměříž Airfield",
+    "elevation": 620,
+    "lat": 49.285599,
+    "lon": 17.4158
+  },
+  {
+    "icao": "LKKO",
+    "name": "Kolín Airfield",
+    "elevation": 932,
+    "lat": 50.0019,
+    "lon": 15.1733
+  },
+  {
+    "icao": "LKKT",
+    "name": "Klatovy Josef Hubáč Airfield",
+    "elevation": 1299,
+    "lat": 49.418301,
+    "lon": 13.3219
+  },
+  {
+    "icao": "LKKU",
+    "name": "Kunovice Airport",
+    "elevation": 581,
+    "lat": 49.0294,
+    "lon": 17.439699
+  },
+  {
+    "icao": "LKKV",
+    "name": "Karlovy Vary Airport",
+    "elevation": 1989,
+    "lat": 50.202999,
+    "lon": 12.915
+  },
+  {
+    "icao": "LKKY",
+    "name": "Kyjov Airfield",
+    "elevation": 689,
+    "lat": 48.98,
+    "lon": 17.124701
+  },
+  {
+    "icao": "LKLN",
+    "name": "Plzeň-Líně Airport",
+    "elevation": 1188,
+    "lat": 49.675201,
+    "lon": 13.2746
+  },
+  {
+    "icao": "LKLT",
+    "name": "Letňany Airfield",
+    "elevation": 909,
+    "lat": 50.131401,
+    "lon": 14.5256
+  },
+  {
+    "icao": "LKMB",
+    "name": "Mladá Boleslav Airfield",
+    "elevation": 781,
+    "lat": 50.3983,
+    "lon": 14.8983
+  },
+  {
+    "icao": "LKMH",
+    "name": "Mnichovo Hradiště Airport",
+    "elevation": 800,
+    "lat": 50.540199,
+    "lon": 15.0066
+  },
+  {
+    "icao": "LKMK",
+    "name": "Moravská Třebová Airfield",
+    "elevation": 1322,
+    "lat": 49.798302,
+    "lon": 16.687799
+  },
+  {
+    "icao": "LKMO",
+    "name": "Most Airfield",
+    "elevation": 1089,
+    "lat": 50.525002,
+    "lon": 13.6831
+  },
+  {
+    "icao": "LKNA",
+    "name": "Náměšť Air Base",
+    "elevation": 1548,
+    "lat": 49.166272,
+    "lon": 16.123981
+  },
+  {
+    "icao": "LKNY",
+    "name": "Nymburk Airfield",
+    "elevation": 607,
+    "lat": 50.169101,
+    "lon": 15.05245
+  },
+  {
+    "icao": "LKOL",
+    "name": "Olomouc Airport",
+    "elevation": 869,
+    "lat": 49.587712,
+    "lon": 17.209275
+  },
+  {
+    "icao": "LKOT",
+    "name": "Zlín Otrokovice Airfield",
+    "elevation": 600,
+    "lat": 49.198299,
+    "lon": 17.517799
+  },
+  {
+    "icao": "LKPA",
+    "name": "Polička Airfield",
+    "elevation": 1982,
+    "lat": 49.739399,
+    "lon": 16.2589
+  },
+  {
+    "icao": "LKPC",
+    "name": "Panensky Tynec Airfield",
+    "elevation": 1207,
+    "lat": 50.306099,
+    "lon": 13.9342
+  },
+  {
+    "icao": "LKPD",
+    "name": "Pardubice Airport",
+    "elevation": 741,
+    "lat": 50.015049,
+    "lon": 15.73981
+  },
+  {
+    "icao": "LKPI",
+    "name": "Přibyslav Airfield",
+    "elevation": 1739,
+    "lat": 49.580799,
+    "lon": 15.7628
+  },
+  {
+    "icao": "LKPJ",
+    "name": "Prostějov Airfield",
+    "elevation": 699,
+    "lat": 49.4478,
+    "lon": 17.1339
+  },
+  {
+    "icao": "LKPL",
+    "name": "Letkov Airfield",
+    "elevation": 1371,
+    "lat": 49.723099,
+    "lon": 13.4522
+  },
+  {
+    "icao": "LKPM",
+    "name": "Příbram Airfield",
+    "elevation": 1529,
+    "lat": 49.7201,
+    "lon": 14.1006
+  },
+  {
+    "icao": "LKPN",
+    "name": "Podhořany Airfield",
+    "elevation": 1250,
+    "lat": 49.939201,
+    "lon": 15.5497
+  },
+  {
+    "icao": "LKPO",
+    "name": "Přerov Air Base",
+    "elevation": 676,
+    "lat": 49.4258,
+    "lon": 17.404699
+  },
+  {
+    "icao": "LKPR",
+    "name": "Václav Havel Airport Prague",
+    "elevation": 1247,
+    "lat": 50.100874,
+    "lon": 14.259911
+  },
+  {
+    "icao": "LKPS",
+    "name": "Plasy Rybnice Airfield",
+    "elevation": 1430,
+    "lat": 49.9203,
+    "lon": 13.3769
+  },
+  {
+    "icao": "LKRA",
+    "name": "Rana Loumy Airfield",
+    "elevation": 879,
+    "lat": 50.4039,
+    "lon": 13.7519
+  },
+  {
+    "icao": "LKRK",
+    "name": "Rakovnik Airfield",
+    "elevation": 1270,
+    "lat": 50.0942,
+    "lon": 13.6889
+  },
+  {
+    "icao": "LKRO",
+    "name": "Roudnice nad Labem Airfield",
+    "elevation": 732,
+    "lat": 50.410186,
+    "lon": 14.22708
+  },
+  {
+    "icao": "LKRY",
+    "name": "Rokycany Airfield",
+    "elevation": 1329,
+    "lat": 49.751944,
+    "lon": 13.589722
+  },
+  {
+    "icao": "LKSA",
+    "name": "Staňkov Airfield",
+    "elevation": 1404,
+    "lat": 49.566515,
+    "lon": 13.04867
+  },
+  {
+    "icao": "LKSB",
+    "name": "Stichovice Pluml Airfield",
+    "elevation": 840,
+    "lat": 49.48739,
+    "lon": 17.05261
+  },
+  {
+    "icao": "LKSK",
+    "name": "Skuteč Airfield",
+    "elevation": 1601,
+    "lat": 49.827801,
+    "lon": 16.0058
+  },
+  {
+    "icao": "LKSN",
+    "name": "Slaný Airfield",
+    "elevation": 1079,
+    "lat": 50.21639,
+    "lon": 14.087845
+  },
+  {
+    "icao": "LKSO",
+    "name": "Soběslav Airfield",
+    "elevation": 1342,
+    "lat": 49.2455,
+    "lon": 14.712993
+  },
+  {
+    "icao": "LKSR",
+    "name": "Prachatice Airfield",
+    "elevation": 1572,
+    "lat": 49.0825,
+    "lon": 14.0758
+  },
+  {
+    "icao": "LKST",
+    "name": "Strakonice Airfield",
+    "elevation": 1381,
+    "lat": 49.251701,
+    "lon": 13.8928
+  },
+  {
+    "icao": "LKSZ",
+    "name": "Sazená Airfield",
+    "elevation": 761,
+    "lat": 50.324699,
+    "lon": 14.2589
+  },
+  {
+    "icao": "LKTA",
+    "name": "Tábor Airfield",
+    "elevation": 1440,
+    "lat": 49.391102,
+    "lon": 14.7083
+  },
+  {
+    "icao": "LKTB",
+    "name": "Brno-Tuřany Airport",
+    "elevation": 778,
+    "lat": 49.151276,
+    "lon": 16.693972
+  },
+  {
+    "icao": "LKTC",
+    "name": "Točná Airfield",
+    "elevation": 1027,
+    "lat": 49.985435,
+    "lon": 14.426465
+  },
+  {
+    "icao": "LKTD",
+    "name": "Tachov Airfield",
+    "elevation": 1640,
+    "lat": 49.797223,
+    "lon": 12.707169
+  },
+  {
+    "icao": "LKTO",
+    "name": "Toužim Airfield",
+    "elevation": 2139,
+    "lat": 50.086399,
+    "lon": 12.9528
+  },
+  {
+    "icao": "LKUL",
+    "name": "Usti Nad Labem Airfield",
+    "elevation": 791,
+    "lat": 50.699699,
+    "lon": 13.9697
+  },
+  {
+    "icao": "LKVL",
+    "name": "Vlašim Airfield",
+    "elevation": 1421,
+    "lat": 49.728901,
+    "lon": 14.8789
+  },
+  {
+    "icao": "LKVM",
+    "name": "Vysoké Mýto Airfield",
+    "elevation": 991,
+    "lat": 49.928102,
+    "lon": 16.185029
+  },
+  {
+    "icao": "LKVO",
+    "name": "Vodochody Airport",
+    "elevation": 919,
+    "lat": 50.216599,
+    "lon": 14.3958
+  },
+  {
+    "icao": "LKVY",
+    "name": "Letiště Vyškov",
+    "elevation": 922,
+    "lat": 49.300301,
+    "lon": 17.025299
+  },
+  {
+    "icao": "LKZB",
+    "name": "Zbraslavice Airfield",
+    "elevation": 1621,
+    "lat": 49.814201,
+    "lon": 15.2017
+  },
+  {
+    "icao": "LKZD",
+    "name": "Žatec-Macerka Airfield",
+    "elevation": 879,
+    "lat": 50.317501,
+    "lon": 13.5128
+  },
+  {
+    "icao": "LKZN",
+    "name": "Znojmo Airfield",
+    "elevation": 830,
+    "lat": 48.817744,
+    "lon": 16.065831
+  },
+  {
+    "icao": "LZBD",
+    "name": "Bidovce Airfield",
+    "elevation": 984,
+    "lat": 48.743186,
+    "lon": 21.448205
+  },
+  {
+    "icao": "LZDB",
+    "name": "Slávnica-Dubnica nad Váhom Airfield",
+    "elevation": 771,
+    "lat": 48.996899,
+    "lon": 18.1922
+  },
+  {
+    "icao": "LZDV",
+    "name": "Dubová Airstrip",
+    "elevation": 634,
+    "lat": 48.347019,
+    "lon": 17.356583
+  },
+  {
+    "icao": "LZHL",
+    "name": "Holič Airfield",
+    "elevation": 520,
+    "lat": 48.8103,
+    "lon": 17.1338
+  },
+  {
+    "icao": "LZIB",
+    "name": "M. R. Štefánik Airport",
+    "elevation": 436,
+    "lat": 48.1702,
+    "lon": 17.2127
+  },
+  {
+    "icao": "LZKZ",
+    "name": "Košice International Airport",
+    "elevation": 755,
+    "lat": 48.663101,
+    "lon": 21.2411
+  },
+  {
+    "icao": "LZLU",
+    "name": "Lučenec Airfield",
+    "elevation": 0,
+    "lat": 48.339401,
+    "lon": 19.7358
+  },
+  {
+    "icao": "LZMC",
+    "name": "Malacky/Kuchyňa Air Base",
+    "elevation": 679,
+    "lat": 48.402,
+    "lon": 17.118401
+  },
+  {
+    "icao": "LZNI",
+    "name": "Nitra Airfield",
+    "elevation": 440,
+    "lat": 48.2794,
+    "lon": 18.132799
+  },
+  {
+    "icao": "LZNZ",
+    "name": "Nové Zámky Airfield",
+    "elevation": 377,
+    "lat": 47.961944,
+    "lon": 18.184444
+  },
+  {
+    "icao": "LZOC",
+    "name": "Očová Airfield",
+    "elevation": 1191,
+    "lat": 48.595333,
+    "lon": 19.265806
+  },
+  {
+    "icao": "LZPE",
+    "name": "Prievidza Airfield",
+    "elevation": 850,
+    "lat": 48.766102,
+    "lon": 18.5867
+  },
+  {
+    "icao": "LZPP",
+    "name": "Piešťany Airport",
+    "elevation": 545,
+    "lat": 48.62519836425781,
+    "lon": 17.828399658203125
+  },
+  {
+    "icao": "LZPT",
+    "name": "Male Bielice-Partizánske Airfield",
+    "elevation": 600,
+    "lat": 48.619202,
+    "lon": 18.3297
+  },
+  {
+    "icao": "LZPW",
+    "name": "Prešov Air Base",
+    "elevation": 1060,
+    "lat": 49.02970123291,
+    "lon": 21.315599441528
+  },
+  {
+    "icao": "LZSE",
+    "name": "Senica Airfield",
+    "elevation": 610,
+    "lat": 48.657927,
+    "lon": 17.329459
+  },
+  {
+    "icao": "LZSL",
+    "name": "Sliač Airport",
+    "elevation": 1043,
+    "lat": 48.63779830932617,
+    "lon": 19.13409996032715
+  },
+  {
+    "icao": "LZSY",
+    "name": "Šurany Airfield",
+    "elevation": 394,
+    "lat": 48.075971,
+    "lon": 18.114002
+  },
+  {
+    "icao": "LZTN",
+    "name": "Trenčín Airfield",
+    "elevation": 676,
+    "lat": 48.865171,
+    "lon": 18.000147
+  },
+  {
+    "icao": "LZTR",
+    "name": "Trnava Airfield",
+    "elevation": 656,
+    "lat": 48.451959,
+    "lon": 17.531818
+  }
+]

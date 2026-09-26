@@ -1,0 +1,30 @@
+name: SwiftUI build and calculation tests
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/swiftui-native]
+    paths:
+      - 'nordsweet-swift/**'
+      - '.github/workflows/ios-check.yml'
+permissions:
+  contents: read
+concurrency:
+  group: swiftui-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  validate:
+    runs-on: macos-15
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Find native project and validate
+        shell: bash
+        run: |
+          if [ -d nordsweet-swift ]; then cd nordsweet-swift; fi
+          bash scripts/verify-macos.sh
+      - name: Keep simulator application
+        uses: actions/upload-artifact@v4
+        with:
+          name: Nordsweet-simulator
+          path: '**/build/DerivedData/Build/Products/Debug-iphonesimulator/Nordsweet.app'
+          if-no-files-found: error

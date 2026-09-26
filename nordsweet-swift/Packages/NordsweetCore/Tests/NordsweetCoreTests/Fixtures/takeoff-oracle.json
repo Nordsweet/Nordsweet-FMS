@@ -1,0 +1,122 @@
+[
+  {
+    "weight": 930,
+    "altitude": 0,
+    "temperature": 15,
+    "headwind": 0,
+    "paved": false,
+    "slope": 0,
+    "groundRollM": 146,
+    "obstacle50ftM": 190
+  },
+  {
+    "weight": 930,
+    "altitude": 1750,
+    "temperature": 22,
+    "headwind": 8,
+    "paved": true,
+    "slope": 1,
+    "groundRollM": 174.699,
+    "obstacle50ftM": 238
+  },
+  {
+    "weight": 930,
+    "altitude": 6000,
+    "temperature": -5,
+    "headwind": -5,
+    "paved": false,
+    "slope": 0,
+    "groundRollM": 299,
+    "obstacle50ftM": 376
+  },
+  {
+    "weight": 930,
+    "altitude": 10000,
+    "temperature": 35,
+    "headwind": 0,
+    "paved": true,
+    "slope": 2,
+    "groundRollM": 625.5699999999999,
+    "obstacle50ftM": 792
+  },
+  {
+    "weight": 1110,
+    "altitude": 0,
+    "temperature": 15,
+    "headwind": 0,
+    "paved": false,
+    "slope": 0,
+    "groundRollM": 313,
+    "obstacle50ftM": 417
+  },
+  {
+    "weight": 1110,
+    "altitude": 1750,
+    "temperature": 22,
+    "headwind": 8,
+    "paved": true,
+    "slope": 1,
+    "groundRollM": 399.735,
+    "obstacle50ftM": 565
+  },
+  {
+    "weight": 1110,
+    "altitude": 6000,
+    "temperature": -5,
+    "headwind": -5,
+    "paved": false,
+    "slope": 0,
+    "groundRollM": 586,
+    "obstacle50ftM": 787
+  },
+  {
+    "weight": 1110,
+    "altitude": 10000,
+    "temperature": 35,
+    "headwind": 0,
+    "paved": true,
+    "slope": 2,
+    "groundRollM": 1453.804,
+    "obstacle50ftM": 1934
+  },
+  {
+    "weight": 1290,
+    "altitude": 0,
+    "temperature": 15,
+    "headwind": 0,
+    "paved": false,
+    "slope": 0,
+    "groundRollM": 313,
+    "obstacle50ftM": 417
+  },
+  {
+    "weight": 1290,
+    "altitude": 1750,
+    "temperature": 22,
+    "headwind": 8,
+    "paved": true,
+    "slope": 1,
+    "groundRollM": 399.735,
+    "obstacle50ftM": 565
+  },
+  {
+    "weight": 1290,
+    "altitude": 6000,
+    "temperature": -5,
+    "headwind": -5,
+    "paved": false,
+    "slope": 0,
+    "groundRollM": 586,
+    "obstacle50ftM": 787
+  },
+  {
+    "weight": 1290,
+    "altitude": 10000,
+    "temperature": 35,
+    "headwind": 0,
+    "paved": true,
+    "slope": 2,
+    "groundRollM": 1453.804,
+    "obstacle50ftM": 1934
+  }
+]
