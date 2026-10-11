@@ -33,7 +33,8 @@ export const placeSchema = z.object({
 });
 
 export const placesResponseSchema = z.object({
-  places: z.array(placeSchema.extend({ distance_nm: z.number() })),
+  /** null when the request had no lat/lon. */
+  places: z.array(placeSchema.extend({ distance_nm: z.number().nullable() })),
   sources: sourcesSchema,
 });
 

@@ -7,7 +7,6 @@ import {
   airportResponseSchema,
   airspaceResponseSchema,
   atisResponseSchema,
-  type Place,
   type PlaceKind,
   placesResponseSchema,
   sourcesSchema,
@@ -82,12 +81,13 @@ export const aviationApi = {
     }),
   activations: (plan: AirspacePlan = "current") =>
     get("/airspace/activations", activationsResponseSchema, { plan }),
+  /** Without lat/lon: every place in the API's coverage. */
   places: ({
     lat,
     lon,
     radiusNm,
     kinds,
-  }: Around & { kinds?: readonly PlaceKind[] }) =>
+  }: Partial<Around> & { kinds?: readonly PlaceKind[] }) =>
     get("/places", placesResponseSchema, {
       lat,
       lon,
@@ -95,35 +95,3 @@ export const aviationApi = {
       kind: kinds,
     }),
 };
-
-/**
- * Centres of 250 NM circles that together cover Poland, Czechia and Slovakia (the API's coverage).
- * The service only answers radius queries, so the whole region is fetched as a few tiles.
- */
-const REGION_TILES = [
-  { lat: 54.0, lon: 16.0 },
-  { lat: 52.0, lon: 19.4 },
-  { lat: 50.5, lon: 23.0 },
-  { lat: 49.8, lon: 15.5 },
-  { lat: 48.7, lon: 19.5 },
-] as const;
-
-export async function placesInRegion(
-  kinds?: readonly PlaceKind[],
-): Promise<Place[]> {
-  const responses = await Promise.all(
-    REGION_TILES.map((tile) =>
-      aviationApi.places({ ...tile, radiusNm: 250, kinds }),
-    ),
-  );
-  const unique = new Map<string, Place>();
-  for (const { places } of responses) {
-    for (const { distance_nm: _distance, ...place } of places) {
-      unique.set(
-        `${place.kind}|${place.code ?? place.name}|${place.lat}|${place.lon}`,
-        place,
-      );
-    }
-  }
-  return [...unique.values()];
-}

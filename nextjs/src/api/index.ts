@@ -1,11 +1,6 @@
 import { queryOptions } from "@tanstack/react-query";
 
-import {
-  type AirspacePlan,
-  type Around,
-  aviationApi,
-  placesInRegion,
-} from "./aviation/client";
+import { type AirspacePlan, type Around, aviationApi } from "./aviation/client";
 import { loadDataset } from "./datasets";
 import { cachedRemote } from "./remote-cache";
 import { findAirport, searchAirports, searchNavpoints } from "./search";
@@ -43,8 +38,10 @@ const reference = { staleTime: Infinity };
 const live = (staleTime: number) => ({ staleTime });
 
 const loadVfrPoints = () =>
-  cachedRemote("aviation-api.vfr-points.v1", 24 * HOUR, async () =>
-    (await placesInRegion(["vfr_point"])).map(vfrPointToNavpoint),
+  cachedRemote("aviation-api.vfr-points.v2", 24 * HOUR, async () =>
+    (await aviationApi.places({ kinds: ["vfr_point"] })).places.map(
+      vfrPointToNavpoint,
+    ),
   );
 
 type Search = { query: string; limit?: number };
