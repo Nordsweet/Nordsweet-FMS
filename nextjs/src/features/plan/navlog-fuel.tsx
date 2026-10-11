@@ -18,7 +18,7 @@ export function NavLogSection() {
         </p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full text-sm tabular-nums">
+          <table className="w-full min-w-[34rem] text-sm tabular-nums">
             <thead className="text-muted-foreground text-left">
               <tr>
                 <th className="py-1 font-medium">{t("plan.navlog.leg")}</th>

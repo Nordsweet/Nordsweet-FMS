@@ -16,6 +16,7 @@ function createQueryClient() {
     defaultOptions: {
       // Offline-first: serve cached data when there is no network, keep it for a day.
       queries: {
+        retry: 1, // offline should show "unavailable" quickly, not after 3 back-off retries
         gcTime: DAY_MS,
         staleTime: 60_000,
         networkMode: "offlineFirst",
