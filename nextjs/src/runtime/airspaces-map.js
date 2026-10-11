@@ -85,16 +85,6 @@ await loadScript("./traffic-proxy-config.js");
         embeddedLayersPanel: document.getElementById("embeddedLayersPanel"),
         trafficStatus: document.getElementById("trafficStatus"),
         trafficAttribution: document.getElementById("trafficAttribution"),
-        safeSkyTrafficApiKey: document.getElementById("safeSkyTrafficApiKey"),
-        saveSafeSkyTrafficApiKeyBtn: document.getElementById("saveSafeSkyTrafficApiKeyBtn"),
-        clearSafeSkyTrafficApiKeyBtn: document.getElementById("clearSafeSkyTrafficApiKeyBtn"),
-        safeSkyTrafficStatus: document.getElementById("safeSkyTrafficStatus"),
-        safeSkyTrafficAttribution: document.getElementById("safeSkyTrafficAttribution"),
-        safeSkyApiKey: document.getElementById("safeSkyApiKey"),
-        saveSafeSkyApiKeyBtn: document.getElementById("saveSafeSkyApiKeyBtn"),
-        clearSafeSkyApiKeyBtn: document.getElementById("clearSafeSkyApiKeyBtn"),
-        droneStatus: document.getElementById("droneStatus"),
-        droneAttribution: document.getElementById("droneAttribution")
       };
 
       const AIRSPACE_TYPE_FILTERS = ["FIS", "R", "P", "CTR", "MCTR", "TMA", "ADIZ", "MTMA", "ATZ", "D", "TRA", "TSA", "RMZ", "TMZ", "OTHER"];
@@ -107,10 +97,6 @@ await loadScript("./traffic-proxy-config.js");
       const MS_PER_HOUR = 3600000;
       const ADSB_TRAFFIC_API = "https://opendata.adsb.fi/api/v3";
       const AIRPLANES_LIVE_TRAFFIC_API = "https://api.airplanes.live/v2";
-      const SAFE_SKY_PUBLIC_TRAFFIC_API = "https://public-api.safesky.app/v1/beacons";
-      const SAFE_SKY_UAV_API = "https://uav-api.safesky.app/v1/uav";
-      const SAFE_SKY_PUBLIC_API_KEY_STORAGE_KEY = "nordsweet-safesky-public-api-key";
-      const SAFE_SKY_API_KEY_STORAGE_KEY = "nordsweet-safesky-uav-api-key";
       const LOCAL_TRAFFIC_SERVER_URL = String(window.NORDSWEET_TRAFFIC_SERVER_URL || "").trim();
       const ADSB_TRAFFIC_PROXY_URL = String(window.NORDSWEET_TRAFFIC_PROXY_URL || "").trim();
       const TRAFFIC_REFRESH_MS = 15000;
@@ -182,7 +168,7 @@ await loadScript("./traffic-proxy-config.js");
       }
 
       function hasEnabledTrafficLayers() {
-        return Boolean(state.layers.traffic || state.layers.drones);
+        return Boolean(state.layers.traffic);
       }
 
       function applyStartupMapParams() {
@@ -246,8 +232,6 @@ await loadScript("./traffic-proxy-config.js");
           navaids: true,
           route: true,
           traffic: true,
-          safeSkyTraffic: false,
-          drones: false
         },
         typeFilters: new Set(AIRSPACE_TYPE_FILTERS),
         activeTab: "route",
@@ -263,7 +247,6 @@ await loadScript("./traffic-proxy-config.js");
         routeCruiseSpeedKt: 0,
         trafficMenuDrag: null,
         trafficMenuPosition: null,
-        safeSkyTrafficError: "",
         routeInputSynced: true,
         tileCache: new Map(),
         googleSessions: {},
@@ -282,15 +265,6 @@ await loadScript("./traffic-proxy-config.js");
           error: "",
           sourceName: "",
           sourceHref: ""
-        },
-        drones: {
-          aircraft: [],
-          fetchedAt: 0,
-          lastRequestAt: 0,
-          lastQuery: null,
-          pending: false,
-          abortController: null,
-          error: ""
         },
         gps: {
           browserFix: null,
@@ -1545,8 +1519,6 @@ await loadScript("./traffic-proxy-config.js");
             adsbfi: "ADSB.fi",
             airplaneslive: "Airplanes.live",
             ogn: "SeeYou Navigator / OGN/FLARM",
-            safesky: "SafeSky",
-            safeskyuav: "SafeSky UAV"
           };
           return Array.from(new Set(source.split("+")
             .map((part) => part.trim().toLowerCase())
@@ -1638,7 +1610,7 @@ await loadScript("./traffic-proxy-config.js");
 
       function isDroneTraffic(traffic) {
         const sourceParts = String(traffic && traffic.source || "").toLowerCase().split("+");
-        return sourceParts.includes("safeskyuav") || String(traffic && traffic.type || "").trim().toUpperCase() === "UAV";
+        return String(traffic && traffic.type || "").trim().toUpperCase() === "UAV";
       }
 
       function getTrafficPositionSourceLabel(traffic) {
@@ -2367,71 +2339,11 @@ await loadScript("./traffic-proxy-config.js");
         return Array.from(uniqueAircraft.values());
       }
 
-      function normalizeSafeSkyDronePayload(payload) {
-        const rows = Array.isArray(payload) ? payload : trafficRowsFromPayload(payload);
-        const drones = new Map();
-        rows.forEach((row) => {
-          if (String(row && row.beacon_type || "").trim().toUpperCase() !== "UAV") return;
-          const altitudeMeters = toFiniteTrafficNumber(row && row.altitude);
-          const verticalRateMetersPerSecond = toFiniteTrafficNumber(row && row.vertical_rate);
-          const aircraft = normalizeTrafficAircraft({
-            id: "SAFE-SKY-UAV-" + String(row && row.id || "unknown"),
-            lat: row && row.latitude,
-            lon: row && row.longitude,
-            altitudeFt: altitudeMeters === -9999 || !Number.isFinite(altitudeMeters) ? null : altitudeMeters * 3.28084,
-            speedKt: (toFiniteTrafficNumber(row && row.ground_speed) || 0) * MPS_TO_KT,
-            trackDeg: row && row.course,
-            callsign: row && row.call_sign,
-            displayName: String(row && (row.call_sign || row.id) || "UAV").trim().toUpperCase(),
-            type: "UAV",
-            verticalRateFpm: Number.isFinite(verticalRateMetersPerSecond) ? verticalRateMetersPerSecond * 196.8504 : null,
-            sampledAt: normalizeTrafficTimestamp(row && row.last_update),
-            source: "safeskyuav",
-            sourceLabel: "SafeSky UAV",
-            addressType: String(row && (row.remote_id || row.id) || "").trim(),
-            status: row && row.status
-          });
-          if (aircraft) drones.set(aircraft.id, aircraft);
-        });
-        return Array.from(drones.values());
-      }
 
-      function normalizeSafeSkyTrafficPayload(payload) {
-        const rows = Array.isArray(payload) ? payload : trafficRowsFromPayload(payload);
-        const traffic = new Map();
-        rows.forEach((row) => {
-          // Advisory UAVs describe an operating area, not a live position. They
-          // must not be rendered as moving aircraft symbols.
-          if (String(row && row.transponder_type || "").trim().toUpperCase() === "ADVISORY") return;
-          const altitudeMeters = toFiniteTrafficNumber(row && row.altitude);
-          const verticalRateMetersPerSecond = toFiniteTrafficNumber(row && row.vertical_rate);
-          const sourceId = String(row && row.id || "unknown").trim().toUpperCase();
-          const aircraft = normalizeTrafficAircraft({
-            id: "SAFE-SKY-" + sourceId,
-            hex: /^[0-9A-F]{6}$/.test(sourceId) ? sourceId : "",
-            lat: row && row.latitude,
-            lon: row && row.longitude,
-            altitudeFt: altitudeMeters === -9999 || !Number.isFinite(altitudeMeters) ? null : altitudeMeters * 3.28084,
-            speedKt: (toFiniteTrafficNumber(row && row.ground_speed) || 0) * MPS_TO_KT,
-            trackDeg: row && row.course,
-            callsign: row && row.call_sign,
-            displayName: String(row && (row.call_sign || sourceId) || "SafeSky").trim().toUpperCase(),
-            type: row && row.beacon_type,
-            verticalRateFpm: Number.isFinite(verticalRateMetersPerSecond) ? verticalRateMetersPerSecond * 196.8504 : null,
-            sampledAt: normalizeTrafficTimestamp(row && row.last_update),
-            positionSource: row && row.transponder_type,
-            source: "safesky",
-            sourceLabel: "SafeSky"
-          });
-          if (aircraft) traffic.set(aircraft.id, aircraft);
-        });
-        return Array.from(traffic.values());
-      }
 
       function allTrafficAircraft() {
         const aircraft = state.layers.traffic ? state.traffic.aircraft : [];
-        const drones = state.layers.drones ? state.drones.aircraft : [];
-        return aircraft.concat(drones);
+        return aircraft;
       }
 
       function refreshSelectedTrafficFromSources() {
@@ -2450,7 +2362,6 @@ await loadScript("./traffic-proxy-config.js");
       function trafficSampledAt(traffic, now) {
         const sampledAt = Number(traffic && traffic.sampledAt);
         if (Number.isFinite(sampledAt)) return sampledAt;
-        if (isDroneTraffic(traffic)) return state.drones.fetchedAt || state.traffic.fetchedAt || now;
         return state.traffic.fetchedAt || now;
       }
 
@@ -2732,147 +2643,13 @@ await loadScript("./traffic-proxy-config.js");
         refs.trafficStatus.style.color = "";
       }
 
-      function readSafeSkyTrafficApiKey() {
-        try {
-          return String(localStorage.getItem(SAFE_SKY_PUBLIC_API_KEY_STORAGE_KEY) || "").trim();
-        } catch (error) {
-          return "";
-        }
-      }
 
-      function updateSafeSkyTrafficStatus() {
-        if (!refs.safeSkyTrafficStatus) return;
-        if (!state.layers.safeSkyTraffic) {
-          refs.safeSkyTrafficStatus.textContent = "SafeSky traffic: off";
-          refs.safeSkyTrafficStatus.style.color = "";
-          return;
-        }
-        if (!state.layers.traffic) {
-          refs.safeSkyTrafficStatus.textContent = "SafeSky traffic: wlacz Live traffic";
-          refs.safeSkyTrafficStatus.style.color = "#a81731";
-          return;
-        }
-        if (!readSafeSkyTrafficApiKey()) {
-          refs.safeSkyTrafficStatus.textContent = "SafeSky traffic: podaj API key";
-          refs.safeSkyTrafficStatus.style.color = "#a81731";
-          return;
-        }
-        if (state.safeSkyTrafficError) {
-          refs.safeSkyTrafficStatus.textContent = "SafeSky traffic: " + state.safeSkyTrafficError;
-          refs.safeSkyTrafficStatus.style.color = "#a81731";
-          return;
-        }
-        if (state.traffic.pending) {
-          refs.safeSkyTrafficStatus.textContent = "SafeSky traffic: updating...";
-          refs.safeSkyTrafficStatus.style.color = "";
-          return;
-        }
-        if (String(state.traffic.sourceName || "").toLowerCase() === "safesky") {
-          refs.safeSkyTrafficStatus.textContent = "SafeSky traffic: active";
-          refs.safeSkyTrafficStatus.style.color = "";
-          return;
-        }
-        refs.safeSkyTrafficStatus.textContent = "SafeSky traffic: waiting for update";
-        refs.safeSkyTrafficStatus.style.color = "";
-      }
 
-      function saveSafeSkyTrafficApiKey() {
-        const key = String(refs.safeSkyTrafficApiKey && refs.safeSkyTrafficApiKey.value || "").trim();
-        let storageFailed = false;
-        try {
-          if (key) localStorage.setItem(SAFE_SKY_PUBLIC_API_KEY_STORAGE_KEY, key);
-          else localStorage.removeItem(SAFE_SKY_PUBLIC_API_KEY_STORAGE_KEY);
-        } catch (error) {
-          storageFailed = true;
-          state.safeSkyTrafficError = "local storage unavailable";
-        }
-        if (!storageFailed) state.safeSkyTrafficError = "";
-        updateSafeSkyTrafficStatus();
-        if (state.layers.safeSkyTraffic && state.layers.traffic) {
-          void refreshTraffic();
-        }
-      }
 
-      function clearSafeSkyTrafficApiKey() {
-        if (refs.safeSkyTrafficApiKey) refs.safeSkyTrafficApiKey.value = "";
-        try {
-          localStorage.removeItem(SAFE_SKY_PUBLIC_API_KEY_STORAGE_KEY);
-        } catch (error) {
-          // The UI remains usable if storage is unavailable.
-        }
-        state.safeSkyTrafficError = "";
-        updateSafeSkyTrafficStatus();
-        if (state.layers.safeSkyTraffic && state.layers.traffic) {
-          void refreshTraffic();
-        }
-      }
 
-      function readSafeSkyApiKey() {
-        try {
-          return String(localStorage.getItem(SAFE_SKY_API_KEY_STORAGE_KEY) || "").trim();
-        } catch (error) {
-          return "";
-        }
-      }
 
-      function updateDroneStatus() {
-        if (!refs.droneStatus) return;
-        if (!state.layers.drones) {
-          refs.droneStatus.textContent = "SafeSky UAV: off";
-          refs.droneStatus.style.color = "";
-          return;
-        }
-        if (!readSafeSkyApiKey()) {
-          refs.droneStatus.textContent = "SafeSky UAV: podaj API key";
-          refs.droneStatus.style.color = "#a81731";
-          return;
-        }
-        if (state.drones.pending) {
-          refs.droneStatus.textContent = "SafeSky UAV: updating...";
-          refs.droneStatus.style.color = "";
-          return;
-        }
-        if (state.drones.error) {
-          refs.droneStatus.textContent = "SafeSky UAV: " + state.drones.error;
-          refs.droneStatus.style.color = "#a81731";
-          return;
-        }
-        const ageSeconds = Math.max(0, Math.floor((Date.now() - state.drones.fetchedAt) / 1000));
-        refs.droneStatus.textContent = "SafeSky UAV: " + state.drones.aircraft.length + " drones / " + ageSeconds + " s";
-        refs.droneStatus.style.color = "";
-      }
 
-      function saveSafeSkyApiKey() {
-        const key = String(refs.safeSkyApiKey && refs.safeSkyApiKey.value || "").trim();
-        let storageFailed = false;
-        try {
-          if (key) localStorage.setItem(SAFE_SKY_API_KEY_STORAGE_KEY, key);
-          else localStorage.removeItem(SAFE_SKY_API_KEY_STORAGE_KEY);
-        } catch (error) {
-          storageFailed = true;
-          state.drones.error = "local storage unavailable";
-        }
-        if (!storageFailed) state.drones.error = "";
-        updateDroneStatus();
-        if (state.layers.drones) {
-          void refreshDroneTraffic();
-        }
-      }
 
-      function clearSafeSkyApiKey() {
-        if (refs.safeSkyApiKey) refs.safeSkyApiKey.value = "";
-        try {
-          localStorage.removeItem(SAFE_SKY_API_KEY_STORAGE_KEY);
-        } catch (error) {
-          // The UI stays usable even if browser storage is unavailable.
-        }
-        if (state.drones.abortController) state.drones.abortController.abort();
-        state.drones.aircraft = [];
-        state.drones.error = "";
-        updateDroneStatus();
-        refreshSelectedTrafficFromSources();
-        renderMap();
-      }
 
       function scheduleTrafficRefresh(delayMs) {
         if (!hasEnabledTrafficLayers()) return;
@@ -2893,20 +2670,6 @@ await loadScript("./traffic-proxy-config.js");
 
       function trafficEndpointCandidatesForQuery(query) {
         const candidates = [];
-        const safeSkyApiKey = readSafeSkyTrafficApiKey();
-        const safeSkyQuery = safeSkyViewportQuery();
-        if (state.layers.safeSkyTraffic && safeSkyApiKey && safeSkyQuery) {
-          const safeSkyUrl = new URL(SAFE_SKY_PUBLIC_TRAFFIC_API);
-          safeSkyUrl.searchParams.set("viewport", safeSkyQuery.viewport);
-          safeSkyUrl.searchParams.set("show_grounded", "false");
-          candidates.push({
-            sourceName: "SafeSky",
-            attributionUrl: "https://docs.safesky.app/books/safesky-public-api-for-traffic/page/6-beacon-api",
-            url: safeSkyUrl.toString(),
-            headers: { "x-api-key": safeSkyApiKey },
-            normalizePayload: normalizeSafeSkyTrafficPayload
-          });
-        }
         if (LOCAL_TRAFFIC_SERVER_URL) {
           candidates.push({
             sourceName: "Local traffic",
@@ -2929,80 +2692,10 @@ await loadScript("./traffic-proxy-config.js");
         return candidates;
       }
 
-      function safeSkyViewportQuery() {
-        const viewport = state.viewport;
-        if (!viewport) return null;
-        const corners = [
-          viewport.unproject(0, 0),
-          viewport.unproject(viewport.width, 0),
-          viewport.unproject(0, viewport.height),
-          viewport.unproject(viewport.width, viewport.height)
-        ];
-        const latitudes = corners.map((point) => Number(point.lat)).filter(Number.isFinite);
-        const longitudes = corners.map((point) => Number(point.lon)).filter(Number.isFinite);
-        if (!latitudes.length || !longitudes.length) return null;
-        return {
-          viewport: [
-            Math.min(...latitudes).toFixed(4),
-            Math.min(...longitudes).toFixed(4),
-            Math.max(...latitudes).toFixed(4),
-            Math.max(...longitudes).toFixed(4)
-          ].join(",")
-        };
-      }
 
-      async function refreshDroneTraffic() {
-        if (!state.layers.drones || state.drones.pending) return;
-        const apiKey = readSafeSkyApiKey();
-        if (!apiKey) {
-          state.drones.error = "podaj API key";
-          updateDroneStatus();
-          return;
-        }
-        const query = safeSkyViewportQuery();
-        if (!query) return;
-
-        state.drones.pending = true;
-        state.drones.error = "";
-        state.drones.lastRequestAt = Date.now();
-        updateDroneStatus();
-        const controller = new AbortController();
-        state.drones.abortController = controller;
-        const url = new URL(SAFE_SKY_UAV_API);
-        url.searchParams.set("viewport", query.viewport);
-
-        try {
-          const response = await fetch(url.toString(), {
-            cache: "no-store",
-            signal: controller.signal,
-            headers: {
-              Accept: "application/json",
-              "x-api-key": apiKey
-            }
-          });
-          if (!response.ok) throw new Error("HTTP " + response.status);
-          const payload = await response.json();
-          if (!state.layers.drones) return;
-          state.drones.aircraft = normalizeSafeSkyDronePayload(payload);
-          state.drones.lastQuery = query;
-          state.drones.fetchedAt = Date.now();
-          updateTrafficHistory(state.drones.aircraft, state.drones.fetchedAt);
-          refreshSelectedTrafficFromSources();
-        } catch (error) {
-          if (error && error.name !== "AbortError") {
-            state.drones.error = error.message || "request failed";
-          }
-        } finally {
-          state.drones.pending = false;
-          state.drones.abortController = null;
-          updateDroneStatus();
-          renderMap();
-        }
-      }
 
       function refreshAllTraffic() {
         void refreshTraffic();
-        void refreshDroneTraffic();
       }
 
       async function refreshTraffic() {
@@ -3021,7 +2714,6 @@ await loadScript("./traffic-proxy-config.js");
         state.traffic.error = "";
         state.traffic.lastRequestAt = now;
         updateTrafficStatus();
-        updateSafeSkyTrafficStatus();
         const controller = new AbortController();
         state.traffic.abortController = controller;
         const candidates = trafficEndpointCandidatesForQuery(query);
@@ -3053,9 +2745,6 @@ await loadScript("./traffic-proxy-config.js");
               break;
             } catch (error) {
               if (error && error.name === "AbortError") throw error;
-              if (candidate.sourceName === "SafeSky") {
-                state.safeSkyTrafficError = error.message || "request failed";
-              }
               errors.push(candidate.sourceName + ": " + (error.message || "request failed"));
             }
           }
@@ -3069,9 +2758,6 @@ await loadScript("./traffic-proxy-config.js");
           state.traffic.aircraft = activeCandidate && typeof activeCandidate.normalizePayload === "function"
             ? activeCandidate.normalizePayload(payload)
             : normalizeTrafficPayload(payload);
-          if (activeCandidate && activeCandidate.sourceName === "SafeSky") {
-            state.safeSkyTrafficError = "";
-          }
           updateTrafficHistory(state.traffic.aircraft, Date.now());
           refreshSelectedTrafficFromSources();
           state.traffic.lastQuery = query;
@@ -3084,7 +2770,6 @@ await loadScript("./traffic-proxy-config.js");
           state.traffic.pending = false;
           state.traffic.abortController = null;
           updateTrafficStatus();
-          updateSafeSkyTrafficStatus();
           renderMap();
         }
       }
@@ -3133,19 +2818,14 @@ await loadScript("./traffic-proxy-config.js");
         if (state.traffic.abortController) {
           state.traffic.abortController.abort();
         }
-        if (state.drones.abortController) {
-          state.drones.abortController.abort();
-        }
         state.traffic.pending = false;
-        state.drones.pending = false;
         updateTrafficStatus();
-        updateDroneStatus();
       }
 
       function scheduleTrafficViewportRefresh() {
         if (!hasEnabledTrafficLayers()) return;
         const nextQuery = trafficQueryForViewport();
-        const previousQuery = state.traffic.lastQuery || state.drones.lastQuery;
+        const previousQuery = state.traffic.lastQuery;
         if (!nextQuery || !previousQuery) {
           scheduleTrafficRefresh(650);
           return;
@@ -4844,16 +4524,6 @@ await loadScript("./traffic-proxy-config.js");
       refs.basemapApiKey.addEventListener("keydown", (event) => {
         if (event.key === "Enter") saveBasemapSettings();
       });
-      refs.saveSafeSkyTrafficApiKeyBtn.addEventListener("click", saveSafeSkyTrafficApiKey);
-      refs.clearSafeSkyTrafficApiKeyBtn.addEventListener("click", clearSafeSkyTrafficApiKey);
-      refs.safeSkyTrafficApiKey.addEventListener("keydown", (event) => {
-        if (event.key === "Enter") saveSafeSkyTrafficApiKey();
-      });
-      refs.saveSafeSkyApiKeyBtn.addEventListener("click", saveSafeSkyApiKey);
-      refs.clearSafeSkyApiKeyBtn.addEventListener("click", clearSafeSkyApiKey);
-      refs.safeSkyApiKey.addEventListener("keydown", (event) => {
-        if (event.key === "Enter") saveSafeSkyApiKey();
-      });
       document.getElementById("loadJsonBtn").addEventListener("click", () => {
         loadAirspacesJson("airspaces.json").catch((error) => {
           setSourceStatus("Nie udalo sie wczytac airspaces.json: " + error.message, true);
@@ -4883,15 +4553,13 @@ await loadScript("./traffic-proxy-config.js");
       document.querySelectorAll("[data-layer]").forEach((input) => {
         input.addEventListener("change", () => {
           state.layers[input.dataset.layer] = input.checked;
-          if (input.dataset.layer === "traffic" || input.dataset.layer === "drones" || input.dataset.layer === "safeSkyTraffic") {
+          if (input.dataset.layer === "traffic") {
             if (hasEnabledTrafficLayers()) {
               startTrafficRefresh();
             } else {
               stopTrafficRefresh();
             }
             updateTrafficStatus();
-            updateSafeSkyTrafficStatus();
-            updateDroneStatus();
             refreshSelectedTrafficFromSources();
           }
           renderMap();
@@ -5155,12 +4823,8 @@ await loadScript("./traffic-proxy-config.js");
       setupEmbeddedMode();
       state.pointIndex = T.buildPointIndex();
       loadBasemapUi();
-      refs.safeSkyTrafficApiKey.value = readSafeSkyTrafficApiKey();
-      refs.safeSkyApiKey.value = readSafeSkyApiKey();
       updateGpsUi();
       updateTrafficStatus();
-      updateSafeSkyTrafficStatus();
-      updateDroneStatus();
       renderTypeFilters();
       applyStartupMapParams();
       renderMap();
