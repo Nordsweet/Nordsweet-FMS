@@ -50,7 +50,14 @@ src/
 
 - **State:** Zustand + `persist`, one versioned store with migrations that read the old
   `nordsweet.*` keys once, so users keep their data.
-- **Server data:** TanStack Query for weather/NOTAM/traffic with caching, retries, offline fallback.
+- **Dummy backend:** all data goes through `src/api/` — typed procedures with zod input/output
+  shaped like future tRPC routers (`aircraft.list`, `flights.save`, `weather.metar`, …). Today a
+  local adapter implements them: reference data from bundled JSON, user data in IndexedDB (Dexie),
+  external services via `fetch`. When the backend exists, only the adapter is swapped for a tRPC
+  client; components never change.
+- **Offline:** offline-first. Reference data precached by the service worker; user data lives in
+  IndexedDB (later: sync queue to the backend); TanStack Query cache persisted to IndexedDB so the
+  last weather/NOTAMs stay available without signal.
 - **Map:** MapLibre GL (WebGL) replacing the 5k-line canvas renderer; planner and map share the
   store directly — no iframe, no `postMessage`.
 - **PWA:** Serwist instead of the hand-written `sw.js` + precache script.
@@ -112,11 +119,13 @@ Preflight, Serwist PWA, Playwright smoke suite in CI.
 
 **Total: ~62–103 h.**
 
-## Open questions
-1. Which aircraft/registrations are actually flown? (12 profiles, 5 with performance data.)
-2. Is the root-level legacy copy + `static.yml` GitHub Pages deploy still needed?
-3. Company flights / `companyAuth` — who uses it, and how should it work without a backend?
-4. Keep both Polish and English UI?
-5. Which editors are still used, and by whom?
-6. Map basemap: OSM only, or keep Google / OpenAIP / SkyVector (need keys)?
-7. CORS: the `codetabs` public proxy is a reliability/privacy risk; acceptable until a backend exists?
+## Decisions (2026-10-11)
+1. Aircraft become data behind the API (`aircraft.*`); a database of flown aircraft comes later with
+   the backend. Performance tables are per-aircraft data, not code.
+2. Root-level legacy copy and GitHub Pages workflow: delete.
+3. Company flights: out of scope for now.
+4. UI in Polish and English.
+5. Data editors: pending answer — skipped until needed; likely become admin features on the backend.
+6. All basemaps (OSM, Google, OpenAIP, SkyVector); API keys supplied later via settings/env.
+7. Public CORS proxy acceptable for now; everything goes through the dummy backend so a real one
+   can replace it. App must work offline.
