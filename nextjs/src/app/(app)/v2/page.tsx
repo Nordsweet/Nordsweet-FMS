@@ -1,25 +1,30 @@
 "use client";
 
-import Link from "next/link";
-import { Button } from "~/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
+import { FuelSection, NavLogSection } from "~/features/plan/navlog-fuel";
+import { PerformanceSection } from "~/features/plan/performance";
+import {
+  AircraftSection,
+  CruiseSection,
+  RouteSection,
+} from "~/features/plan/route";
+import { SavedFlightsSection } from "~/features/plan/saved-flights";
+import { WeightBalanceSection } from "~/features/plan/weight-balance";
 import { useT } from "~/i18n/use-t";
 
 export default function PlanPage() {
   const t = useT();
   return (
-    <Card className="mx-auto max-w-xl">
-      <CardHeader>
-        <CardTitle>
-          <h1>{t("plan.title")}</h1>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <p className="text-muted-foreground">{t("plan.comingSoon")}</p>
-        <Button asChild>
-          <Link href="/">{t("plan.openLegacy")}</Link>
-        </Button>
-      </CardContent>
-    </Card>
+    <div className="mx-auto grid max-w-5xl gap-4">
+      <h1 className="text-xl font-semibold">{t("plan.title")}</h1>
+      <p className="text-muted-foreground text-sm">{t("plan.disclaimer")}</p>
+      <AircraftSection />
+      <RouteSection />
+      <CruiseSection />
+      <NavLogSection />
+      <FuelSection />
+      <WeightBalanceSection />
+      <PerformanceSection />
+      <SavedFlightsSection />
+    </div>
   );
 }

@@ -118,15 +118,19 @@ Findings: planner was missing 948 VFR waypoints since the Next migration (fixed 
 legacy pressure altitude rule of thumb understates PA at high QNH; runway `magHdg` equals true
 heading; navaids date from 2019; an `EPXX` test airport shipped in production data.
 
-### 2. Core flight plan (MVP) — 12–20 h
-The thing a pilot needs before every flight:
-- Aircraft selection (type + registration profiles).
-- Departure / destination / alternate with airport search; route via waypoints.
-- Cruise altitude/speed → nav log (TC/MH with wind, distance, GS, ETE) and vertical profile (TOC/TOD).
-- Fuel plan (taxi, climb, cruise, reserve, alternate).
-- Weight & balance with CG envelope chart.
-- Take-off / landing performance per runway (generic table engine, all 5 aircraft), crosswind/tailwind.
-- Save / load / import / export `.nord` (backwards compatible), saved & company flights.
+### 2. Core flight plan (MVP) — 12–20 h ✅ core done
+Delivered at `/v2`: aircraft (11 profiles, `public/data/aircraft.json`), route with airport/waypoint
+search, nav log with WMM magnetic courses and wind, fuel plan (legacy components), W&B with envelope
+check, take-off/landing distances from one generic POH engine, saved flights (IndexedDB, one-time
+import of legacy saved routes) and `.nord` import/export compatible with the legacy planner.
+
+Golden tests run the legacy functions: R172K within 0.01 m, P2006T within 1 m. Intended differences
+and data fixes are tested: full tailwind beyond POH limit, unknown surface = grass, warnings for
+out-of-table/untabulated inputs (FR172H, SD-4), draft Husky data, rebuilt C172M/C152/FR172H envelopes.
+
+Still to do in this area: climb/descent (TOC/TOD) and cruise/holding fuel flow from POH tables
+(nav log is at cruise; reserve uses cruise flow, which overestimates), METAR prefill of take-off/
+landing conditions (phase 3).
 
 ### 3. Weather & NOTAM — 6–10 h
 METAR/TAF, ATIS and NOTAMs from the Aviation API (source agreement and staleness shown), winds
