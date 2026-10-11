@@ -10,6 +10,7 @@ import {
   searchKey,
   searchNavpoints,
 } from "./search";
+import { vfrPointToNavpoint } from "./vfr-points";
 
 const load = (name: "airports" | "navpoints") =>
   JSON.parse(fs.readFileSync(`public/data/${name}.json`, "utf8")) as unknown;
@@ -43,11 +44,29 @@ describe("airports", () => {
 });
 
 describe("navpoints", () => {
-  it("finds IFR waypoints, VFR points and navaids", () => {
+  it("finds IFR waypoints and navaids", () => {
     expect(searchNavpoints(navpoints, "ABAKU")[0]?.kind).toBe("ifr-waypoint");
-    expect(searchNavpoints(navpoints, "EPMLA")[0]?.kind).toBe(
-      "vfr-reporting-point",
-    );
     expect(searchNavpoints(navpoints, "BYZ")[0]?.navaid?.type).toBe("DVOR/DME");
+  });
+
+  it("finds API VFR points by their legacy code", () => {
+    const vfr = vfrPointToNavpoint({
+      name: "EPML ALFA",
+      code: "EPML ALFA",
+      kind: "vfr_point",
+      lat: 50.276117,
+      lon: 21.60555,
+      elevation_m: 0,
+      runway_direction_deg: 0,
+      runway_length_m: 0,
+      frequency: null,
+      description: null,
+    });
+    expect(vfr).toMatchObject({
+      ident: "EPML ALFA",
+      aliases: ["EPMLA"],
+      airport: "EPML",
+    });
+    expect(searchNavpoints([...navpoints, vfr], "epmla")[0]).toBe(vfr);
   });
 });

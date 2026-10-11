@@ -1,0 +1,17 @@
+{
+  "icao": "LKPR",
+  "metar": {
+    "raw": "LKPR 111800Z 22010KT 120V230 9999 FEW046 07/04 Q1013 TEMPO -SHRA",
+    "observed_at": "2026-10-11T18:00:00+00:00",
+    "age_minutes": 30,
+    "stale": false,
+    "status": "single_source",
+    "sources": ["atis.guru"],
+    "disagreeing": {}
+  },
+  "taf": "TAF LKPR 111700Z 1118/1224 25010KT CAVOK \n  TEMPO 1118/1218 SCT035 \n  PROB30 \n  TEMPO 1118/1120 -SHRA SCT020TCU BKN030 \n  PROB30 \n  TEMPO 1211/1216 -SHRA SCT025 BKN035 \n  BECMG 1212/1214 32005KT",
+  "sources": {
+    "avwx": "skipped: AVWX_TOKEN not set",
+    "atis.guru": "ok"
+  }
+}

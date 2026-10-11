@@ -154,6 +154,7 @@ function importNavpoints(airports: Airport[]): Navpoint[] {
   for (const raw of Object.values<Legacy>(legacy.NORDSWEET_NAVDATA.waypoints)) {
     points.push({
       ident: raw.id,
+      aliases: [],
       name: raw.name,
       kind: "ifr-waypoint",
       lat: raw.lat,
@@ -183,18 +184,21 @@ function importNavpoints(airports: Airport[]): Navpoint[] {
     }
     const navaid = raw.navaid as Legacy | null;
     const threshold = raw.runwayThreshold as Legacy | null;
+    const kind: Navpoint["kind"] | null = isAirfield
+      ? "airfield"
+      : navaid
+        ? "navaid"
+        : threshold
+          ? "runway-threshold"
+          : raw.rules === "IFR"
+            ? "ifr-waypoint"
+            : null; // VFR reporting points come from the Aviation API (`places`).
+    if (!kind) continue;
     points.push({
       ident: raw.id,
+      aliases: [],
       name: navaid?.name ?? raw.cup?.name ?? raw.name,
-      kind: isAirfield
-        ? "airfield"
-        : navaid
-          ? "navaid"
-          : threshold
-            ? "runway-threshold"
-            : raw.rules === "IFR"
-              ? "ifr-waypoint"
-              : "vfr-reporting-point",
+      kind,
       lat: raw.lat,
       lon: raw.lon,
       airport: text(threshold?.airport) ?? text(raw.group),

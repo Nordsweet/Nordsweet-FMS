@@ -62,6 +62,8 @@ export const navpointKinds = [
 
 export const navpointSchema = z.object({
   ident: z.string().min(1),
+  /** Codes used by legacy saved routes (e.g. "EPMLA" for "EPML ALFA"). */
+  aliases: z.array(z.string()),
   name: z.string().min(1),
   kind: z.enum(navpointKinds),
   lat: latitude,

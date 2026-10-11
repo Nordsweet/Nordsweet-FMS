@@ -1,0 +1,54 @@
+{
+  "icao": "EPKK",
+  "aerodrome": {
+    "name": "Kraków-Balice",
+    "code": "EPKK",
+    "kind": "airfield_paved",
+    "lat": 50.07783333333333,
+    "lon": 19.7855,
+    "elevation_m": 241.0,
+    "runway_direction_deg": 78,
+    "runway_length_m": 2550.0,
+    "frequency": "123.255",
+    "description": "Status: Lotnisko kontrolowane; ICAO: EPKK; Radio: Krakow-Tower 123.255, Krakow-Approach 121.075, 135.405; Kierunek ladowania (GEO): 078/258 (07/25); Wymiary pasa: 2550 x 60 m beton [-0/-238]; Elewacja: 791 ft (791/781) = 241 m (241/238); AIP: http://www.ais.pansa.pl/aip/aippliki/EP_AD_2_EPKK_1-1-1_en.pdf; AIP-txt: http://www.ais.pansa.pl/aip/aippliki/EP_AD_2_EPKK_en.pdf; Kontakt: Wieza +48 124115007, +48 126393110; Uwagi: Nr rej.ULC 56; Polozenie drogi startowej: https://goo.gl/ADiqvr"
+  },
+  "sources": {
+    "lotnik_cup": "ok",
+    "avwx": "skipped: AVWX_TOKEN not set",
+    "atis.guru": "ok",
+    "notamify": "skipped: NOTAMIFY_TOKEN not set"
+  },
+  "metar": {
+    "raw": "EPKK 111130Z 27011KT 230V310 9999 FEW040 15/05 Q1010",
+    "observed_at": "2026-10-11T11:30:00+00:00",
+    "age_minutes": 420,
+    "stale": true,
+    "status": "single_source",
+    "sources": ["atis.guru"],
+    "disagreeing": {}
+  },
+  "taf": "TAF EPKK 111130Z 1112/1212 24009KT CAVOK \n  PROB40 \n  TEMPO 1112/1118 -SHRA BKN025CB",
+  "atis": [
+    {
+      "kind": "arrival",
+      "letter": "X",
+      "received_at": "2026-10-11T11:38:00+00:00",
+      "qnh_hpa": 1017,
+      "text": "EPKK ARR ATIS X\n1127Z EPKK ATIS X.\nTIME 1126.\nEXP G ARR FOR ILS APCH\nFOR RWY 25.\nRWY 25 RCC 6, 6, 6. RWY\nREPORT END.\nTRANSITION LEVEL 80.\nATC CLR AVAILABLE VIA\nDATALINK OR CONTACT\nDELIVERY.\nWIND 240 DEG, 13 KT.\nVIS TDZ 10 KM OR MORE.\nCLD FEW 3600 FT, CLD SCT\n4400 FT.\nT 13, DP 4.\nQNH 1017.\nAFTER DEP CONTACT APCH\n121 DECIMAL 075.\nCAUTION. BIRDS ACT.\nEND OF ATIS X",
+      "age_minutes": 412,
+      "stale": true,
+      "qnh_matches_metar": false
+    },
+    {
+      "kind": "departure",
+      "letter": "Z",
+      "received_at": "2026-10-08T19:28:00+00:00",
+      "qnh_hpa": 1007,
+      "text": "EPKK DEP ATIS Z\n1858Z EPKK ATIS Z.\nTIME 1857.\nEXP H ARR FOR RNP APCH FOR RWY 07.\nRWY 07 RCC 5, 5, 3.\nRWY WET. RWY REPORT END.\nTRANSITION LEVEL 80.\nATC CLR AVAILABLE VIA DATALINK OR\nCONTACT DELIVERY.\nWIND 030 DEG, 3 KT.\nVIS TDZ 9 KM.\nWX FBL RA.\nCLD BKN 4700 FT.\nT 15, DP 15.\nQNH 1007.\nAFTER DEP CONTACT APCH 121 DECIMAL 075.\nCAUTION. BIRDS ACT.\nEND OF ATIS Z",
+      "age_minutes": 4262,
+      "stale": true,
+      "qnh_matches_metar": false
+    }
+  ],
+  "notams": []
+}

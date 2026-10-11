@@ -1,0 +1,89 @@
+{
+  "count": 20,
+  "aircraft": [
+    {
+      "hex": "48c2a8",
+      "callsign": "RYR8GK",
+      "registration": "SP-RZI",
+      "type": "B38M",
+      "lat": 50.174142,
+      "lon": 18.248217,
+      "altitude_ft": 23550,
+      "on_ground": false,
+      "ground_speed_kt": 383.5,
+      "track_deg": 276.59,
+      "vertical_rate_fpm": 1600,
+      "squawk": "1000",
+      "position_time": "2026-10-11T18:29:51.001000Z",
+      "sources": ["adsb.lol", "adsb.fi"]
+    },
+    {
+      "hex": "4bab2f",
+      "callsign": "THY1LX",
+      "registration": "TC-JYO",
+      "type": "B739",
+      "lat": 49.943161,
+      "lon": 19.831768,
+      "altitude_ft": 9175,
+      "on_ground": false,
+      "ground_speed_kt": 291.3,
+      "track_deg": 135.56,
+      "vertical_rate_fpm": 2624,
+      "squawk": "4267",
+      "position_time": "2026-10-11T18:29:51.001000Z",
+      "sources": ["adsb.lol", "adsb.fi"]
+    },
+    {
+      "hex": "471d6e",
+      "callsign": "WZZ4102",
+      "registration": "HA-LDU",
+      "type": "A21N",
+      "lat": 49.922154,
+      "lon": 20.154048,
+      "altitude_ft": 31000,
+      "on_ground": false,
+      "ground_speed_kt": 503.8,
+      "track_deg": 8.68,
+      "vertical_rate_fpm": 0,
+      "squawk": "1000",
+      "position_time": "2026-10-11T18:29:51.001000Z",
+      "sources": ["adsb.lol", "adsb.fi"]
+    },
+    {
+      "hex": "4891ab",
+      "callsign": "ENT4592",
+      "registration": "SP-ENL",
+      "type": "B738",
+      "lat": 49.635998,
+      "lon": 20.578655,
+      "altitude_ft": 24175,
+      "on_ground": false,
+      "ground_speed_kt": 395.8,
+      "track_deg": 317.97,
+      "vertical_rate_fpm": -1728,
+      "squawk": "2314",
+      "position_time": "2026-10-11T18:29:51.001000Z",
+      "sources": ["adsb.lol", "adsb.fi"]
+    },
+    {
+      "hex": "4baa87",
+      "callsign": "THY8MQ",
+      "registration": "TC-JTG",
+      "type": "A321",
+      "lat": 50.01065,
+      "lon": 20.849378,
+      "altitude_ft": 35000,
+      "on_ground": false,
+      "ground_speed_kt": 377.5,
+      "track_deg": 156.42,
+      "vertical_rate_fpm": 0,
+      "squawk": "4530",
+      "position_time": "2026-10-11T18:29:51.001000Z",
+      "sources": ["adsb.lol", "adsb.fi"]
+    }
+  ],
+  "sources": {
+    "adsb.lol": "ok",
+    "adsb.fi": "ok"
+  }
+}
