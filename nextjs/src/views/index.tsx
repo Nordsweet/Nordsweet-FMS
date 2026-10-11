@@ -62,7 +62,7 @@ function Panel(){return (<section className={"panel planner-panel"}>
 <div>
 <label htmlFor={"plannerDeparture"} data-i18n={"route.departure"}>{"Lotnisko startu"}</label>
 <div className={"planner-airport-picker planner-airport-picker-scheduled"} data-planner-airport-picker={"departure"} data-planner-schedule-root={"departure"}>
-<input id={"plannerDeparture"} type={"text"} maxLength={"8"} autoComplete={"off"} spellCheck={"false"} inputmode={"latin"} placeholder={"ICAO"} />
+<input id={"plannerDeparture"} type={"text"} maxLength={8} autoComplete={"off"} spellCheck={"false"} inputMode={"text"} placeholder={"ICAO"} />
 <button id={"plannerDepartureSearchBtn"} type={"button"} className={"planner-airport-search-btn"} data-planner-airport-search={"departure"} aria-label={"Search departure airport"}>{"🔍"}</button>
 <button id={"plannerDepartureScheduleBtn"} type={"button"} className={"planner-schedule-btn"} data-planner-schedule-toggle={"departure"} aria-label={"Set departure date and time"} aria-expanded={"false"}>{"🕑"}</button>
 <div id={"plannerDepartureLookup"} className={"planner-airport-menu"} data-planner-airport-menu={"departure"} hidden={true}></div>
@@ -79,7 +79,7 @@ function Panel(){return (<section className={"panel planner-panel"}>
 <div>
 <label htmlFor={"plannerDestination"} data-i18n={"route.arrival"}>{"Lotnisko docelowe"}</label>
 <div className={"planner-airport-picker planner-airport-picker-scheduled"} data-planner-airport-picker={"destination"} data-planner-schedule-root={"destination"}>
-<input id={"plannerDestination"} type={"text"} maxLength={"8"} autoComplete={"off"} spellCheck={"false"} inputmode={"latin"} placeholder={"ICAO"} />
+<input id={"plannerDestination"} type={"text"} maxLength={8} autoComplete={"off"} spellCheck={"false"} inputMode={"text"} placeholder={"ICAO"} />
 <button id={"plannerDestinationSearchBtn"} type={"button"} className={"planner-airport-search-btn"} data-planner-airport-search={"destination"} aria-label={"Search destination airport"}>{"🔍"}</button>
 <button id={"plannerDestinationScheduleBtn"} type={"button"} className={"planner-schedule-btn"} data-planner-schedule-toggle={"destination"} aria-label={"Set landing date and time"} aria-expanded={"false"}>{"🕑"}</button>
 <div id={"plannerDestinationLookup"} className={"planner-airport-menu"} data-planner-airport-menu={"destination"} hidden={true}></div>
@@ -96,7 +96,7 @@ function Panel(){return (<section className={"panel planner-panel"}>
 <div>
 <label htmlFor={"plannerAlternate"}>{"Alternate Airport"}</label>
 <div className={"planner-airport-picker"} data-planner-airport-picker={"alternate"}>
-<input id={"plannerAlternate"} type={"text"} maxLength={"8"} autoComplete={"off"} spellCheck={"false"} inputmode={"latin"} placeholder={"None / ICAO"} />
+<input id={"plannerAlternate"} type={"text"} maxLength={8} autoComplete={"off"} spellCheck={"false"} inputMode={"text"} placeholder={"None / ICAO"} />
 <button id={"plannerAlternateSearchBtn"} type={"button"} className={"planner-airport-search-btn"} data-planner-airport-search={"alternate"} aria-label={"Search alternate airport"}>{"🔍"}</button>
 <div id={"plannerAlternateLookup"} className={"planner-airport-menu"} data-planner-airport-menu={"alternate"} hidden={true}></div>
 </div>
@@ -129,7 +129,7 @@ function Panel(){return (<section className={"panel planner-panel"}>
 </div>
 </div>
 <label htmlFor={"plannerRoute"} data-i18n={"route.route"}>{"Trasa"}</label>
-<textarea id={"plannerRoute"} rows={"3"} placeholder={"DCT, airway albo procedura, np. SID NAVUR / MASIV STAR / RNP12 / 492622N 0195727E / N492622 E0195727"} defaultValue={""}></textarea>
+<textarea id={"plannerRoute"} rows={3} placeholder={"DCT, airway albo procedura, np. SID NAVUR / MASIV STAR / RNP12 / 492622N 0195727E / N492622 E0195727"} defaultValue={""}></textarea>
 <div className={"planner-actions"}>
 <button id={"plannerBuildBtn"} type={"button"} data-i18n={"route.calculate"}>{"Przelicz trase"}</button>
 <button id={"plannerReverseBtn"} type={"button"} className={"button-secondary"} data-i18n={"route.invert"}>{"Odwroc trase"}</button>
@@ -183,7 +183,7 @@ function WxPanel(){return (<section id={"wxPanel"} className={"grid wx-panel-pop
 <button id={"atisOpenBtn"} type={"button"} className={"button-secondary"}>{"Insert ATIS"}</button>
 </div>
 <textarea id={"rawMetar"} hidden={true} placeholder={"EPKK 241000Z 25012KT 9999 SCT030 18/09 Q1011"} defaultValue={""}></textarea>
-<button id={"metarParseBtn"} type={"button"} hidden={true} aria-hidden={"true"} tabIndex={"-1"}>{"Parse Text"}</button>
+<button id={"metarParseBtn"} type={"button"} hidden={true} aria-hidden={"true"} tabIndex={-1}>{"Parse Text"}</button>
 </div>
 <div id={"wxAirportConditionsCard"} className={"panel"}>
 <div className={"panel-head"}>
@@ -351,7 +351,7 @@ function SettingsModal(){return (<div id={"settingsModal"} className={"modal-she
 </div>
 <div className={"settings-field"}>
 <label htmlFor={"pilotWeightInput"}>{"Waga pilota (kg)"}</label>
-<input id={"pilotWeightInput"} type={"number"} min={"0"} max={"300"} step={"1"} inputmode={"numeric"} />
+<input id={"pilotWeightInput"} type={"number"} min={"0"} max={"300"} step={"1"} inputMode={"numeric"} />
 </div>
 <label className={"settings-toggle"} htmlFor={"atisAutoscrollToggle"}>
 <input id={"atisAutoscrollToggle"} type={"checkbox"} />

@@ -26,7 +26,7 @@ export default function PFDView(){return (<><style>{"\n    :root {\n      color-
 <div className={"data-table"}>
 <div className={"field"}>
 <label htmlFor={"crsInput"}>{"CRS"}</label>
-<input id={"crsInput"} type={"number"} min={"0"} max={"359"} defaultValue={"000"} inputmode={"numeric"} />
+<input id={"crsInput"} type={"number"} min={"0"} max={"359"} defaultValue={"000"} inputMode={"numeric"} />
 </div>
 <div className={"field"}>
 <label>{"UTC"}</label>

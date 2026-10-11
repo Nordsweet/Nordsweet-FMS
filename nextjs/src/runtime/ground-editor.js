@@ -1,3 +1,4 @@
+// @ts-nocheck -- legacy DOM engine; type it when this screen is migrated to React.
 export async function start(loadScript) {
 await loadScript("./ground-data.js?v=ground-editor-airport-data-v4");
 

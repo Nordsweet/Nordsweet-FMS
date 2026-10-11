@@ -46,11 +46,11 @@ export default function WaypointProcedureEditorView(){return (<><style>{"\n:root
 <div className={"grid four"}>
 <div>
 <label htmlFor={"waypointNameInput"}>{"Name"}</label>
-<input id={"waypointNameInput"} type={"text"} maxLength={"6"} autoComplete={"off"} spellCheck={"false"} placeholder={"NAVUR"} />
+<input id={"waypointNameInput"} type={"text"} maxLength={6} autoComplete={"off"} spellCheck={"false"} placeholder={"NAVUR"} />
 </div>
 <div>
 <label htmlFor={"waypointGroupInput"}>{"Group"}</label>
-<input id={"waypointGroupInput"} type={"text"} maxLength={"4"} autoComplete={"off"} spellCheck={"false"} placeholder={"EPNT"} />
+<input id={"waypointGroupInput"} type={"text"} maxLength={4} autoComplete={"off"} spellCheck={"false"} placeholder={"EPNT"} />
 </div>
 <div>
 <label htmlFor={"waypointRulesSelect"}>{"Rules"}</label>
@@ -126,7 +126,7 @@ export default function WaypointProcedureEditorView(){return (<><style>{"\n:root
 <div className={"grid three"}>
 <div>
 <label htmlFor={"procedureAirportInput"}>{"Airport"}</label>
-<input id={"procedureAirportInput"} type={"text"} maxLength={"4"} autoComplete={"off"} spellCheck={"false"} placeholder={"EPKK"} />
+<input id={"procedureAirportInput"} type={"text"} maxLength={4} autoComplete={"off"} spellCheck={"false"} placeholder={"EPKK"} />
 </div>
 <div>
 <label htmlFor={"procedureDesignatorInput"}>{"Designator"}</label>
@@ -175,7 +175,7 @@ export default function WaypointProcedureEditorView(){return (<><style>{"\n:root
 <div className={"grid approach-only"}>
 <div>
 <label htmlFor={"finalGlideSlopeInput"}>{"Final glide slope"}</label>
-<input id={"finalGlideSlopeInput"} type={"text"} inputmode={"decimal"} autoComplete={"off"} spellCheck={"false"} placeholder={"3.0"} />
+<input id={"finalGlideSlopeInput"} type={"text"} inputMode={"decimal"} autoComplete={"off"} spellCheck={"false"} placeholder={"3.0"} />
 </div>
 <div>
 <label>{"Glide slope start"}</label>
@@ -265,7 +265,7 @@ export default function WaypointProcedureEditorView(){return (<><style>{"\n:root
 </div>
 <div>
 <label htmlFor={"legAltitudeValueInput"}>{"ALT / FL"}</label>
-<input id={"legAltitudeValueInput"} type={"text"} inputmode={"text"} autoComplete={"off"} spellCheck={"false"} placeholder={"3000 / FL130"} />
+<input id={"legAltitudeValueInput"} type={"text"} inputMode={"text"} autoComplete={"off"} spellCheck={"false"} placeholder={"3000 / FL130"} />
 </div>
 </div>
 <div className={"restriction-tile"}>
@@ -280,7 +280,7 @@ export default function WaypointProcedureEditorView(){return (<><style>{"\n:root
 </div>
 <div>
 <label htmlFor={"legSpeedValueInput"}>{"KT"}</label>
-<input id={"legSpeedValueInput"} type={"text"} inputmode={"numeric"} autoComplete={"off"} spellCheck={"false"} placeholder={"220"} />
+<input id={"legSpeedValueInput"} type={"text"} inputMode={"numeric"} autoComplete={"off"} spellCheck={"false"} placeholder={"220"} />
 </div>
 </div>
 </div>
@@ -319,7 +319,7 @@ export default function WaypointProcedureEditorView(){return (<><style>{"\n:root
 </div>
 <div>
 <label htmlFor={"vfrAirportInput"}>{"ICAO"}</label>
-<input id={"vfrAirportInput"} type={"text"} maxLength={"4"} autoComplete={"off"} spellCheck={"false"} placeholder={"EPKR"} />
+<input id={"vfrAirportInput"} type={"text"} maxLength={4} autoComplete={"off"} spellCheck={"false"} placeholder={"EPKR"} />
 </div>
 </div>
 <div>
