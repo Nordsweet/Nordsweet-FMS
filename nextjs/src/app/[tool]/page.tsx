@@ -32,7 +32,11 @@ export default async function ToolPage({ params }: { params: Params }) {
   return (
     <>
       <View />
-      <RuntimeBootstrap page={tool} bodyClass={bodyClass} bodyStyle={bodyStyle} />
+      <RuntimeBootstrap
+        page={tool}
+        bodyClass={bodyClass}
+        bodyStyle={bodyStyle}
+      />
     </>
   );
 }

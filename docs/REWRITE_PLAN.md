@@ -109,15 +109,14 @@ SID/STAR/approach procedures and runway/SID change, taxi routing on ground data,
 ### 7. Checklists, economy, settings, i18n — 4–6 h
 Checklists with voice + autoscroll, route economy, settings, PL/EN dictionaries.
 
-### 8. Data authoring tools — 3–8 h
-Dev-only `/tools/*` routes (or CLI scripts) that edit the JSON datasets; scope depends on which
-editors are still used.
+### 8. Data authoring tools — deferred
+Skipped. Editing reference data becomes an admin feature once the backend exists.
 
 ### 9. Cleanup — 3–5 h
 Delete `src/runtime/`, root-level legacy copy and its GitHub Pages workflow, enable Tailwind
 Preflight, Serwist PWA, Playwright smoke suite in CI.
 
-**Total: ~62–103 h.**
+**Total: ~59–95 h.**
 
 ## Decisions (2026-10-11)
 1. Aircraft become data behind the API (`aircraft.*`); a database of flown aircraft comes later with
@@ -125,7 +124,7 @@ Preflight, Serwist PWA, Playwright smoke suite in CI.
 2. Root-level legacy copy and GitHub Pages workflow: delete.
 3. Company flights: out of scope for now.
 4. UI in Polish and English.
-5. Data editors: pending answer — skipped until needed; likely become admin features on the backend.
+5. Data editors: skipped; editing reference data becomes an admin feature on the backend later.
 6. All basemaps (OSM, Google, OpenAIP, SkyVector); API keys supplied later via settings/env.
 7. Public CORS proxy acceptable for now; everything goes through the dummy backend so a real one
    can replace it. App must work offline.

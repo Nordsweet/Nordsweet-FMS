@@ -53,7 +53,8 @@ export default function RuntimeBootstrap({
     let active = true;
     boot.catch((e: unknown) => {
       console.error(e);
-      if (active) setError("Nie udało się uruchomić aplikacji. Odśwież stronę.");
+      if (active)
+        setError("Nie udało się uruchomić aplikacji. Odśwież stronę.");
     });
     return () => {
       active = false;
