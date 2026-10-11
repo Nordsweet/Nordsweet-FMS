@@ -21,3 +21,10 @@ export function densityAltitudeFt(pressureAltitudeFt: number, oatC: number) {
     pressureAltitudeFt + 118.8 * (oatC - isaTemperatureC(pressureAltitudeFt))
   );
 }
+
+/** ISA pressure at a pressure altitude (troposphere). */
+export function isaPressureHpa(pressureAltitudeFt: number) {
+  return (
+    ISA_SEA_LEVEL_HPA * (1 - 6.8755856e-6 * pressureAltitudeFt) ** 5.2558797
+  );
+}

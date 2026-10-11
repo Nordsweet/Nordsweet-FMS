@@ -1,5 +1,6 @@
 "use client";
 
+import { BriefingSection } from "~/features/plan/briefing";
 import { FuelSection, NavLogSection } from "~/features/plan/navlog-fuel";
 import { PerformanceSection } from "~/features/plan/performance";
 import {
@@ -19,6 +20,7 @@ export default function PlanPage() {
       <p className="text-muted-foreground text-sm">{t("plan.disclaimer")}</p>
       <AircraftSection />
       <RouteSection />
+      <BriefingSection />
       <CruiseSection />
       <NavLogSection />
       <FuelSection />

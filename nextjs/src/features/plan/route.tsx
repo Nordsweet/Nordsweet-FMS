@@ -1,7 +1,9 @@
 "use client";
 
+import { useMutation } from "@tanstack/react-query";
 import { ArrowDown, ArrowUp, X } from "lucide-react";
 
+import { api } from "~/api";
 import { Button } from "~/components/ui/button";
 import { Label } from "~/components/ui/label";
 import {
@@ -11,6 +13,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
+import { routeKey } from "~/data/flight";
+import { midpoint } from "~/domain/geo";
 import { useT } from "~/i18n/use-t";
 import { useSettings } from "~/stores/settings";
 import { useFlight } from "~/stores/flight";
@@ -158,6 +162,16 @@ export function CruiseSection() {
   const t = useT();
   const flight = useFlight((s) => s.flight);
   const update = useFlight((s) => s.update);
+  const { route, legWinds } = usePlan();
+  const winds = useMutation(api.weather.windsAloft.mutationOptions());
+  const fetchWinds = async () => {
+    const legs = route.slice(1).map((to, i) => midpoint(route[i]!, to));
+    const result = await winds.mutateAsync({
+      points: legs,
+      altitudeFt: flight.cruiseAltitudeFt,
+    });
+    update({ legWinds: { routeKey: routeKey(flight), ...result } });
+  };
   return (
     <Section title={t("plan.cruise.title")}>
       <div className="grid gap-4 sm:grid-cols-3">
@@ -201,6 +215,38 @@ export function CruiseSection() {
           value={flight.wind.speedKt}
           onChange={(speedKt) => update({ wind: { ...flight.wind, speedKt } })}
         />
+      </div>
+      <div className="flex flex-wrap items-center gap-2 text-sm">
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={route.length < 2 || winds.isPending}
+          onClick={() => void fetchWinds().catch(() => undefined)}
+        >
+          {t("plan.cruise.forecastWinds")}
+        </Button>
+        {legWinds && (
+          <>
+            <span className="text-muted-foreground" data-testid="winds-aloft">
+              {t("plan.cruise.forecastWindsInUse", {
+                level: legWinds.levelHpa,
+                time: legWinds.validAt.slice(11, 16),
+              })}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => update({ legWinds: null })}
+            >
+              {t("plan.cruise.manualWind")}
+            </Button>
+          </>
+        )}
+        {winds.isError && (
+          <span className="text-destructive">
+            {t("plan.cruise.forecastWindsError")}
+          </span>
+        )}
       </div>
     </Section>
   );

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   densityAltitudeFt,
+  isaPressureHpa,
   isaTemperatureC,
   pressureAltitudeFt,
 } from "./atmosphere";
@@ -21,5 +22,13 @@ describe("atmosphere", () => {
   it("computes density altitude", () => {
     expect(densityAltitudeFt(2000, isaTemperatureC(2000))).toBeCloseTo(2000, 6);
     expect(densityAltitudeFt(2000, 30)).toBeCloseTo(4252.4, 0);
+  });
+});
+
+describe("isaPressureHpa", () => {
+  it("matches the standard atmosphere", () => {
+    expect(isaPressureHpa(0)).toBeCloseTo(1013.25, 2);
+    expect(isaPressureHpa(4781)).toBeCloseTo(850, 0);
+    expect(isaPressureHpa(9882)).toBeCloseTo(700, 0);
   });
 });
