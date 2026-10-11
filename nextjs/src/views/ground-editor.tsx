@@ -38,11 +38,11 @@ export default function GroundEditorView(){return (<><style>{"\n:root {\n  --bg:
 </div>
 <div data-new-vor-field={""} hidden={true}>
 <label htmlFor={"newThingVorCodeInput"}>{"VOR code"}</label>
-<input id={"newThingVorCodeInput"} autoComplete={"off"} maxLength={"3"} placeholder={"np. KRK"} />
+<input id={"newThingVorCodeInput"} autoComplete={"off"} maxLength={3} placeholder={"np. KRK"} />
 </div>
 <div data-new-vor-field={""} hidden={true}>
 <label htmlFor={"newThingVorFrequencyInput"}>{"VOR frequency"}</label>
-<input id={"newThingVorFrequencyInput"} autoComplete={"off"} inputmode={"decimal"} placeholder={"np. 115.800"} />
+<input id={"newThingVorFrequencyInput"} autoComplete={"off"} inputMode={"decimal"} placeholder={"np. 115.800"} />
 </div>
 <div>
 <label>
@@ -69,7 +69,7 @@ export default function GroundEditorView(){return (<><style>{"\n:root {\n  --bg:
 </div>
 <div>
 <label htmlFor={"airportElevationInput"}>{"Elevation [ft]"}</label>
-<input id={"airportElevationInput"} type={"number"} step={"1"} inputmode={"numeric"} />
+<input id={"airportElevationInput"} type={"number"} step={"1"} inputMode={"numeric"} />
 </div>
 <div>
 <label htmlFor={"airportAtisProfileInput"}>{"ATIS profile"}</label>
@@ -93,7 +93,7 @@ export default function GroundEditorView(){return (<><style>{"\n:root {\n  --bg:
 <div className={"grid"}>
 <div>
 <label htmlFor={"airportWeatherSourceInput"}>{"Fetch D-ATIS/METAR from"}</label>
-<input id={"airportWeatherSourceInput"} autoComplete={"off"} maxLength={"4"} placeholder={"blank = this airport"} />
+<input id={"airportWeatherSourceInput"} autoComplete={"off"} maxLength={4} placeholder={"blank = this airport"} />
 </div>
 <div>
 <label>
@@ -102,7 +102,7 @@ export default function GroundEditorView(){return (<><style>{"\n:root {\n  --bg:
 <summary>{"Options"}</summary>
 <div className={"weather-source-options-body"}>
 <label htmlFor={"airportTemperatureOffsetInput"}>{"Change Temperature by [C]"}</label>
-<input id={"airportTemperatureOffsetInput"} type={"number"} step={"1"} inputmode={"numeric"} placeholder={"0"} />
+<input id={"airportTemperatureOffsetInput"} type={"number"} step={"1"} inputMode={"numeric"} placeholder={"0"} />
 </div>
 </details>
 </div>
@@ -136,11 +136,11 @@ export default function GroundEditorView(){return (<><style>{"\n:root {\n  --bg:
 </div>
 <div data-selected-vor-field={""} hidden={true}>
 <label htmlFor={"thingVorCodeInput"}>{"VOR code"}</label>
-<input id={"thingVorCodeInput"} autoComplete={"off"} maxLength={"3"} placeholder={"np. KRK"} />
+<input id={"thingVorCodeInput"} autoComplete={"off"} maxLength={3} placeholder={"np. KRK"} />
 </div>
 <div data-selected-vor-field={""} hidden={true}>
 <label htmlFor={"thingVorFrequencyInput"}>{"VOR frequency"}</label>
-<input id={"thingVorFrequencyInput"} autoComplete={"off"} inputmode={"decimal"} placeholder={"np. 115.800"} />
+<input id={"thingVorFrequencyInput"} autoComplete={"off"} inputMode={"decimal"} placeholder={"np. 115.800"} />
 </div>
 <div>
 <label>

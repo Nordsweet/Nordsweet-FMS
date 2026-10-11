@@ -42,7 +42,7 @@ export default function ChartBrowserView(){return (<><style>{"\n:root {\n  --bg:
 <div data-tool-row={""} className={"tool-row"}></div>
 <div className={"stage"}>
 <button data-prev-btn={""} type={"button"} className={"nav-btn"} aria-label={"Previous chart"}>{"‹"}</button>
-<div data-document-stage={""} className={"document"} tabIndex={"0"} role={"group"} aria-label={"Selected chart"}></div>
+<div data-document-stage={""} className={"document"} tabIndex={0} role={"group"} aria-label={"Selected chart"}></div>
 <button data-next-btn={""} type={"button"} className={"nav-btn"} aria-label={"Next chart"}>{"›"}</button>
 </div>
 <div data-strip={""} className={"strip"} aria-label={"Chart sequence"}></div>
@@ -68,7 +68,7 @@ export default function ChartBrowserView(){return (<><style>{"\n:root {\n  --bg:
 <div data-tool-row={""} className={"tool-row"}></div>
 <div className={"stage"}>
 <button data-prev-btn={""} type={"button"} className={"nav-btn"} aria-label={"Previous chart"}>{"‹"}</button>
-<div data-document-stage={""} className={"document"} tabIndex={"0"} role={"group"} aria-label={"Selected chart"}></div>
+<div data-document-stage={""} className={"document"} tabIndex={0} role={"group"} aria-label={"Selected chart"}></div>
 <button data-next-btn={""} type={"button"} className={"nav-btn"} aria-label={"Next chart"}>{"›"}</button>
 </div>
 <div data-strip={""} className={"strip"} aria-label={"Chart sequence"}></div>

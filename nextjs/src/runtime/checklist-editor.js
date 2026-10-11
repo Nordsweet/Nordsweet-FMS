@@ -1,3 +1,4 @@
+// @ts-nocheck -- legacy DOM engine; type it when this screen is migrated to React.
 export async function start(loadScript) {
 await loadScript("./aircraft-data.js");
 await loadScript("./aircraft-data/p2006t-performance.js");

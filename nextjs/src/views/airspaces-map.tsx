@@ -92,8 +92,8 @@ export default function AirspacesMapView(){return (<><style>{"\n    :root {\n   
 </div>
 <div id={"pointRestrictionEditor"} className={"point-restriction-editor"} hidden={true}>
 <div className={"point-restriction-fields"}>
-<label>{"Speed (kt)"}<input id={"pointRestrictionSpeed"} type={"number"} min={"1"} step={"1"} inputmode={"numeric"} placeholder={"--"} /></label>
-<label>{"Altitude (ft)"}<input id={"pointRestrictionAltitude"} type={"number"} min={"0"} step={"100"} inputmode={"numeric"} placeholder={"--"} /></label>
+<label>{"Speed (kt)"}<input id={"pointRestrictionSpeed"} type={"number"} min={"1"} step={"1"} inputMode={"numeric"} placeholder={"--"} /></label>
+<label>{"Altitude (ft)"}<input id={"pointRestrictionAltitude"} type={"number"} min={"0"} step={"100"} inputMode={"numeric"} placeholder={"--"} /></label>
 </div>
 <span className={"point-restriction-label"}>{"Altitude restriction"}</span>
 <div id={"pointRestrictionMode"} className={"point-restriction-mode"}>
