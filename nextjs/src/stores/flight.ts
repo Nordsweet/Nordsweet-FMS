@@ -1,0 +1,35 @@
+import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
+
+import { type Flight, flightSchema, newFlight } from "~/data/flight";
+
+type FlightStore = {
+  flight: Flight;
+  update: (patch: Partial<Flight>) => void;
+  load: (flight: Flight) => void;
+  reset: () => void;
+};
+
+/** The flight being planned; survives reloads and works offline. */
+export const useFlight = create<FlightStore>()(
+  persist(
+    (set) => ({
+      flight: newFlight(),
+      update: (patch) => set((s) => ({ flight: { ...s.flight, ...patch } })),
+      load: (flight) => set({ flight }),
+      reset: () => set({ flight: newFlight() }),
+    }),
+    {
+      name: "nordsweet.flight.v2",
+      version: 1,
+      storage: createJSONStorage(() => localStorage),
+      partialize: ({ flight }) => ({ flight }),
+      merge: (persisted, current) => {
+        const parsed = flightSchema.safeParse(
+          (persisted as { flight?: unknown } | undefined)?.flight,
+        );
+        return parsed.success ? { ...current, flight: parsed.data } : current;
+      },
+    },
+  ),
+);

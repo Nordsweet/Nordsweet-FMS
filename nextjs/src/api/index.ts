@@ -1,7 +1,10 @@
-import { queryOptions } from "@tanstack/react-query";
+import { mutationOptions, queryOptions } from "@tanstack/react-query";
+
+import { type Flight } from "~/data/flight";
 
 import { type AirspacePlan, type Around, aviationApi } from "./aviation/client";
 import { loadDataset } from "./datasets";
+import { listFlights, removeFlight, saveFlight } from "./flights";
 import { cachedRemote } from "./remote-cache";
 import { findAirport, searchAirports, searchNavpoints } from "./search";
 import { vfrPointToNavpoint } from "./vfr-points";
@@ -32,6 +35,17 @@ const SECOND = 1000;
 const MINUTE = 60 * SECOND;
 const HOUR = 60 * MINUTE;
 
+function mutation<TInput, TOutput>(
+  path: string,
+  resolve: (input: TInput) => Promise<TOutput>,
+) {
+  return {
+    call: resolve,
+    mutationOptions: () =>
+      mutationOptions({ mutationKey: [path], mutationFn: resolve }),
+  };
+}
+
 /** Bundled reference data only changes with an app release. */
 const reference = { staleTime: Infinity };
 /** Refresh no faster than the API's own cache (see its /llms.txt). */
@@ -48,6 +62,14 @@ type Search = { query: string; limit?: number };
 type Icao = { icao: string };
 
 export const api = {
+  aircraft: {
+    list: query("aircraft.list", () => loadDataset("aircraft"), reference),
+  },
+  flights: {
+    list: query("flights.list", () => listFlights()),
+    save: mutation("flights.save", (flight: Flight) => saveFlight(flight)),
+    remove: mutation("flights.remove", (id: string) => removeFlight(id)),
+  },
   airports: {
     list: query("airports.list", () => loadDataset("airports"), reference),
     get: query(
