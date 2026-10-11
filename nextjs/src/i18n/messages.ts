@@ -16,6 +16,7 @@ const pl = {
   "settings.avwxToken": "Token AVWX",
   "settings.notamifyToken": "Token Notamify",
   "settings.tokensHint": "Tokeny są przechowywane tylko na tym urządzeniu.",
+  "settings.unknownAirport": "Nieznane lotnisko",
 } as const;
 
 export type MessageKey = keyof typeof pl;
@@ -36,6 +37,7 @@ const en: Record<MessageKey, string> = {
   "settings.avwxToken": "AVWX token",
   "settings.notamifyToken": "Notamify token",
   "settings.tokensHint": "Tokens are stored on this device only.",
+  "settings.unknownAirport": "Unknown airport",
 };
 
 export const messages: Record<Language, Record<MessageKey, string>> = {

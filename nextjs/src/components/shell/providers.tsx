@@ -45,6 +45,16 @@ export function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     document.documentElement.lang = language;
   }, [language]);
+  useEffect(() => {
+    // Shared with the legacy screens; precaches the whole export for offline use.
+    if (process.env.NODE_ENV === "production" && "serviceWorker" in navigator) {
+      navigator.serviceWorker
+        .register("/sw.js", { updateViaCache: "none" })
+        .catch((error: unknown) =>
+          console.error("Service worker registration failed", error),
+        );
+    }
+  }, []);
 
   return (
     <PersistQueryClientProvider

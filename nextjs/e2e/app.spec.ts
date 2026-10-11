@@ -12,6 +12,17 @@ test("settings migrate from the legacy planner and switch language", async ({
   await page.goto("/v2/settings");
   await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
   await expect(page.getByLabel("Home airport (ICAO)")).toHaveValue("EPNT");
+  await expect(page.getByTestId("home-airport-name")).toHaveText(
+    "Nowy Targ (EPNT)",
+  );
+  await page.getByLabel("Home airport (ICAO)").fill("ANTONO");
+  await expect(page.getByTestId("home-airport-name")).toHaveText(
+    "Antonowo (ANTONOWO)",
+  );
+  await page.getByLabel("Home airport (ICAO)").fill("EPXX");
+  await expect(page.getByTestId("home-airport-name")).toHaveText(
+    "Unknown airport",
+  );
 
   await page.getByRole("button", { name: "PL" }).click();
   await expect(page.getByRole("heading", { name: "Ustawienia" })).toBeVisible();
