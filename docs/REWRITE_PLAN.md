@@ -128,9 +128,10 @@ Golden tests run the legacy functions: R172K within 0.01 m, P2006T within 1 m. I
 and data fixes are tested: full tailwind beyond POH limit, unknown surface = grass, warnings for
 out-of-table/untabulated inputs (FR172H, SD-4), draft Husky data, rebuilt C172M/C152/FR172H envelopes.
 
-Still to do in this area: climb/descent (TOC/TOD) and cruise/holding fuel flow from POH tables
-(nav log is at cruise; reserve uses cruise flow, which overestimates), METAR prefill of take-off/
-landing conditions (phase 3).
+Follow-ups done: climb from POH tables with TOC/TOD in the nav log (500 fpm descent assumed — no
+POH descent data), and phone/tablet layout (no horizontal overflow, ≥40 px touch targets).
+Still open: cruise/holding fuel flow from POH cruise tables (reserve uses the cruise flow, which
+overestimates).
 
 ### 3. Weather & NOTAM — 6–10 h ✅ done
 Delivered: briefing for departure/destination/alternate (METAR with age, staleness and source

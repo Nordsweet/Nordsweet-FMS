@@ -72,7 +72,7 @@ export function PointSearch({
           <span data-testid={`${id}-selected`}>{value.ident}</span>
           <button
             type="button"
-            className="hover:text-foreground underline"
+            className="hover:text-foreground underline pointer-coarse:min-h-10 pointer-coarse:px-2"
             onClick={() => onSelect(null)}
           >
             {t("plan.point.clear")}
