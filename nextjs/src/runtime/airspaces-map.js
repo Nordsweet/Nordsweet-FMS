@@ -1192,15 +1192,21 @@ await loadScript("./traffic-proxy-config.js");
         return kind === "VFRREPORTINGPOINT";
       }
 
-      function drawAirportDataLabel(ctx, point, screenPoint) {
-        if (!refs.labelToggle.checked) {
+      function mapLabelZoom(viewport) {
+        // Pixels per degree, independent of screen size and device pixel ratio.
+        return Math.log2(viewport.scale * 360 / 256);
+      }
+
+      function drawAirportDataLabel(ctx, viewport, point, screenPoint) {
+        const zoom = mapLabelZoom(viewport);
+        if (!refs.labelToggle.checked || zoom < 7) {
           return;
         }
         const name = String(point && point.name || point && point.icao || "").trim();
         const icao = String(point && point.icao || "").trim().toUpperCase();
         const elevation = Number(point && point.elevation);
         const runwayLength = getAirportRunwayLengthM(point);
-        const title = icao && name && T.searchKey(name) !== T.searchKey(icao)
+        const title = zoom < 10 ? icao : icao && name && T.searchKey(name) !== T.searchKey(icao)
           ? name + " / " + icao
           : name || icao;
         const details = [
@@ -1213,7 +1219,7 @@ await loadScript("./traffic-proxy-config.js");
         ctx.font = "700 10px system-ui, sans-serif";
         ctx.fillStyle = "#126cac";
         ctx.fillText(title, screenPoint.x + 10, screenPoint.y - 4);
-        if (details) {
+        if (zoom >= 10 && details) {
           ctx.font = "600 8px system-ui, sans-serif";
           ctx.fillStyle = "#2479ae";
           ctx.fillText(details, screenPoint.x + 10, screenPoint.y + 6);
@@ -1223,12 +1229,10 @@ await loadScript("./traffic-proxy-config.js");
 
       function drawSymbol(ctx, viewport, point, kind) {
         const p = viewport.project(point);
-        const label = point.icao || point.key || point.id || point.name || "";
-        const zoomed = (state.bounds.maxLon - state.bounds.minLon) < 5.5;
-        const ownIfr = kind === "ifr" && T.searchKey(point.source) === "OWN";
+        const label = point.name || point.key || point.id || point.icao || "";
+        const zoomed = mapLabelZoom(viewport) >= 9;
         const controlledAirport = kind === "airport" && isControlledAirport(point);
         const uncontrolledIcaoAirport = kind === "airport" && isUncontrolledIcaoAirport(point);
-        const airportWithoutIcao = kind === "airport" && !controlledAirport && !uncontrolledIcaoAirport;
         const vorNavaid = kind === "navaid" && isVorNavaid(point);
         const vorDmeNavaid = kind === "navaid" && isVorDmeNavaid(point);
         const dmeNavaid = kind === "navaid" && isDmeNavaid(point);
@@ -1360,9 +1364,9 @@ await loadScript("./traffic-proxy-config.js");
             ctx.fill();
           }
         }
-        if (controlledAirport || uncontrolledIcaoAirport) {
-          drawAirportDataLabel(ctx, point, p);
-        } else if (!airportWithoutIcao && refs.labelToggle.checked && (kind === "airport" || kind === "navaid" || reportingPoint || ordinaryVfrPoint || zoomed || ownIfr)) {
+        if (kind === "airport") {
+          drawAirportDataLabel(ctx, viewport, point, p);
+        } else if (refs.labelToggle.checked && zoomed) {
           ctx.font = kind === "airport" ? "700 10px system-ui, sans-serif" : "600 9px system-ui, sans-serif";
           ctx.fillStyle = (reportingPoint || ordinaryVfrPoint) ? "#111827" : kind === "vfr" ? "#17633f" : kind === "navaid" ? ((vorNavaid || dmeNavaid || ndbNavaid) ? "#111827" : "#6923a5") : kind === "ifr" ? "#1f5794" : "#111827";
           ctx.fillText(label, p.x + 6, p.y - 5);
