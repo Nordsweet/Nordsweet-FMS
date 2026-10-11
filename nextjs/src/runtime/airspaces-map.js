@@ -1192,6 +1192,8 @@ await loadScript("./traffic-proxy-config.js");
         return kind === "VFRREPORTINGPOINT";
       }
 
+      const POINT_LABEL_MIN_ZOOM = 9;
+
       function mapLabelZoom(viewport) {
         // Pixels per degree, independent of screen size and device pixel ratio.
         return Math.log2(viewport.scale * 360 / 256);
@@ -1199,11 +1201,14 @@ await loadScript("./traffic-proxy-config.js");
 
       function drawAirportDataLabel(ctx, viewport, point, screenPoint) {
         const zoom = mapLabelZoom(viewport);
-        if (!refs.labelToggle.checked || zoom < 7) {
+        if (!refs.labelToggle.checked || zoom < POINT_LABEL_MIN_ZOOM) {
           return;
         }
         const name = String(point && point.name || point && point.icao || "").trim();
-        const icao = String(point && point.icao || "").trim().toUpperCase();
+        const rawIcao = String(point && point.icao || "").trim().toUpperCase();
+        // Imported landing sites may put a name or local identifier in `icao`.
+        const icao = point && point.isIcao !== false && /^[A-Z]{4}$/.test(rawIcao) ? rawIcao : "";
+        if (zoom < 10 && !icao) return;
         const elevation = Number(point && point.elevation);
         const runwayLength = getAirportRunwayLengthM(point);
         const title = zoom < 10 ? icao : icao && name && T.searchKey(name) !== T.searchKey(icao)
@@ -1230,7 +1235,7 @@ await loadScript("./traffic-proxy-config.js");
       function drawSymbol(ctx, viewport, point, kind) {
         const p = viewport.project(point);
         const label = point.name || point.key || point.id || point.icao || "";
-        const zoomed = mapLabelZoom(viewport) >= 9;
+        const zoomed = mapLabelZoom(viewport) >= POINT_LABEL_MIN_ZOOM;
         const controlledAirport = kind === "airport" && isControlledAirport(point);
         const uncontrolledIcaoAirport = kind === "airport" && isUncontrolledIcaoAirport(point);
         const vorNavaid = kind === "navaid" && isVorNavaid(point);
