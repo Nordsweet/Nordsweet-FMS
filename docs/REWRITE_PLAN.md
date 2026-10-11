@@ -71,6 +71,37 @@ src/
 Transition: new app lives alongside legacy routes; each area is cut over when it reaches parity,
 then its legacy runtime is deleted.
 
+## Data sources
+
+The [Aviation API Collector](https://aviation.lab.vibecde.com/llms.txt) is the single source for
+everything it provides (map tiles excluded). Client: `src/api/aviation/` (zod schemas checked
+against recorded responses). Everything else stays bundled in `public/data/` until the collector
+(or the future backend) provides it.
+
+| Data | Source |
+|---|---|
+| METAR/TAF, ATIS, NOTAMs | API (`/airports/{icao}`, `/weather`, `/atis`, `/notams`) |
+| Live traffic | API (`/traffic`, `/stream`) |
+| Airspace geometry + AUP/UUP activations (PL, CZ) | API (`/airspace`, `/airspace/activations`) |
+| VFR reporting points | API (`/places?kind=vfr_point`), cached in IndexedDB for offline |
+| Airports with full runway data (TORA/LDA, thresholds) | bundled — API `places` has one runway only |
+| IFR waypoints, navaids, procedures, frequencies, ground layouts, aircraft | bundled — not in the API |
+
+This retires the client-side AVWX/Notamify tokens, the public `codetabs` CORS proxy, the
+PANSA/ANS CR page scraping and the `airspace-data/*` files once the legacy screens are gone.
+
+### Collector issues found (2026-10-11)
+1. **Blocker: no CORS headers.** Browsers on another origin cannot call it. FastAPI fix:
+   `app.add_middleware(CORSMiddleware, allow_origins=[<app origins>], allow_methods=["GET"])`.
+2. **Safety: 40 zones missing** vs. the legacy OpenAir data — zones with arcs/circles are skipped,
+   including prohibited areas P 1, P 225–P 242 and R 113, R 305. Arcs (DA/DB/DC) need support.
+3. `AVWX_TOKEN` and `NOTAMIFY_TOKEN` are not set on the deployment: METARs are single-source
+   (crowd-sourced, often stale) and `/notams` always returns 502.
+4. `places` only answers radius queries (the app fetches 5 × 250 NM tiles); a region/bulk endpoint
+   would be simpler. Airports lack per-runway data (designators, TORA/TODA/ASDA/LDA, thresholds,
+   surface per runway) needed for performance — adding it would let bundled airports go.
+5. OpenAPI has no response schemas, so types are hand-written from `/llms.txt`.
+
 ## Phases (essential first)
 
 Estimates are Claude working time.
@@ -96,9 +127,9 @@ The thing a pilot needs before every flight:
 - Take-off / landing performance per runway (generic table engine, all 5 aircraft), crosswind/tailwind.
 - Save / load / import / export `.nord` (backwards compatible), saved & company flights.
 
-### 3. Weather & NOTAM — 8–12 h
-METAR/TAF (AVWX), winds aloft feeding the nav log (Open-Meteo), waypoint WX, AWOS, NOTAMs
-(Notamify), ATIS pad (parse + manual entry, community ATIS). Settings for API tokens.
+### 3. Weather & NOTAM — 6–10 h
+METAR/TAF, ATIS and NOTAMs from the Aviation API (source agreement and staleness shown), winds
+aloft feeding the nav log (Open-Meteo, not in the API), waypoint WX, ATIS pad (parse + manual entry).
 
 ### 4. Map — 10–16 h
 MapLibre map: basemaps, airports/waypoints, route display + editing (add point, direct-to,

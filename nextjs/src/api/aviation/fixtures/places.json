@@ -1,0 +1,137 @@
+{
+  "places": [
+    {
+      "name": "Kraków-Balice",
+      "code": "EPKK",
+      "kind": "airfield_paved",
+      "lat": 50.07783333333333,
+      "lon": 19.7855,
+      "elevation_m": 241.0,
+      "runway_direction_deg": 78,
+      "runway_length_m": 2550.0,
+      "frequency": "123.255",
+      "description": "Status: Lotnisko kontrolowane; ICAO: EPKK; Radio: Krakow-Tower 123.255, Krakow-Approach 121.075, 135.405; Kierunek ladowania (GEO): 078/258 (07/25); Wymiary pasa: 2550 x 60 m beton [-0/-238]; Elewacja: 791 ft (791/781) = 241 m (241/238); AIP: http://www.ais.pansa.pl/aip/aippliki/EP_AD_2_EPKK_1-1-1_en.pdf; AIP-txt: http://www.ais.pansa.pl/aip/aippliki/EP_AD_2_EPKK_en.pdf; Kontakt: Wieza +48 124115007, +48 126393110; Uwagi: Nr rej.ULC 56; Polozenie drogi startowej: https://goo.gl/ADiqvr",
+      "distance_nm": 0.6
+    },
+    {
+      "name": "EPKK KILO",
+      "code": "EPKK KILO",
+      "kind": "vfr_point",
+      "lat": 50.04998333333333,
+      "lon": 19.799983333333333,
+      "elevation_m": 0.0,
+      "runway_direction_deg": 0,
+      "runway_length_m": 0.0,
+      "frequency": null,
+      "description": "KRYSPINOW JEZIORO",
+      "distance_nm": 1.8
+    },
+    {
+      "name": "EPKK ZULU",
+      "code": "EPKK ZULU",
+      "kind": "vfr_point",
+      "lat": 50.11665,
+      "lon": 19.799983333333333,
+      "elevation_m": 0.0,
+      "runway_direction_deg": 0,
+      "runway_length_m": 0.0,
+      "frequency": null,
+      "description": "ZABIERZOW",
+      "distance_nm": 2.2
+    },
+    {
+      "name": "EPKK SIERRA",
+      "code": "EPKK SIERRA",
+      "kind": "vfr_point",
+      "lat": 49.98331666666667,
+      "lon": 19.81665,
+      "elevation_m": 0.0,
+      "runway_direction_deg": 0,
+      "runway_length_m": 0.0,
+      "frequency": null,
+      "description": "SKAWINA",
+      "distance_nm": 5.8
+    },
+    {
+      "name": "Rakowice-Czyżyny",
+      "code": "EPKC",
+      "kind": "airfield_paved",
+      "lat": 50.08428333333333,
+      "lon": 19.9905,
+      "elevation_m": 223.0,
+      "runway_direction_deg": 109,
+      "runway_length_m": 610.0,
+      "frequency": "135.175",
+      "description": "Status: Ladowisko zarejestrowane; ICAO: EPKC; Inne oznaczenia: Krakow, Muzeum Lotnictwa; Radio: Czyzyny-Radio 135.175; Kierunek ladowania (GEO): 109/xxx (11/xx); Wymiary pasa: 610 x 50 m beton; Elewacja: 732 ft = 223 m; Link: http://www.muzeumlotnictwa.pl/; AIP-txt: http://www.ais.pansa.pl/vfr/aippliki/EP_AD_4_EPKC_en.pdf; Kontakt: +48 12 642 8700, info@muzeumlotnictwa.pl; Uwagi: Ladowisko przy Muzeum Lotnictwa. Czynne w czasie corocznego pikniku lotniczego. Ladowanie jedynie na kierunku 11, start na kierunku 29. Doloty i odloty przez punkt VFR ECHO. Nr ewid.ULC 143; Polozenie drogi startowej: https://goo.gl/LzuxCi",
+      "distance_nm": 7.3
+    },
+    {
+      "name": "EPKK INDIA",
+      "code": "EPKK INDIA",
+      "kind": "vfr_point",
+      "lat": 50.14998333333333,
+      "lon": 19.633316666666666,
+      "elevation_m": 0.0,
+      "runway_direction_deg": 0,
+      "runway_length_m": 0.0,
+      "frequency": null,
+      "description": "KRZESZOWICE KOPALNIA",
+      "distance_nm": 7.7
+    },
+    {
+      "name": "EPKK OSCAR",
+      "code": "EPKK OSCAR",
+      "kind": "vfr_point",
+      "lat": 50.199983333333336,
+      "lon": 19.883316666666666,
+      "elevation_m": 0.0,
+      "runway_direction_deg": 0,
+      "runway_length_m": 0.0,
+      "frequency": null,
+      "description": "SMARDZOWICE KOSCIOL",
+      "distance_nm": 7.9
+    },
+    {
+      "name": "Sąspów",
+      "code": "Sąspów",
+      "kind": "airstrip",
+      "lat": 50.2227,
+      "lon": 19.7848,
+      "elevation_m": 454.0,
+      "runway_direction_deg": 55,
+      "runway_length_m": 520.0,
+      "frequency": null,
+      "description": "Status: Ladowisko; Inne oznaczenia: Jerzmanowice; Kierunek ladowania (GEO): 055/235; Wymiary pasa: 520 x 25 m; Elewacja: 1490 ft (1450/1450) = 454 m (442/442); Kontakt: Wojtek tel.+48 604190374; Uwagi: Ladowisko trawiaste, oznakowane, rowna powierzchnia, regularnie koszone. Linia elektryczna przecina pas okolo 120 metrow od progu 05. Pod linia, przy krawedziach pasa umieszczone sa biale znaki „x”. Oba progi obnizone w stosunku do srodka pasa o ok.40 ft. Zalecane przyziemienie jak najblizej oznaczonego progu i dobieg pod gorke. Polozone na granicy Ojcowskiego PN (EP R14); Polozenie drogi startowej: https://goo.gl/Y9XGuP",
+      "distance_nm": 8.6
+    },
+    {
+      "name": "Nowe Dwory",
+      "code": "Nowe Dwory",
+      "kind": "airstrip",
+      "lat": 49.97311666666667,
+      "lon": 19.61815,
+      "elevation_m": 215.0,
+      "runway_direction_deg": 90,
+      "runway_length_m": 250.0,
+      "frequency": null,
+      "description": "Lądowisko śmigłowcowe oraz motolotniowe. Obowiązuje południowy krąg nadlotniskowy. Rękaw w połowie pasa po północnej części. Z uwagą na drogę przed pasem na podejściu do 27. Przyloty ustalać telefonicznie. Kontakt, Krzysztof Lelek +48 508 899 955.",
+      "distance_nm": 9.5
+    },
+    {
+      "name": "EPKK ECHO",
+      "code": "EPKK ECHO",
+      "kind": "vfr_point",
+      "lat": 50.04193333333333,
+      "lon": 20.097766666666665,
+      "elevation_m": 0.0,
+      "runway_direction_deg": 0,
+      "runway_length_m": 0.0,
+      "frequency": null,
+      "description": "ELEKTROWNIA NA WISLE",
+      "distance_nm": 11.7
+    }
+  ],
+  "sources": {
+    "lotnik_cup": "ok"
+  }
+}

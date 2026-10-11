@@ -51,7 +51,10 @@ export function searchNavpoints(
   query: string,
   limit = 20,
 ) {
-  return search(navpoints, query, limit, (p) => [[p.ident], p.name]);
+  return search(navpoints, query, limit, (p) => [
+    [p.ident, ...p.aliases],
+    p.name,
+  ]);
 }
 
 export function findAirport(airports: Airport[], code: string) {

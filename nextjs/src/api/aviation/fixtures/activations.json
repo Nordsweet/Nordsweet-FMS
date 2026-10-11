@@ -1,0 +1,131 @@
+{
+  "plan": "current",
+  "activations": [
+    {
+      "designator": "EPTR130B",
+      "country": "PL",
+      "lower": "GND",
+      "upper": "A061",
+      "starts_at": "2026-10-11T06:00:00+00:00",
+      "ends_at": "2026-10-12T06:00:00+00:00",
+      "unit": "ZZSG",
+      "remarks": "BSP/UAV",
+      "source": "pansa.uup",
+      "has_geometry": true
+    },
+    {
+      "designator": "EPD21",
+      "country": "PL",
+      "lower": "GND",
+      "upper": "A065",
+      "starts_at": "2026-10-11T06:00:00+00:00",
+      "ends_at": "2026-10-12T06:00:00+00:00",
+      "unit": "MIL",
+      "remarks": "DS",
+      "source": "pansa.uup",
+      "has_geometry": true
+    },
+    {
+      "designator": "EPTR130A",
+      "country": "PL",
+      "lower": "GND",
+      "upper": "A061",
+      "starts_at": "2026-10-11T06:00:00+00:00",
+      "ends_at": "2026-10-12T06:00:00+00:00",
+      "unit": "ZZSG",
+      "remarks": "BSP/UAV",
+      "source": "pansa.uup",
+      "has_geometry": true
+    },
+    {
+      "designator": "EPD24",
+      "country": "PL",
+      "lower": "GND",
+      "upper": "F115",
+      "starts_at": "2026-10-11T06:00:00+00:00",
+      "ends_at": "2026-10-12T06:00:00+00:00",
+      "unit": "MIL",
+      "remarks": null,
+      "source": "pansa.uup",
+      "has_geometry": true
+    },
+    {
+      "designator": "EPD26",
+      "country": "PL",
+      "lower": "GND",
+      "upper": "F200",
+      "starts_at": "2026-10-11T06:00:00+00:00",
+      "ends_at": "2026-10-12T06:00:00+00:00",
+      "unit": "MIL",
+      "remarks": null,
+      "source": "pansa.uup",
+      "has_geometry": true
+    },
+    {
+      "designator": "EPD27",
+      "country": "PL",
+      "lower": "GND",
+      "upper": "A050",
+      "starts_at": "2026-10-11T06:00:00+00:00",
+      "ends_at": "2026-10-12T06:00:00+00:00",
+      "unit": "MIL",
+      "remarks": null,
+      "source": "pansa.uup",
+      "has_geometry": true
+    },
+    {
+      "designator": "EPTR7",
+      "country": "PL",
+      "lower": "A021",
+      "upper": "A055",
+      "starts_at": "2026-10-11T07:00:00+00:00",
+      "ends_at": "2026-10-11T21:00:00+00:00",
+      "unit": "EPWS",
+      "remarks": "GLD/CLN",
+      "source": "pansa.uup",
+      "has_geometry": false
+    },
+    {
+      "designator": "EPTR115A",
+      "country": "PL",
+      "lower": "GND",
+      "upper": "A044",
+      "starts_at": "2026-10-11T06:00:00+00:00",
+      "ends_at": "2026-10-12T06:00:00+00:00",
+      "unit": "ZZSG",
+      "remarks": "BSP/UAV",
+      "source": "pansa.uup",
+      "has_geometry": true
+    },
+    {
+      "designator": "EPTS46",
+      "country": "PL",
+      "lower": "F095",
+      "upper": "F215",
+      "starts_at": "2026-10-11T06:00:00+00:00",
+      "ends_at": "2026-10-11T16:10:00+00:00",
+      "unit": "LKMI",
+      "remarks": "GLD",
+      "source": "pansa.uup",
+      "has_geometry": false
+    },
+    {
+      "designator": "EPTR26B",
+      "country": "PL",
+      "lower": "A035",
+      "upper": "A055",
+      "starts_at": "2026-10-11T10:00:00+00:00",
+      "ends_at": "2026-10-11T14:00:00+00:00",
+      "unit": "EPKM",
+      "remarks": "P2006/CLN",
+      "source": "pansa.uup",
+      "has_geometry": true
+    }
+  ],
+  "sources": {
+    "lotnik": "ok",
+    "pansa.uup": "ok",
+    "pansa.aup": "ok",
+    "ans_cr": "ok"
+  }
+}

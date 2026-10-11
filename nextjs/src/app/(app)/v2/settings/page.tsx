@@ -74,33 +74,6 @@ export default function SettingsPage() {
             }
           />
         </div>
-        <div className="grid gap-2">
-          <Label htmlFor="avwxToken">{t("settings.avwxToken")}</Label>
-          <Input
-            id="avwxToken"
-            type="password"
-            autoComplete="off"
-            value={settings.avwxToken}
-            onChange={(e) =>
-              settings.update({ avwxToken: e.target.value.trim() })
-            }
-          />
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="notamifyToken">{t("settings.notamifyToken")}</Label>
-          <Input
-            id="notamifyToken"
-            type="password"
-            autoComplete="off"
-            value={settings.notamifyToken}
-            onChange={(e) =>
-              settings.update({ notamifyToken: e.target.value.trim() })
-            }
-          />
-          <p className="text-muted-foreground text-sm">
-            {t("settings.tokensHint")}
-          </p>
-        </div>
       </CardContent>
     </Card>
   );

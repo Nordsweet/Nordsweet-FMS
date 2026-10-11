@@ -1,0 +1,11 @@
+{
+  "status": 502,
+  "body": {
+    "detail": {
+      "message": "no source returned data",
+      "sources": {
+        "notamify": "skipped: NOTAMIFY_TOKEN not set"
+      }
+    }
+  }
+}

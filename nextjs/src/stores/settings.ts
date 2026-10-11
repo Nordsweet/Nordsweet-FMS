@@ -7,8 +7,6 @@ export type Settings = {
   language: Language;
   homeAirportIcao: string;
   pilotWeightKg: number | null;
-  avwxToken: string;
-  notamifyToken: string;
 };
 
 type SettingsStore = Settings & {
@@ -19,11 +17,12 @@ const defaults: Settings = {
   language: "pl",
   homeAirportIcao: "",
   pilotWeightKg: null,
-  avwxToken: "",
-  notamifyToken: "",
 };
 
-/** Settings saved by the legacy planner (raw strings under `nordsweet.*.v1`). */
+/**
+ * Settings saved by the legacy planner (raw strings under `nordsweet.*.v1`). Its AVWX and
+ * Notamify tokens are not migrated: the Aviation API holds those server-side.
+ */
 export function readLegacySettings(
   storage: Pick<Storage, "getItem">,
 ): Partial<Settings> {
@@ -41,10 +40,6 @@ export function readLegacySettings(
   ) {
     legacy.pilotWeightKg = weight;
   }
-  const avwx = read("nordsweet.avwxToken.v1");
-  if (avwx) legacy.avwxToken = avwx;
-  const notamify = read("nordsweet.notamifyToken.v1");
-  if (notamify) legacy.notamifyToken = notamify;
   return legacy;
 }
 

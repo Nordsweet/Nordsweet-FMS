@@ -22,8 +22,6 @@ describe("readLegacySettings", () => {
       language: "en",
       homeAirportIcao: "EPNT",
       pilotWeightKg: 82,
-      avwxToken: "abc",
-      notamifyToken: "xyz",
     });
   });
 

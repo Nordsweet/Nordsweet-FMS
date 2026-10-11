@@ -1,0 +1,9 @@
+{
+  "icao": "EPNT",
+  "metar": null,
+  "taf": null,
+  "sources": {
+    "avwx": "skipped: AVWX_TOKEN not set",
+    "atis.guru": "ok"
+  }
+}

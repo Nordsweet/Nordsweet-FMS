@@ -13,9 +13,6 @@ const pl = {
   "settings.language": "Język",
   "settings.homeAirport": "Lotnisko macierzyste (ICAO)",
   "settings.pilotWeight": "Masa pilota (kg)",
-  "settings.avwxToken": "Token AVWX",
-  "settings.notamifyToken": "Token Notamify",
-  "settings.tokensHint": "Tokeny są przechowywane tylko na tym urządzeniu.",
   "settings.unknownAirport": "Nieznane lotnisko",
 } as const;
 
@@ -34,9 +31,6 @@ const en: Record<MessageKey, string> = {
   "settings.language": "Language",
   "settings.homeAirport": "Home airport (ICAO)",
   "settings.pilotWeight": "Pilot weight (kg)",
-  "settings.avwxToken": "AVWX token",
-  "settings.notamifyToken": "Notamify token",
-  "settings.tokensHint": "Tokens are stored on this device only.",
   "settings.unknownAirport": "Unknown airport",
 };
 
