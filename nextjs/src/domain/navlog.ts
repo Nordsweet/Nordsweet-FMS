@@ -1,9 +1,4 @@
-import {
-  type LatLon,
-  destinationPoint,
-  distanceNm,
-  initialBearingDeg,
-} from "./geo";
+import { type LatLon, distanceNm, initialBearingDeg, midpoint } from "./geo";
 import { magneticVariationDeg, trueToMagneticDeg } from "./magnetic";
 import { type Wind, windTriangle } from "./wind";
 
@@ -12,6 +7,7 @@ export type NavPoint = LatLon & { ident: string };
 export type NavLeg = {
   from: NavPoint;
   to: NavPoint;
+  wind: Wind;
   distanceNm: number;
   trueCourseDeg: number;
   magneticCourseDeg: number;
@@ -38,25 +34,30 @@ export function computeNavLog(
   {
     tasKt,
     wind,
+    legWinds,
     fuelFlowLph,
     date = new Date(),
-  }: { tasKt: number; wind: Wind; fuelFlowLph: number; date?: Date },
+  }: {
+    tasKt: number;
+    wind: Wind;
+    legWinds?: Wind[];
+    fuelFlowLph: number;
+    date?: Date;
+  },
 ): NavLog {
   const legs = points.slice(1).map((to, i): NavLeg => {
     const from = points[i]!;
     const distance = distanceNm(from, to);
-    const mid = destinationPoint(
-      from,
-      initialBearingDeg(from, to),
-      distance / 2,
-    );
+    const mid = midpoint(from, to);
     const trueCourse = distance > 0 ? initialBearingDeg(mid, to) : 0;
     const variation = magneticVariationDeg(mid, date);
-    const solved = windTriangle(trueCourse, tasKt, wind);
+    const legWind = legWinds?.[i] ?? wind;
+    const solved = windTriangle(trueCourse, tasKt, legWind);
     const minutes = solved ? (distance / solved.groundSpeedKt) * 60 : null;
     return {
       from,
       to,
+      wind: legWind,
       distanceNm: distance,
       trueCourseDeg: trueCourse,
       magneticCourseDeg: trueToMagneticDeg(trueCourse, variation),

@@ -70,3 +70,8 @@ export function trackOffset(from: LatLon, to: LatLon, point: LatLon) {
     alongTrackNm: (behind ? -δat : δat) * EARTH_RADIUS_NM,
   };
 }
+
+/** Great-circle midpoint of a leg. */
+export function midpoint(a: LatLon, b: LatLon) {
+  return destinationPoint(a, initialBearingDeg(a, b), distanceNm(a, b) / 2);
+}

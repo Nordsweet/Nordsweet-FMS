@@ -132,9 +132,16 @@ Still to do in this area: climb/descent (TOC/TOD) and cruise/holding fuel flow f
 (nav log is at cruise; reserve uses cruise flow, which overestimates), METAR prefill of take-off/
 landing conditions (phase 3).
 
-### 3. Weather & NOTAM — 6–10 h
-METAR/TAF, ATIS and NOTAMs from the Aviation API (source agreement and staleness shown), winds
-aloft feeding the nav log (Open-Meteo, not in the API), waypoint WX, ATIS pad (parse + manual entry).
+### 3. Weather & NOTAM — 6–10 h ✅ done
+Delivered: briefing for departure/destination/alternate (METAR with age, staleness and source
+agreement, TAF, ATIS with QNH cross-check, NOTAMs) from the Aviation API; fields without an ICAO
+code use the nearest ICAO airport within 25 NM. "Fill from METAR" sets take-off/landing wind,
+temperature and QNH (variable wind → worst-case tailwind, gusts shown). Forecast winds aloft per
+leg from Open-Meteo at the pressure level nearest the cruise altitude, tied to the route/altitude
+they were fetched for.
+
+Not done: the legacy manual ATIS pad and waypoint weather; winds are for the current hour (flights
+have no planned departure time yet).
 
 ### 4. Map — 10–16 h
 MapLibre map: basemaps, airports/waypoints, route display + editing (add point, direct-to,

@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { api } from "~/api";
+import { routeKey } from "~/data/flight";
 import { computeFuelPlan } from "~/domain/fuel";
 import { computeNavLog } from "~/domain/navlog";
 import { computeLoading } from "~/domain/weight-balance";
@@ -25,9 +26,12 @@ export function usePlan() {
     wind: flight.wind,
     fuelFlowLph: flight.fuelFlowLph,
   };
+  // Forecast winds apply only to the route and altitude they were fetched for.
+  const legWinds =
+    flight.legWinds?.routeKey === routeKey(flight) ? flight.legWinds : null;
   const navLog =
     flight.departure && flight.destination
-      ? computeNavLog(route, performance)
+      ? computeNavLog(route, { ...performance, legWinds: legWinds?.winds })
       : null;
   const alternateLog =
     flight.destination && flight.alternate
@@ -68,6 +72,8 @@ export function usePlan() {
 
   return {
     flight,
+    route,
+    legWinds,
     aircraft,
     aircraftList: aircraftList.data ?? [],
     navLog,

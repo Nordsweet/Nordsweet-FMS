@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { api } from "~/api";
+import { Button } from "~/components/ui/button";
 import { Label } from "~/components/ui/label";
 import {
   Select,
@@ -19,12 +20,14 @@ import {
   type RunwaySurface,
   computeDistance,
 } from "~/domain/performance";
+import { parseMetar } from "~/domain/metar";
 import { windComponents } from "~/domain/wind";
 import { useT } from "~/i18n/use-t";
 import { cn } from "~/lib/utils";
 
 import { NumberField, Section, fmt } from "./fields";
 import { usePlan } from "./use-plan";
+import { useBriefing } from "./weather";
 
 const surfaceOf = (runway: Runway): RunwaySurface =>
   runway.surface === "grass"
@@ -80,6 +83,9 @@ function Phase({ phase }: { phase: "takeoff" | "landing" }) {
   const [windSpeedKt, setWindSpeedKt] = useState(0);
   const perf = aircraft?.[phase];
   const [configId, setConfigId] = useState<string | null>(null);
+  const { station, briefing } = useBriefing(point);
+  const metar = briefing.data?.metar ?? null;
+  const [metarNote, setMetarNote] = useState<string | null>(null);
 
   const title = t(`plan.perf.${phase}`);
   const ap = airport.data;
@@ -116,6 +122,34 @@ function Phase({ phase }: { phase: "takeoff" | "landing" }) {
   const requiredM =
     phase === "takeoff" ? result.groundRollM : result.obstacle50ftM;
   const fits = availableM !== null && requiredM <= availableM;
+  const fillFromMetar = () => {
+    if (!metar || !station) return;
+    const values = parseMetar(metar.raw);
+    if (values.temperatureC !== null) setOatC(values.temperatureC);
+    if (values.qnhHpa !== null) setQnhHpa(values.qnhHpa);
+    setWindSpeedKt(values.windSpeedKt);
+    // Variable wind with speed: plan for the worst case, a straight tailwind.
+    const variable = values.windDirectionDeg === null && values.windSpeedKt > 0;
+    setWindDirectionDeg(
+      variable
+        ? (runway.trueHeadingDeg + 180) % 360
+        : (values.windDirectionDeg ?? 0),
+    );
+    setMetarNote(
+      [
+        t("plan.perf.fromMetar", {
+          icao: station.icao,
+          age: fmt(metar.age_minutes),
+        }),
+        variable && t("plan.perf.variableWind"),
+        values.gustKt !== null &&
+          t("plan.perf.gusting", { gust: fmt(values.gustKt) }),
+        metar.stale && t("plan.wx.stale"),
+      ]
+        .filter(Boolean)
+        .join(" · "),
+    );
+  };
   const maxCrosswind = aircraft?.windLimits?.maxCrosswindKt ?? null;
   const crosswindKt = Math.abs(wind.crosswindKt);
 
@@ -191,6 +225,29 @@ function Phase({ phase }: { phase: "takeoff" | "landing" }) {
           value={windSpeedKt}
           onChange={setWindSpeedKt}
         />
+      </div>
+      <div className="flex flex-wrap items-center gap-2 text-sm">
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={!metar}
+          onClick={fillFromMetar}
+        >
+          {t("plan.perf.fillFromMetar")}
+        </Button>
+        {!metar && (
+          <span className="text-muted-foreground">
+            {t("plan.perf.noMetar")}
+          </span>
+        )}
+        {metarNote && (
+          <span
+            className="text-muted-foreground"
+            data-testid={`perf-${phase}-metar`}
+          >
+            {metarNote}
+          </span>
+        )}
       </div>
       <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm tabular-nums sm:grid-cols-4">
         <dt className="text-muted-foreground">

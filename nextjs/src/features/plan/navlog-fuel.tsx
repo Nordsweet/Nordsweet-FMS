@@ -29,6 +29,9 @@ export function NavLogSection() {
                   {t("plan.navlog.mc")}
                 </th>
                 <th className="text-right font-medium">
+                  {t("plan.navlog.wind")}
+                </th>
+                <th className="text-right font-medium">
                   {t("plan.navlog.mh")}
                 </th>
                 <th className="text-right font-medium">
@@ -53,6 +56,10 @@ export function NavLogSection() {
                     {fmt(leg.magneticCourseDeg).padStart(3, "0")}°
                   </td>
                   <td className="text-right">
+                    {fmt(leg.wind.directionDeg).padStart(3, "0")}/
+                    {fmt(leg.wind.speedKt)}
+                  </td>
+                  <td className="text-right">
                     {leg.magneticHeadingDeg === null
                       ? "—"
                       : `${fmt(leg.magneticHeadingDeg).padStart(3, "0")}°`}
@@ -67,7 +74,7 @@ export function NavLogSection() {
               <tr className="border-t">
                 <td className="py-1">{t("plan.navlog.total")}</td>
                 <td className="text-right">{fmt(navLog.distanceNm, 1)}</td>
-                <td colSpan={3} />
+                <td colSpan={4} />
                 <td className="text-right">{fmtMinutes(navLog.minutes)}</td>
                 <td className="text-right">{fmt(navLog.fuelL, 1)}</td>
               </tr>

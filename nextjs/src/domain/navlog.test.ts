@@ -49,6 +49,20 @@ describe("computeNavLog", () => {
     expect(head.minutes!).toBeGreaterThan(calm.minutes!);
   });
 
+  it("uses a wind per leg when given", () => {
+    const calm = { directionDeg: 0, speedKt: 0 };
+    const log = computeNavLog([EPNT, EPMLR, EPML], {
+      tasKt: 100,
+      wind: calm,
+      legWinds: [calm, { directionDeg: 0, speedKt: 30 }],
+      fuelFlowLph: 30,
+      date,
+    });
+    expect(log.legs[0]!.groundSpeedKt).toBeCloseTo(100, 6);
+    expect(log.legs[1]!.wind.speedKt).toBe(30);
+    expect(log.legs[1]!.groundSpeedKt).not.toBeCloseTo(100, 0);
+  });
+
   it("reports impossible legs as null instead of guessing", () => {
     const log = computeNavLog([EPNT, EPML], {
       tasKt: 40,
