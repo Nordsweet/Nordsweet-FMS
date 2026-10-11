@@ -33,8 +33,9 @@ http
       return;
     }
     if (target === root) target = path.join(root, "index.html");
-    if (!fs.existsSync(target) && fs.existsSync(target + ".html"))
-      target += ".html";
+    // `/v2/settings` exports as `v2/settings.html` next to a `v2/settings/` data directory.
+    const isFile = (file) => fs.existsSync(file) && fs.statSync(file).isFile();
+    if (!isFile(target) && isFile(target + ".html")) target += ".html";
     if (!fs.existsSync(target) || !fs.statSync(target).isFile()) {
       res
         .writeHead(404, { "Content-Type": "text/html" })
