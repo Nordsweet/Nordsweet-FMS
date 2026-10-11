@@ -36,7 +36,7 @@ export default tseslint.config(
   },
   {
     // One-off converter for untyped legacy data; its output is validated with zod.
-    files: ["scripts/import-legacy-data.ts"],
+    files: ["scripts/import-legacy-data.ts", "scripts/legacy-aircraft.ts"],
     rules: {
       "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/no-unsafe-argument": "off",

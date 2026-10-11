@@ -17,6 +17,8 @@ import {
   type Runway,
 } from "../src/data/schemas";
 
+import { importAircraft } from "./legacy-aircraft";
+
 const publicDir = path.resolve(import.meta.dirname, "../public");
 const outDir = path.join(publicDir, "data");
 
@@ -253,6 +255,16 @@ const byIdent = (a: { ident: string }, b: { ident: string }) =>
   a.ident.localeCompare(b.ident);
 const navpoints = importNavpoints(airports);
 const hashes = [
+  write(
+    "aircraft",
+    importAircraft(
+      publicDir,
+      fs.readFileSync(
+        path.resolve(import.meta.dirname, "../src/runtime/index.js"),
+        "utf8",
+      ),
+    ),
+  ),
   write("airports", airports.sort(byIdent)),
   write("navpoints", navpoints.sort(byIdent)),
   write(
