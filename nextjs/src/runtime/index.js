@@ -2,7 +2,8 @@ export async function start(loadScript) {
 await loadScript("./airports.js");
 await loadScript("./airports-cz-sk.js");
 await loadScript("./navdata.js");
-await loadScript("./Waypoints/index.js");
+// Waypoints/index.js pulls packages in with document.write, which is ignored for injected scripts.
+await loadScript("./Waypoints/Poland.js");
 await loadScript("./ground-data.js?v=ground-chart-overlay-v173");
 await loadScript("./aircraft-data.js");
 await loadScript("./aircraft-data/p2006t-performance.js");
