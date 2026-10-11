@@ -28,6 +28,7 @@
     "dexie": "^4.4.6",
     "idb-keyval": "^6.3.0",
     "lucide-react": "^1.55.0",
+    "magvar": "2.2.0",
     "next": "16.4.0",
     "radix-ui": "^1.7.0",
     "react": "19.3.0",

@@ -35,6 +35,9 @@ importers:
       lucide-react:
         specifier: ^1.55.0
         version: 1.55.0(@types/react@19.3.0)(react@19.3.0)
+      magvar:
+        specifier: 2.2.0
+        version: 2.2.0
       next:
         specifier: 16.4.0
         version: 16.4.0(@babel/core@7.29.7)(@playwright/test@1.64.0)(@types/node@22.20.5)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -3158,6 +3161,9 @@ packages:
 
   magicast@0.5.5:
     resolution: {integrity: sha512-UicdXN8zQ3JHlxVq+28afMXPr1z7WNY6+7EJnzTdQWkTAlMLF5fNCCKxJHBQwGaNGR11581EiQmQzx73+MvszA==}
+
+  magvar@2.2.0:
+    resolution: {integrity: sha512-sWLPLRuEOtiN0U7TKW5g33oVXxEVruyXUkxRxBtwyqBiryd5iTwLLDJSw6Tx5qV2xQpGXy5tfvXxgk+s3OCUeg==}
 
   math-intrinsics@1.1.0:
     resolution: {integrity: sha512-/IXtbwEk5HTPyEwyKX6hGkYXxM9nbj64B+ilVJnC/R6B0pH5G4V3b0pVbL7DBj4tkhBAppbQUlf6F6Xl9LHu1g==}
@@ -7306,6 +7312,8 @@ snapshots:
       '@babel/parser': 7.29.9
       '@babel/types': 7.29.8
       source-map-js: 1.2.2
+
+  magvar@2.2.0: {}
 
   math-intrinsics@1.1.0: {}
 
