@@ -1,0 +1,119 @@
+{
+  "format": "nordsweet.flight",
+  "savedAt": "2026-06-27T12:04:22.898Z",
+  "route": {
+    "id": "route-1782561862898",
+    "name": "EPNT -> EPNT / 91.4 NM",
+    "savedAt": "2026-06-27T12:04:22.898Z",
+    "aircraftRegistration": "",
+    "aircraftType": "R172K",
+    "alternateIcao": "LZTT",
+    "altitudeFt": "3000",
+    "approach": "NONE",
+    "cruiseSpeedKt": "90",
+    "departureIcao": "EPNT",
+    "destinationIcao": "EPNT",
+    "fileName": "T6∕60 (RW30).nord",
+    "plan": {
+      "altitudeFt": 3000,
+      "cruiseSpeedKt": 90,
+      "estimatedEnrouteMinutes": 60.919378157794796,
+      "totalDistanceNm": 91.3790672366922,
+      "points": [
+        {
+          "altitudeFt": 2100,
+          "id": "EPNT",
+          "lat": 49.462222,
+          "lon": 20.0525,
+          "name": "EPNT"
+        },
+        {
+          "altitudeFt": 3000,
+          "id": "492859N0195945E",
+          "lat": 49.48305555555556,
+          "lon": 19.995833333333334,
+          "name": "492859N 0195945E"
+        },
+        {
+          "altitudeFt": 3000,
+          "id": "491915N0195839E",
+          "lat": 49.32083333333334,
+          "lon": 19.9775,
+          "name": "491915N 0195839E"
+        },
+        {
+          "altitudeFt": 3000,
+          "id": "491950N0193312E",
+          "lat": 49.330555555555556,
+          "lon": 19.553333333333335,
+          "name": "491950N 0193312E"
+        },
+        {
+          "altitudeFt": 3000,
+          "id": "490710N0193245E",
+          "lat": 49.11944444444445,
+          "lon": 19.545833333333334,
+          "name": "490710N 0193245E"
+        },
+        {
+          "altitudeFt": 3000,
+          "id": "490907N0195021E",
+          "lat": 49.151944444444446,
+          "lon": 19.839166666666664,
+          "name": "490907N 0195021E"
+        },
+        {
+          "altitudeFt": 3000,
+          "id": "490849N0201222E",
+          "lat": 49.14694444444444,
+          "lon": 20.20611111111111,
+          "name": "490849N 0201222E"
+        },
+        {
+          "altitudeFt": 3000,
+          "id": "491243N0201758E",
+          "lat": 49.21194444444445,
+          "lon": 20.299444444444447,
+          "name": "491243N 0201758E"
+        },
+        {
+          "altitudeFt": 3000,
+          "id": "492553N0200756E",
+          "lat": 49.43138888888889,
+          "lon": 20.13222222222222,
+          "name": "492553N 0200756E"
+        },
+        {
+          "altitudeFt": 3000,
+          "id": "TOD",
+          "lat": 49.445096854088526,
+          "lon": 20.096778849546602,
+          "name": "TOD"
+        },
+        {
+          "altitudeFt": 2100,
+          "id": "EPNT",
+          "lat": 49.462222,
+          "lon": 20.0525,
+          "name": "EPNT"
+        }
+      ]
+    },
+    "plannerCruiseSpeedEco": false,
+    "routeText": "N492859 E0195945 N491915 E0195839 N491950 E0193312 N490710 E0193245 N490907 E0195021 N490849 E0201222 N491243 E0201758 N492553 E0200756",
+    "schedule": {
+      "departure": "",
+      "departureManual": false,
+      "destination": "",
+      "destinationManual": false,
+      "open": ""
+    },
+    "sid": "NONE",
+    "star": "NONE",
+    "waypointAltitudes": {},
+    "waypointWx": {},
+    "customName": "T6/60 (RW30)",
+    "displayName": "T6/60 (RW30)"
+  },
+  "version": 1
+}

@@ -1,0 +1,47 @@
+{
+  "format": "nordsweet.flight",
+  "savedAt": "2026-06-27T12:44:25.084Z",
+  "route": {
+    "id": "route-1782564265084",
+    "name": "EPNT -> EPNT / 0 NM",
+    "savedAt": "2026-06-27T12:44:25.084Z",
+    "aircraftRegistration": "",
+    "aircraftType": "R172K",
+    "alternateIcao": "",
+    "altitudeFt": "3000",
+    "approach": "NONE",
+    "cruiseSpeedKt": "120",
+    "departureIcao": "EPNT",
+    "destinationIcao": "EPNT",
+    "fileName": "R172K2706261444.nord",
+    "plan": {
+      "altitudeFt": 3000,
+      "cruiseSpeedKt": 120,
+      "estimatedEnrouteMinutes": 0,
+      "totalDistanceNm": 0,
+      "points": [
+        {
+          "altitudeFt": 2100,
+          "id": "EPNT",
+          "lat": 49.462222,
+          "lon": 20.0525,
+          "name": "EPNT"
+        }
+      ]
+    },
+    "plannerCruiseSpeedEco": false,
+    "routeText": "",
+    "schedule": {
+      "departure": "",
+      "departureManual": false,
+      "destination": "",
+      "destinationManual": false,
+      "open": ""
+    },
+    "sid": "NONE",
+    "star": "NONE",
+    "waypointAltitudes": {},
+    "waypointWx": {}
+  },
+  "version": 1
+}

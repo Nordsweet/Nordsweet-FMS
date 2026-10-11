@@ -1,0 +1,68 @@
+{
+  "format": "nordsweet.flight",
+  "savedAt": "2026-08-10T13:20:58.937Z",
+  "route": {
+    "id": "route-1786368058937",
+    "name": "EPKK -> ACHA / 216.3 NM",
+    "savedAt": "2026-08-10T13:20:58.937Z",
+    "aircraftRegistration": "",
+    "aircraftType": "P2006T",
+    "alternateIcao": "",
+    "altitudeFt": "3000",
+    "approach": "NONE",
+    "cruiseSpeedKt": "120",
+    "departureIcao": "EPKK",
+    "destinationIcao": "ACHA",
+    "fileName": "P2006T1008261520.nord",
+    "plan": {
+      "altitudeFt": 3000,
+      "cruiseSpeedKt": 120,
+      "estimatedEnrouteMinutes": 108.13024772473815,
+      "totalDistanceNm": 216.2604954494763,
+      "points": [
+        {
+          "altitudeFt": 800,
+          "id": "EPKK",
+          "lat": 50.077778,
+          "lon": 19.784722,
+          "name": "EPKK"
+        },
+        {
+          "altitudeFt": 3000,
+          "id": "TOC",
+          "lat": 50.134563078665906,
+          "lon": 19.817789569995195,
+          "name": "TOC"
+        },
+        {
+          "altitudeFt": 3000,
+          "id": "TOD",
+          "lat": 53.378470745675294,
+          "lon": 21.70680947376091,
+          "name": "TOD"
+        },
+        {
+          "altitudeFt": 400,
+          "id": "ACHA",
+          "lat": 53.46675,
+          "lon": 21.758217,
+          "name": "ACHA"
+        }
+      ]
+    },
+    "plannerCruiseSpeedEco": false,
+    "routeText": "",
+    "schedule": {
+      "departure": "",
+      "departureManual": false,
+      "destination": "",
+      "destinationManual": false,
+      "open": ""
+    },
+    "sid": "NONE",
+    "star": "NONE",
+    "waypointAltitudes": {},
+    "waypointWx": {}
+  },
+  "version": 1
+}

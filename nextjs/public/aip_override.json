@@ -1,0 +1,24 @@
+{
+  "EPKK": {
+    "07": { "tora": 2550, "toda": 2550, "asda": 2550 },
+    "25": { "tora": 2550, "toda": 2550, "asda": 2550 }
+  },
+  "EPPO": {
+    "10": { "tora": null, "toda": null, "asda": null },
+    "28": { "tora": null, "toda": null, "asda": null }
+  },
+  "EPWA": {
+    "11": { "tora": null, "toda": null, "asda": null },
+    "29": { "tora": null, "toda": null, "asda": null },
+    "15": { "tora": null, "toda": null, "asda": null },
+    "33": { "tora": null, "toda": null, "asda": null }
+  },
+  "EPKT": {
+    "08": { "tora": null, "toda": null, "asda": null },
+    "26": { "tora": null, "toda": null, "asda": null }
+  },
+  "EPRZ": {
+    "09": { "tora": null, "toda": null, "asda": null },
+    "27": { "tora": null, "toda": null, "asda": null }
+  }
+}

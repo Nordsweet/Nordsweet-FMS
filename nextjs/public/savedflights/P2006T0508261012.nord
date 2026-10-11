@@ -1,0 +1,89 @@
+{
+  "format": "nordsweet.flight",
+  "savedAt": "2026-08-05T08:12:22.504Z",
+  "route": {
+    "id": "route-1785917542504",
+    "name": "EPNT -> EPML / 78.1 NM",
+    "savedAt": "2026-08-05T08:12:22.504Z",
+    "aircraftRegistration": "",
+    "aircraftType": "P2006T",
+    "alternateIcao": "",
+    "altitudeFt": "5000",
+    "approach": "NONE",
+    "cruiseSpeedKt": "86",
+    "departureIcao": "EPNT",
+    "destinationIcao": "EPML",
+    "fileName": "P2006T0508261012.nord",
+    "plan": {
+      "altitudeFt": 5000,
+      "cruiseSpeedKt": 86,
+      "estimatedEnrouteMinutes": 54.501712513860326,
+      "totalDistanceNm": 78.11912126986647,
+      "points": [
+        {
+          "altitudeFt": 2100,
+          "id": "EPNT",
+          "lat": 49.462222,
+          "lon": 20.0525,
+          "name": "EPNT"
+        },
+        {
+          "altitudeFt": 5000,
+          "id": "TOC",
+          "lat": 49.4663559138684,
+          "lon": 20.193512762747698,
+          "name": "TOC"
+        },
+        {
+          "altitudeFt": 5000,
+          "id": "EPNTA",
+          "lat": 49.467222,
+          "lon": 20.223056,
+          "name": "EPNTA"
+        },
+        {
+          "altitudeFt": 5000,
+          "id": "EPMLR",
+          "lat": 50.195833,
+          "lon": 21.27695,
+          "name": "EPMLR"
+        },
+        {
+          "altitudeFt": 5000,
+          "id": "TOD",
+          "lat": 50.21338560746205,
+          "lon": 21.324333458872772,
+          "name": "TOD"
+        },
+        {
+          "altitudeFt": 2200,
+          "id": "EPMLS",
+          "lat": 50.263333,
+          "lon": 21.459167,
+          "name": "EPMLS"
+        },
+        {
+          "altitudeFt": 500,
+          "id": "EPML",
+          "lat": 50.322283,
+          "lon": 21.46175,
+          "name": "EPML"
+        }
+      ]
+    },
+    "plannerCruiseSpeedEco": false,
+    "routeText": "epnta epmlr epmls",
+    "schedule": {
+      "departure": "",
+      "departureManual": false,
+      "destination": "",
+      "destinationManual": false,
+      "open": ""
+    },
+    "sid": "NONE",
+    "star": "NONE",
+    "waypointAltitudes": {},
+    "waypointWx": {}
+  },
+  "version": 1
+}

@@ -1,0 +1,91 @@
+{
+  "format": "nordsweet.flight",
+  "savedAt": "2026-06-27T11:24:52.816Z",
+  "route": {
+    "id": "route-1782559492816",
+    "name": "EPNT -> EPNT / 28.8 NM",
+    "savedAt": "2026-06-27T11:24:52.816Z",
+    "aircraftRegistration": "",
+    "aircraftType": "R172K",
+    "alternateIcao": "LZTT",
+    "altitudeFt": "3000",
+    "approach": "NONE",
+    "cruiseSpeedKt": "90",
+    "departureIcao": "EPNT",
+    "destinationIcao": "EPNT",
+    "fileName": "T2∕30 (RW12).nord",
+    "plan": {
+      "altitudeFt": 3000,
+      "cruiseSpeedKt": 90,
+      "estimatedEnrouteMinutes": 19.22252339758039,
+      "totalDistanceNm": 28.833785096370583,
+      "points": [
+        {
+          "altitudeFt": 2100,
+          "id": "EPNT",
+          "lat": 49.462222,
+          "lon": 20.0525,
+          "name": "EPNT"
+        },
+        {
+          "altitudeFt": 3000,
+          "id": "TOC",
+          "lat": 49.44184403034324,
+          "lon": 20.10518936435119,
+          "name": "TOC"
+        },
+        {
+          "altitudeFt": 3000,
+          "id": "492553N0200756E",
+          "lat": 49.43138888888889,
+          "lon": 20.13222222222222,
+          "name": "492553N 0200756E"
+        },
+        {
+          "altitudeFt": 3000,
+          "id": "491740N0195624E",
+          "lat": 49.294444444444444,
+          "lon": 19.94,
+          "name": "491740N 0195624E"
+        },
+        {
+          "altitudeFt": 3000,
+          "id": "492859N0195945E",
+          "lat": 49.48305555555556,
+          "lon": 19.995833333333334,
+          "name": "492859N 0195945E"
+        },
+        {
+          "altitudeFt": 3000,
+          "id": "TOD",
+          "lat": 49.47871670880219,
+          "lon": 20.007634870619434,
+          "name": "TOD"
+        },
+        {
+          "altitudeFt": 2100,
+          "id": "EPNT",
+          "lat": 49.462222,
+          "lon": 20.0525,
+          "name": "EPNT"
+        }
+      ]
+    },
+    "plannerCruiseSpeedEco": false,
+    "routeText": "N492553 E0200756 N491740 E0195624 N492859 E0195945",
+    "schedule": {
+      "departure": "",
+      "departureManual": false,
+      "destination": "",
+      "destinationManual": false,
+      "open": ""
+    },
+    "sid": "NONE",
+    "star": "NONE",
+    "waypointAltitudes": {},
+    "waypointWx": {},
+    "customName": "T2/30 (RW12)",
+    "displayName": "T2/30 (RW12)"
+  },
+  "version": 1
+}

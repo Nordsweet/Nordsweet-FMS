@@ -1,0 +1,57 @@
+{
+  "airport-frequencies-editor": {
+    "title": "Airport Frequencies Editor",
+    "bodyClass": "",
+    "bodyStyle": ""
+  },
+  "airspaces-editor": {
+    "title": "Nordsweet Airspaces Editor",
+    "bodyClass": "",
+    "bodyStyle": ""
+  },
+  "airspaces-map": {
+    "title": "Nordsweet Airspace Map",
+    "bodyClass": "",
+    "bodyStyle": ""
+  },
+  "airspaces": {
+    "title": "Airspaces",
+    "bodyClass": "",
+    "bodyStyle": ""
+  },
+  "chart-browser": {
+    "title": "Chart Browser",
+    "bodyClass": "",
+    "bodyStyle": ""
+  },
+  "checklist-editor": {
+    "title": "Airplane Data Editor",
+    "bodyClass": "",
+    "bodyStyle": ""
+  },
+  "ground-editor": {
+    "title": "Nordsweet Ground Data Editor",
+    "bodyClass": "",
+    "bodyStyle": ""
+  },
+  "index": {
+    "title": "Nordsweet Performance Calculator",
+    "bodyClass": "",
+    "bodyStyle": ""
+  },
+  "PFD": {
+    "title": "GPS PFD",
+    "bodyClass": "",
+    "bodyStyle": ""
+  },
+  "traffic": {
+    "title": "Live Traffic",
+    "bodyClass": "",
+    "bodyStyle": ""
+  },
+  "waypoint-procedure-editor": {
+    "title": "Waypoint / Procedure Editor",
+    "bodyClass": "",
+    "bodyStyle": ""
+  }
+}

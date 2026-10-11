@@ -1,0 +1,98 @@
+{
+  "format": "nordsweet.flight",
+  "savedAt": "2026-06-27T10:39:02.185Z",
+  "route": {
+    "id": "route-1782556742185",
+    "name": "EPNT -> EPNT / 18.3 NM",
+    "savedAt": "2026-06-27T10:39:02.185Z",
+    "aircraftRegistration": "",
+    "aircraftType": "R172K",
+    "alternateIcao": "LZTT",
+    "altitudeFt": "3000",
+    "approach": "NONE",
+    "cruiseSpeedKt": "90",
+    "departureIcao": "EPNT",
+    "destinationIcao": "EPNT",
+    "fileName": "T1∕20 (RW12).nord",
+    "plan": {
+      "altitudeFt": 3000,
+      "cruiseSpeedKt": 90,
+      "estimatedEnrouteMinutes": 12.180665309762329,
+      "totalDistanceNm": 18.270997964643495,
+      "points": [
+        {
+          "altitudeFt": 2100,
+          "id": "EPNT",
+          "lat": 49.462222,
+          "lon": 20.0525,
+          "name": "EPNT"
+        },
+        {
+          "altitudeFt": 3000,
+          "id": "TOC",
+          "lat": 49.44184403034324,
+          "lon": 20.10518936435119,
+          "name": "TOC"
+        },
+        {
+          "altitudeFt": 3000,
+          "id": "492553N0200756E",
+          "lat": 49.43138888888889,
+          "lon": 20.13222222222222,
+          "name": "492553N 0200756E"
+        },
+        {
+          "altitudeFt": 3000,
+          "id": "492320N0200539E",
+          "lat": 49.388888888888886,
+          "lon": 20.094166666666666,
+          "name": "492320N 0200539E"
+        },
+        {
+          "altitudeFt": 3000,
+          "id": "492622N0195727E",
+          "lat": 49.43944444444444,
+          "lon": 19.9575,
+          "name": "492622N 0195727E"
+        },
+        {
+          "altitudeFt": 3000,
+          "id": "492859N0195945E",
+          "lat": 49.48305555555556,
+          "lon": 19.995833333333334,
+          "name": "492859N 0195945E"
+        },
+        {
+          "altitudeFt": 3000,
+          "id": "TOD",
+          "lat": 49.47871670880219,
+          "lon": 20.007634870619434,
+          "name": "TOD"
+        },
+        {
+          "altitudeFt": 2100,
+          "id": "EPNT",
+          "lat": 49.462222,
+          "lon": 20.0525,
+          "name": "EPNT"
+        }
+      ]
+    },
+    "plannerCruiseSpeedEco": false,
+    "routeText": "N492553 E0200756 N492320 E0200539 N492622 E0195727 N492859 E0195945",
+    "schedule": {
+      "departure": "",
+      "departureManual": false,
+      "destination": "",
+      "destinationManual": false,
+      "open": ""
+    },
+    "sid": "NONE",
+    "star": "NONE",
+    "waypointAltitudes": {},
+    "waypointWx": {},
+    "customName": "T1/20 (RW12)",
+    "displayName": "T1/20 (RW12)"
+  },
+  "version": 1
+}
