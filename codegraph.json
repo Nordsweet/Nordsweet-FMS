@@ -1,10 +1,4 @@
 {
-  "exclude": [
-    "/*.js",
-    "/*.html",
-    "/aircraft-data/",
-    "/airspace-data/",
-    "/Waypoints/"
-  ],
+  "exclude": ["nextjs/public/data/"],
   "deprioritize": ["nextjs/public/"]
 }

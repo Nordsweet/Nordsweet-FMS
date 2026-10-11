@@ -26,7 +26,6 @@
     "@tanstack/react-query-persist-client": "^5.104.1",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.4.0",
-    "dexie": "^4.4.6",
     "idb-keyval": "^6.3.0",
     "lucide-react": "^1.55.0",
     "magvar": "2.2.0",

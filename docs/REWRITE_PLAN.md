@@ -75,10 +75,16 @@ then its legacy runtime is deleted.
 
 Estimates are Claude working time.
 
-### 1. Foundation — 4–6 h
+### 1. Foundation — 4–6 h ✅ done
 Tooling (ESLint, Prettier, Vitest, Playwright, CI), shadcn/ui + theme, app shell with navigation,
 Zustand store with legacy-key migration, data pipeline (legacy JS → JSON + zod), `domain/`
 units/geo/atmosphere/wind with tests.
+
+Delivered: new app at `/v2` (separate root layout, legacy screens unchanged), settings + PL/EN,
+`src/api` local backend for airports/navpoints/frequencies, offline for new routes.
+Findings: planner was missing 948 VFR waypoints since the Next migration (fixed on this branch);
+legacy pressure altitude rule of thumb understates PA at high QNH; runway `magHdg` equals true
+heading; navaids date from 2019; an `EPXX` test airport shipped in production data.
 
 ### 2. Core flight plan (MVP) — 12–20 h
 The thing a pilot needs before every flight:

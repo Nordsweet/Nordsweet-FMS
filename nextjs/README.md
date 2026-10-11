@@ -1,51 +1,45 @@
 # Nordsweet FMS — Next.js (T3)
 
-Next.js 16.4 App Router + React 19.3 + TypeScript + Tailwind CSS 4 + zod/`@t3-oss/env-nextjs`
-(układ [create-t3-app](https://create.t3.gg), bez tRPC, bazy danych i NextAuth), ze statycznym
-eksportem do Sites.
+Next.js 16 App Router + React 19 + TypeScript + Tailwind CSS 4 + shadcn/ui + zod
+(układ [create-t3-app](https://create.t3.gg), na razie bez backendu), ze statycznym
+eksportem i trybem offline. Plan przepisania: [`../docs/REWRITE_PLAN.md`](../docs/REWRITE_PLAN.md).
 
 ## Uruchamianie
 
-Wymagany Node.js 20.9+ i pnpm 11.19.
+Wymagany Node.js 22 i pnpm 11.19.
 
 ```sh
 pnpm install --frozen-lockfile
-pnpm dev
-pnpm typecheck
-pnpm test
-pnpm build
-pnpm start
+pnpm dev            # serwer deweloperski
+pnpm check          # lint + typy + testy jednostkowe
+pnpm build          # statyczny eksport do out/
+pnpm start          # serwuje out/ na http://127.0.0.1:3000
+pnpm test:e2e       # Playwright na zbudowanym eksporcie
+pnpm data:import    # przelicza public/data/*.json z dawnych plików danych
 ```
 
-`pnpm start` serwuje produkcyjny katalog `out` na http://127.0.0.1:3000.
-W produkcji obsługiwane są dotychczasowe adresy `.html`. W trybie dev są mapowane
-na trasy App Router. Nawigacja między narzędziami ładuje pełny dokument,
-ponieważ ich istniejące silniki mają własne nasłuchy zdarzeń i cykl życia.
+## Dwie aplikacje w trakcie migracji
+
+- **Nowa aplikacja** — `/v2`, `src/app/(app)`: pełny Tailwind + shadcn/ui, PL/EN.
+- **Poprzednia wersja** — `/`, `/<narzędzie>.html`, `src/app/(legacy)`: dotychczasowe ekrany
+  i silniki DOM (`src/runtime/*.js`, bez sprawdzania typów), wyświetlane bez zmian.
+  Każdy obszar jest usuwany po przeniesieniu do nowej aplikacji.
 
 ## Struktura
 
-- `src/app/`: layout, metadane, główna strona i statyczne trasy narzędzi.
-- `src/views/`: komponenty TSX, w tym części głównego planera.
-- `src/runtime/`: istniejące silniki obliczeniowe i obsługa kontrolek (JavaScript, `@ts-nocheck`),
-  ładowane jako oddzielne moduły Next.js po hydratacji React. Każdy ekran przenoszony na React
-  dostaje własne, typowane moduły zamiast silnika.
-- `src/components/RuntimeBootstrap.tsx`: uporządkowane ładowanie danych,
-  jednorazowy start silników, obsługa błędów uruchomienia.
-- `src/pages.ts`, `src/pages.json`: lista ekranów i ich tytuły.
-- `src/env.js`: walidacja zmiennych środowiskowych (zod).
-- `src/styles/globals.css`: Tailwind bez Preflight — istniejące ekrany mają własny CSS i
-  polegają na domyślnych stylach przeglądarki. Pełny `@import "tailwindcss"` po migracji ekranów.
-- `public/`: dane lotnisk, samolotów, stref, wykresy i pozostałe zasoby.
-- `scripts/finalize-export.mjs`: manifest offline związany z konkretnym buildem,
-  obejmujący również pliki `_next`.
-- `tests/`: regresje TOC, ograniczeń wysokości i czasu zmiany COMMs.
+- `src/domain/` — czyste obliczenia (jednostki, geo, atmosfera ISA, wiatr, deklinacja WMM)
+  z testami. Bez Reacta i DOM.
+- `src/data/schemas.ts` — schematy zod danych referencyjnych.
+- `public/data/` — lotniska, punkty nawigacyjne, częstotliwości (JSON generowany przez
+  `pnpm data:import`, dostępny offline).
+- `src/api/` — jedyna granica danych („dummy backend”). Procedury w kształcie przyszłych
+  routerów tRPC (`api.airports.search.queryOptions(...)`), dziś rozwiązywane lokalnie.
+- `src/stores/` — stan klienta (Zustand, zapis w localStorage, jednorazowa migracja
+  z kluczy `nordsweet.*.v1`).
+- `src/i18n/` — słowniki PL/EN.
+- `src/components/ui/` — komponenty shadcn/ui; `src/components/shell/` — układ i providery.
+- `public/sw.js` + `scripts/finalize-export.mjs` — service worker i manifest offline.
+- `tests/legacy/` — regresje dawnego planera; `e2e/` — testy Playwright (w tym offline).
 
-Obliczenia, płótno mapy i część dynamicznie generowanych paneli nadal korzystają
-z dotychczasowego kodu DOM. Aplikacja nie wymaga serwera Node w produkcji.
-
-Dane lokalne pozostają pod tymi samymi kluczami localStorage i tym samym
-adresem Sites. Usługi pogodowe i inne źródła zewnętrzne zachowują dotychczasowe
-wymagania dostępu. Nie dodano integracji Airframes.
-
-Źródła projektu są w repozytorium Sites. Folder `out` jest generowany i nie
-jest źródłem do ręcznej edycji.
+Dane lokalne pozostają pod dotychczasowymi kluczami localStorage. Folder `out` jest
+generowany i nie jest źródłem do ręcznej edycji.
