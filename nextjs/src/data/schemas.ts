@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { aircraftSchema } from "./aircraft";
+
 const latitude = z.number().min(-90).max(90);
 const longitude = z.number().min(-180).max(180);
 
@@ -106,6 +108,7 @@ export const datasetSchemas = {
   airports: z.array(airportSchema),
   navpoints: z.array(navpointSchema),
   frequencies: z.array(frequencySchema),
+  aircraft: z.array(aircraftSchema),
 } as const;
 
 export type DatasetName = keyof typeof datasetSchemas;
