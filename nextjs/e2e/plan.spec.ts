@@ -30,8 +30,11 @@ test("plans a flight end to end and keeps it across reloads", async ({
   await pickPoint(page, "Destination", "EPKK", "EPKK");
   await pickPoint(page, "Add waypoint", "ABAKU", "ABAKU");
 
-  await expect(page.getByRole("cell", { name: "EPNT → ABAKU" })).toBeVisible();
-  await expect(page.getByRole("cell", { name: "ABAKU → EPKK" })).toBeVisible();
+  // Climb and descent split the first and last legs at TOC and TOD.
+  await expect(page.getByRole("cell", { name: /^EPNT → TOC/ })).toBeVisible();
+  await expect(page.getByRole("cell", { name: /^TOC → ABAKU/ })).toBeVisible();
+  await expect(page.getByRole("cell", { name: /^TOD → EPKK/ })).toBeVisible();
+  await expect(page.getByTestId("climb-summary")).toContainText("65 L/h");
   await expect(page.getByTestId("fuel-extra")).toBeVisible();
   await expect(page.getByTestId("wb-takeoff")).toContainText("kg");
   await expect(page.getByTestId("perf-takeoff-ground-roll")).toHaveText(
@@ -46,7 +49,7 @@ test("plans a flight end to end and keeps it across reloads", async ({
   ).toContainText("Test flight");
 
   await page.reload();
-  await expect(page.getByRole("cell", { name: "EPNT → ABAKU" })).toBeVisible();
+  await expect(page.getByRole("cell", { name: /^TOC → ABAKU/ })).toBeVisible();
   await expect(
     page.getByRole("list", { name: "Saved flights list" }),
   ).toContainText("Test flight");
@@ -60,5 +63,7 @@ test("imports a legacy .nord flight", async ({ page }) => {
   const saved = page.getByRole("list", { name: "Saved flights list" });
   await expect(saved).toContainText("EPNT -> EPML");
   await saved.getByRole("button", { name: "Load" }).first().click();
-  await expect(page.getByRole("cell", { name: "EPMLS → EPML" })).toBeVisible();
+  await expect(
+    page.getByRole("cell", { name: /→ EPML descent/ }),
+  ).toBeVisible();
 });

@@ -1,9 +1,10 @@
 import {
   type DistanceAxis,
   type DistanceConfiguration,
-  type DistanceGrid,
   type DistanceLeaf,
 } from "~/data/aircraft";
+
+import { axisMaxima, conservativeRead, interpolateGrid } from "./grid";
 
 export type RunwaySurface = "paved" | "grass" | "unknown";
 
@@ -41,63 +42,13 @@ export type DistanceResult = DistanceLeaf & {
   warnings: PerformanceWarning[];
 };
 
-const isLeaf = (node: DistanceGrid | DistanceLeaf): node is DistanceLeaf =>
-  "groundRollM" in node;
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
 function axisValue(input: DistanceInput, axis: DistanceAxis) {
-  return axis === "headwindKt" ? Math.max(0, input.headwindKt) : input[axis];
-}
-
-function interpolate(
-  node: DistanceGrid | DistanceLeaf,
-  input: DistanceInput,
-): DistanceLeaf {
-  if (isLeaf(node)) return node;
-  const v = axisValue(input, node.axis);
-  const pts = node.points;
-  const upper = pts.findIndex((p) => p.at >= v);
-  if (upper <= 0)
-    return interpolate(pts[upper === 0 ? 0 : pts.length - 1]!.next, input); // clamped
-  const lo = pts[upper - 1]!;
-  const hi = pts[upper]!;
-  const t = (v - lo.at) / (hi.at - lo.at);
-  const a = interpolate(lo.next, input);
-  const b = interpolate(hi.next, input);
-  return {
-    groundRollM: lerp(a.groundRollM, b.groundRollM, t),
-    obstacle50ftM: lerp(a.obstacle50ftM, b.obstacle50ftM, t),
-  };
-}
-
-/** Next table entry in the direction that lengthens the run (a lower headwind, a higher anything else). */
-function tableRead(
-  node: DistanceGrid | DistanceLeaf,
-  input: DistanceInput,
-): DistanceLeaf {
-  if (isLeaf(node)) return node;
-  const v = axisValue(input, node.axis);
-  const pts = node.points;
-  const pick =
-    node.axis === "headwindKt"
-      ? ([...pts].reverse().find((p) => p.at <= v) ?? pts[0]!)
-      : (pts.find((p) => p.at >= v) ?? pts[pts.length - 1]!);
-  return tableRead(pick.next, input);
-}
-
-/** Highest tabulated value per axis present in the grid. */
-function axisMaxima(grid: DistanceGrid) {
-  const max = new Map<DistanceAxis, number>();
-  const walk = (node: DistanceGrid | DistanceLeaf) => {
-    if (isLeaf(node)) return;
-    max.set(
-      node.axis,
-      Math.max(max.get(node.axis) ?? -Infinity, node.points.at(-1)!.at),
-    );
-    node.points.forEach((p) => walk(p.next));
-  };
-  walk(grid);
-  return max;
+  if (axis === "headwindKt") return Math.max(0, input.headwindKt);
+  if (axis === "densityAltitudeFt")
+    throw new Error("distance tables have no density altitude axis");
+  return input[axis];
 }
 
 /** Axes where the input exceeds what the table covers (distances would be underestimated). */
@@ -169,8 +120,9 @@ export function computeDistance(
   const maxima = axisMaxima(table.grid);
   warnings.push(...rangeWarnings(maxima, input));
 
-  const interpolated = interpolate(table.grid, input);
-  const read = tableRead(table.grid, input);
+  const value = (axis: DistanceAxis) => axisValue(input, axis);
+  const interpolated = interpolateGrid(table.grid, value);
+  const read = conservativeRead(table.grid, value);
   const base = {
     groundRollM: Math.max(interpolated.groundRollM, read.groundRollM),
     obstacle50ftM: Math.max(interpolated.obstacle50ftM, read.obstacle50ftM),

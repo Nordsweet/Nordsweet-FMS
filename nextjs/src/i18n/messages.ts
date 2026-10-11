@@ -47,7 +47,7 @@ const pl = {
   "plan.navlog.impossible":
     "Wiatr jest zbyt silny dla podanej prędkości na co najmniej jednym odcinku.",
   "plan.navlog.note":
-    "Na wysokości przelotowej, bez wznoszenia i zniżania. Kursy magnetyczne wg WMM2025.",
+    "Wznoszenie z tabel POH (80% najlepszej prędkości wznoszenia), zniżanie 500 ft/min przy prędkości przelotowej. Kursy magnetyczne wg WMM2025.",
   "plan.fuel.title": "Paliwo",
   "plan.fuel.block": "Paliwo na pokładzie",
   "plan.fuel.taxi": "Uruchomienie i kołowanie",
@@ -113,6 +113,7 @@ const pl = {
   "plan.perf.axis.pressureAltitudeFt": "wysokość ciśnieniowa",
   "plan.perf.axis.temperatureC": "temperatura",
   "plan.perf.axis.headwindKt": "wiatr czołowy",
+  "plan.perf.axis.densityAltitudeFt": "wysokość gęstościowa",
   "plan.perf.warning.above-table":
     "{axis} ({value}) powyżej tabeli POH (maks. {max}) — odległości mogą być zaniżone.",
   "plan.perf.warning.not-tabulated":
@@ -170,6 +171,20 @@ const pl = {
   "plan.perf.fromMetar": "z METAR {icao} ({age} min)",
   "plan.perf.variableWind": "wiatr zmienny — przyjęto wiatr tylny",
   "plan.perf.gusting": "porywy {gust} kt",
+  "plan.navlog.phase.climb": "wznoszenie",
+  "plan.navlog.phase.descent": "zniżanie",
+  "plan.navlog.cruiseNotReached":
+    "Trasa jest za krótka, by osiągnąć wysokość przelotową.",
+  "plan.navlog.climb":
+    "Wznoszenie: {minutes} min do {altitude} ft, średnio {tas} kt TAS, {flow} L/h.",
+  "plan.navlog.climbIsa": "Temperatura wg ISA (brak METAR).",
+  "plan.navlog.climbMetar": "Odchyłka od ISA z METAR: {deviation} °C.",
+  "plan.navlog.noClimbData":
+    "Brak tabel wznoszenia — log bez profilu wznoszenia.",
+  "plan.navlog.warning.ceiling":
+    "Wznoszenie zatrzymane na {altitude} ft (koniec tabeli POH lub prędkość wznoszenia poniżej 100 ft/min).",
+  "plan.navlog.warning.noFuelFlow":
+    "POH nie podaje zużycia paliwa przy wznoszeniu — przyjęto zużycie przelotowe (*); uwzględnij dodatek na wznoszenie.",
   "settings.title": "Ustawienia",
   "settings.language": "Język",
   "settings.homeAirport": "Lotnisko macierzyste (ICAO)",
@@ -226,7 +241,7 @@ const en: Record<MessageKey, string> = {
   "plan.navlog.impossible":
     "The wind is too strong for this airspeed on at least one leg.",
   "plan.navlog.note":
-    "At cruise altitude, without climb and descent. Magnetic courses from WMM2025.",
+    "Climb from POH tables (80% of best rate), descent 500 fpm at cruise speed. Magnetic courses from WMM2025.",
   "plan.fuel.title": "Fuel",
   "plan.fuel.block": "Block fuel",
   "plan.fuel.taxi": "Start and taxi",
@@ -292,6 +307,7 @@ const en: Record<MessageKey, string> = {
   "plan.perf.axis.pressureAltitudeFt": "pressure altitude",
   "plan.perf.axis.temperatureC": "temperature",
   "plan.perf.axis.headwindKt": "headwind",
+  "plan.perf.axis.densityAltitudeFt": "density altitude",
   "plan.perf.warning.above-table":
     "{axis} ({value}) is above the POH table (max {max}) — distances may be underestimated.",
   "plan.perf.warning.not-tabulated":
@@ -349,6 +365,19 @@ const en: Record<MessageKey, string> = {
   "plan.perf.fromMetar": "from METAR {icao} ({age} min)",
   "plan.perf.variableWind": "variable wind — tailwind assumed",
   "plan.perf.gusting": "gusting {gust} kt",
+  "plan.navlog.phase.climb": "climb",
+  "plan.navlog.phase.descent": "descent",
+  "plan.navlog.cruiseNotReached":
+    "The route is too short to reach the cruise altitude.",
+  "plan.navlog.climb":
+    "Climb: {minutes} min to {altitude} ft, average {tas} kt TAS, {flow} L/h.",
+  "plan.navlog.climbIsa": "ISA temperature assumed (no METAR).",
+  "plan.navlog.climbMetar": "ISA deviation from METAR: {deviation} °C.",
+  "plan.navlog.noClimbData": "No climb tables — log has no climb profile.",
+  "plan.navlog.warning.ceiling":
+    "Climb stopped at {altitude} ft (end of the POH table or rate below 100 fpm).",
+  "plan.navlog.warning.noFuelFlow":
+    "The POH gives no climb fuel flow — cruise flow used (*); add a climb allowance.",
   "settings.title": "Settings",
   "settings.language": "Language",
   "settings.homeAirport": "Home airport (ICAO)",

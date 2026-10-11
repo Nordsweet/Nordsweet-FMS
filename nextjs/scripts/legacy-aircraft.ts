@@ -9,11 +9,15 @@ import vm from "node:vm";
 
 import {
   type Aircraft,
+  type Climb,
+  type ClimbLeaf,
   type Corrections,
   type DistanceConfiguration,
   type DistanceGrid,
   type DistanceLeaf,
   type DistancePerformance,
+  type Grid,
+  type GridAxis,
   type WeightBalance,
 } from "../src/data/aircraft";
 import { isaTemperatureC } from "../src/domain/atmosphere";
@@ -50,10 +54,10 @@ const leaf = (groundRollM: number, obstacle50ftM: number): DistanceLeaf => ({
   obstacle50ftM,
 });
 
-function axis(
-  name: DistanceGrid["axis"],
-  points: { at: number; next: DistanceGrid | DistanceLeaf }[],
-): DistanceGrid {
+function axis<L = DistanceLeaf>(
+  name: GridAxis,
+  points: { at: number; next: Grid<L> | L }[],
+): Grid<L> {
   return { axis: name, points: [...points].sort((a, b) => a.at - b.at) };
 }
 
@@ -521,6 +525,148 @@ function weightBalance(id: string, wb: Legacy | null): WeightBalance | null {
   };
 }
 
+// --- climb ----------------------------------------------------------------------------------------
+
+/** Rate-of-climb table [pressureAltitude][temperature] with per-altitude Vy and optional ISA column. */
+function climbGrid(
+  table: Legacy,
+  ias: (i: number) => number,
+  withIsaColumn: boolean,
+): Grid<ClimbLeaf> {
+  return axis<ClimbLeaf>(
+    "pressureAltitudeFt",
+    (table.pressureAltitudesFt as number[]).map((pa, i) => {
+      const temps = (table.temperaturesC as number[])
+        .map((t, j) => ({
+          at: t,
+          next: { rateFpm: table.rateOfClimbFpm[i][j], iasKt: ias(i) },
+        }))
+        .filter((pt) => pt.next.rateFpm !== null); // blank POH cells (R172K: hottest column up high)
+      if (withIsaColumn) {
+        temps.push({
+          at: Math.round(isaTemperatureC(pa) * 10) / 10,
+          next: {
+            rateFpm: table.isaReference.rateOfClimbFpm[i],
+            iasKt: ias(i),
+          },
+        });
+      }
+      return { at: pa, next: axis<ClimbLeaf>("temperatureC", temps) };
+    }),
+  );
+}
+
+const climbByWeight = (
+  tables: Legacy[],
+  inner: (t: Legacy) => Grid<ClimbLeaf>,
+) =>
+  axis<ClimbLeaf>(
+    "weightKg",
+    tables.map((t) => ({
+      at: Math.round(t.weightKg * 10) / 10,
+      next: inner(t),
+    })),
+  );
+
+function climb(id: string, p: Legacy): Climb | null {
+  if (id === "P2006T") {
+    const tables = Object.entries<Legacy>(p.climb.weightsKg).map(
+      ([kg, t]): Legacy => ({ ...t, weightKg: Number(kg) }),
+    );
+    return {
+      label: `${p.climb.powerSetting}, Vy`,
+      grid: climbByWeight(tables, (t) =>
+        climbGrid({ ...p.climb, ...t }, (i) => t.climbSpeedVyKias[i], true),
+      ),
+      fuelFlowLph: null,
+      draft: false,
+      source: p.climb.source,
+    };
+  }
+  if (id === "R172K") {
+    const tables = Object.values<Legacy>(p.climb.weightsLb);
+    return {
+      label: `${p.climb.powerSetting}, ${p.climb.speedLabel}`,
+      grid: climbByWeight(tables, (t) =>
+        climbGrid(t, (i) => t.climbSpeedKias[i], false),
+      ),
+      fuelFlowLph: p.climb.fuelFlowLph,
+      draft: false,
+      source: p.climb.source,
+    };
+  }
+  if (id === "FR172H") {
+    // Standard-day rows: one temperature per altitude.
+    return {
+      label: "Full throttle, best rate",
+      grid: axis<ClimbLeaf>(
+        "weightKg",
+        (p.climb.rows as Legacy[]).map((row) => ({
+          at: row.grossWeightKg,
+          next: axis<ClimbLeaf>(
+            "pressureAltitudeFt",
+            (row.data as Legacy[]).map((d) => ({
+              at: d.pressureAltitudeFt,
+              next: axis<ClimbLeaf>("temperatureC", [
+                {
+                  at: d.temperatureC,
+                  next: { rateFpm: d.rateOfClimbFpm, iasKt: d.viKias },
+                },
+              ]),
+            })),
+          ),
+        })),
+      ),
+      fuelFlowLph: null,
+      draft: false,
+      source: p.climb.source,
+    };
+  }
+  if (id === "SD-4") {
+    const vy = p.climb.profiles.cleanVy;
+    // Average flow of the 70 KIAS fuel/time-to-climb chart (closest to Vy) to its top altitude.
+    const chart = p.climbToAltitude.profiles["70"];
+    const last = chart.timeMinutes.length - 1;
+    return {
+      label: `${p.climb.powerSetting}, Vy`,
+      grid: axis<ClimbLeaf>("weightKg", [
+        {
+          at: p.climb.weightKg,
+          next: axis<ClimbLeaf>(
+            "densityAltitudeFt",
+            (p.climb.densityAltitudesFt as number[]).map((da, i) => ({
+              at: da,
+              next: { rateFpm: vy.rateOfClimbFpm[i], iasKt: vy.speedKias[i] },
+            })),
+          ),
+        },
+      ]),
+      fuelFlowLph:
+        Math.round(
+          (chart.fuelLiters[last] / chart.timeMinutes[last]) * 60 * 10,
+        ) / 10,
+      draft: Boolean(p.climb.digitizedFromChart),
+      source: p.climb.source,
+    };
+  }
+  if (id === "A-1A HUSKY") {
+    const variant = p.climb.variants[p.climb.defaultVariant];
+    const tables = Object.entries<Legacy>(variant.weightsKg).map(
+      ([kg, t]): Legacy => ({ ...t, weightKg: Number(kg) }),
+    );
+    return {
+      label: `${variant.powerSetting}, Vy, flaps ${variant.flaps}`,
+      grid: climbByWeight(tables, (t) =>
+        climbGrid(t, (i) => t.climbSpeedVyKias[i], true),
+      ),
+      fuelFlowLph: null,
+      draft: String(variant.status).startsWith("draft"),
+      source: variant.source,
+    };
+  }
+  return null;
+}
+
 // --- entry point -----------------------------------------------------------------------------------
 
 export function importAircraft(
@@ -553,6 +699,7 @@ export function importAircraft(
         icaoType: p.icaoType,
         usableFuelL: p.usableFuelCapacityLiters ?? null,
         weightBalance: wb,
+        climb: climb(id, p.performance ?? {}),
         ...perf,
         windLimits: wind
           ? {

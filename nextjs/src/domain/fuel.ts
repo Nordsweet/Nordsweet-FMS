@@ -1,6 +1,7 @@
 /** VFR fuel plan, same components as the legacy planner. All values in litres. */
 export type FuelPlanInput = {
-  tripMinutes: number;
+  /** Trip fuel from the nav log (climb, cruise and descent flows). */
+  tripFuelL: number;
   alternateMinutes: number;
   fuelFlowLph: number;
   taxiL: number;
@@ -32,7 +33,7 @@ const litres = (minutes: number, flowLph: number) =>
 
 export function computeFuelPlan(input: FuelPlanInput): FuelPlan {
   const flow = input.fuelFlowLph;
-  const tripL = litres(input.tripMinutes, flow);
+  const tripL = Math.ceil(input.tripFuelL);
   const contingencyL = Math.max(Math.ceil(tripL * 0.05), litres(5, flow));
   const departureArrivalL = litres(
     Math.max(10, input.departureArrivalMinutes),
