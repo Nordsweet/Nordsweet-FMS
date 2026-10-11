@@ -95,9 +95,10 @@ export const api = {
     search: query(
       "navpoints.search",
       async ({ query, limit }: Search) => {
+        // Never cached and offline: search without the API's VFR points rather than fail.
         const [bundled, vfr] = await Promise.all([
           loadDataset("navpoints"),
-          loadVfrPoints(),
+          loadVfrPoints().catch(() => []),
         ]);
         return searchNavpoints([...bundled, ...vfr], query, limit);
       },
