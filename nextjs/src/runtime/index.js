@@ -2,8 +2,7 @@ export async function start(loadScript) {
 await loadScript("./airports.js");
 await loadScript("./airports-cz-sk.js");
 await loadScript("./navdata.js");
-// Waypoints/index.js pulls packages in with document.write, which is ignored for injected scripts.
-await loadScript("./Waypoints/Poland.js");
+await loadScript("./Waypoints/index.js");
 await loadScript("./ground-data.js?v=ground-chart-overlay-v173");
 await loadScript("./aircraft-data.js");
 await loadScript("./aircraft-data/p2006t-performance.js");
@@ -9823,7 +9822,7 @@ function createCurrentDatisEntry() {
     metarBasisToken,
     profileKey: getCurrentAtisProfileKey(),
     sourceScope: "local",
-    sourceTag: DATIS_SOURCE_TAG,
+    sourceTag: "USER",
     submittedAt
   };
 }
@@ -10004,7 +10003,11 @@ async function fetchRemoteAtisFeedEntries() {
     return [];
   }
 
-  const response = await fetch(ATIS_DB_READ_URL, {
+  const feedUrl = new URL(ATIS_DB_READ_URL, window.location.href);
+  feedUrl.searchParams.set("icao", resolveCurrentAtisAirportIcao());
+  const response = await fetch(feedUrl, {
+    cache: "no-store",
+    signal: AbortSignal.timeout(12000),
     headers: getRemoteAtisHeaders(),
     method: "GET"
   });
@@ -10030,6 +10033,7 @@ async function pushAtisEntryToRemote(entry) {
   }
 
   const response = await fetch(ATIS_DB_WRITE_URL, {
+    signal: AbortSignal.timeout(12000),
     body: JSON.stringify(entry),
     headers: {
       ...getRemoteAtisHeaders(),
@@ -10040,6 +10044,7 @@ async function pushAtisEntryToRemote(entry) {
   if (!response.ok) {
     throw new Error("ATIS save returned HTTP " + response.status + ".");
   }
+  return normalizeAtisFeedEntry(await response.json(), "community");
 }
 
 function getAtisFeedEntriesForAirport(airportIcaoValue) {
@@ -10097,7 +10102,7 @@ function renderAtisFeedList() {
       '<span>' + escapeHtml(formatAtisFeedTimeBadge(entry)) + '</span>',
       '</div>',
       '<div class="atis-store-item-meta">',
-      '<span class="atis-store-pill">' + escapeHtml(entry.sourceScope) + '</span>',
+      '<span class="atis-store-pill">' + escapeHtml(entry.sourceScope === "community" ? "ATIS użytkownika · niezweryfikowany" : entry.sourceTag === "USER" ? "ATIS użytkownika · lokalny" : entry.sourceScope) + '</span>',
       '<span class="atis-store-pill">' + escapeHtml(entry.sourceTag || DATIS_SOURCE_TAG) + '</span>',
       '</div>',
       '<div class="atis-store-item-snippet">' + escapeHtml(snippet) + '</div>',
@@ -10148,7 +10153,7 @@ function loadAtisEntryIntoPad(entry) {
   syncAtisSelectionsFromManualState();
   state.atisChecked = {};
   state.lastAtisObservedAt = entry.atisObservedAt || null;
-  state.lastAtisSourceLabel = sourceScope === "ibs-crtq" ? "Czech IBS D-ATIS" : "D-ATIS";
+  state.lastAtisSourceLabel = sourceScope === "community" || entry.sourceTag === "USER" ? "ATIS użytkownika" : sourceScope === "ibs-crtq" ? "Czech IBS D-ATIS" : "D-ATIS";
   state.lastAtisUpdatedAt = entry.submittedAt || new Date().toISOString();
   updateDatisSuggestionHintFromEntry(entry);
   syncAirportRunwaySelectionFromAtis({ recalculate: false });
@@ -10201,7 +10206,7 @@ async function refreshAtisFeed(options) {
     }
   }
 
-  state.communityAtisEntries = sortAtisFeedEntries(mergeAtisFeedEntries(localEntries, staticEntries, remoteEntries));
+  state.communityAtisEntries = sortAtisFeedEntries(mergeAtisFeedEntries(state.communityAtisEntries, localEntries, staticEntries, remoteEntries));
   state.atisStoreBusy = false;
 
   if (!settings.silent) {
@@ -10213,14 +10218,14 @@ async function refreshAtisFeed(options) {
 async function saveCurrentAtisToFeed() {
   const validationErrors = getDatisSaveValidationErrors(state.manualAtis);
   if (validationErrors.length) {
-    setAtisStoreStatus("Cannot save D-ATIS yet. Missing: " + validationErrors.join(", ") + ".", "warn");
+    setAtisStoreStatus("Nie można zapisać ATIS. Uzupełnij: " + validationErrors.join(", ") + ".", "warn");
     renderAtisStoreSection();
     return;
   }
 
   const entry = createCurrentDatisEntry();
   state.atisStoreBusy = true;
-  setAtisStoreStatus("Saving D-ATIS...", "info");
+  setAtisStoreStatus("Zapisywanie ATIS użytkownika...", "info");
   renderAtisStoreSection();
 
   const mergedEntries = sortAtisFeedEntries(mergeAtisFeedEntries(state.communityAtisEntries, [entry]));
@@ -10232,10 +10237,11 @@ async function saveCurrentAtisToFeed() {
 
   if (hasRemoteAtisWrite()) {
     try {
-      await pushAtisEntryToRemote(entry);
-      statusMessage = "D-ATIS saved locally and sent to the shared feed.";
+      const savedEntry = await pushAtisEntryToRemote(entry);
+      state.communityAtisEntries = sortAtisFeedEntries(mergeAtisFeedEntries(state.communityAtisEntries, [savedEntry]));
+      statusMessage = "ATIS użytkownika zapisany na serwerze i dostępny dla innych użytkowników.";
     } catch (_error) {
-      statusMessage = "D-ATIS saved locally, but the shared feed update failed.";
+      statusMessage = "ATIS zapisany tylko lokalnie. Wysłanie na serwer nie powiodło się — spróbuj ponownie po odzyskaniu połączenia.";
       statusTone = "warn";
     }
   } else {
@@ -10245,7 +10251,7 @@ async function saveCurrentAtisToFeed() {
 
   const runwayInUseId = syncAirportRunwaySelectionFromAtis({ recalculate: false });
   state.lastAtisObservedAt = entry.atisObservedAt || null;
-  state.lastAtisSourceLabel = "D-ATIS";
+  state.lastAtisSourceLabel = "ATIS użytkownika";
   state.lastAtisUpdatedAt = entry.submittedAt || new Date().toISOString();
   updateDatisSuggestionHintFromEntry(entry);
   const conditionSourceSnapshot = syncConditionInputsFromSelectedSource({ recalculate: false });
@@ -24281,6 +24287,7 @@ async function fetchMetarDatis(options = {}) {
     }
   }
 
+  await refreshAtisFeed({ silent: true });
   if (!latestAtisEntry) {
     try {
       atisGuruResult = await fetchAtisGuruDatisEntry(station);
@@ -24298,7 +24305,6 @@ async function fetchMetarDatis(options = {}) {
 
   if (!latestAtisEntry) {
     try {
-      await refreshAtisFeed({ silent: true });
       atisFetchOk = true;
       latestAtisEntry = loadLatestAtisFeedEntry(station);
     } catch (error) {
@@ -31407,6 +31413,7 @@ function selectAirport(icao, options = {}) {
     calculate();
   }
   setAtisStatus("Tap tiles to build the ATIS manually.", "info");
+  if (hasRemoteAtisRead()) void refreshAtisFeed({ silent: true });
   if (shouldShowStatus) {
     setStatus("Loaded " + airport.icao + " - " + airport.name + ".", "ok");
   }

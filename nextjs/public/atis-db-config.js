@@ -1,6 +1,6 @@
 window.ATIS_DB_CONFIG = {
-  readUrl: "",
-  writeUrl: "",
+  readUrl: "https://aviation.lab.vibecde.com/community/atis",
+  writeUrl: "https://aviation.lab.vibecde.com/community/atis",
   token: "",
   sourceTag: "ENR",
   atisGuruRoot: "https://atis.guru",
