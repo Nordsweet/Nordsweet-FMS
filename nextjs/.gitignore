@@ -18,3 +18,8 @@ next-env.d.ts
 
 # typescript
 *.tsbuildinfo
+
+# testing
+/coverage
+/test-results
+/playwright-report
