@@ -84,5 +84,7 @@ test("briefs weather, fills landing conditions from the METAR and uses forecast 
 
   await page.getByRole("button", { name: "Use forecast winds aloft" }).click();
   await expect(page.getByTestId("winds-aloft")).toContainText("900 hPa");
-  await expect(page.getByRole("cell", { name: "270/25" })).toBeVisible();
+  await expect(
+    page.getByRole("cell", { name: "270/25" }).first(),
+  ).toBeVisible();
 });

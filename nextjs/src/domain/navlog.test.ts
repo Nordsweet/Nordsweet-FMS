@@ -75,10 +75,52 @@ describe("computeNavLog", () => {
   });
 });
 
+describe("vertical profile", () => {
+  const calm = { directionDeg: 0, speedKt: 0 };
+  const base = { tasKt: 100, wind: calm, fuelFlowLph: 30, date };
+  const climb = { minutes: 6, tasKt: 80, fuelFlowLph: 60 };
+  const descent = { minutes: 4, tasKt: 100, fuelFlowLph: 25 };
+
+  it("inserts TOC and TOD and splits time and fuel by phase", () => {
+    const log = computeNavLog([EPNT, EPMLR, EPML], { ...base, climb, descent });
+    const idents = log.legs.map((l) => l.to.ident);
+    expect(idents).toEqual(["TOC", "EPMLR", "TOD", "EPML"]);
+    const byPhase = (phase: string) =>
+      log.legs.filter((l) => l.phase === phase);
+    const climbMinutes = byPhase("climb").reduce((t, l) => t + l.minutes!, 0);
+    expect(climbMinutes).toBeCloseTo(6, 6);
+    expect(byPhase("climb")[0]!.distanceNm).toBeCloseTo((6 / 60) * 80, 6);
+    expect(byPhase("descent").reduce((t, l) => t + l.minutes!, 0)).toBeCloseTo(
+      4,
+      6,
+    );
+    expect(log.fuelL).toBeCloseTo(
+      log.legs.reduce((t, l) => t + l.fuelL!, 0),
+      9,
+    );
+    expect(byPhase("climb")[0]!.fuelL).toBeCloseTo((6 / 60) * 60, 6);
+    expect(log.distanceNm).toBeCloseTo(
+      computeNavLog([EPNT, EPMLR, EPML], base).distanceNm,
+      9,
+    );
+    expect(log.cruiseNotReached).toBe(false);
+  });
+
+  it("flags routes too short to reach cruise altitude", () => {
+    const log = computeNavLog([EPMLR, EPML], {
+      ...base,
+      climb: { ...climb, minutes: 30 },
+      descent,
+    });
+    expect(log.cruiseNotReached).toBe(true);
+    expect(log.legs.some((l) => l.phase === "cruise")).toBe(false);
+  });
+});
+
 describe("computeFuelPlan", () => {
   it("sums the components", () => {
     const plan = computeFuelPlan({
-      tripMinutes: 60,
+      tripFuelL: 36,
       alternateMinutes: 20,
       fuelFlowLph: 36,
       taxiL: 4,

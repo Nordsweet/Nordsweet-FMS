@@ -2,12 +2,19 @@ import { useQuery } from "@tanstack/react-query";
 
 import { api } from "~/api";
 import { routeKey } from "~/data/flight";
+import { isaTemperatureC } from "~/domain/atmosphere";
+import { computeClimb } from "~/domain/climb";
 import { computeFuelPlan } from "~/domain/fuel";
-import { computeNavLog } from "~/domain/navlog";
+import { parseMetar } from "~/domain/metar";
+import { type Segment, computeNavLog } from "~/domain/navlog";
 import { computeLoading } from "~/domain/weight-balance";
 import { useFlight } from "~/stores/flight";
 
+import { useBriefing } from "./weather";
+
 const FINAL_RESERVE_MINUTES = 45; // piston aircraft
+/** No POH descent data for any aircraft: plan a standard 500 fpm descent at cruise speed and flow. */
+export const DESCENT_RATE_FPM = 500;
 
 /** Everything the planner shows, derived from the current flight. */
 export function usePlan() {
@@ -15,33 +22,96 @@ export function usePlan() {
   const aircraftList = useQuery(api.aircraft.list.queryOptions(undefined));
   const aircraft =
     aircraftList.data?.find((a) => a.id === flight.aircraftId) ?? null;
+  const departureAirport = useQuery({
+    ...api.airports.get.queryOptions({ code: flight.departure?.ident ?? "" }),
+    enabled: !!flight.departure,
+  });
+  const destinationAirport = useQuery({
+    ...api.airports.get.queryOptions({ code: flight.destination?.ident ?? "" }),
+    enabled: !!flight.destination,
+  });
+  const departureMetar =
+    useBriefing(flight.departure).briefing.data?.metar ?? null;
 
   const route = [
     flight.departure,
     ...flight.waypoints,
     flight.destination,
   ].filter((p) => p !== null);
-  const performance = {
+  // Forecast winds apply only to the route and altitude they were fetched for.
+  const legWinds =
+    flight.legWinds?.routeKey === routeKey(flight) ? flight.legWinds : null;
+  const cruise = {
     tasKt: flight.cruiseTasKt,
     wind: flight.wind,
     fuelFlowLph: flight.fuelFlowLph,
   };
-  // Forecast winds apply only to the route and altitude they were fetched for.
-  const legWinds =
-    flight.legWinds?.routeKey === routeKey(flight) ? flight.legWinds : null;
+
+  // Loading first: the climb depends on the take-off weight. Trip fuel is refined below.
+  const wb = aircraft?.weightBalance ?? null;
+  const takeoffFuelL = Math.max(0, flight.fuel.blockL - flight.fuel.taxiL);
+  const takeoffLoading = wb
+    ? computeLoading(wb, { stationsKg: flight.stationsKg, fuelL: takeoffFuelL })
+    : null;
+
+  const departureElevationFt = departureAirport.data?.elevationFt ?? null;
+  const destinationElevationFt = destinationAirport.data?.elevationFt ?? null;
+  const metarTemperature = departureMetar
+    ? parseMetar(departureMetar.raw).temperatureC
+    : null;
+  const isaDeviationC =
+    metarTemperature !== null && departureElevationFt !== null
+      ? metarTemperature - isaTemperatureC(departureElevationFt)
+      : 0;
+  const climbResult =
+    aircraft?.climb &&
+    takeoffLoading &&
+    departureElevationFt !== null &&
+    flight.cruiseAltitudeFt > departureElevationFt
+      ? computeClimb(aircraft.climb, {
+          weightKg: takeoffLoading.totalKg,
+          fromFt: departureElevationFt,
+          toFt: flight.cruiseAltitudeFt,
+          isaDeviationC,
+        })
+      : null;
+  const climb: Segment | undefined = climbResult
+    ? {
+        minutes: climbResult.minutes,
+        tasKt: climbResult.averageTasKt,
+        fuelFlowLph: climbResult.fuelFlowLph ?? flight.fuelFlowLph,
+      }
+    : undefined;
+  const descent: Segment | undefined =
+    destinationElevationFt !== null &&
+    flight.cruiseAltitudeFt > destinationElevationFt
+      ? {
+          minutes:
+            (flight.cruiseAltitudeFt - destinationElevationFt) /
+            DESCENT_RATE_FPM,
+          tasKt: flight.cruiseTasKt,
+          fuelFlowLph: flight.fuelFlowLph,
+        }
+      : undefined;
+
   const navLog =
     flight.departure && flight.destination
-      ? computeNavLog(route, { ...performance, legWinds: legWinds?.winds })
+      ? computeNavLog(route, {
+          ...cruise,
+          legWinds: legWinds?.winds,
+          climb,
+          descent,
+        })
       : null;
   const alternateLog =
     flight.destination && flight.alternate
-      ? computeNavLog([flight.destination, flight.alternate], performance)
+      ? computeNavLog([flight.destination, flight.alternate], cruise)
       : null;
 
   const fuelPlan =
-    navLog && navLog.minutes !== null
+    navLog?.fuelL != null
       ? computeFuelPlan({
-          tripMinutes: navLog.minutes,
+          tripFuelL: navLog.fuelL,
           alternateMinutes: alternateLog?.minutes ?? 0,
           fuelFlowLph: flight.fuelFlowLph,
           taxiL: flight.fuel.taxiL,
@@ -52,23 +122,19 @@ export function usePlan() {
         })
       : null;
 
-  const wb = aircraft?.weightBalance ?? null;
-  const takeoffFuelL = Math.max(0, flight.fuel.blockL - flight.fuel.taxiL);
   const landingFuelL = Math.max(0, takeoffFuelL - (fuelPlan?.tripL ?? 0));
-  const loading = wb
-    ? {
-        takeoff: computeLoading(wb, {
-          stationsKg: flight.stationsKg,
-          fuelL: takeoffFuelL,
-        }),
-        landing: computeLoading(wb, {
-          stationsKg: flight.stationsKg,
-          fuelL: landingFuelL,
-        }),
-        takeoffFuelL,
-        landingFuelL,
-      }
-    : null;
+  const loading =
+    wb && takeoffLoading
+      ? {
+          takeoff: takeoffLoading,
+          landing: computeLoading(wb, {
+            stationsKg: flight.stationsKg,
+            fuelL: landingFuelL,
+          }),
+          takeoffFuelL,
+          landingFuelL,
+        }
+      : null;
 
   return {
     flight,
@@ -77,6 +143,8 @@ export function usePlan() {
     aircraft,
     aircraftList: aircraftList.data ?? [],
     navLog,
+    climb: climbResult,
+    climbIsaDeviationC: metarTemperature !== null ? isaDeviationC : null,
     alternateLog,
     fuelPlan,
     loading,

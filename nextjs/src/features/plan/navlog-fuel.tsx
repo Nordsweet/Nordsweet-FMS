@@ -9,7 +9,7 @@ import { usePlan } from "./use-plan";
 
 export function NavLogSection() {
   const t = useT();
-  const { navLog } = usePlan();
+  const { navLog, climb, climbIsaDeviationC, flight } = usePlan();
   return (
     <Section title={t("plan.navlog.title")}>
       {!navLog ? (
@@ -50,6 +50,12 @@ export function NavLogSection() {
                 <tr key={i} className="border-t">
                   <td className="py-1 font-mono">
                     {leg.from.ident} → {leg.to.ident}
+                    {leg.phase !== "cruise" && (
+                      <span className="text-muted-foreground font-sans text-xs">
+                        {" "}
+                        {t(`plan.navlog.phase.${leg.phase}`)}
+                      </span>
+                    )}
                   </td>
                   <td className="text-right">{fmt(leg.distanceNm, 1)}</td>
                   <td className="text-right">
@@ -85,9 +91,55 @@ export function NavLogSection() {
               {t("plan.navlog.impossible")}
             </p>
           )}
-          <p className="text-muted-foreground mt-2 text-xs">
-            {t("plan.navlog.note")}
-          </p>
+          {navLog.cruiseNotReached && (
+            <p className="text-destructive mt-2 text-sm">
+              {t("plan.navlog.cruiseNotReached")}
+            </p>
+          )}
+          <div
+            className="text-muted-foreground mt-2 grid gap-1 text-xs"
+            data-testid="climb-summary"
+          >
+            {climb ? (
+              <p>
+                {t("plan.navlog.climb", {
+                  minutes: fmt(climb.minutes),
+                  altitude: fmt(climb.reachedFt),
+                  tas: fmt(climb.averageTasKt),
+                  flow:
+                    climb.fuelFlowLph === null
+                      ? `${fmt(flight.fuelFlowLph)}*`
+                      : fmt(climb.fuelFlowLph),
+                })}{" "}
+                {climbIsaDeviationC === null
+                  ? t("plan.navlog.climbIsa")
+                  : t("plan.navlog.climbMetar", {
+                      deviation: fmt(climbIsaDeviationC),
+                    })}
+              </p>
+            ) : (
+              <p>{t("plan.navlog.noClimbData")}</p>
+            )}
+            {climb?.warnings.map((w, i) => (
+              <p key={i} className="text-destructive">
+                ⚠{" "}
+                {w.code === "ceiling"
+                  ? t("plan.navlog.warning.ceiling", {
+                      altitude: fmt(w.altitudeFt),
+                    })
+                  : w.code === "above-table"
+                    ? t("plan.perf.warning.above-table", {
+                        axis: t(`plan.perf.axis.${w.axis}`),
+                        value: fmt(w.value),
+                        max: fmt(w.max),
+                      })
+                    : w.code === "no-fuel-flow"
+                      ? t("plan.navlog.warning.noFuelFlow")
+                      : t("plan.perf.warning.draft-data")}
+              </p>
+            ))}
+            <p>{t("plan.navlog.note")}</p>
+          </div>
         </div>
       )}
     </Section>

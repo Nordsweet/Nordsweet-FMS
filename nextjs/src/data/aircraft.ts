@@ -1,44 +1,59 @@
 import { z } from "zod";
 
 /**
- * POH distance table as a nested grid. Axes are optional and may hold a single point (a value the
- * POH did not vary). Points along each axis are sorted ascending.
+ * POH table as a nested grid. Axes are optional and may hold a single point (a value the POH did
+ * not vary). Points along each axis are sorted ascending. Leaves hold the tabulated values.
  */
-export const distanceAxes = [
+export const gridAxes = [
   "weightKg",
   "headwindKt",
   "pressureAltitudeFt",
   "temperatureC",
+  "densityAltitudeFt",
 ] as const;
-export type DistanceAxis = (typeof distanceAxes)[number];
-
-export type DistanceLeaf = { groundRollM: number; obstacle50ftM: number };
-export type DistanceGrid = {
-  axis: DistanceAxis;
-  points: { at: number; next: DistanceGrid | DistanceLeaf }[];
+export type GridAxis = (typeof gridAxes)[number];
+export type Grid<L> = {
+  axis: GridAxis;
+  points: { at: number; next: Grid<L> | L }[];
 };
 
-const leafSchema = z.object({
-  groundRollM: z.number().nonnegative(),
-  obstacle50ftM: z.number().nonnegative(),
-});
-export const distanceGridSchema: z.ZodType<DistanceGrid> = z.lazy(() =>
+function gridSchema<L>(leaf: z.ZodType<L>): z.ZodType<Grid<L>> {
+  const grid: z.ZodType<Grid<L>> = z.lazy(() =>
+    z.object({
+      axis: z.enum(gridAxes),
+      points: z
+        .array(z.object({ at: z.number(), next: z.union([grid, leaf]) }))
+        .min(1)
+        .refine(
+          (pts) => pts.every((p, i) => i === 0 || p.at > pts[i - 1]!.at),
+          "points must ascend",
+        ),
+    }),
+  );
+  return grid;
+}
+
+export type DistanceAxis = GridAxis;
+export type DistanceLeaf = { groundRollM: number; obstacle50ftM: number };
+export type DistanceGrid = Grid<DistanceLeaf>;
+export const distanceGridSchema = gridSchema<DistanceLeaf>(
   z.object({
-    axis: z.enum(distanceAxes),
-    points: z
-      .array(
-        z.object({
-          at: z.number(),
-          next: z.union([distanceGridSchema, leafSchema]),
-        }),
-      )
-      .min(1)
-      .refine(
-        (pts) => pts.every((p, i) => i === 0 || p.at > pts[i - 1]!.at),
-        "points must ascend",
-      ),
+    groundRollM: z.number().nonnegative(),
+    obstacle50ftM: z.number().nonnegative(),
   }),
 );
+
+export type ClimbLeaf = { rateFpm: number; iasKt: number };
+export const climbSchema = z.object({
+  label: z.string(),
+  grid: gridSchema<ClimbLeaf>(
+    z.object({ rateFpm: z.number(), iasKt: z.number().positive() }),
+  ),
+  /** null: the POH data gives no climb fuel flow. */
+  fuelFlowLph: z.number().positive().nullable(),
+  draft: z.boolean(),
+  source: z.string(),
+});
 
 /** POH corrections. Headwind/tailwind values are magnitudes: headwind shortens, tailwind lengthens. */
 export const correctionsSchema = z.object({
@@ -135,6 +150,7 @@ export const aircraftSchema = z.object({
   weightBalance: weightBalanceSchema.nullable(),
   takeoff: distancePerformanceSchema.nullable(),
   landing: distancePerformanceSchema.nullable(),
+  climb: climbSchema.nullable(),
   windLimits: z
     .object({
       maxCrosswindKt: z.number().nullable(),
@@ -147,4 +163,5 @@ export type Aircraft = z.infer<typeof aircraftSchema>;
 export type WeightBalance = z.infer<typeof weightBalanceSchema>;
 export type DistancePerformance = z.infer<typeof distancePerformanceSchema>;
 export type DistanceConfiguration = z.infer<typeof distanceConfigurationSchema>;
+export type Climb = z.infer<typeof climbSchema>;
 export type Corrections = z.infer<typeof correctionsSchema>;
