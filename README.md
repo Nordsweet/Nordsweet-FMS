@@ -1,6 +1,7 @@
 # Nordsweet FMS
 
-Aktualna wersja Next.js 16 + React 19 znajduje się w [`nextjs/`](nextjs/README.md).
+Aplikacja (Next.js 16 + React 19, T3: TypeScript, Tailwind, zod) znajduje się w [`nextjs/`](nextjs/README.md).
+Plan przepisania: [`docs/REWRITE_PLAN.md`](docs/REWRITE_PLAN.md).
 
 Opublikowana aplikacja: https://nordsweet-performance-calculator.mrnordsweet.chatgpt.site/
 
@@ -10,6 +11,4 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Workflow `Next.js validation` uruchamia testy i buduje statyczny eksport.
-Pliki w katalogu głównym i workflow GitHub Pages to wcześniejsza wersja aplikacji.
-Next.js jest obecnie publikowany w Sites; ten commit udostępnia jego źródła na GitHubie.
+Workflow `Next.js validation` sprawdza typy, uruchamia testy i buduje statyczny eksport.
