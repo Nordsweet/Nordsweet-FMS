@@ -1,5 +1,8 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
+
+import { api } from "~/api";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
@@ -46,13 +49,14 @@ export default function SettingsPage() {
           <Label htmlFor="homeAirport">{t("settings.homeAirport")}</Label>
           <Input
             id="homeAirport"
-            maxLength={4}
+            maxLength={12}
             autoCapitalize="characters"
             value={settings.homeAirportIcao}
             onChange={(e) =>
               settings.update({ homeAirportIcao: e.target.value.toUpperCase() })
             }
           />
+          <HomeAirportName code={settings.homeAirportIcao} />
         </div>
         <div className="grid gap-2">
           <Label htmlFor="pilotWeight">{t("settings.pilotWeight")}</Label>
@@ -99,5 +103,24 @@ export default function SettingsPage() {
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+function HomeAirportName({ code }: { code: string }) {
+  const t = useT();
+  const { data: airport, isPending } = useQuery({
+    ...api.airports.get.queryOptions({ code }),
+    enabled: code.length >= 3,
+  });
+  if (code.length < 3 || isPending) return null;
+  return (
+    <p
+      className="text-muted-foreground text-sm"
+      data-testid="home-airport-name"
+    >
+      {airport
+        ? `${airport.name} (${airport.ident})`
+        : t("settings.unknownAirport")}
+    </p>
   );
 }

@@ -18,6 +18,7 @@ self.addEventListener('fetch',event=>{
    const cached=await caches.match(event.request,{ignoreSearch:true});
    if(cached)return cached;
    if(url.pathname==='/')return (await caches.match('/index.html'))||Response.error();
-   return Response.error();
+   // Static export routes are cached as `/route.html`.
+   return (await caches.match(url.pathname+'.html'))||Response.error();
  }));
 });
