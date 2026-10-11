@@ -1,7 +1,8 @@
 export async function start(loadScript) {
 await loadScript("./airports.js");
 await loadScript("./ground-data.js");
-await loadScript("./Waypoints/index.js");
+// Waypoints/index.js pulls packages in with document.write, which is ignored for injected scripts.
+await loadScript("./Waypoints/Poland.js");
 
 const PDF_FRAGMENT = "#toolbar=0&navpanes=0&scrollbar=0&page=1&view=Fit&zoom=page-fit";
 const TAXI_VIEWBOX = { width: 1000, height: 1000 };
