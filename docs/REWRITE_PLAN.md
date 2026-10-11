@@ -90,17 +90,18 @@ against recorded responses). Everything else stays bundled in `public/data/` unt
 This retires the client-side AVWX/Notamify tokens, the public `codetabs` CORS proxy, the
 PANSA/ANS CR page scraping and the `airspace-data/*` files once the legacy screens are gone.
 
-### Collector issues found (2026-10-11)
-1. **Blocker: no CORS headers.** Browsers on another origin cannot call it. FastAPI fix:
-   `app.add_middleware(CORSMiddleware, allow_origins=[<app origins>], allow_methods=["GET"])`.
-2. **Safety: 40 zones missing** vs. the legacy OpenAir data — zones with arcs/circles are skipped,
-   including prohibited areas P 1, P 225–P 242 and R 113, R 305. Arcs (DA/DB/DC) need support.
-3. `AVWX_TOKEN` and `NOTAMIFY_TOKEN` are not set on the deployment: METARs are single-source
-   (crowd-sourced, often stale) and `/notams` always returns 502.
-4. `places` only answers radius queries (the app fetches 5 × 250 NM tiles); a region/bulk endpoint
-   would be simpler. Airports lack per-runway data (designators, TORA/TODA/ASDA/LDA, thresholds,
-   surface per runway) needed for performance — adding it would let bundled airports go.
-5. OpenAPI has no response schemas, so types are hand-written from `/llms.txt`.
+### Collector status (2026-10-11)
+- Fixed in collector PR #1 (deployed): open CORS, and `/places` without `lat`/`lon` returns
+  everything (746 VFR points in one call; the earlier 5-tile workaround found only 466).
+- Airspace coverage checked: every Lotnik zone inside the API's coverage is served. (An earlier
+  "40 missing zones" note was wrong — those were outside the queried area, e.g. P 1 in Lithuania.)
+- Open: `AVWX_TOKEN` and `NOTAMIFY_TOKEN` are not set on the deployment — METARs are single-source
+  (crowd-sourced, often stale) and `/notams` returns 502. Needs the tokens in the server `.env`.
+- Open: the API is Tailscale-only; pilots' devices must be on the tailnet, or it needs public exposure.
+- Open: airports lack per-runway data (designators, TORA/TODA/ASDA/LDA, thresholds), so airports stay
+  bundled. OurAirports covers runways for only 221 of the 589 fields; the rest come from parsing the
+  CUP descriptions, which would have to move into the collector.
+- OpenAPI has no response schemas, so app types are hand-written from `/llms.txt`.
 
 ## Phases (essential first)
 
