@@ -14,6 +14,7 @@ Pre-production, reachable only over Tailscale (no authentication yet).
 
 ```sh
 git clone https://github.com/Nordsweet/Nordsweet-FMS.git /srv/stacks/fms-dev/repo
+git -C /srv/stacks/fms-dev/repo checkout --detach origin/develop   # deploy/ lives on develop
 ln -s /srv/stacks/fms-dev/repo/deploy/systemd/fms-dev-deploy.{service,timer} ~/.config/systemd/user/
 systemctl --user daemon-reload && systemctl --user enable --now fms-dev-deploy.timer
 ```
