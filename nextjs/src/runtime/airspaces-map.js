@@ -433,6 +433,8 @@ await loadScript("./traffic-proxy-config.js");
       }
 
       function hydrateZoneFrequencies(zones) {
+        zones = zones.map(zone => Array.isArray(zone.points) && zone.shape !== 'circle'
+          ? {...zone, points:T.normalizeRetracedPolygon(zone.points)} : zone);
         if (!state.zoneFrequencyIndex || !state.zoneFrequencyIndex.size) {
           return zones;
         }
@@ -3518,10 +3520,7 @@ await loadScript("./traffic-proxy-config.js");
       }
 
       function zoneMatchesRoute(zone) {
-        if (T.routeIntersectsZone(state.route, zone)) {
-          return true;
-        }
-        return isEnrouteInfoZone(zone) && boundsOverlap(pointsBounds(state.route), zoneBounds(zone), 0.03);
+        return T.routeIntersectsZone(state.route, zone);
       }
 
       function crossedZones() {
@@ -4323,10 +4322,59 @@ await loadScript("./traffic-proxy-config.js");
         }
         if(/KRAK[OÓ]W/i.test(T.clean(zone.name)) && isEnrouteInfoZone(zone)) {
           const west=/\bW(?:EST)?\b/i.test(zone.name),east=/\bE(?:AST)?\b/i.test(zone.name);
-          const rows=airportRowsByServices('EPKK',['fiss']).filter(r=>(west&&r.frequencyMhz==='119.275')||(east&&r.frequencyMhz==='119.950')||(!west&&!east));
+          const rows=airportRowsByServices('EPKK',['fiss']).filter(r=>(west&&r.frequencyMhz==='119.275')||(east&&r.frequencyMhz==='119.950'));
           if(rows.length)return rows;
         }
         return infoZoneFrequencyRows(zone);
+      }
+
+      // Build COMMs from the requested route, independently of map visibility filters.
+      function buildCommsPlan(input) {
+        const route=Array.isArray(input.route)?input.route.filter(p=>Number.isFinite(p.lat)&&Number.isFinite(p.lon)):[];
+        const approachServices=['zblizanie','radar','approach','app'];
+        const tmas=state.zones.filter(z=>normalizeZoneType(z)==='TMA' &&
+          !/AGL/i.test([z.lower,z.upper].join(' ')) &&
+          window.NordsweetComms.routeIntersectsVolume(route,z,
+            z.lower ? parseAirspaceAltitude(z.lower,NaN).feet : NaN,
+            z.upper ? parseAirspaceAltitude(z.upper,NaN).feet : NaN,T.routeIntersectsZone));
+        const tmaGroups=tmas.map(zone=>{
+          const assigned=normalizeZoneFrequencyRows(zone).filter(row=>serviceMatches(row,approachServices));
+          const codes=T.clean([zone.designator,zone.name].join(' ')).toUpperCase().match(/\b[A-Z]{4}\b/g) || [];
+          const rows=assigned.length?assigned:codes.flatMap(icao=>airportRowsByServices(icao,approachServices));
+          return {name:zone.name || zone.designator,rows:window.NordsweetComms.unique(rows)};
+        }).filter(group=>group.rows.length);
+        const approachFrequencies=new Set(tmaGroups.flatMap(group=>group.rows.map(row=>row.frequencyMhz)));
+        const airport=(end,services)=>{
+          const point=end==='dep'?route[0]:route[route.length-1];
+          const icao=point && (point.airportIcao || point.icao || point.id);
+          return (icao?airportRowsByServices(icao,services):[]).filter(row=>
+            !serviceMatches(row,approachServices) || approachFrequencies.has(row.frequencyMhz));
+        };
+        const zones=state.zones.filter(z=>isEnrouteInfoZone(z)||normalizeZoneType(z)==='ATZ');
+        const result=window.NordsweetComms.estimate({...input,route},{airport,distance:T.haversineNm,fraction:segmentFraction,at:point=>{
+          const containing=zones.filter(z=>T.zoneContainsPoint(z,point));
+          const fis=containing.filter(z=>normalizeZoneType(z)==='FIS');
+          const atz=containing.filter(z=>normalizeZoneType(z)==='ATZ');
+          const background=fis.length?fis:containing.filter(isEnrouteInfoZone);
+          return [...atz,...background].flatMap(commsZoneRows);
+        }});
+        result.routeGroups=zones.filter(z=>T.routeIntersectsZone(route,z))
+          .map(z=>({name:z.name || z.designator,rows:commsZoneRows(z)})).concat(tmaGroups);
+        const seenGroups=new Set();
+        result.routeGroups=result.routeGroups.filter(group=>{
+          const key=group.name+'|'+group.rows.map(row=>row.frequencyMhz).join(',');
+          if(!group.rows.length || seenGroups.has(key))return false;
+          seenGroups.add(key);return true;
+        });
+        const arrival=route[route.length-1];
+        const icao=arrival && (arrival.airportIcao || arrival.icao || arrival.id);
+        result.airportGroups=icao ? [
+          {name:icao+' · ATIS',rows:airport('arr',['atis'])},
+          {name:icao+' · APP',rows:airport('arr',approachServices)},
+          {name:icao+' · TWR / Radio',rows:airport('arr',['tower','radio'])},
+          {name:icao+' · GND',rows:airport('arr',['ground'])}
+        ].filter(group=>group.rows.length) : [];
+        return result;
       }
 
       function infoZoneFrequencyRows(zone) {
@@ -4776,27 +4824,7 @@ await loadScript("./traffic-proxy-config.js");
       window.addEventListener("message", (event) => {
         if (event.origin===location.origin && event.source===window.parent && event.data && event.data.type==='nordsweet:commsRequest') {
           const input=event.data;
-          const route=Array.isArray(input.route)?input.route.filter(p=>Number.isFinite(p.lat)&&Number.isFinite(p.lon)):[];
-          const airport=(end,services)=>{
-            const p=end==='dep'?route[0]:route[route.length-1];
-            const icao=p && (p.airportIcao || p.icao || p.id);
-            return icao?airportRowsByServices(icao,services):[];
-          };
-          const zones=state.zones.filter(z=>isEnrouteInfoZone(z)||normalizeZoneType(z)==='ATZ');
-          const result=window.NordsweetComms.estimate(Object.assign({},input,{route}),{airport,distance:T.haversineNm,fraction:segmentFraction,at:p=>{
-            const containing=zones.filter(z=>T.zoneContainsPoint(z,p));
-            const fis=containing.filter(z=>normalizeZoneType(z)==='FIS');
-            const atz=containing.filter(z=>normalizeZoneType(z)==='ATZ');
-            const background=fis.length?fis:containing.filter(isEnrouteInfoZone);
-            return [...atz,...background].flatMap(commsZoneRows);
-          }});
-          const crossed=zones.filter(z=>T.routeIntersectsZone(route,z));
-          result.routeGroups=crossed.map(z=>({name:z.name || z.designator,rows:commsZoneRows(z)}));
-          if(zones.some(z=>isEnrouteInfoZone(z)&&/KRAK[OÓ]W/i.test(z.name)&&boundsOverlap(pointsBounds(route),zoneBounds(z),0.03))) {
-            result.routeGroups.unshift({name:'Kraków Informacja · West / East (regional reference)',rows:airportRowsByServices('EPKK',['fiss']).filter(r=>['119.275','119.950'].includes(r.frequencyMhz))});
-          }
-          const seenGroups=new Set();
-          result.routeGroups=result.routeGroups.filter(g=>{const key=g.name+'|'+g.rows.map(r=>r.frequencyMhz).join(',');if(seenGroups.has(key))return false;seenGroups.add(key);return true;});
+          const result=buildCommsPlan(input);
           event.source.postMessage({type:'nordsweet:commsResult',id:input.id,phase:input.phase,result},event.origin);
           return;
         }

@@ -29913,7 +29913,8 @@ function refreshFlightComms() {
   if (!state.commsPanelOpen || !refs.flightAirspaceMap || !refs.flightAirspaceMap.contentWindow || Date.now()-flightCommsLastRequest<2000) return;
   flightCommsLastRequest=Date.now();
   const progress=getFredaRouteProgress();
-  refs.flightAirspaceMap.contentWindow.postMessage({type:'nordsweet:commsRequest',id:++flightCommsRequestId,phase:state.performancePhase,sample:state.flightTimers.lastGpsSample,route:progress.plan && progress.plan.points || [],plannedSpeedKt:progress.speedKt},location.origin);
+  const route=buildPlannerVerticalProfileSamples(progress.plan).map(sample=>({...sample.point,altitudeFt:sample.altitudeFt}));
+  refs.flightAirspaceMap.contentWindow.postMessage({type:'nordsweet:commsRequest',id:++flightCommsRequestId,phase:state.performancePhase,sample:state.flightTimers.lastGpsSample,route,plannedSpeedKt:progress.speedKt},location.origin);
 }
 function renderFlightCommsBody() {
   const data=flightCommsData && flightCommsData.phase===state.performancePhase && Date.now()-flightCommsData.receivedAt<10000 ? flightCommsData : null;
@@ -29921,7 +29922,8 @@ function renderFlightCommsBody() {
   if(!data) return '<p>Loading radio data from the map…</p>';
   const time=Number.isFinite(data.seconds)?Math.floor(data.seconds/60)+' min '+String(Math.floor(data.seconds%60)).padStart(2,'0')+' s':'—';
   const routeRadio=(data.routeGroups || []).map(group=>'<h4>'+escapeHtml(group.name)+'</h4>'+rows(group.rows)).join('');
-  return '<h3>Current · suggested</h3>'+rows(data.current)+'<h3>Next</h3>'+rows(data.next)+'<h3>Estimated change</h3><p>'+time+(Number.isFinite(data.distanceNm)?' · '+data.distanceNm.toFixed(1)+' NM':'')+(Number.isFinite(data.speedKt)?' · '+Math.round(data.speedKt)+' kt ('+escapeHtml(data.speedSource)+')':'')+'</p><p>'+escapeHtml(data.note)+'</p>'+(routeRadio?'<h3>FIS / ATZ on route</h3>'+routeRadio:'');
+  const airportRadio=(data.airportGroups || []).map(group=>'<h4>'+escapeHtml(group.name)+'</h4>'+rows(group.rows)).join('');
+  return '<h3>Current · suggested</h3>'+rows(data.current)+'<h3>Next</h3>'+rows(data.next)+'<h3>Estimated change</h3><p>'+time+(Number.isFinite(data.distanceNm)?' · '+data.distanceNm.toFixed(1)+' NM':'')+(Number.isFinite(data.speedKt)?' · '+Math.round(data.speedKt)+' kt ('+escapeHtml(data.speedSource)+')':'')+'</p><p>'+escapeHtml(data.note)+'</p>'+(routeRadio?'<h3>FIS / ATZ / TMA on route</h3>'+routeRadio:'')+(airportRadio?'<h3>Arrival airport</h3>'+airportRadio:'');
 }
 function renderFlightCommsPopover() {
   refreshFlightComms();

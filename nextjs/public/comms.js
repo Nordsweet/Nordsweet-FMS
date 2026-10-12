@@ -9,6 +9,29 @@
     });
   }
   function key(rows) { return unique(rows).map(r => [r.frequencyMhz,r.callsign,r.sector].join('|')).sort().join(';'); }
+  // Clip each leg to the altitude band before checking its horizontal intersection.
+  // This avoids counting a TMA crossed below its base or climbed into only after exit.
+  function routeIntersectsVolume(route, zone, lowerFt, upperFt, intersects) {
+    if (!Number.isFinite(lowerFt) || !(upperFt > lowerFt)) return false;
+    for (let i = 1; i < route.length; i++) {
+      const a = route[i - 1], b = route[i];
+      if (!Number.isFinite(a.altitudeFt) || !Number.isFinite(b.altitudeFt)) continue;
+      const delta = b.altitudeFt - a.altitudeFt;
+      let from = 0, to = 1;
+      if (!delta) {
+        if (a.altitudeFt < lowerFt || a.altitudeFt >= upperFt) continue;
+      } else {
+        const first = (lowerFt - a.altitudeFt) / delta;
+        const last = (upperFt - a.altitudeFt) / delta;
+        from = Math.max(0, Math.min(first, last));
+        to = Math.min(1, Math.max(first, last));
+        if (from >= to) continue;
+      }
+      const point = t => ({lat:a.lat+(b.lat-a.lat)*t,lon:a.lon+(b.lon-a.lon)*t});
+      if (intersects([point(from), point(to)], zone)) return true;
+    }
+    return false;
+  }
   function estimate(input, api) {
     const {phase, sample, route, plannedSpeedKt} = input;
     const fresh = sample && Number.isFinite(sample.latitude) && Number.isFinite(sample.longitude) &&
@@ -69,5 +92,5 @@
     result.note+=' No further mapped sector boundary; contact arrival service as instructed.';
     return result;
   }
-  root.NordsweetComms={estimate,unique};
+  root.NordsweetComms={estimate,unique,routeIntersectsVolume};
 })(typeof window==='undefined'?globalThis:window);

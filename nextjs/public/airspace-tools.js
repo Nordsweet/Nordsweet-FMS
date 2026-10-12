@@ -422,6 +422,7 @@
         current = null;
         return;
       }
+      if (hasPolygon && !hasCircle) current.points = normalizeRetracedPolygon(current.points);
       current.shape = hasCircle ? "circle" : "polygon";
       current.kind = current.kind || inferAirspaceKind(current.name, current.classType);
       current.designator = getDesignator(current.name);
@@ -853,6 +854,21 @@
     const y = Math.sin(dLon) * Math.cos(phi2);
     const x = Math.cos(phi1) * Math.sin(phi2) - Math.sin(phi1) * Math.cos(phi2) * Math.cos(dLon);
     return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+  }
+
+  // Some OpenAir exports trace the same closed ring twice, including in reverse.
+  // Remove only an exact duplicate traversal; preserve distinct rings and holes.
+  function normalizeRetracedPolygon(points) {
+    const same=(a,b)=>a.lat===b.lat && a.lon===b.lon;
+    const clean=points.filter((point,index)=>!index || !same(point,points[index-1]));
+    const close=clean.findIndex((point,index)=>index>0 && same(point,clean[0]));
+    if(close<3)return clean;
+    const ring=clean.slice(0,close),tail=clean.slice(close+1);
+    if(tail.length===ring.length && (
+      tail.every((point,index)=>same(point,ring[(index+1)%ring.length])) ||
+      tail.every((point,index)=>same(point,ring[ring.length-1-index]))
+    ))return ring;
+    return clean;
   }
 
   function pointInPolygon(point, polygon) {
@@ -1417,6 +1433,7 @@
     haversineNm,
     distancePointToSegmentNm,
     routeIntersectsZone,
+    normalizeRetracedPolygon,
     zoneContainsPoint,
     drawBaseMap,
     drawAirspaces,
