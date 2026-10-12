@@ -40,5 +40,5 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],
-  "exclude": ["node_modules", "out", "public"]
+  "exclude": ["node_modules", "out", "public", "scripts/legacy"]
 }
