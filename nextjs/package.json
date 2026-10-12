@@ -5,8 +5,8 @@
   "type": "module",
   "packageManager": "pnpm@11.19.0",
   "scripts": {
-    "dev": "next dev --hostname 127.0.0.1",
-    "build": "next build --webpack && node scripts/finalize-export.mjs",
+    "dev": "cp node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs public/ && next dev --hostname 127.0.0.1",
+    "build": "cp node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs public/ && next build --webpack && node scripts/finalize-export.mjs",
     "start": "node scripts/serve-export.mjs",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -29,6 +29,7 @@
     "idb-keyval": "^6.3.0",
     "lucide-react": "^1.55.0",
     "magvar": "2.2.0",
+    "maplibre-gl": "^6.13.0",
     "next": "16.4.0",
     "radix-ui": "^1.7.0",
     "react": "19.3.0",

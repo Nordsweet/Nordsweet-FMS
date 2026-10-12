@@ -144,10 +144,15 @@ they were fetched for.
 Not done: the legacy manual ATIS pad and waypoint weather; winds are for the current hour (flights
 have no planned departure time yet).
 
-### 4. Map — 10–16 h
-MapLibre map: basemaps, airports/waypoints, route display + editing (add point, direct-to,
-speed/altitude restrictions), airspaces with AUP activation (PL/CZ, today/tomorrow), labels,
-point inspector, GPX/OpenAir import.
+### 4. Map — 10–16 h ✅ core done
+Delivered at `/v2/map`: MapLibre GL with OpenStreetMap or a dark background (the legacy map now
+offers only these two), airspace from the Aviation API coloured by class with zones active now
+highlighted and a today/tomorrow (AUP/UUP) switch, airports, VFR points and IFR points/navaids,
+the current route and alternate with labels, and tap-to-select (finger-sized hit area) to set
+departure/destination or add a waypoint. Works offline except for base-map tiles.
+
+Not done: direct-to and per-point speed/altitude restrictions (they belong with in-flight mode,
+phase 5), GPX/OpenAir import, caching map tiles for offline use.
 
 ### 5. In-flight — 8–14 h
 Flight mode (GPS tracking, active leg, ETA updates), COMMs frequency hand-off, direct-to,

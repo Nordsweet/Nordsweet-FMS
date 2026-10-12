@@ -94,6 +94,15 @@ export const api = {
     ),
   },
   navpoints: {
+    /** Bundled points plus the API's VFR points (when reachable or cached). */
+    list: query(
+      "navpoints.list",
+      async () => [
+        ...(await loadDataset("navpoints")),
+        ...(await loadVfrPoints().catch(() => [])),
+      ],
+      { staleTime: HOUR },
+    ),
     search: query(
       "navpoints.search",
       async ({ query, limit }: Search) => {

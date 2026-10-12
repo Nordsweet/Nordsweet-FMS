@@ -23,3 +23,6 @@ next-env.d.ts
 /coverage
 /test-results
 /playwright-report
+
+# copied from node_modules by dev/build (MapLibre web worker)
+/public/maplibre-gl-worker.mjs
