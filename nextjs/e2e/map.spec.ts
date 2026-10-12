@@ -51,6 +51,7 @@ test("map shows airspace and sets the departure from a tapped airport", async ({
   await expect(page.locator(".maplibregl-marker")).toHaveText(["EPKK"]);
 
   await page.getByRole("link", { name: "Flight plan" }).click();
+  await page.getByRole("tab", { name: "Route", exact: true }).click();
   await expect(page.getByText("EPKK", { exact: true }).first()).toBeVisible();
   expect(errors).toEqual([]);
 });

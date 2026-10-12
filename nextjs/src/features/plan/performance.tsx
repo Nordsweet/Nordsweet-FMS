@@ -285,7 +285,7 @@ function Phase({ phase }: { phase: "takeoff" | "landing" }) {
         <dt className="text-muted-foreground">
           {phase === "takeoff" ? "TORA" : "LDA"}
         </dt>
-        <dd className={fits ? "text-emerald-500" : "text-destructive"}>
+        <dd className={fits ? "text-ok" : "text-destructive"}>
           {availableM === null
             ? t("plan.perf.unknown")
             : `${fmt(availableM)} m`}

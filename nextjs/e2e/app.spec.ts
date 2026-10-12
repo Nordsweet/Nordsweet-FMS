@@ -37,6 +37,6 @@ test("legacy URLs land on the new screens", async ({ page }) => {
   await expect(page).toHaveURL(/\/fly$/);
   await page.goto("/index.html");
   await expect(
-    page.getByRole("heading", { name: /Plan lotu|Flight plan/ }),
+    page.getByRole("heading", { name: /Przygotowanie lotu|Flight setup/ }),
   ).toBeVisible();
 });

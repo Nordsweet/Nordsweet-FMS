@@ -50,6 +50,11 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
+/** The planner groups sections into tabs, like the original app. */
+async function tab(page: Page, name: string) {
+  await page.getByRole("tab", { name, exact: true }).click();
+}
+
 async function pickPoint(
   page: Page,
   label: string,
@@ -66,14 +71,17 @@ test("briefs weather, fills landing conditions from the METAR and uses forecast 
   await page.goto("/");
   await page.getByRole("combobox", { name: "Type / registration" }).click();
   await page.getByRole("option", { name: "Cessna R172K" }).click();
+  await tab(page, "Route");
   await pickPoint(page, "Departure", "EPNT", "EPNT");
   await pickPoint(page, "Destination", "EPKK", "EPKK");
 
+  await tab(page, "Weather");
   const destination = page.getByTestId("wx-destination");
   await expect(destination).toContainText("EPKK 111130Z 27011KT");
   await expect(destination).toContainText("stale");
   await expect(page.getByTestId("wx-departure")).toContainText("none");
 
+  await tab(page, "Performance");
   const landing = page.getByTestId("perf-landing");
   await landing.getByRole("button", { name: "Fill from METAR" }).click();
   await expect(page.getByTestId("perf-landing-metar")).toContainText(
@@ -82,6 +90,7 @@ test("briefs weather, fills landing conditions from the METAR and uses forecast 
   await expect(landing.getByLabel("QNH")).toHaveValue("1010");
   await expect(landing.getByLabel("Wind speed")).toHaveValue("11");
 
+  await tab(page, "Route");
   await page.getByRole("button", { name: "Use forecast winds aloft" }).click();
   await expect(page.getByTestId("winds-aloft")).toContainText("900 hPa");
   await expect(
@@ -134,8 +143,10 @@ test("shows community ATIS as unverified and shares a report", async ({
     });
   });
   await page.goto("/");
+  await tab(page, "Route");
   await pickPoint(page, "Departure", "EPKK", "EPKK");
 
+  await tab(page, "Weather");
   const departure = page.getByTestId("wx-departure");
   await expect(departure).toContainText("pilot report — unverified");
 

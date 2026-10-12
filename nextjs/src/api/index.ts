@@ -73,7 +73,8 @@ export const api = {
     list: query("aircraft.list", () => loadDataset("aircraft"), reference),
   },
   flights: {
-    list: query("flights.list", () => listFlights()),
+    // Local and cheap: always re-read, so a restored (persisted) cache never hides a save.
+    list: query("flights.list", () => listFlights(), { staleTime: 0 }),
     save: mutation("flights.save", (flight: Flight) => saveFlight(flight)),
     remove: mutation("flights.remove", (id: string) => removeFlight(id)),
   },

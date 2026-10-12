@@ -64,7 +64,7 @@ function ChecklistItems({ checklist }: { checklist: Checklist }) {
         <span
           className={cn(
             "text-sm font-medium",
-            done === keys.length && "text-emerald-500",
+            done === keys.length && "text-ok",
           )}
           data-testid="checklist-progress"
         >
@@ -145,7 +145,7 @@ export function ChecklistsPage() {
 
   return (
     <div className="mx-auto grid max-w-3xl gap-4">
-      <h1 className="text-xl font-semibold">
+      <h1 className="text-primary text-[1.05rem] font-semibold tracking-[0.04em] uppercase">
         {t("checklists.title")}
         {aircraft && (
           <span className="text-muted-foreground font-normal">

@@ -117,7 +117,9 @@ export function FlyPage() {
   return (
     <div className="mx-auto grid max-w-5xl gap-4">
       <div className="flex flex-wrap items-center gap-2">
-        <h1 className="mr-auto text-xl font-semibold">{t("fly.title")}</h1>
+        <h1 className="text-primary mr-auto text-[1.05rem] font-semibold tracking-[0.04em] uppercase">
+          {t("fly.title")}
+        </h1>
         {!flying ? (
           <Button
             disabled={planRoute.length < 2}

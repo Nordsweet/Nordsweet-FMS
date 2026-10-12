@@ -465,7 +465,7 @@ export function MapView({ basemap, layers, plan }: Props) {
     <div className="absolute inset-0">
       <div ref={container} className="h-full w-full" data-testid="map" />
       {airspace.isError && (
-        <p className="bg-background/90 absolute top-2 left-2 rounded px-2 py-1 text-sm text-red-400">
+        <p className="bg-background/90 text-destructive absolute top-2 left-2 rounded px-2 py-1 text-sm">
           {t("map.airspaceUnavailable")}
         </p>
       )}
@@ -568,7 +568,9 @@ export function MapView({ basemap, layers, plan }: Props) {
                   {click.feature.activations.map((a, i) => (
                     <li
                       key={i}
-                      className={click.feature.active_now ? "text-red-400" : ""}
+                      className={
+                        click.feature.active_now ? "text-destructive" : ""
+                      }
                     >
                       {a.starts_at.slice(11, 16)}–{a.ends_at.slice(11, 16)} UTC
                       · {a.lower}–{a.upper}
@@ -578,7 +580,7 @@ export function MapView({ basemap, layers, plan }: Props) {
                 </ul>
               )}
               {click.feature.active_now && (
-                <div className="font-medium text-red-400">
+                <div className="text-destructive font-medium">
                   {t("map.activeNow")}
                 </div>
               )}

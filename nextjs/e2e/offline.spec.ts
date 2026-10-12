@@ -24,5 +24,7 @@ test("new app works offline after the first visit", async ({
   await expect(page.getByRole("heading", { name: "Ustawienia" })).toBeVisible();
   await expect(page.getByTestId("home-airport-name")).toContainText("EPKK");
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Plan lotu" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Przygotowanie lotu" }),
+  ).toBeVisible();
 });

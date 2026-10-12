@@ -214,7 +214,7 @@ export function FuelSection() {
             <tr
               className={cn(
                 "font-medium",
-                fuelPlan.extraL < 0 ? "text-destructive" : "text-emerald-500",
+                fuelPlan.extraL < 0 ? "text-destructive" : "text-ok",
               )}
             >
               <td className="py-1">

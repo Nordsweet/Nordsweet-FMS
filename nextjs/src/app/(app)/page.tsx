@@ -1,5 +1,13 @@
 "use client";
 
+import Link from "next/link";
+import { useState, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
+
+import { PAGE_ACTIONS_ID } from "~/components/shell/app-shell";
+import { Button } from "~/components/ui/button";
+import { Card, CardContent } from "~/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { BriefingSection } from "~/features/plan/briefing";
 import { FuelSection, NavLogSection } from "~/features/plan/navlog-fuel";
 import { PerformanceSection } from "~/features/plan/performance";
@@ -11,24 +19,131 @@ import {
 import { SavedFlightsSection } from "~/features/plan/saved-flights";
 import { TaxiSection } from "~/features/plan/taxi";
 import { WeightBalanceSection } from "~/features/plan/weight-balance";
+import { type MessageKey } from "~/i18n/messages";
 import { useT } from "~/i18n/use-t";
+
+/** The original "aircraft card" that holds the section tabs. */
+const setupPanel =
+  "grid gap-3 rounded-[20px] border border-[rgba(141,190,255,0.16)] bg-[radial-gradient(circle_at_top_left,rgba(70,137,213,0.2),transparent_34%),linear-gradient(135deg,rgba(10,26,45,0.92),rgba(6,16,29,0.96))] p-3.75 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]";
+// Inactive tabs stay mounted (hidden), so inputs such as OAT/QNH survive switching tabs.
+const content = "grid gap-4 data-[state=inactive]:hidden";
+
+const TABS: { id: string; label: MessageKey; sections: React.ReactNode }[] = [
+  { id: "aircraft", label: "plan.tab.aircraft", sections: <AircraftSection /> },
+  {
+    id: "route",
+    label: "plan.tab.route",
+    sections: (
+      <>
+        <RouteSection />
+        <CruiseSection />
+        <NavLogSection />
+      </>
+    ),
+  },
+  { id: "weather", label: "plan.tab.weather", sections: <BriefingSection /> },
+  { id: "fuel", label: "plan.tab.fuel", sections: <FuelSection /> },
+  { id: "wb", label: "plan.tab.wb", sections: <WeightBalanceSection /> },
+  {
+    id: "performance",
+    label: "plan.tab.performance",
+    sections: (
+      <>
+        <PerformanceSection />
+        <TaxiSection />
+      </>
+    ),
+  },
+];
+
+const noSubscribe = () => () => undefined;
 
 export default function PlanPage() {
   const t = useT();
+  const [workspace, setWorkspace] = useState("current");
+
+  // The shell's header slot; null during the static prerender.
+  const actions = useSyncExternalStore(
+    noSubscribe,
+    () => document.getElementById(PAGE_ACTIONS_ID),
+    () => null,
+  );
+
   return (
-    <div className="mx-auto grid max-w-5xl gap-4">
-      <h1 className="text-xl font-semibold">{t("plan.title")}</h1>
-      <p className="text-muted-foreground text-sm">{t("plan.disclaimer")}</p>
-      <AircraftSection />
-      <RouteSection />
-      <BriefingSection />
-      <CruiseSection />
-      <NavLogSection />
-      <FuelSection />
-      <WeightBalanceSection />
-      <PerformanceSection />
-      <TaxiSection />
-      <SavedFlightsSection />
+    <div className="mx-auto grid w-full max-w-295 gap-3">
+      {actions &&
+        createPortal(
+          <>
+            <Button
+              variant="outline"
+              className="h-13.5 min-w-41 border-[rgba(141,190,255,0.28)] bg-[rgba(15,29,52,0.92)] shadow-[0_18px_36px_rgba(0,0,0,0.2)] hover:bg-[rgba(26,47,78,0.96)]"
+              onClick={() => setWorkspace("saved")}
+            >
+              {t("plan.saveFlight")}
+            </Button>
+            <Button
+              asChild
+              className="h-13.5 min-w-41 border-white/45 bg-[linear-gradient(135deg,rgba(118,242,164,0.98),rgba(122,243,211,0.94))]"
+            >
+              <Link href="/fly">{t("plan.startFlight")}</Link>
+            </Button>
+          </>,
+          actions,
+        )}
+      <Card>
+        <CardContent>
+          <Tabs
+            value={workspace}
+            onValueChange={setWorkspace}
+            className="gap-4"
+          >
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="text-primary text-[1.05rem] font-semibold tracking-[0.04em] uppercase">
+                {t("plan.title")}
+              </h1>
+              <TabsList className="flex-[1_1_360px] justify-center">
+                <TabsTrigger value="current">
+                  {t("plan.currentFlight")}
+                </TabsTrigger>
+                <TabsTrigger value="saved">{t("plan.saved.title")}</TabsTrigger>
+              </TabsList>
+              <p className="text-muted-foreground ml-auto">
+                {t("plan.tagline")}
+              </p>
+            </div>
+            <TabsContent value="current" forceMount className={content}>
+              <Tabs defaultValue="aircraft" className={setupPanel}>
+                <h2 className="text-[0.95rem] font-semibold tracking-[0.12em] uppercase">
+                  {t("plan.tab.aircraft")}
+                </h2>
+                <TabsList>
+                  {TABS.map((tab) => (
+                    <TabsTrigger key={tab.id} value={tab.id}>
+                      {t(tab.label)}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+                {TABS.map((tab) => (
+                  <TabsContent
+                    key={tab.id}
+                    value={tab.id}
+                    forceMount
+                    className={content}
+                  >
+                    {tab.sections}
+                  </TabsContent>
+                ))}
+              </Tabs>
+            </TabsContent>
+            <TabsContent value="saved" forceMount className={content}>
+              <SavedFlightsSection />
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+      <p className="text-muted-foreground text-center text-xs">
+        {t("plan.disclaimer")}
+      </p>
     </div>
   );
 }

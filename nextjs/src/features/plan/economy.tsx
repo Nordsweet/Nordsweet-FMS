@@ -82,7 +82,7 @@ export function CruiseEconomy() {
                 <td
                   className={cn(
                     "text-right",
-                    r.minutes === fastest && "font-semibold text-sky-400",
+                    r.minutes === fastest && "text-primary font-semibold",
                   )}
                 >
                   {fmtMinutes(r.minutes)}
@@ -90,7 +90,7 @@ export function CruiseEconomy() {
                 <td
                   className={cn(
                     "text-right",
-                    r.fuelL === leastFuel && "font-semibold text-emerald-500",
+                    r.fuelL === leastFuel && "text-ok font-semibold",
                   )}
                 >
                   {fmt(r.fuelL, 1)}

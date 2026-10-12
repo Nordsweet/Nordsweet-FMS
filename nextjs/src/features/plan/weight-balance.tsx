@@ -25,7 +25,7 @@ function Status({
     <div
       className={cn(
         "rounded-lg border p-3 text-sm",
-        ok ? "border-emerald-600/50" : "border-destructive",
+        ok ? "border-ok/50" : "border-destructive",
       )}
       data-testid={`wb-${label}`}
     >
@@ -36,7 +36,7 @@ function Status({
         {fmt(result.totalKg)} / {fmt(mtowKg)} kg · CG {fmt(result.cgM, 3)} m ·{" "}
         {t("plan.wb.fuel")} {fmt(fuelL)} L
       </div>
-      <div className={ok ? "text-emerald-500" : "text-destructive"}>
+      <div className={ok ? "text-ok" : "text-destructive"}>
         {result.overMtow
           ? t("plan.wb.overMtow")
           : result.withinEnvelope

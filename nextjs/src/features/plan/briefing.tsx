@@ -127,7 +127,7 @@ function AirportBriefing({
               className={cn(
                 "grid gap-1",
                 atis.source === "community" &&
-                  "rounded-md border border-amber-500/60 px-2 py-1",
+                  "border-warn/60 rounded-md border px-2 py-1",
               )}
             >
               <summary className="cursor-pointer text-sm">
@@ -135,7 +135,7 @@ function AirportBriefing({
                   ATIS {t(`plan.wx.atis.${atis.kind}`)} {atis.letter}
                 </span>{" "}
                 {atis.source === "community" && (
-                  <span className="text-xs font-medium text-amber-500">
+                  <span className="text-warn text-xs font-medium">
                     {t("plan.wx.communityReport")}{" "}
                   </span>
                 )}
@@ -271,7 +271,7 @@ function ShareAtis({ icao }: { icao: string }) {
             {t("plan.wx.share.submit")}
           </Button>
           {submit.isSuccess && (
-            <span className="text-emerald-500">{t("plan.wx.share.done")}</span>
+            <span className="text-ok">{t("plan.wx.share.done")}</span>
           )}
           {error !== null && (
             <span className="text-destructive">

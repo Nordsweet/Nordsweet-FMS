@@ -9,6 +9,11 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
+/** The planner groups sections into tabs, like the original app. */
+async function tab(page: Page, name: string) {
+  await page.getByRole("tab", { name, exact: true }).click();
+}
+
 async function pickPoint(
   page: Page,
   label: string,
@@ -26,6 +31,7 @@ test("plans a flight end to end and keeps it across reloads", async ({
   await page.getByRole("combobox", { name: "Type / registration" }).click();
   await page.getByRole("option", { name: "Cessna R172K" }).click();
 
+  await tab(page, "Route");
   await pickPoint(page, "Departure", "EPNT", "EPNT");
   await pickPoint(page, "Destination", "EPKK", "EPKK");
   await pickPoint(page, "Add waypoint", "ABAKU", "ABAKU");
@@ -45,13 +51,17 @@ test("plans a flight end to end and keeps it across reloads", async ({
     .first()
     .click();
   await expect(page.getByLabel("True airspeed (TAS)")).not.toHaveValue("100");
+  await tab(page, "Fuel");
   await expect(page.getByTestId("fuel-extra")).toBeVisible();
+  await tab(page, "W&B");
   await expect(page.getByTestId("wb-takeoff")).toContainText("kg");
+  await tab(page, "Performance");
   await expect(page.getByTestId("perf-takeoff-ground-roll")).toHaveText(
     /\d+ m/,
   );
   await expect(page.getByTestId("perf-landing-obstacle")).toHaveText(/\d+ m/);
 
+  await page.getByRole("button", { name: "Save a flight" }).click();
   await page.getByLabel("Flight name").fill("Test flight");
   await page.getByRole("button", { name: "Save", exact: true }).click();
   await expect(
@@ -59,7 +69,9 @@ test("plans a flight end to end and keeps it across reloads", async ({
   ).toContainText("Test flight");
 
   await page.reload();
+  await tab(page, "Route");
   await expect(page.getByRole("cell", { name: /^TOC → ABAKU/ })).toBeVisible();
+  await tab(page, "Saved flights");
   await expect(
     page.getByRole("list", { name: "Saved flights list" }),
   ).toContainText("Test flight");
@@ -67,12 +79,15 @@ test("plans a flight end to end and keeps it across reloads", async ({
 
 test("imports a legacy .nord flight", async ({ page }) => {
   await page.goto("/");
+  await tab(page, "Saved flights");
   await page
     .getByLabel("Import .nord")
     .setInputFiles("tests/fixtures/nord/P2006T0508261012.nord");
   const saved = page.getByRole("list", { name: "Saved flights list" });
   await expect(saved).toContainText("EPNT -> EPML");
   await saved.getByRole("button", { name: "Load" }).first().click();
+  await tab(page, "Current flight");
+  await tab(page, "Route");
   await expect(
     page.getByRole("cell", { name: /→ EPML descent/ }),
   ).toBeVisible();
@@ -80,6 +95,7 @@ test("imports a legacy .nord flight", async ({ page }) => {
 
 test("adds a SID, shows the taxi route and charts", async ({ page }) => {
   await page.goto("/");
+  await tab(page, "Route");
   await pickPoint(page, "Departure", "EPKK", "EPKK");
   await pickPoint(page, "Destination", "EPNT", "EPNT");
 
@@ -87,11 +103,13 @@ test("adds a SID, shows the taxi route and charts", async ({ page }) => {
   await page.getByRole("option", { name: /^NAVUR 5F/ }).click();
   await expect(page.getByRole("cell", { name: /KK801/ }).first()).toBeVisible();
 
+  await tab(page, "Performance");
   await expect(page.getByTestId("taxi-departure-route")).toHaveText(
     "Stand 1 → Taxiway G → Taxiway B4 → Taxiway C → HP07",
   );
   await expect(page.getByTestId("taxi-arrival")).toContainText("EPNT");
 
+  await tab(page, "Weather");
   await expect(
     page.getByRole("link", { name: "EPKK · National AIP · AD2" }),
   ).toHaveAttribute("href", "/charts/Poland/EPKK/National%20AIP/AD2.pdf");
