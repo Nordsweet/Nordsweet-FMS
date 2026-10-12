@@ -4,3 +4,4 @@ public
 pnpm-lock.yaml
 src/runtime/*.js
 src/views
+public/maplibre-gl-worker.mjs
