@@ -28,6 +28,7 @@ await loadScript("./awos-api-config.js");
 await loadScript("./czech-ibs-api-config.js");
 await loadScript("./atis-feed.js");
 await loadScript("./atis-db-config.js");
+await loadScript("./comms.js");
 
 const FALLBACK_AIRPORTS = [
   {
@@ -29918,12 +29919,12 @@ function refreshFlightComms() {
 }
 function renderFlightCommsBody() {
   const data=flightCommsData && flightCommsData.phase===state.performancePhase && Date.now()-flightCommsData.receivedAt<10000 ? flightCommsData : null;
-  const rows=values => values && values.length ? values.map(row => '<div class="metric-row"><span>'+escapeHtml(row.callsign || row.serviceLabel || 'Callsign unavailable')+(row.sector?' / '+escapeHtml(row.sector):'')+'</span><strong>'+escapeHtml(row.frequencyMhz)+' MHz</strong></div>').join('') : '<p>Not available</p>';
   if(!data) return '<p>Loading radio data from the map…</p>';
+  const groups=window.NordsweetComms.displayGroups(data);
+  const render=section=>groups.filter(group=>group.section===section).map(group=>'<h4>'+escapeHtml(group.title)+'</h4><div class="metric-row"><span>'+escapeHtml(group.callsign)+(group.sector?' / '+escapeHtml(group.sector):'')+'</span><strong style="white-space:normal;overflow-wrap:anywhere;max-width:100%">'+escapeHtml(group.frequencies.join('/'))+' MHz</strong></div>').join('');
   const time=Number.isFinite(data.seconds)?Math.floor(data.seconds/60)+' min '+String(Math.floor(data.seconds%60)).padStart(2,'0')+' s':'—';
-  const routeRadio=(data.routeGroups || []).map(group=>'<h4>'+escapeHtml(group.name)+'</h4>'+rows(group.rows)).join('');
-  const airportRadio=(data.airportGroups || []).map(group=>'<h4>'+escapeHtml(group.name)+'</h4>'+rows(group.rows)).join('');
-  return '<h3>Current · suggested</h3>'+rows(data.current)+'<h3>Next</h3>'+rows(data.next)+'<h3>Estimated change</h3><p>'+time+(Number.isFinite(data.distanceNm)?' · '+data.distanceNm.toFixed(1)+' NM':'')+(Number.isFinite(data.speedKt)?' · '+Math.round(data.speedKt)+' kt ('+escapeHtml(data.speedSource)+')':'')+'</p><p>'+escapeHtml(data.note)+'</p>'+(routeRadio?'<h3>FIS / ATZ / TMA on route</h3>'+routeRadio:'')+(airportRadio?'<h3>Arrival airport</h3>'+airportRadio:'');
+  const next=render('next');
+  return '<h3>Current · suggested</h3>'+(render('current') || '<p>Not available</p>')+(next?'<h3>Next</h3>'+next:'')+'<h3>Estimated change</h3><p>'+time+(Number.isFinite(data.distanceNm)?' · '+data.distanceNm.toFixed(1)+' NM':'')+(Number.isFinite(data.speedKt)?' · '+Math.round(data.speedKt)+' kt ('+escapeHtml(data.speedSource)+')':'')+'</p><p>'+escapeHtml(data.note)+'</p>'+render('route')+render('arrival');
 }
 function renderFlightCommsPopover() {
   refreshFlightComms();

@@ -81,3 +81,27 @@ test('Polygon normalization preserves separate hole geometry',()=>{
   const points=[...outer,...hole];
   assert.deepEqual(scope.T.normalizeRetracedPolygon(points),points);
 });
+test('COMMs merges Approach aliases and frequencies once, under Arrival rather than TMA',()=>{
+  const result=scope.buildCommsPlan({phase:'taxiout',route,plannedSpeedKt:120});
+  result.phase='taxiout';
+  const groups=scope.NordsweetComms.displayGroups(result);
+  const app=groups.filter(g=>g.title==='Arrival-Approach');
+  assert.equal(app.length,1);
+  assert.equal(app[0].callsign,'Kraków Approach');
+  assert.equal(app[0].frequencies.join('/'),'121.075/126.530/126.975');
+  assert.equal(groups.filter(g=>g.callsign==='Kraków Approach').length,1);
+  assert.ok(groups.some(g=>g.title==='Arrival-Tower'));
+  assert.ok(groups.some(g=>g.title==='En-route' && g.sector==='West'));
+  const atis=groups.find(g=>g.title==='Arrival-ATIS');
+  assert.equal(atis.frequencies.length,2);
+});
+test('COMMs retains distinct FIS sectors and combines duplicate current/next/route rows',()=>{
+  const west={callsign:'Kraków Informacja',serviceId:'fiss',sector:'West',frequencyMhz:'119.275'};
+  const east={...west,sector:'East',frequencyMhz:'119.950'};
+  const groups=scope.NordsweetComms.displayGroups({phase:'cruise',current:[west],next:[west,east],routeGroups:[{rows:[west,east]}]});
+  assert.equal(groups.length,2);
+  assert.equal(groups[0].section,'current');
+  assert.equal(groups[1].section,'next');
+  assert.equal(groups[0].frequencies.join('/'),'119.275');
+  assert.equal(groups[1].frequencies.join('/'),'119.950');
+});

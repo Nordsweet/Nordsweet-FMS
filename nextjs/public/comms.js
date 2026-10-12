@@ -92,5 +92,39 @@
     result.note+=' No further mapped sector boundary; contact arrival service as instructed.';
     return result;
   }
-  root.NordsweetComms={estimate,unique,routeIntersectsVolume};
+  // Group display aliases without merging distinct FIS sectors or radio services.
+  // Current/next and arrival own their entries before the route overview is added.
+  function displayGroups(data) {
+    const normalize=value=>String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
+    const labels={zblizanie:'Approach',approach:'Approach',app:'Approach',radar:'Approach',tower:'Tower',ground:'Ground',atis:'ATIS',radio:'Radio',delivery:'Delivery',fiss:'FIS',informacja:'Information'};
+    const entries=new Map();
+    const phase=data.phase || '';
+    const add=(rows,section,context)=>{
+      for(const row of rows || []) {
+        const service=labels[normalize(row.serviceId)] || row.serviceShortLabel || row.serviceLabel || 'Radio';
+        const rawName=String(row.callsign || row.serviceLabel || 'Callsign unavailable').trim();
+        const name=rawName.replace(/[-–—]+/g,' ').replace(/\s*\/\s*(?:APP|TWR|GND|ATIS|Ground|Tower)\s*$/i,'').replace(/\s+/g,' ');
+        const sector=String(row.sector || '').trim();
+        // APP/TWR/ATIS are role annotations; West/East and other sector names are identity.
+        const detail=/^(?:APP|TWR|GND|ATIS(?:\s*\/\s*VOR)?|Ground|Tower|DEL)$/i.test(sector) || /^ATZ\s/i.test(sector) ? '' : sector;
+        const key=[normalize(name),normalize(service),normalize(detail)].join('|');
+        let entry=entries.get(key);
+        if(!entry) {
+          const stage=['FIS','Information'].includes(service)?'En-route':context || (['taxiout','takeoff','climb'].includes(phase)?'Departure':['descent','landing','taxiin'].includes(phase)?'Arrival':'En-route');
+          entry={section,title:stage==='En-route'?stage:stage+'-'+service,callsign:name,sector:detail,frequencies:[]};
+          entries.set(key,entry);
+        } else {
+          if(/[^\x00-\x7f]/.test(name)) entry.callsign=name;
+          if(context==='Arrival' && entry.section==='next' && phase==='cruise')entry.title='Arrival-'+service;
+        }
+        if(row.frequencyMhz && !entry.frequencies.includes(row.frequencyMhz))entry.frequencies.push(row.frequencyMhz);
+      }
+    };
+    add(data.current,'current','');
+    add(data.next,'next','');
+    for(const group of data.airportGroups || [])add(group.rows,'arrival','Arrival');
+    for(const group of data.routeGroups || [])add(group.rows,'route','En-route');
+    return [...entries.values()].sort((a,b)=>['current','next','route','arrival'].indexOf(a.section)-['current','next','route','arrival'].indexOf(b.section));
+  }
+  root.NordsweetComms={estimate,unique,routeIntersectsVolume,displayGroups};
 })(typeof window==='undefined'?globalThis:window);
