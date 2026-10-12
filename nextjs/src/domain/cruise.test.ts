@@ -17,7 +17,7 @@ describe("cruiseOptions", () => {
     expect(r.tableAltitudeFt).toBe(2000);
     expect(
       r.options.find((o) => o.setting === "2600 RPM / 24 inHg"),
-    ).toMatchObject({ ktas: 126, fuelFlowLph: 43.2 });
+    ).toMatchObject({ ktas: 126, fuelFlowLph: 43.154 });
     expect(r.outsideIsaRange).toBe(false);
   });
 
