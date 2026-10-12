@@ -1,5 +1,8 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
+
+import { api } from "~/api";
 import { type FlightPoint } from "~/data/flight";
 import { useT } from "~/i18n/use-t";
 import { cn } from "~/lib/utils";
@@ -34,6 +37,9 @@ function AirportBriefing({
 }) {
   const t = useT();
   const { station, briefing } = useBriefing(point);
+  const charts = useQuery(
+    api.charts.byAirport.queryOptions({ airport: point.ident }),
+  );
   const data = briefing.data;
   const notamSource = data?.sources.notamify;
 
@@ -52,6 +58,22 @@ function AirportBriefing({
           </span>
         )}
       </h3>
+      {charts.data && charts.data.length > 0 && (
+        <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm">
+          <span className="font-medium">{t("plan.wx.charts")}:</span>
+          {charts.data.map((c) => (
+            <a
+              key={c.src}
+              href={c.src}
+              target="_blank"
+              rel="noreferrer"
+              className="underline pointer-coarse:py-2"
+            >
+              {c.title}
+            </a>
+          ))}
+        </div>
+      )}
       {!station ? (
         <p className="text-muted-foreground text-sm">
           {t("plan.wx.noStation")}

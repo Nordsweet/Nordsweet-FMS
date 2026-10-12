@@ -34,7 +34,7 @@ export function SavedFlightsSection() {
   const fileInput = useRef<HTMLInputElement>(null);
   const [error, setError] = useState("");
   const queryClient = useQueryClient();
-  const { flight, aircraft, aircraftList } = usePlan();
+  const { flight, route, aircraft, aircraftList } = usePlan();
   const update = useFlight((s) => s.update);
   const load = useFlight((s) => s.load);
   const flights = useQuery(api.flights.list.queryOptions(undefined));
@@ -100,7 +100,7 @@ export function SavedFlightsSection() {
           onClick={() =>
             download(
               `${flight.name.trim() === "" ? (flight.departure?.ident ?? "flight") : flight.name}.nord`,
-              toNordFile(flight, aircraft?.type ?? null),
+              toNordFile(flight, aircraft?.type ?? null, route),
             )
           }
         >

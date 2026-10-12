@@ -120,12 +120,16 @@ export function parseNordFile(
 }
 
 /** Writes a file the legacy planner can still open. */
-export function toNordFile(flight: Flight, aircraftType: string | null) {
-  const points = [
+export function toNordFile(
+  flight: Flight,
+  aircraftType: string | null,
+  /** Full route incl. SID/STAR legs; defaults to departure, waypoints, destination. */
+  points: FlightPoint[] = [
     flight.departure,
     ...flight.waypoints,
     flight.destination,
-  ].filter((p): p is FlightPoint => p !== null);
+  ].filter((p): p is FlightPoint => p !== null),
+) {
   return JSON.stringify(
     {
       format: "nordsweet.flight",
@@ -144,8 +148,8 @@ export function toNordFile(flight: Flight, aircraftType: string | null) {
         cruiseSpeedKt: String(flight.cruiseTasKt),
         routeText: flight.waypoints.map((p) => p.ident).join(" "),
         approach: "NONE",
-        sid: "NONE",
-        star: "NONE",
+        sid: flight.sid ?? "NONE",
+        star: flight.star ?? "NONE",
         plan: {
           altitudeFt: flight.cruiseAltitudeFt,
           cruiseSpeedKt: flight.cruiseTasKt,

@@ -9,6 +9,7 @@ import {
   RouteSection,
 } from "~/features/plan/route";
 import { SavedFlightsSection } from "~/features/plan/saved-flights";
+import { TaxiSection } from "~/features/plan/taxi";
 import { WeightBalanceSection } from "~/features/plan/weight-balance";
 import { useT } from "~/i18n/use-t";
 
@@ -26,6 +27,7 @@ export default function PlanPage() {
       <FuelSection />
       <WeightBalanceSection />
       <PerformanceSection />
+      <TaxiSection />
       <SavedFlightsSection />
     </div>
   );

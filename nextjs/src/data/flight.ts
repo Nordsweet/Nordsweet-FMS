@@ -20,6 +20,9 @@ export const flightSchema = z.object({
   destination: point.nullable(),
   alternate: point.nullable(),
   waypoints: z.array(point),
+  /** Designators of the chosen SID/STAR; their legs are added around the waypoints. */
+  sid: z.string().nullable().default(null),
+  star: z.string().nullable().default(null),
   cruiseAltitudeFt: z.number(),
   cruiseTasKt: z.number().positive(),
   /** Direction the wind blows from, true. */
@@ -56,6 +59,8 @@ export function newFlight(): Flight {
     destination: null,
     alternate: null,
     waypoints: [],
+    sid: null,
+    star: null,
     cruiseAltitudeFt: 3000,
     cruiseTasKt: 100,
     wind: { directionDeg: 0, speedKt: 0 },
@@ -67,11 +72,6 @@ export function newFlight(): Flight {
 }
 
 /** Identifies the legs and level that leg winds were fetched for. */
-export function routeKey(flight: Flight) {
-  const points = [
-    flight.departure,
-    ...flight.waypoints,
-    flight.destination,
-  ].filter((p) => p !== null);
-  return `${points.map((p) => `${p.ident}@${p.lat},${p.lon}`).join(">")}|${flight.cruiseAltitudeFt}`;
+export function routeKey(points: FlightPoint[], cruiseAltitudeFt: number) {
+  return `${points.map((p) => `${p.ident}@${p.lat},${p.lon}`).join(">")}|${cruiseAltitudeFt}`;
 }

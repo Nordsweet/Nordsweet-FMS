@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "~/components/ui/select";
 import { routeKey } from "~/data/flight";
+import { type Procedure } from "~/data/schemas";
 import { midpoint } from "~/domain/geo";
 import { useT } from "~/i18n/use-t";
 import { useSettings } from "~/stores/settings";
@@ -77,6 +78,7 @@ export function RouteSection() {
   const t = useT();
   const flight = useFlight((s) => s.flight);
   const update = useFlight((s) => s.update);
+  const { departureProcedures, destinationProcedures } = usePlan();
   const waypoints = flight.waypoints;
   const move = (from: number, to: number) => {
     const next = [...waypoints];
@@ -91,17 +93,31 @@ export function RouteSection() {
         <PointSearch
           label={t("plan.route.departure")}
           value={flight.departure}
-          onSelect={(departure) => update({ departure })}
+          onSelect={(departure) => update({ departure, sid: null })}
         />
         <PointSearch
           label={t("plan.route.destination")}
           value={flight.destination}
-          onSelect={(destination) => update({ destination })}
+          onSelect={(destination) => update({ destination, star: null })}
         />
         <PointSearch
           label={t("plan.route.alternate")}
           value={flight.alternate}
           onSelect={(alternate) => update({ alternate })}
+        />
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <ProcedureSelect
+          label="SID"
+          options={departureProcedures.filter((p) => p.type === "SID")}
+          value={flight.sid}
+          onChange={(sid) => update({ sid })}
+        />
+        <ProcedureSelect
+          label="STAR"
+          options={destinationProcedures.filter((p) => p.type === "STAR")}
+          value={flight.star}
+          onChange={(star) => update({ star })}
         />
       </div>
       <PointSearch
@@ -158,6 +174,45 @@ export function RouteSection() {
   );
 }
 
+const NONE = "none";
+
+function ProcedureSelect({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  options: Procedure[];
+  value: string | null;
+  onChange: (designator: string | null) => void;
+}) {
+  const t = useT();
+  if (!options.length) return null;
+  return (
+    <div className="grid gap-1.5">
+      <Label>{label}</Label>
+      <Select
+        value={value ?? NONE}
+        onValueChange={(v) => onChange(v === NONE ? null : v)}
+      >
+        <SelectTrigger className="w-full" aria-label={label}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={NONE}>{t("plan.route.noProcedure")}</SelectItem>
+          {options.map((p) => (
+            <SelectItem key={p.designator} value={p.designator}>
+              {p.designator} · RWY {p.runways.join("/")} ·{" "}
+              {p.legs.map((l) => l.ident).join(" ")}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
 export function CruiseSection() {
   const t = useT();
   const flight = useFlight((s) => s.flight);
@@ -170,7 +225,12 @@ export function CruiseSection() {
       points: legs,
       altitudeFt: flight.cruiseAltitudeFt,
     });
-    update({ legWinds: { routeKey: routeKey(flight), ...result } });
+    update({
+      legWinds: {
+        routeKey: routeKey(route, flight.cruiseAltitudeFt),
+        ...result,
+      },
+    });
   };
   return (
     <Section title={t("plan.cruise.title")}>
