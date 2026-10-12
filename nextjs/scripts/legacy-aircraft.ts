@@ -700,6 +700,18 @@ export function importAircraft(
         usableFuelL: p.usableFuelCapacityLiters ?? null,
         weightBalance: wb,
         climb: climb(id, p.performance ?? {}),
+        checklists: ((p.checklists ?? []) as Legacy[]).map((c) => ({
+          id: String(c.id),
+          name: String(c.name).trim(),
+          phase: c.phase,
+          sections: (c.sections as Legacy[]).map((section) => ({
+            title: String(section.title ?? "").trim(),
+            items: (section.items as Legacy[]).map((item) => ({
+              action: String(item.action ?? "").trim(),
+              expected: String(item.expected ?? "").trim(),
+            })),
+          })),
+        })),
         ...perf,
         windLimits: wind
           ? {

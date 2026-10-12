@@ -3,6 +3,13 @@
 import { useState } from "react";
 
 import { type AirspacePlan } from "~/api/aviation/client";
+import { Button } from "~/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu";
 import { Label } from "~/components/ui/label";
 import {
   Select,
@@ -29,7 +36,7 @@ export default function MapPage() {
   });
 
   return (
-    <div className="-m-4 flex h-[calc(100dvh-3.25rem)] min-h-96 flex-col">
+    <div className="-m-4 flex min-h-96 flex-1 flex-col">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b px-4 py-2 text-sm">
         <Select value={basemap} onValueChange={(v) => setBasemap(v as Basemap)}>
           <SelectTrigger size="sm" aria-label={t("map.basemap")}>
@@ -49,10 +56,29 @@ export default function MapPage() {
             <SelectItem value="next">{t("map.planNext")}</SelectItem>
           </SelectContent>
         </Select>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="sm:hidden">
+              {t("map.layers")}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            {LAYERS.map((id) => (
+              <DropdownMenuCheckboxItem
+                key={id}
+                checked={layers[id]}
+                onCheckedChange={(on) => setLayers({ ...layers, [id]: on })}
+                onSelect={(e) => e.preventDefault()}
+              >
+                {t(`map.layer.${id}`)}
+              </DropdownMenuCheckboxItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
         {LAYERS.map((id) => (
           <Label
             key={id}
-            className="flex items-center gap-1.5 font-normal pointer-coarse:min-h-10"
+            className="hidden items-center gap-1.5 font-normal sm:flex pointer-coarse:min-h-10"
           >
             <input
               type="checkbox"
@@ -64,7 +90,7 @@ export default function MapPage() {
           </Label>
         ))}
       </div>
-      <div className="min-h-0 flex-1">
+      <div className="relative min-h-0 flex-1">
         <MapView basemap={basemap} layers={layers} plan={plan} />
       </div>
     </div>

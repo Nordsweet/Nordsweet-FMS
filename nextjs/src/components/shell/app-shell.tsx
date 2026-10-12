@@ -13,6 +13,7 @@ const nav: { href: string; label: MessageKey }[] = [
   { href: "/v2", label: "nav.plan" },
   { href: "/v2/map", label: "nav.map" },
   { href: "/v2/fly", label: "nav.fly" },
+  { href: "/v2/checklists", label: "nav.checklists" },
   { href: "/v2/settings", label: "nav.settings" },
 ];
 
@@ -53,7 +54,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </Button>
         </div>
       </header>
-      <main className="flex-1 p-4">{children}</main>
+      <main className="flex flex-1 flex-col p-4">{children}</main>
     </div>
   );
 }

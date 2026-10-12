@@ -140,6 +140,28 @@ export const weightBalanceSchema = z.object({
   source: z.string(),
 });
 
+export const checklistPhases = [
+  "taxiout",
+  "takeoff",
+  "climb",
+  "cruise",
+  "descent",
+  "landing",
+  "taxiin",
+] as const;
+
+export const checklistSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  phase: z.enum(checklistPhases),
+  sections: z.array(
+    z.object({
+      title: z.string(),
+      items: z.array(z.object({ action: z.string(), expected: z.string() })),
+    }),
+  ),
+});
+
 export const aircraftSchema = z.object({
   id: z.string(),
   type: z.string(),
@@ -151,6 +173,7 @@ export const aircraftSchema = z.object({
   takeoff: distancePerformanceSchema.nullable(),
   landing: distancePerformanceSchema.nullable(),
   climb: climbSchema.nullable(),
+  checklists: z.array(checklistSchema),
   windLimits: z
     .object({
       maxCrosswindKt: z.number().nullable(),
@@ -164,4 +187,5 @@ export type WeightBalance = z.infer<typeof weightBalanceSchema>;
 export type DistancePerformance = z.infer<typeof distancePerformanceSchema>;
 export type DistanceConfiguration = z.infer<typeof distanceConfigurationSchema>;
 export type Climb = z.infer<typeof climbSchema>;
+export type Checklist = z.infer<typeof checklistSchema>;
 export type Corrections = z.infer<typeof correctionsSchema>;
