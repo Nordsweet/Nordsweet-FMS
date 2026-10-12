@@ -140,6 +140,26 @@ export const weightBalanceSchema = z.object({
   source: z.string(),
 });
 
+/** POH cruise table rows: one power setting at one altitude and ISA deviation. */
+export const cruiseSchema = z.object({
+  source: z.string(),
+  draft: z.boolean(),
+  rows: z
+    .array(
+      z.object({
+        pressureAltitudeFt: z.number(),
+        isaDeltaC: z.number(),
+        /** e.g. "2400 RPM / 24 inHg". */
+        setting: z.string(),
+        powerPct: z.number().nullable(),
+        ktas: z.number().positive(),
+        /** Total for all engines. */
+        fuelFlowLph: z.number().positive(),
+      }),
+    )
+    .min(1),
+});
+
 export const checklistPhases = [
   "taxiout",
   "takeoff",
@@ -173,6 +193,7 @@ export const aircraftSchema = z.object({
   takeoff: distancePerformanceSchema.nullable(),
   landing: distancePerformanceSchema.nullable(),
   climb: climbSchema.nullable(),
+  cruise: cruiseSchema.nullable(),
   checklists: z.array(checklistSchema),
   windLimits: z
     .object({
@@ -188,4 +209,5 @@ export type DistancePerformance = z.infer<typeof distancePerformanceSchema>;
 export type DistanceConfiguration = z.infer<typeof distanceConfigurationSchema>;
 export type Climb = z.infer<typeof climbSchema>;
 export type Checklist = z.infer<typeof checklistSchema>;
+export type Cruise = z.infer<typeof cruiseSchema>;
 export type Corrections = z.infer<typeof correctionsSchema>;

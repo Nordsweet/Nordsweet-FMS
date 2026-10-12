@@ -261,6 +261,15 @@ const pl = {
   "checklists.phase.landing": "Lądowanie",
   "checklists.phase.taxiin": "Po lądowaniu",
   "map.layers": "Warstwy",
+  "plan.economy.title":
+    "Ustawienia mocy z POH (tabela {altitude} ft, ISA {deviation} °C)",
+  "plan.economy.setting": "Ustawienie",
+  "plan.economy.use": "Użyj {setting}",
+  "plan.economy.useShort": "Użyj",
+  "plan.economy.note":
+    "Czas i paliwo na tej trasie z wiatrem; zielony — najmniej paliwa, niebieski — najszybciej.",
+  "plan.economy.outsideIsa":
+    "Temperatura poza zakresem tabeli POH — wartości z krańca tabeli.",
   "settings.title": "Ustawienia",
   "settings.language": "Język",
   "settings.homeAirport": "Lotnisko macierzyste (ICAO)",
@@ -530,6 +539,15 @@ const en: Record<MessageKey, string> = {
   "checklists.phase.landing": "Landing",
   "checklists.phase.taxiin": "After landing",
   "map.layers": "Layers",
+  "plan.economy.title":
+    "POH power settings ({altitude} ft table, ISA {deviation} °C)",
+  "plan.economy.setting": "Setting",
+  "plan.economy.use": "Use {setting}",
+  "plan.economy.useShort": "Use",
+  "plan.economy.note":
+    "Time and fuel on this route with its winds; green — least fuel, blue — fastest.",
+  "plan.economy.outsideIsa":
+    "Temperature outside the POH table — edge values used.",
   "settings.title": "Settings",
   "settings.language": "Language",
   "settings.homeAirport": "Home airport (ICAO)",
