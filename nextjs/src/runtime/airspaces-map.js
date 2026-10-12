@@ -95,10 +95,7 @@ await loadScript("./traffic-proxy-config.js");
       const GPS_VECTOR_MINUTES = [1, 2, 3, 4, 5];
       const MPS_TO_KT = 1.94384449;
       const MS_PER_HOUR = 3600000;
-      const ADSB_TRAFFIC_API = "https://opendata.adsb.fi/api/v3";
-      const AIRPLANES_LIVE_TRAFFIC_API = "https://api.airplanes.live/v2";
-      const LOCAL_TRAFFIC_SERVER_URL = String(window.NORDSWEET_TRAFFIC_SERVER_URL || "").trim();
-      const ADSB_TRAFFIC_PROXY_URL = String(window.NORDSWEET_TRAFFIC_PROXY_URL || "").trim();
+      const COLLECTOR_TRAFFIC_URL = String(window.NORDSWEET_TRAFFIC_COLLECTOR_URL || "https://aviation.lab.vibecde.com/traffic").trim();
       const TRAFFIC_REFRESH_MS = 15000;
       const TRAFFIC_MIN_REQUEST_INTERVAL_MS = 1100;
       const TRAFFIC_MAX_DISTANCE_NM = 250;
@@ -2242,6 +2239,10 @@ await loadScript("./traffic-proxy-config.js");
       }
 
       function normalizeTrafficTimestamp(value) {
+        if (typeof value === "string" && value.includes("T")) {
+          const parsed = Date.parse(value);
+          return Number.isFinite(parsed) ? parsed : null;
+        }
         const timestamp = toFiniteTrafficNumber(value);
         if (!Number.isFinite(timestamp)) return null;
         return timestamp > 0 && timestamp < 100000000000 ? timestamp * 1000 : timestamp;
@@ -2272,12 +2273,13 @@ await loadScript("./traffic-proxy-config.js");
         const lon = toFiniteTrafficNumber(row && (row.lon ?? row.longitude));
         if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
 
-        const seenPositionSeconds = toFiniteTrafficNumber(row && (row.seen_pos ?? row.seenPos));
+        const positionTime = normalizeTrafficTimestamp(row && row.position_time);
+        const seenPositionSeconds = Number.isFinite(positionTime) ? Math.max(0, (Date.now() - positionTime) / 1000) : toFiniteTrafficNumber(row && (row.seen_pos ?? row.seenPos));
         if (Number.isFinite(seenPositionSeconds) && seenPositionSeconds > 180) return null;
 
         const altitudeRaw = row && (row.altitudeFt ?? row.altitude_ft ?? row.alt_baro ?? row.alt_geom ?? row.altitude);
-        const altitudeFt = toFiniteTrafficNumber(altitudeRaw);
-        const speedKt = toFiniteTrafficNumber(row && (row.speedKt ?? row.speed_kt ?? row.groundspeed ?? row.groundSpeed ?? row.gs ?? row.speed ?? row.tas));
+        const altitudeFt = row && row.on_ground ? null : toFiniteTrafficNumber(altitudeRaw);
+        const speedKt = toFiniteTrafficNumber(row && (row.ground_speed_kt ?? row.speedKt ?? row.speed_kt ?? row.groundspeed ?? row.groundSpeed ?? row.gs ?? row.speed ?? row.tas));
         const trackDeg = normalizeHeading(row && (row.trackDeg ?? row.track_deg ?? row.track ?? row.true_heading ?? row.mag_heading));
         const explicitId = String(row && row.id || "").trim().toUpperCase();
         const hex = normalizeTrafficHex(row && (row.hex ?? row.icao ?? row.icao24));
@@ -2289,13 +2291,13 @@ await loadScript("./traffic-proxy-config.js");
         const registration = normalizeTrafficRegistration(registrationRaw);
         const type = normalizeTrafficAircraftTypeText(row && (row.t ?? row.aircraft_type ?? row.aircraftType ?? row.type));
         const positionSource = normalizeTrafficPositionSource(row);
-        const source = String(row && row.source || "").trim();
+        const source = String(row && (row.source || (Array.isArray(row.sources) ? row.sources.join("+") : "")) || "").trim();
         const sourceLabel = String(row && row.sourceLabel || "").trim();
         const addressType = String(row && row.addressType || "").trim();
         const aircraftModel = String(row && row.aircraftModel || "").trim();
         const competitionNumber = String(row && row.competitionNumber || "").trim().toUpperCase();
-        const verticalRateFpm = toFiniteTrafficNumber(row && (row.verticalRateFpm ?? row.vert_rate ?? row.baro_rate));
-        const explicitSampledAt = normalizeTrafficTimestamp(row && (row.sampledAt ?? row.timestampMs));
+        const verticalRateFpm = toFiniteTrafficNumber(row && (row.vertical_rate_fpm ?? row.verticalRateFpm ?? row.vert_rate ?? row.baro_rate));
+        const explicitSampledAt = normalizeTrafficTimestamp(row && (row.position_time ?? row.sampledAt ?? row.timestampMs));
         const sampledAt = Number.isFinite(explicitSampledAt)
           ? explicitSampledAt
           : Date.now() - (Number.isFinite(seenPositionSeconds) ? Math.max(0, seenPositionSeconds) * 1000 : 0);
@@ -2593,13 +2595,11 @@ await loadScript("./traffic-proxy-config.js");
       }
 
       function defaultTrafficSourceName() {
-        if (LOCAL_TRAFFIC_SERVER_URL) return "Local traffic";
-        return ADSB_TRAFFIC_PROXY_URL ? "ADSB.fi" : "Airplanes.live";
+        return "Aviation Collector · ADSB.lol / ADSB.fi";
       }
 
       function defaultTrafficSourceHref() {
-        if (LOCAL_TRAFFIC_SERVER_URL) return trafficStatusUrlForEndpoint(LOCAL_TRAFFIC_SERVER_URL);
-        return ADSB_TRAFFIC_PROXY_URL ? "https://adsb.fi/" : "https://airplanes.live/";
+        return COLLECTOR_TRAFFIC_URL;
       }
 
       function trafficStatusUrlForEndpoint(endpointUrl) {
@@ -2664,32 +2664,16 @@ await loadScript("./traffic-proxy-config.js");
         const url = new URL(endpointUrl, window.location.href);
         url.searchParams.set("lat", String(query.lat));
         url.searchParams.set("lon", String(query.lon));
-        url.searchParams.set("dist", String(query.distanceNm));
+        url.searchParams.set("radius_nm", String(Math.max(1, Math.min(250, Math.round(query.distanceNm)))));
         return url.toString();
       }
 
       function trafficEndpointCandidatesForQuery(query) {
-        const candidates = [];
-        if (LOCAL_TRAFFIC_SERVER_URL) {
-          candidates.push({
-            sourceName: "Local traffic",
-            attributionUrl: trafficStatusUrlForEndpoint(LOCAL_TRAFFIC_SERVER_URL),
-            url: trafficUrlWithQuery(LOCAL_TRAFFIC_SERVER_URL, query)
-          });
-        }
-        if (ADSB_TRAFFIC_PROXY_URL) {
-          candidates.push({
-            sourceName: "ADSB.fi",
-            attributionUrl: "https://adsb.fi/",
-            url: trafficUrlWithQuery(ADSB_TRAFFIC_PROXY_URL, query)
-          });
-        }
-        candidates.push({
-          sourceName: "Airplanes.live",
-          attributionUrl: "https://airplanes.live/",
-          url: AIRPLANES_LIVE_TRAFFIC_API + "/point/" + query.lat + "/" + query.lon + "/" + query.distanceNm
-        });
-        return candidates;
+        return [{
+          sourceName: defaultTrafficSourceName(),
+          attributionUrl: defaultTrafficSourceHref(),
+          url: trafficUrlWithQuery(COLLECTOR_TRAFFIC_URL, query)
+        }];
       }
 
 

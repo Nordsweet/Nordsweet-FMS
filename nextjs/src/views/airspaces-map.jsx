@@ -45,8 +45,8 @@ export default function AirspacesMapView(){return (<><style>{"\n    :root {\n   
 <label><input data-layer={"navaids"} type={"checkbox"} defaultChecked={true} />{" Navaids"}</label>
 <label><input data-layer={"route"} type={"checkbox"} defaultChecked={true} />{" Trasa"}</label>
 <label><input data-layer={"traffic"} type={"checkbox"} defaultChecked={true} />{" Live traffic"}</label>
-<span id={"trafficStatus"} className={"tool-status"}>{"ADSB.fi: off"}</span>
-<a id={"trafficAttribution"} className={"traffic-attribution"} href={"https://airplanes.live/"} target={"_blank"} rel={"noopener noreferrer"}>{"Traffic source: Airplanes.live"}</a>
+<span id={"trafficStatus"} className={"tool-status"}>{"Aviation Collector: off"}</span>
+<a id={"trafficAttribution"} className={"traffic-attribution"} href={"https://aviation.lab.vibecde.com/traffic"} target={"_blank"} rel={"noopener noreferrer"}>{"Traffic source: Aviation Collector"}</a>
 <select id={"aupMode"}>
 <option value={"current"}>{"AUP current"}</option>
 <option value={"next"}>{"AUP next"}</option>
