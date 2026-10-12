@@ -21,6 +21,7 @@ import { useSettings } from "~/stores/settings";
 import { useFlight } from "~/stores/flight";
 
 import { NumberField, Section } from "./fields";
+import { CruiseEconomy } from "./economy";
 import { PointSearch } from "./point-search";
 import { usePlan } from "./use-plan";
 
@@ -308,6 +309,7 @@ export function CruiseSection() {
           </span>
         )}
       </div>
+      <CruiseEconomy />
     </Section>
   );
 }

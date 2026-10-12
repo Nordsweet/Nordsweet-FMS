@@ -10,6 +10,7 @@ import vm from "node:vm";
 import {
   type Aircraft,
   type Climb,
+  type Cruise,
   type ClimbLeaf,
   type Corrections,
   type DistanceConfiguration,
@@ -667,6 +668,61 @@ function climb(id: string, p: Legacy): Climb | null {
   return null;
 }
 
+// --- cruise ---------------------------------------------------------------------------------------
+
+const settingLabel = (
+  rpm: number | null | undefined,
+  map: number | null | undefined,
+) =>
+  [rpm ? `${rpm} RPM` : null, map ? `${map} inHg` : null]
+    .filter(Boolean)
+    .join(" / ");
+
+/** P2006T, R172K, Husky, SD-4: tables[altitude] = rows of { rpm, map, values[] per ISA deviation }. */
+function cruise(id: string, p: Legacy): Cruise | null {
+  const c = p.cruise;
+  if (!c) return null;
+  if (id === "FR172H") {
+    return {
+      source: "FR172H POH cruise performance (standard temperature)",
+      draft: false,
+      rows: (c.rows as Legacy[]).map((r) => ({
+        pressureAltitudeFt: r.altitudeFt,
+        isaDeltaC: 0,
+        setting: settingLabel(r.rpm, r.mpInHg),
+        powerPct: r.powerPercent ?? null,
+        ktas: r.ktas,
+        fuelFlowLph: r.fuelLph,
+      })),
+    };
+  }
+  const engines = c.engineCount ?? (id === "P2006T" ? 2 : 1);
+  const rows: Cruise["rows"] = [];
+  for (const [altitude, settings] of Object.entries<Legacy[]>(c.tables)) {
+    for (const row of settings) {
+      (row.values as (Legacy | null)[]).forEach((v, i) => {
+        if (!v) return; // blank POH cell
+        const flow = v.fuelTotalLph ?? v.fuelPerEngineLph * engines;
+        rows.push({
+          pressureAltitudeFt: Number(altitude),
+          isaDeltaC: c.isaDeltaC?.[i] ?? 0,
+          setting: settingLabel(row.rpm, row.mapInHg),
+          powerPct: v.pwrPct ?? null,
+          ktas: v.ktas,
+          fuelFlowLph: Math.round(flow * 10) / 10,
+        });
+      });
+    }
+  }
+  return {
+    source: c.source ?? `${id} cruise performance`,
+    draft:
+      Boolean(c.digitizedFromChart) ||
+      String(c.status ?? "").startsWith("partial"),
+    rows,
+  };
+}
+
 // --- entry point -----------------------------------------------------------------------------------
 
 export function importAircraft(
@@ -700,6 +756,7 @@ export function importAircraft(
         usableFuelL: p.usableFuelCapacityLiters ?? null,
         weightBalance: wb,
         climb: climb(id, p.performance ?? {}),
+        cruise: cruise(id, p.performance ?? {}),
         checklists: ((p.checklists ?? []) as Legacy[]).map((c) => ({
           id: String(c.id),
           name: String(c.name).trim(),

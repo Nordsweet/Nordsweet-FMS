@@ -130,7 +130,7 @@ out-of-table/untabulated inputs (FR172H, SD-4), draft Husky data, rebuilt C172M/
 
 Follow-ups done: climb from POH tables with TOC/TOD in the nav log (500 fpm descent assumed — no
 POH descent data), and phone/tablet layout (no horizontal overflow, ≥40 px touch targets).
-Still open: cruise/holding fuel flow from POH cruise tables (reserve uses the cruise flow, which
+Still open: reserve/holding fuel at a holding power setting (it uses the chosen cruise flow, which
 overestimates).
 
 ### 3. Weather & NOTAM — 6–10 h ✅ done
@@ -179,8 +179,9 @@ Delivered: `/v2/checklists` — the aircraft's checklists by phase, tap to tick,
 to the next open item, read aloud (Web Speech API, English voice). Settings and PL/EN were done in
 phase 1. Phone layout pass for map/fly/checklists (layers menu, map fills the screen, 40 px controls).
 
-Not done: route economy (best cruise power/altitude) — needs the POH cruise tables migrated first,
-together with cruise/holding fuel flow (see phase 2).
+Route economy done afterwards: POH cruise tables (P2006T, R172K, FR172H, Husky, SD-4) as one row
+list; the cruise section lists each power setting at the nearest table altitude for the ISA
+deviation, with trip time and fuel on the route (winds, climb, descent) and a "Use" button.
 
 ### 8. Data authoring tools — deferred
 Skipped. Editing reference data becomes an admin feature once the backend exists.

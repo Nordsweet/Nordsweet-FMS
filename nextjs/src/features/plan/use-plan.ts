@@ -175,6 +175,8 @@ export function usePlan() {
     aircraftList: aircraftList.data ?? [],
     navLog,
     climb: climbResult,
+    climbSegment: climb,
+    descentSegment: descent,
     climbIsaDeviationC: metarTemperature !== null ? isaDeviationC : null,
     alternateLog,
     fuelPlan,

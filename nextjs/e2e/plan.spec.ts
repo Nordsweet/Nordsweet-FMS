@@ -35,6 +35,16 @@ test("plans a flight end to end and keeps it across reloads", async ({
   await expect(page.getByRole("cell", { name: /^TOC → ABAKU/ })).toBeVisible();
   await expect(page.getByRole("cell", { name: /^TOD → EPKK/ })).toBeVisible();
   await expect(page.getByTestId("climb-summary")).toContainText("65 L/h");
+
+  // Route economy from the R172K POH cruise table fills TAS and fuel flow.
+  await expect(page.getByTestId("cruise-economy")).toContainText(
+    "2600 RPM / 24 inHg",
+  );
+  await page
+    .getByRole("button", { name: "Use 2600 RPM / 22 inHg" })
+    .first()
+    .click();
+  await expect(page.getByLabel("True airspeed (TAS)")).not.toHaveValue("100");
   await expect(page.getByTestId("fuel-extra")).toBeVisible();
   await expect(page.getByTestId("wb-takeoff")).toContainText("kg");
   await expect(page.getByTestId("perf-takeoff-ground-roll")).toHaveText(
