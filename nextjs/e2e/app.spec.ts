@@ -40,3 +40,52 @@ test("legacy URLs land on the new screens", async ({ page }) => {
     page.getByRole("heading", { name: /Przygotowanie lotu|Flight setup/ }),
   ).toBeVisible();
 });
+
+test("data cached by an older release does not break the planner", async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.addInitScript(() =>
+    localStorage.setItem("nordsweet.language.v1", "en"),
+  );
+  await page.goto("/");
+  await page.getByRole("combobox", { name: "Aircraft type" }).click();
+  await page.getByRole("option", { name: "P2006T (P06T)" }).click();
+  await page.waitForTimeout(1500); // the query cache persists with a short delay
+  // Rewrite the persisted cache as the previous release left it: older buster, older aircraft shape.
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve, reject) => {
+        const open = indexedDB.open("keyval-store");
+        open.onerror = () => reject(new Error("no IndexedDB"));
+        open.onsuccess = () => {
+          const tx = open.result.transaction("keyval", "readwrite");
+          const store = tx.objectStore("keyval");
+          const get = store.get("nordsweet.query-cache.v1");
+          get.onsuccess = () => {
+            const cache = JSON.parse(get.result as string) as {
+              buster: string;
+              clientState: {
+                queries: {
+                  queryKey: unknown[];
+                  state: { data: Record<string, unknown>[] };
+                }[];
+              };
+            };
+            cache.buster = "previous-release";
+            for (const q of cache.clientState.queries)
+              if (q.queryKey[0] === "aircraft.list")
+                q.state.data = q.state.data.map(
+                  ({ powerplant: _p, order: _o, ...old }) => old,
+                );
+            store.put(JSON.stringify(cache), "nordsweet.query-cache.v1");
+            tx.oncomplete = () => resolve();
+          };
+        };
+      }),
+  );
+  await page.reload();
+  await expect(page.getByText("Powerplant: Reciprocating.")).toBeVisible();
+  expect(errors).toEqual([]);
+});

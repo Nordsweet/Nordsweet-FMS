@@ -60,7 +60,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <PersistQueryClientProvider
       client={queryClient}
-      persistOptions={{ persister, maxAge: DAY_MS, buster: "1" }}
+      // A new release discards data cached by the previous one (its shapes may have changed).
+      persistOptions={{
+        persister,
+        maxAge: DAY_MS,
+        buster: process.env.BUILD_ID ?? "dev",
+      }}
     >
       <TooltipProvider>{mounted ? children : null}</TooltipProvider>
     </PersistQueryClientProvider>

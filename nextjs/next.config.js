@@ -11,6 +11,8 @@ const config = {
   images: { unoptimized: true },
   reactStrictMode: true,
   poweredByHeader: false,
+  // Persisted query data is tied to the release that cached it (see Providers).
+  env: { BUILD_ID: String(Date.now()) },
 };
 
 export default config;
