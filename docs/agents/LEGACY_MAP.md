@@ -65,7 +65,7 @@ merged to `develop`. One owner per row.
 | Look & feel (palette, panels, tabs, header) | done | claude 2026-10-12 | desktop; phone/iPad pass later |
 | Planner › Aircraft tab | done | claude 2026-10-12 | type list, registration profiles, FREDA indication, last state/MTH |
 | Planner › Fuel tab | done | claude 2026-10-13 | rows, overrides, FOB/fuel added, notes; matches legacy (see §5) |
-| Planner › W&B tab | in progress | claude 2026-10-13 | |
+| Planner › W&B tab | done | claude 2026-10-13 | sheet, linked fuel, envelope chart; matches legacy |
 | Planner › Route tab (schedules, search, free-text route, approach/circuits, ALT at point, restrictions, waypoint WX, economy & vertical-profile modals, load route, invert) | claimed | claude 2026-10-13 | after W&B |
 | Weather / ATIS pad parser, waypoint forecasts, AWOS | open | | API boundary only |
 | Performance (charts/readouts, runway use, glide, persisted conditions) | open | | |
@@ -93,6 +93,11 @@ Record every one you find here (and assert it in a test).
   that chart and extrapolated the cruise table to 95% power, so its alternate row is ~2 L higher.
 - Fuel: with block fuel below trip fuel, legacy's landing weight drops below zero-fuel weight (it
   subtracts fuel that isn't on board); ours stops at zero fuel.
+- W&B: legacy's "Phase" card (active performance phase) is not shown; the new app has no global
+  phase selector.
+- Offline cache: data persisted by TanStack Query is tied to the build id (`BUILD_ID` in
+  `next.config.js`); keep it that way, or reference data cached by an older release can crash new
+  code (happened on iOS after the Aircraft tab release).
 - Fuel: verified row-for-row against legacy for P2006T, R172K, FR172H, C152, Husky (with and without
   alternates) using `/tmp/parity`-style scenario runs; the R172K case is an e2e test
   (`e2e/fuel.spec.ts`).
