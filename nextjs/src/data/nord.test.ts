@@ -7,7 +7,7 @@ import { flightSchema } from "./flight";
 import { parseNordFile, toNordFile } from "./nord";
 
 const ids = ["P2006T", "R172K", "C152-SPRBB", "A-1A-HUSKY"];
-const files = ["public/savedflights", "public/companyflights"].flatMap((dir) =>
+const files = ["tests/fixtures/nord"].flatMap((dir) =>
   fs
     .readdirSync(dir)
     .filter((f) => f.endsWith(".nord"))
@@ -25,7 +25,7 @@ describe(".nord files", () => {
 
   it("maps fields of a saved flight", () => {
     const { flight } = parseNordFile(
-      fs.readFileSync("public/savedflights/P2006T0508261012.nord", "utf8"),
+      fs.readFileSync("tests/fixtures/nord/P2006T0508261012.nord", "utf8"),
       ids,
     );
     expect(flight).toMatchObject({
@@ -44,7 +44,7 @@ describe(".nord files", () => {
 
   it("imports a local flight stored as one point", () => {
     const { flight } = parseNordFile(
-      fs.readFileSync("public/savedflights/R172K2706261444.nord", "utf8"),
+      fs.readFileSync("tests/fixtures/nord/R172K2706261444.nord", "utf8"),
       ids,
     );
     expect(flight.departure).toEqual(flight.destination);
@@ -53,7 +53,7 @@ describe(".nord files", () => {
 
   it("round-trips through export", () => {
     const { flight } = parseNordFile(
-      fs.readFileSync("public/savedflights/P2006T0508261012.nord", "utf8"),
+      fs.readFileSync("tests/fixtures/nord/P2006T0508261012.nord", "utf8"),
       ids,
     );
     const again = parseNordFile(toNordFile(flight, "P2006T"), ids).flight;

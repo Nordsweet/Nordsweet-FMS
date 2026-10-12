@@ -40,6 +40,5 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],
-  /* Legacy DOM engines and global data scripts are not type-checked until they are migrated. */
-  "exclude": ["node_modules", "out", "public", "src/runtime/*.js"]
+  "exclude": ["node_modules", "out", "public"]
 }

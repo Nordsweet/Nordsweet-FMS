@@ -9,7 +9,7 @@ test("settings migrate from the legacy planner and switch language", async ({
       localStorage.setItem("nordsweet.homeAirport.v1", "EPNT");
     }
   });
-  await page.goto("/v2/settings");
+  await page.goto("/settings");
   await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
   await expect(page.getByLabel("Home airport (ICAO)")).toHaveValue("EPNT");
   await expect(page.getByTestId("home-airport-name")).toHaveText(
@@ -28,4 +28,15 @@ test("settings migrate from the legacy planner and switch language", async ({
   await expect(page.getByRole("heading", { name: "Ustawienia" })).toBeVisible();
   await page.reload();
   await expect(page.getByRole("heading", { name: "Ustawienia" })).toBeVisible();
+});
+
+test("legacy URLs land on the new screens", async ({ page }) => {
+  await page.goto("/airspaces-map.html");
+  await expect(page).toHaveURL(/\/map$/);
+  await page.goto("/PFD.html");
+  await expect(page).toHaveURL(/\/fly$/);
+  await page.goto("/index.html");
+  await expect(
+    page.getByRole("heading", { name: /Plan lotu|Flight plan/ }),
+  ).toBeVisible();
 });

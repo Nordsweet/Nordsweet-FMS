@@ -38,7 +38,7 @@ test("flies the route: sequencing, direct-to and debrief", async ({
     }
   }, flight);
 
-  await page.goto("/v2/fly");
+  await page.goto("/fly");
   await page.getByRole("button", { name: "Start flight" }).click();
   await expect(page.getByTestId("fly-next")).toHaveText("BBBB");
   await expect(page.getByTestId("fly-xte")).toHaveText(/^1\.\d L$/); // 0.02° north of the (great-circle) track

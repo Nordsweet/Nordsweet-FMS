@@ -1,4 +1,3 @@
 {
-  "exclude": ["nextjs/public/data/"],
-  "deprioritize": ["nextjs/public/"]
+  "exclude": ["nextjs/public/", "nextjs/tests/fixtures/"]
 }

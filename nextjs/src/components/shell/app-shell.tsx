@@ -10,11 +10,11 @@ import { cn } from "~/lib/utils";
 import { type Language, useSettings } from "~/stores/settings";
 
 const nav: { href: string; label: MessageKey }[] = [
-  { href: "/v2", label: "nav.plan" },
-  { href: "/v2/map", label: "nav.map" },
-  { href: "/v2/fly", label: "nav.fly" },
-  { href: "/v2/checklists", label: "nav.checklists" },
-  { href: "/v2/settings", label: "nav.settings" },
+  { href: "/", label: "nav.plan" },
+  { href: "/map", label: "nav.map" },
+  { href: "/fly", label: "nav.fly" },
+  { href: "/checklists", label: "nav.checklists" },
+  { href: "/settings", label: "nav.settings" },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -42,9 +42,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           ))}
         </nav>
         <div className="ml-auto flex items-center gap-2">
-          <Button asChild variant="link" size="sm">
-            <Link href="/">{t("nav.legacy")}</Link>
-          </Button>
           <Button
             variant="outline"
             size="sm"

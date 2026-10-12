@@ -63,7 +63,7 @@ async function pickPoint(
 test("briefs weather, fills landing conditions from the METAR and uses forecast winds", async ({
   page,
 }) => {
-  await page.goto("/v2");
+  await page.goto("/");
   await page.getByRole("combobox", { name: "Type / registration" }).click();
   await page.getByRole("option", { name: "Cessna R172K" }).click();
   await pickPoint(page, "Departure", "EPNT", "EPNT");
@@ -133,7 +133,7 @@ test("shows community ATIS as unverified and shares a report", async ({
       }),
     });
   });
-  await page.goto("/v2");
+  await page.goto("/");
   await pickPoint(page, "Departure", "EPKK", "EPKK");
 
   const departure = page.getByTestId("wx-departure");

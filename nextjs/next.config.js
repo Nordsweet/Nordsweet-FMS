@@ -13,17 +13,4 @@ const config = {
   poweredByHeader: false,
 };
 
-/** @param {string} phase */
-export default function configure(phase) {
-  if (phase === "phase-development-server") {
-    return {
-      ...config,
-      output: undefined,
-      rewrites: async () => [
-        { source: "/index.html", destination: "/" },
-        { source: "/:tool.html", destination: "/:tool" },
-      ],
-    };
-  }
-  return config;
-}
+export default config;

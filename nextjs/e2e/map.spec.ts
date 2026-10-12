@@ -29,7 +29,7 @@ test("map shows airspace and sets the departure from a tapped airport", async ({
     localStorage.setItem("nordsweet.language.v1", "en"),
   );
 
-  await page.goto("/v2/map");
+  await page.goto("/map");
   await expect(page.locator(".maplibregl-canvas")).toBeVisible();
   await page.waitForTimeout(2000); // map style load + data
   expect(airspaceRequests).toBeGreaterThan(0);
@@ -75,7 +75,7 @@ test("shows live traffic and its details", async ({ page }) => {
   await page.addInitScript(() =>
     localStorage.setItem("nordsweet.language.v1", "en"),
   );
-  await page.goto("/v2/map");
+  await page.goto("/map");
   await expect(page.locator(".maplibregl-canvas")).toBeVisible();
   await page.getByLabel("Traffic (ADS-B)").check();
   await page.getByLabel("Airports").uncheck(); // keep the tap on the aircraft

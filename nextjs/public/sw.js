@@ -7,7 +7,7 @@ self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=
 self.addEventListener('fetch',event=>{
  if(event.request.method!=='GET')return;
  const url=new URL(event.request.url);
- if(url.origin!==self.location.origin||url.pathname.startsWith('/api/')||url.pathname.includes('/companyflights/')||url.pathname.includes('/savedflights/'))return;
+ if(url.origin!==self.location.origin||url.pathname.startsWith('/api/'))return;
  if(url.pathname.startsWith('/_next/static/')){
    event.respondWith(caches.match(event.request).then(cached=>cached||fetch(event.request)));return;
  }

@@ -9,7 +9,7 @@ test("new app works offline after the first visit", async ({
   await page.addInitScript(() =>
     localStorage.setItem("nordsweet.homeAirport.v1", "EPKK"),
   );
-  await page.goto("/v2/settings");
+  await page.goto("/settings");
   await page.evaluate(async () => {
     await navigator.serviceWorker.ready;
   });
@@ -20,9 +20,9 @@ test("new app works offline after the first visit", async ({
     .toBe(true);
 
   await context.setOffline(true);
-  await page.goto("/v2/settings");
+  await page.goto("/settings");
   await expect(page.getByRole("heading", { name: "Ustawienia" })).toBeVisible();
   await expect(page.getByTestId("home-airport-name")).toContainText("EPKK");
-  await page.goto("/v2");
+  await page.goto("/");
   await expect(page.getByRole("heading", { name: "Plan lotu" })).toBeVisible();
 });

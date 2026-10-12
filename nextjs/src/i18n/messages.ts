@@ -4,7 +4,6 @@ const pl = {
   "app.name": "Nordsweet FMS",
   "nav.plan": "Plan lotu",
   "nav.settings": "Ustawienia",
-  "nav.legacy": "Poprzednia wersja",
   "plan.title": "Plan lotu",
   "plan.disclaimer":
     "Pomoc w planowaniu, nie dokument certyfikowany. Zawsze sprawdź POH, AIP, NOTAM i aktualną pogodę.",
@@ -296,7 +295,6 @@ const en: Record<MessageKey, string> = {
   "app.name": "Nordsweet FMS",
   "nav.plan": "Flight plan",
   "nav.settings": "Settings",
-  "nav.legacy": "Previous version",
   "plan.title": "Flight plan",
   "plan.disclaimer":
     "Planning aid, not a certified document. Always check the POH, AIP, NOTAMs and current weather.",

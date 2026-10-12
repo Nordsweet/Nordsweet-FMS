@@ -186,9 +186,16 @@ deviation, with trip time and fuel on the route (winds, climb, descent) and a "U
 ### 8. Data authoring tools — deferred
 Skipped. Editing reference data becomes an admin feature once the backend exists.
 
-### 9. Cleanup — 3–5 h
-Delete `src/runtime/`, root-level legacy copy and its GitHub Pages workflow, enable Tailwind
-Preflight, Serwist PWA, Playwright smoke suite in CI.
+### 9. Cleanup — 3–5 h ✅ done (2026-10-12)
+Legacy app removed (`src/runtime`, `src/views`, legacy routes, legacy data scripts, the one-off
+import scripts); the new app moved from `/v2` to `/`; old `.html` URLs redirect; Preflight on
+(single root layout); manifest start URL `/`. `public/data/*.json` is now the source of truth.
+Golden performance tests compare against recorded legacy outputs. Community ATIS (added on `main`
+meanwhile) carried over with the required "unverified" labelling. Kept the hand-written service
+worker (tested offline) instead of Serwist.
+
+Dropped with the legacy app (not rebuilt): PFD screen, the five data editors (→ backend admin),
+manual ATIS pad parsing, company flights, COMMs hand-off prediction, chart viewer with taxi overlay.
 
 **Total: ~59–95 h.**
 

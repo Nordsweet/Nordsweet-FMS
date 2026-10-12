@@ -22,7 +22,7 @@ async function pickPoint(
 test("plans a flight end to end and keeps it across reloads", async ({
   page,
 }) => {
-  await page.goto("/v2");
+  await page.goto("/");
   await page.getByRole("combobox", { name: "Type / registration" }).click();
   await page.getByRole("option", { name: "Cessna R172K" }).click();
 
@@ -66,10 +66,10 @@ test("plans a flight end to end and keeps it across reloads", async ({
 });
 
 test("imports a legacy .nord flight", async ({ page }) => {
-  await page.goto("/v2");
+  await page.goto("/");
   await page
     .getByLabel("Import .nord")
-    .setInputFiles("public/savedflights/P2006T0508261012.nord");
+    .setInputFiles("tests/fixtures/nord/P2006T0508261012.nord");
   const saved = page.getByRole("list", { name: "Saved flights list" });
   await expect(saved).toContainText("EPNT -> EPML");
   await saved.getByRole("button", { name: "Load" }).first().click();
@@ -79,7 +79,7 @@ test("imports a legacy .nord flight", async ({ page }) => {
 });
 
 test("adds a SID, shows the taxi route and charts", async ({ page }) => {
-  await page.goto("/v2");
+  await page.goto("/");
   await pickPoint(page, "Departure", "EPKK", "EPKK");
   await pickPoint(page, "Destination", "EPNT", "EPNT");
 

@@ -1,7 +1,0 @@
-/*
- * Tailwind without Preflight: the legacy screens ship their own inline CSS and rely on
- * browser default styles. Switch to `@import "tailwindcss";` once every screen is migrated.
- */
-@layer theme, base, components, utilities;
-@import "tailwindcss/theme.css" layer(theme);
-@import "tailwindcss/utilities.css" layer(utilities);
