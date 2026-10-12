@@ -14,7 +14,7 @@ const flight = {
   wind: { directionDeg: 0, speedKt: 0 },
   legWinds: null,
   fuelFlowLph: 30,
-  fuel: { blockL: 0, taxiL: 5, climbExtraL: 0 },
+  fuel: { blockL: 0 },
   stationsKg: {},
 };
 

@@ -4,15 +4,20 @@ import { api } from "~/api";
 import { routeKey } from "~/data/flight";
 import { isaTemperatureC } from "~/domain/atmosphere";
 import { computeClimb } from "~/domain/climb";
-import { computeFuelPlan } from "~/domain/fuel";
+import {
+  DEFAULT_TAXI_L,
+  type FuelPlanningInput,
+  computeFuelPlanning,
+} from "~/domain/fuel-planning";
+import { distanceNm } from "~/domain/geo";
 import { parseMetar } from "~/domain/metar";
 import { type Segment, computeNavLog } from "~/domain/navlog";
 import { computeLoading } from "~/domain/weight-balance";
+import { windComponents } from "~/domain/wind";
 import { useFlight } from "~/stores/flight";
 
 import { useBriefing } from "./weather";
 
-const FINAL_RESERVE_MINUTES = 45; // piston aircraft
 /** No POH descent data for any aircraft: plan a standard 500 fpm descent at cruise speed and flow. */
 export const DESCENT_RATE_FPM = 500;
 
@@ -29,6 +34,10 @@ export function usePlan() {
   const destinationAirport = useQuery({
     ...api.airports.get.queryOptions({ code: flight.destination?.ident ?? "" }),
     enabled: !!flight.destination,
+  });
+  const alternateAirport = useQuery({
+    ...api.airports.get.queryOptions({ code: flight.alternate?.ident ?? "" }),
+    enabled: !!flight.alternate,
   });
   const departureMetar =
     useBriefing(flight.departure).briefing.data?.metar ?? null;
@@ -76,16 +85,16 @@ export function usePlan() {
 
   // Loading first: the climb depends on the take-off weight. Trip fuel is refined below.
   const wb = aircraft?.weightBalance ?? null;
-  const takeoffFuelL = Math.max(0, flight.fuel.blockL - flight.fuel.taxiL);
+  const taxiL = flight.fuelOverrides.startTaxi?.fuelL ?? DEFAULT_TAXI_L;
+  const takeoffFuelL = Math.max(0, flight.fuel.blockL - taxiL);
   const takeoffLoading = wb
     ? computeLoading(wb, { stationsKg: flight.stationsKg, fuelL: takeoffFuelL })
     : null;
 
   const departureElevationFt = departureAirport.data?.elevationFt ?? null;
   const destinationElevationFt = destinationAirport.data?.elevationFt ?? null;
-  const metarTemperature = departureMetar
-    ? parseMetar(departureMetar.raw).temperatureC
-    : null;
+  const metar = departureMetar ? parseMetar(departureMetar.raw) : null;
+  const metarTemperature = metar?.temperatureC ?? null;
   const isaDeviationC =
     metarTemperature !== null && departureElevationFt !== null
       ? metarTemperature - isaTemperatureC(departureElevationFt)
@@ -135,21 +144,66 @@ export function usePlan() {
       ? computeNavLog([flight.destination, flight.alternate], cruise)
       : null;
 
-  const fuelPlan =
-    navLog?.fuelL != null
-      ? computeFuelPlan({
-          tripFuelL: navLog.fuelL,
-          alternateMinutes: alternateLog?.minutes ?? 0,
-          fuelFlowLph: flight.fuelFlowLph,
-          taxiL: flight.fuel.taxiL,
-          climbExtraL: flight.fuel.climbExtraL,
-          departureArrivalMinutes: 0,
-          finalReserveMinutes: FINAL_RESERVE_MINUTES,
+  // Legacy fuel table: legs at their point altitudes (airports at elevation, TOC/TOD and waypoints at cruise).
+  const fuelInput: Omit<FuelPlanningInput, "landingWeightKg"> | null =
+    aircraft &&
+    navLog &&
+    flight.departure &&
+    flight.destination &&
+    departureElevationFt !== null &&
+    destinationElevationFt !== null
+      ? {
+          aircraft,
+          departure: {
+            ident: flight.departure.ident,
+            elevationFt: departureElevationFt,
+          },
+          destination: {
+            ident: flight.destination.ident,
+            elevationFt: destinationElevationFt,
+          },
+          alternate:
+            flight.alternate && alternateAirport.data
+              ? {
+                  ident: flight.alternate.ident,
+                  elevationFt: alternateAirport.data.elevationFt,
+                  distanceNm: distanceNm(flight.destination, flight.alternate),
+                }
+              : null,
+          legs: navLog.legs.map((leg, i) => {
+            const pointFt = (index: number) =>
+              index === 0
+                ? departureElevationFt
+                : index === navLog.legs.length
+                  ? destinationElevationFt
+                  : flight.cruiseAltitudeFt;
+            return {
+              distanceNm: leg.distanceNm,
+              altitudeFt: Math.round((pointFt(i) + pointFt(i + 1)) / 2),
+              windComponentKt: -windComponents(leg.trueCourseDeg, leg.wind)
+                .headwindKt,
+            };
+          }),
+          directDistanceNm: distanceNm(flight.departure, flight.destination),
+          cruiseAltitudeFt: flight.cruiseAltitudeFt,
+          plannerSpeedKt: flight.cruiseTasKt,
+          cruiseOatC: flight.cruiseOatC,
+          surfaceTempC: metarTemperature ?? 15,
+          qnhHpa: metar?.qnhHpa ?? 1013,
+          // Legacy default weight when the aircraft has no W&B data.
+          takeoffWeightKg: takeoffLoading?.totalKg ?? 1100,
+          overrides: flight.fuelOverrides,
           blockFuelL: flight.fuel.blockL,
-        })
+        }
       : null;
-
-  const landingFuelL = Math.max(0, takeoffFuelL - (fuelPlan?.tripL ?? 0));
+  const firstPass = fuelInput
+    ? computeFuelPlanning({
+        ...fuelInput,
+        landingWeightKg: fuelInput.takeoffWeightKg,
+      })
+    : null;
+  const tripFuelL = firstPass?.rows.plannedTrip.fuelL ?? 0;
+  const landingFuelL = Math.max(0, takeoffFuelL - tripFuelL);
   const loading =
     wb && takeoffLoading
       ? {
@@ -162,6 +216,15 @@ export function usePlan() {
           landingFuelL,
         }
       : null;
+
+  // The alternate's climb uses the landing weight, known only once trip fuel is.
+  const fuelPlanning =
+    fuelInput && loading
+      ? computeFuelPlanning({
+          ...fuelInput,
+          landingWeightKg: loading.landing.totalKg,
+        })
+      : firstPass;
 
   return {
     flight,
@@ -179,7 +242,10 @@ export function usePlan() {
     descentSegment: descent,
     climbIsaDeviationC: metarTemperature !== null ? isaDeviationC : null,
     alternateLog,
-    fuelPlan,
+    fuelPlanning,
+    /** Station whose METAR gave the surface temperature/QNH for fuel planning; null = standard. */
+    fuelConditionsSource:
+      metarTemperature !== null ? (flight.departure?.ident ?? null) : null,
     loading,
   };
 }

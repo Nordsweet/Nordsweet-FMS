@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 
-import { computeFuelPlan } from "./fuel";
 import { computeNavLog } from "./navlog";
 
 const EPNT = { ident: "EPNT", lat: 49.462222, lon: 20.0525 };
@@ -114,29 +113,5 @@ describe("vertical profile", () => {
     });
     expect(log.cruiseNotReached).toBe(true);
     expect(log.legs.some((l) => l.phase === "cruise")).toBe(false);
-  });
-});
-
-describe("computeFuelPlan", () => {
-  it("sums the components", () => {
-    const plan = computeFuelPlan({
-      tripFuelL: 36,
-      alternateMinutes: 20,
-      fuelFlowLph: 36,
-      taxiL: 4,
-      climbExtraL: 2,
-      departureArrivalMinutes: 0,
-      finalReserveMinutes: 45,
-      blockFuelL: 120,
-    });
-    expect(plan).toMatchObject({
-      tripL: 36,
-      contingencyL: 3, // 5 min hold (3 L) beats 5% of trip (1.8 → 2 L)
-      departureArrivalL: 6, // minimum 10 min
-      alternateL: 12,
-      finalReserveL: 27,
-      minimumL: 36 + 3 + 4 + 2 + 6 + 12 + 27,
-    });
-    expect(plan.extraL).toBe(120 - plan.minimumL);
   });
 });

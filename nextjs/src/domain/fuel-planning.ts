@@ -7,7 +7,7 @@ import {
   fuelFlowAtPower,
   lapseTemperatureC,
 } from "./cruise-performance";
-import { interpolateGrid } from "./grid";
+import { conservativeRead, interpolateGrid } from "./grid";
 
 /**
  * The legacy planner's fuel table, ported rule for rule so plans match it. Litres are rounded up
@@ -47,7 +47,22 @@ const NO_ALTERNATE_RECIP_CRUISE_FRACTION = 0.15;
 const NO_ALTERNATE_RECIP_CRUISE_CAP_MINUTES = 120;
 const NO_ALTERNATE_TURBINE_MINUTES = 120;
 const FINAL_RESERVE_HEIGHT_FT = 1500;
-const DEFAULT_TAXI_L = 4;
+export const DEFAULT_TAXI_L = 4;
+
+/** Legacy "hh:mm" (minutes rounded up). */
+export function formatHhMm(minutes: number) {
+  const total = Math.max(0, Math.ceil(minutes));
+  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+}
+
+/** "1:05", "01:05" or plain minutes ("65"); null when unreadable. */
+export function parseHhMm(text: string): number | null {
+  const clean = text.replace(/[^\d:]/g, "");
+  if (!clean) return null;
+  const [h, m] = clean.split(":").map(Number);
+  if (m === undefined) return Number.isFinite(h) ? h! : null;
+  return Number.isFinite(h) && Number.isFinite(m) ? h! * 60 + m : null;
+}
 
 export const ceilLitres = (value: number) =>
   Math.ceil(Math.max(0, Math.min(9999, value)));
@@ -102,7 +117,12 @@ function rateOfClimbFpm(
     temperatureC: tempC,
     densityAltitudeFt: densityAltitudeFt(pa, tempC),
   };
-  const rate = interpolateGrid(climb.grid, (axis) => values[axis]).rateFpm;
+  const value = (axis: keyof typeof values) => values[axis];
+  // Legacy best-rate climb: never more than the next conservative table entry.
+  const rate = Math.min(
+    interpolateGrid(climb.grid, value).rateFpm,
+    conservativeRead(climb.grid, value).rateFpm,
+  );
   return rate > 0 ? rate : null;
 }
 
@@ -186,6 +206,7 @@ export function computeFuelPlanning(input: FuelPlanningInput) {
     fiveMinuteHoldL,
     holdBaseLph,
     holdLph,
+    fromTable: contingencyHold !== null,
   } as const;
 
   const startTaxi = pick("startTaxi", { minutes: null, fuelL: DEFAULT_TAXI_L });
@@ -273,6 +294,7 @@ export function computeFuelPlanning(input: FuelPlanningInput) {
     airport: reserveAirport.ident,
     holdingTempC,
     fuelFlowLph: reserveLph,
+    fromTable: holding !== null,
   };
 
   // Alternate: with an alternate airport, missed approach + climb + DCT + approach;

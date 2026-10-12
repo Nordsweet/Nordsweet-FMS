@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { readLegacyAircraftStates } from "./aircraft-state";
+import {
+  emptyAircraftState,
+  fuelOnBoardL,
+  readLegacyAircraftStates,
+} from "./aircraft-state";
 
 const storage = (items: Record<string, string>) => ({
   getItem: (key: string) => items[key] ?? null,
@@ -42,5 +46,14 @@ describe("readLegacyAircraftStates", () => {
         storage({ "nordsweet.aircraftLastState.v1": "{not json" }),
       ),
     ).toEqual({});
+  });
+});
+
+describe("fuelOnBoardL", () => {
+  it("adds fuel added to the fuel left, capped at the tank capacity", () => {
+    const state = { ...emptyAircraftState, fuelRemainingL: 40, fuelAddedL: 60 };
+    expect(fuelOnBoardL(state, 92.5)).toBe(92.5);
+    expect(fuelOnBoardL(state, null)).toBe(100);
+    expect(fuelOnBoardL(emptyAircraftState, 92.5)).toBeNull();
   });
 });

@@ -1,10 +1,8 @@
 "use client";
 
 import { useT } from "~/i18n/use-t";
-import { cn } from "~/lib/utils";
-import { useFlight } from "~/stores/flight";
 
-import { NumberField, Section, fmt, fmtMinutes } from "./fields";
+import { Section, fmt, fmtMinutes } from "./fields";
 import { usePlan } from "./use-plan";
 
 export function NavLogSection() {
@@ -141,93 +139,6 @@ export function NavLogSection() {
             <p>{t("plan.navlog.note")}</p>
           </div>
         </div>
-      )}
-    </Section>
-  );
-}
-
-export function FuelSection() {
-  const t = useT();
-  const flight = useFlight((s) => s.flight);
-  const update = useFlight((s) => s.update);
-  const { fuelPlan, aircraft } = usePlan();
-  const fuel = flight.fuel;
-  const rows = fuelPlan
-    ? ([
-        ["trip", fuelPlan.tripL],
-        ["contingency", fuelPlan.contingencyL],
-        ["taxi", fuelPlan.taxiL],
-        ["climbExtra", fuelPlan.climbExtraL],
-        ["departureArrival", fuelPlan.departureArrivalL],
-        ["alternate", fuelPlan.alternateL],
-        ["finalReserve", fuelPlan.finalReserveL],
-      ] as const)
-    : [];
-  const overCapacity =
-    aircraft?.usableFuelL !== null &&
-    aircraft?.usableFuelL !== undefined &&
-    fuel.blockL > aircraft.usableFuelL;
-
-  return (
-    <Section title={t("plan.fuel.title")}>
-      <div className="grid gap-4 sm:grid-cols-3">
-        <NumberField
-          label={t("plan.fuel.block")}
-          unit="L"
-          min={0}
-          value={fuel.blockL}
-          onChange={(blockL) => update({ fuel: { ...fuel, blockL } })}
-        />
-        <NumberField
-          label={t("plan.fuel.taxi")}
-          unit="L"
-          min={0}
-          value={fuel.taxiL}
-          onChange={(taxiL) => update({ fuel: { ...fuel, taxiL } })}
-        />
-        <NumberField
-          label={t("plan.fuel.climbExtra")}
-          unit="L"
-          min={0}
-          value={fuel.climbExtraL}
-          onChange={(climbExtraL) => update({ fuel: { ...fuel, climbExtraL } })}
-        />
-      </div>
-      {overCapacity && (
-        <p className="text-destructive text-sm">
-          {t("plan.fuel.overCapacity")}
-        </p>
-      )}
-      {fuelPlan && (
-        <table className="w-full text-sm tabular-nums">
-          <tbody>
-            {rows.map(([key, litres]) => (
-              <tr key={key} className="border-t">
-                <td className="py-1">{t(`plan.fuel.row.${key}`)}</td>
-                <td className="text-right">{litres} L</td>
-              </tr>
-            ))}
-            <tr className="border-t font-medium">
-              <td className="py-1">{t("plan.fuel.minimum")}</td>
-              <td className="text-right">{fuelPlan.minimumL} L</td>
-            </tr>
-            <tr
-              className={cn(
-                "font-medium",
-                fuelPlan.extraL < 0 ? "text-destructive" : "text-ok",
-              )}
-            >
-              <td className="py-1">
-                {fuelPlan.extraL < 0
-                  ? t("plan.fuel.short")
-                  : t("plan.fuel.extra")}
-              </td>
-              <td className="text-right" data-testid="fuel-extra">
-                {fuelPlan.extraL} L
-              </td>
-            </tr>
-          </tbody>
-        </table>
       )}
     </Section>
   );

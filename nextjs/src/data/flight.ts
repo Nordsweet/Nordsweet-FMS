@@ -40,11 +40,25 @@ export const flightSchema = z.object({
     .nullable()
     .default(null), // flights saved before this field existed
   fuelFlowLph: z.number().positive(),
-  fuel: z.object({
-    blockL: z.number().nonnegative(),
-    taxiL: z.number().nonnegative(),
-    climbExtraL: z.number().nonnegative(),
-  }),
+  fuel: z.object({ blockL: z.number().nonnegative() }),
+  /** Fuel table rows the pilot typed over the planner's suggestion (legacy fuel planning). */
+  fuelOverrides: z
+    .partialRecord(
+      z.enum([
+        "plannedTrip",
+        "startTaxi",
+        "climb",
+        "departureArrival",
+        "alternate",
+      ]),
+      z.object({
+        minutes: z.number().nonnegative().nullable().optional(),
+        fuelL: z.number().nonnegative().nullable().optional(),
+      }),
+    )
+    .default({}),
+  /** Cruise OAT for the POH cruise tables (legacy cruise tile, 15 °C by default). */
+  cruiseOatC: z.number().default(15),
   stationsKg: z.record(z.string(), z.number().nonnegative()),
 });
 
@@ -65,11 +79,14 @@ export function newFlight(): Flight {
     sid: null,
     star: null,
     cruiseAltitudeFt: 3000,
-    cruiseTasKt: 100,
+    cruiseTasKt: 120,
     wind: { directionDeg: 0, speedKt: 0 },
     legWinds: null,
-    fuelFlowLph: 30,
-    fuel: { blockL: 0, taxiL: 5, climbExtraL: 0 },
+    // Legacy defaults: 120 kt, and 35 L/h when the aircraft has no cruise table.
+    fuelFlowLph: 35,
+    fuel: { blockL: 0 },
+    fuelOverrides: {},
+    cruiseOatC: 15,
     stationsKg: {},
   };
 }

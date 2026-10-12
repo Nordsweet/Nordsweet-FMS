@@ -50,9 +50,9 @@ test("plans a flight end to end and keeps it across reloads", async ({
     .getByRole("button", { name: "Use 2600 RPM / 22 inHg" })
     .first()
     .click();
-  await expect(page.getByLabel("True airspeed (TAS)")).not.toHaveValue("100");
+  await expect(page.getByLabel("True airspeed (TAS)")).not.toHaveValue("120");
   await tab(page, "Fuel");
-  await expect(page.getByTestId("fuel-extra")).toBeVisible();
+  await expect(page.getByTestId("fuel-margin")).toBeVisible();
   await tab(page, "W&B");
   await expect(page.getByTestId("wb-takeoff")).toContainText("kg");
   await tab(page, "Performance");

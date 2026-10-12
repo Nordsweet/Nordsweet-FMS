@@ -51,6 +51,13 @@ export function selectAircraftState(
   );
 }
 
+/** Fuel left after the last flight plus fuel added, capped at the tank capacity; null if neither is known. */
+export function fuelOnBoardL(state: AircraftState, capacityL: number | null) {
+  if (state.fuelRemainingL === null && state.fuelAddedL === null) return null;
+  const total = (state.fuelRemainingL ?? 0) + (state.fuelAddedL ?? 0);
+  return capacityL ? Math.min(total, capacityL) : total;
+}
+
 const litres = (value: unknown) => {
   const n = Number(value);
   return value !== "" && value !== null && Number.isFinite(n)
