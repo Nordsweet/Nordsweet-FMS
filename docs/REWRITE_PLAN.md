@@ -154,9 +154,15 @@ departure/destination or add a waypoint. Works offline except for base-map tiles
 Not done: direct-to and per-point speed/altitude restrictions (they belong with in-flight mode,
 phase 5), GPX/OpenAir import, caching map tiles for offline use.
 
-### 5. In-flight — 8–14 h
-Flight mode (GPS tracking, active leg, ETA updates), COMMs frequency hand-off, direct-to,
-FREDA check, flight debrief, PFD (canvas component), live traffic (ADS-B / SafeSky).
+### 5. In-flight — 8–14 h ✅ core done
+Delivered at `/v2/fly`: device GPS, active leg with automatic sequencing (abeam or within 0.3 NM,
+never backwards), next waypoint bearing/distance/DTK/cross-track/ETE, destination distance/ETE/ETA,
+direct-to, FREDA reminder every 30 min, airport frequencies, track recording, debrief with GPX
+export; state survives a reload in flight. Live ADS-B traffic layer on the map (visible area,
+10 s refresh).
+
+Not done: the PFD screen (legacy PFD still available), COMMs hand-off prediction by FIS sector,
+traffic proximity alerts.
 
 ### 6. Ground & procedures — 10–16 h
 SID/STAR/approach procedures and runway/SID change, taxi routing on ground data, chart browser (PDF).

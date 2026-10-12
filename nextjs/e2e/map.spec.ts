@@ -54,3 +54,43 @@ test("map shows airspace and sets the departure from a tapped airport", async ({
   await expect(page.getByText("EPKK", { exact: true }).first()).toBeVisible();
   expect(errors).toEqual([]);
 });
+
+test("shows live traffic and its details", async ({ page }) => {
+  const traffic = fs.readFileSync(
+    "src/api/aviation/fixtures/traffic.json",
+    "utf8",
+  );
+  await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => route.abort());
+  await page.route("https://aviation.lab.vibecde.com/**", (route) => {
+    const path = new URL(route.request().url()).pathname;
+    if (path === "/traffic")
+      return route.fulfill({ body: traffic, contentType: "application/json" });
+    if (path === "/airspace")
+      return route.fulfill({ body: airspace, contentType: "application/json" });
+    return route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({ places: [], sources: { lotnik_cup: "ok" } }),
+    });
+  });
+  await page.addInitScript(() =>
+    localStorage.setItem("nordsweet.language.v1", "en"),
+  );
+  await page.goto("/v2/map");
+  await expect(page.locator(".maplibregl-canvas")).toBeVisible();
+  await page.getByLabel("Traffic (ADS-B)").check();
+  await page.getByLabel("Airports").uncheck(); // keep the tap on the aircraft
+  await page.waitForTimeout(2000);
+
+  const box = (await page.getByTestId("map").boundingBox())!;
+  const world = 2 ** 5.5 * 512;
+  const merc = (lat: number) =>
+    Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360));
+  await page.mouse.click(
+    box.x + box.width / 2 + ((18.248217 - 19.4) / 360) * world,
+    box.y +
+      box.height / 2 +
+      ((merc(52) - merc(50.174142)) / (2 * Math.PI)) * world,
+  );
+  await expect(page.getByTestId("traffic-card")).toContainText("RYR8GK");
+  await expect(page.getByTestId("traffic-card")).toContainText("23550 ft");
+});
