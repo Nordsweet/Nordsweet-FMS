@@ -16,6 +16,7 @@ import {
 import { type FlightPoint } from "~/data/flight";
 import { distanceNm } from "~/domain/geo";
 import { useT } from "~/i18n/use-t";
+import { usePlan } from "~/features/plan/use-plan";
 import { useFlight } from "~/stores/flight";
 
 export type Basemap = "osm" | "dark";
@@ -82,6 +83,7 @@ export function MapView({ basemap, layers, plan }: Props) {
   const [click, setClick] = useState<Click | null>(null);
   const flight = useFlight((s) => s.flight);
   const update = useFlight((s) => s.update);
+  const { route } = usePlan();
 
   const airports = useQuery(api.airports.list.queryOptions(undefined));
   const navpoints = useQuery(api.navpoints.list.queryOptions(undefined));
@@ -385,11 +387,7 @@ export function MapView({ basemap, layers, plan }: Props) {
   useEffect(() => {
     const map = mapRef.current;
     if (!ready || !map) return;
-    const points = [
-      flight.departure,
-      ...flight.waypoints,
-      flight.destination,
-    ].filter((p) => p !== null);
+    const points = route;
     void source("route")?.setData({
       type: "FeatureCollection",
       features: [
@@ -433,13 +431,7 @@ export function MapView({ basemap, layers, plan }: Props) {
           .addTo(map);
       });
     });
-  }, [
-    ready,
-    flight.departure,
-    flight.waypoints,
-    flight.destination,
-    flight.alternate,
-  ]);
+  }, [ready, route, flight.destination, flight.alternate]);
 
   useEffect(() => {
     const map = mapRef.current;

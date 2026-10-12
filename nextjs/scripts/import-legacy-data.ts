@@ -15,6 +15,9 @@ import {
   type Frequency,
   type Navpoint,
   type Runway,
+  type Procedure,
+  type Ground,
+  type Chart,
 } from "../src/data/schemas";
 
 import { importAircraft } from "./legacy-aircraft";
@@ -239,6 +242,115 @@ function importFrequencies(): Frequency[] {
   }));
 }
 
+/** PANSA SID/STAR (+ private set); legs without coordinates are resolved by waypoint name. */
+function importProcedures(navpoints: Navpoint[]): Procedure[] {
+  const legacy = loadLegacy(["procedure-data.js", "Waypoints/Poland.js"]);
+  const byIdent = new Map(navpoints.map((p) => [p.ident, p]));
+  const sources = [
+    legacy.NORDSWEET_PROCEDURES.airports,
+    legacy.NORDSWEET_PRIVATE_WAYPOINTS.POLAND.procedures,
+  ];
+  const out = new Map<string, Procedure>();
+  let dropped = 0;
+  for (const airports of sources) {
+    for (const [airport, sets] of Object.entries<Legacy>(airports)) {
+      for (const raw of [
+        ...(sets.sids ?? []),
+        ...(sets.stars ?? []),
+      ] as Legacy[]) {
+        if (out.has(raw.id)) continue;
+        const legs = (raw.legs as Legacy[]).map((leg) => {
+          const known = byIdent.get(leg.waypoint);
+          const lat = Number.isFinite(leg.lat) ? leg.lat : known?.lat;
+          const lon = Number.isFinite(leg.lon) ? leg.lon : known?.lon;
+          return lat === undefined || lon === undefined
+            ? null
+            : {
+                ident: String(leg.waypoint),
+                lat,
+                lon,
+                altitude: text(leg.altitude?.raw),
+                speedKt: Number.isFinite(leg.speedKt) ? leg.speedKt : null,
+              };
+        });
+        // A leg we cannot place would draw a wrong route: drop the procedure instead.
+        if (legs.some((l) => l === null) || legs.length === 0) {
+          dropped++;
+          continue;
+        }
+        out.set(raw.id, {
+          airport,
+          type: raw.type,
+          designator: raw.designator,
+          runways: (raw.runways ?? []).map(String),
+          legs: legs.filter((l) => l !== null),
+          source: raw.title ?? "PANSA eAIP",
+        });
+      }
+    }
+  }
+  console.log(`procedures: ${dropped} dropped (waypoints without coordinates)`);
+  return [...out.values()];
+}
+
+function importGround(): Ground[] {
+  const legacy = loadLegacy(["ground-data.js"]);
+  return Object.entries<Legacy>(legacy.NORDSWEET_GROUND_DATA.airports).map(
+    ([airport, g]) => ({
+      airport,
+      elements: (g.elements as Legacy[]).map((e) => ({
+        id: String(e.id),
+        type: e.type,
+        label: String(e.label ?? e.id),
+      })),
+      connections: Object.fromEntries(
+        Object.entries<string[]>(g.connections).map(([id, to]) => [
+          id,
+          to.map(String),
+        ]),
+      ),
+      standExits: Object.fromEntries(
+        (g.aprons as Legacy[]).flatMap((apron) =>
+          (apron.stands as Legacy[]).map((s) => [
+            String(s.id),
+            (s.startOptions ?? []).map(String),
+          ]),
+        ),
+      ),
+    }),
+  );
+}
+
+/** Chart PDFs shipped in public/charts, by the airport code in their path or file name. */
+function importCharts(): Chart[] {
+  const root = path.join(publicDir, "charts");
+  const files = fs
+    .readdirSync(root, { recursive: true, encoding: "utf8" })
+    .filter((f) => f.endsWith(".pdf"));
+  return files
+    .map((file) => {
+      const airport = /\b(EP[A-Z]{2}|LK[A-Z]{2}|LZ[A-Z]{2})\b/.exec(
+        file.replace(/_/g, " "),
+      )?.[1];
+      if (!airport) throw new Error(`chart ${file}: no airport code in path`);
+      return {
+        airport,
+        title:
+          file
+            .split(path.sep)
+            .slice(1)
+            .join(" · ")
+            .replace(/\.pdf$/, "") || file.replace(/\.pdf$/, ""),
+        src:
+          "/charts/" + file.split(path.sep).map(encodeURIComponent).join("/"),
+      };
+    })
+    .sort(
+      (a, b) =>
+        a.airport.localeCompare(b.airport) || a.title.localeCompare(b.title),
+    );
+}
+
 function write(name: DatasetName, rows: unknown[]) {
   const data = datasetSchemas[name].parse(rows);
   const json = JSON.stringify(data);
@@ -267,6 +379,9 @@ const hashes = [
   ),
   write("airports", airports.sort(byIdent)),
   write("navpoints", navpoints.sort(byIdent)),
+  write("procedures", importProcedures(navpoints)),
+  write("ground", importGround()),
+  write("charts", importCharts()),
   write(
     "frequencies",
     importFrequencies().sort((a, b) =>

@@ -67,3 +67,22 @@ test("imports a legacy .nord flight", async ({ page }) => {
     page.getByRole("cell", { name: /→ EPML descent/ }),
   ).toBeVisible();
 });
+
+test("adds a SID, shows the taxi route and charts", async ({ page }) => {
+  await page.goto("/v2");
+  await pickPoint(page, "Departure", "EPKK", "EPKK");
+  await pickPoint(page, "Destination", "EPNT", "EPNT");
+
+  await page.getByRole("combobox", { name: "SID" }).click();
+  await page.getByRole("option", { name: /^NAVUR 5F/ }).click();
+  await expect(page.getByRole("cell", { name: /KK801/ }).first()).toBeVisible();
+
+  await expect(page.getByTestId("taxi-departure-route")).toHaveText(
+    "Stand 1 → Taxiway G → Taxiway B4 → Taxiway C → HP07",
+  );
+  await expect(page.getByTestId("taxi-arrival")).toContainText("EPNT");
+
+  await expect(
+    page.getByRole("link", { name: "EPKK · National AIP · AD2" }),
+  ).toHaveAttribute("href", "/charts/Poland/EPKK/National%20AIP/AD2.pdf");
+});

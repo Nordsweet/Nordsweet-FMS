@@ -116,6 +116,31 @@ export const api = {
       { staleTime: HOUR },
     ),
   },
+  procedures: {
+    byAirport: query(
+      "procedures.byAirport",
+      async ({ airport }: { airport: string }) =>
+        (await loadDataset("procedures")).filter((p) => p.airport === airport),
+      reference,
+    ),
+  },
+  ground: {
+    byAirport: query(
+      "ground.byAirport",
+      async ({ airport }: { airport: string }) =>
+        (await loadDataset("ground")).find((g) => g.airport === airport) ??
+        null,
+      reference,
+    ),
+  },
+  charts: {
+    byAirport: query(
+      "charts.byAirport",
+      async ({ airport }: { airport: string }) =>
+        (await loadDataset("charts")).filter((c) => c.airport === airport),
+      reference,
+    ),
+  },
   frequencies: {
     byAirport: query(
       "frequencies.byAirport",

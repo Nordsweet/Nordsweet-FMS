@@ -104,11 +104,63 @@ export const frequencySchema = z.object({
   primary: z.boolean(),
 });
 
+export const procedureSchema = z.object({
+  airport: z.string(),
+  type: z.enum(["SID", "STAR"]),
+  designator: z.string(),
+  runways: z.array(z.string()),
+  legs: z
+    .array(
+      z.object({
+        ident: z.string(),
+        lat: latitude,
+        lon: longitude,
+        /** As published, e.g. "+2800ft", "FL70". */
+        altitude: z.string().nullable(),
+        speedKt: z.number().nullable(),
+      }),
+    )
+    .min(1),
+  source: z.string(),
+});
+
+/** Taxiway graph: element ids with their direct connections. */
+export const groundSchema = z.object({
+  airport: z.string(),
+  elements: z.array(
+    z.object({
+      id: z.string(),
+      type: z.enum([
+        "taxiway",
+        "apron",
+        "stand",
+        "holdingPoint",
+        "runway",
+        "arp",
+        "vor",
+      ]),
+      label: z.string(),
+    }),
+  ),
+  connections: z.record(z.string(), z.array(z.string())),
+  /** Taxiways a stand can be left by (legacy "startOptions"). */
+  standExits: z.record(z.string(), z.array(z.string())),
+});
+
+export const chartSchema = z.object({
+  airport: z.string(),
+  title: z.string(),
+  src: z.string(),
+});
+
 export const datasetSchemas = {
   airports: z.array(airportSchema),
   navpoints: z.array(navpointSchema),
   frequencies: z.array(frequencySchema),
   aircraft: z.array(aircraftSchema),
+  procedures: z.array(procedureSchema),
+  ground: z.array(groundSchema),
+  charts: z.array(chartSchema),
 } as const;
 
 export type DatasetName = keyof typeof datasetSchemas;
@@ -118,3 +170,6 @@ export type Runway = z.infer<typeof runwaySchema>;
 export type Navpoint = z.infer<typeof navpointSchema>;
 export type NavpointKind = Navpoint["kind"];
 export type Frequency = z.infer<typeof frequencySchema>;
+export type Procedure = z.infer<typeof procedureSchema>;
+export type Ground = z.infer<typeof groundSchema>;
+export type Chart = z.infer<typeof chartSchema>;

@@ -33,14 +33,41 @@ export function usePlan() {
   const departureMetar =
     useBriefing(flight.departure).briefing.data?.metar ?? null;
 
+  const departureProcedures = useQuery({
+    ...api.procedures.byAirport.queryOptions({
+      airport: flight.departure?.ident ?? "",
+    }),
+    enabled: !!flight.departure,
+  });
+  const destinationProcedures = useQuery({
+    ...api.procedures.byAirport.queryOptions({
+      airport: flight.destination?.ident ?? "",
+    }),
+    enabled: !!flight.destination,
+  });
+  const sid =
+    departureProcedures.data?.find(
+      (p) => p.type === "SID" && p.designator === flight.sid,
+    ) ?? null;
+  const star =
+    destinationProcedures.data?.find(
+      (p) => p.type === "STAR" && p.designator === flight.star,
+    ) ?? null;
+  // SID and STAR legs wrap the en-route waypoints.
   const route = [
     flight.departure,
+    ...(sid?.legs ?? []),
     ...flight.waypoints,
+    ...(star?.legs ?? []),
     flight.destination,
-  ].filter((p) => p !== null);
+  ]
+    .filter((p) => p !== null)
+    .map((p) => ({ ident: p.ident, lat: p.lat, lon: p.lon }));
   // Forecast winds apply only to the route and altitude they were fetched for.
   const legWinds =
-    flight.legWinds?.routeKey === routeKey(flight) ? flight.legWinds : null;
+    flight.legWinds?.routeKey === routeKey(route, flight.cruiseAltitudeFt)
+      ? flight.legWinds
+      : null;
   const cruise = {
     tasKt: flight.cruiseTasKt,
     wind: flight.wind,
@@ -139,6 +166,10 @@ export function usePlan() {
   return {
     flight,
     route,
+    sid,
+    star,
+    departureProcedures: departureProcedures.data ?? [],
+    destinationProcedures: destinationProcedures.data ?? [],
     legWinds,
     aircraft,
     aircraftList: aircraftList.data ?? [],

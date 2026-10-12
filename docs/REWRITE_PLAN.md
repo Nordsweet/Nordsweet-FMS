@@ -164,8 +164,15 @@ export; state survives a reload in flight. Live ADS-B traffic layer on the map (
 Not done: the PFD screen (legacy PFD still available), COMMs hand-off prediction by FIS sector,
 traffic proximity alerts.
 
-### 6. Ground & procedures — 10–16 h
-SID/STAR/approach procedures and runway/SID change, taxi routing on ground data, chart browser (PDF).
+### 6. Ground & procedures — 10–16 h ✅ core done
+Delivered: SID/STAR selection (91 PANSA/private procedures; 32 dropped because a leg's waypoint has
+no coordinates) as route segments around the waypoints — nav log, map, fly mode and `.nord` export
+use the full route; taxi route (fewest elements) on the ground graph for departure and arrival —
+useful mainly at EPKK, where the data is connected; AIP chart links per airport in the briefing
+(cached once opened; not precached, 27 MB).
+
+Not done: approach procedures and VFR circuits, the chart viewer with taxi overlay (charts open in
+the browser's PDF viewer), runway/SID change during flight.
 
 ### 7. Checklists, economy, settings, i18n — 4–6 h
 Checklists with voice + autoscroll, route economy, settings, PL/EN dictionaries.
