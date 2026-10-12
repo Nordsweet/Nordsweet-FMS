@@ -8918,6 +8918,9 @@ function syncBodyModalState() {
     || (refs.flightDebriefModal && !refs.flightDebriefModal.hidden)
     || (refs.sidChangeModal && !refs.sidChangeModal.hidden);
   document.body.classList.toggle("modal-open", hasOpenModal);
+  if (!hasOpenModal && serviceWorkerRefreshPending) {
+    window.setTimeout(reloadAfterServiceWorkerUpdate, 0);
+  }
 }
 
 function openFlightModal() {
@@ -33209,8 +33212,16 @@ function attachEvents() {
 
 const SERVICE_WORKER_REFRESH_KEY = "nordsweet.serviceWorker.refreshing.v1";
 let serviceWorkerHadController = false;
+let serviceWorkerRefreshPending = false;
 
 function reloadAfterServiceWorkerUpdate() {
+  // A background update must never discard an active flight or another open workspace.
+  // Recheck at execution time as the user may have opened it since the update arrived.
+  if (document.body.classList.contains("modal-open") || (refs.flightModal && !refs.flightModal.hidden)) {
+    serviceWorkerRefreshPending = true;
+    return;
+  }
+  serviceWorkerRefreshPending = false;
   try {
     if (window.sessionStorage.getItem(SERVICE_WORKER_REFRESH_KEY) === "1") {
       return;
