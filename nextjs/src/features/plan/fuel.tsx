@@ -23,65 +23,9 @@ import {
 } from "~/stores/aircraft-state";
 import { useFlight } from "~/stores/flight";
 
-import { Section, fmt } from "./fields";
+import { OverrideCell, Section, fmt, litres, num } from "./fields";
 
-/** Legacy note numbers: rounded, without trailing zeros ("18 min", "22.6 L/h"). */
-const num = (value: number, digits = 1) =>
-  Number.isFinite(value) ? String(Number(value.toFixed(digits))) : "—";
 import { usePlan } from "./use-plan";
-
-/** Shows the suggestion (muted) or the typed value; empty restores the suggestion. Commits on blur. */
-function OverrideCell({
-  label,
-  value,
-  suggested,
-  format,
-  parse,
-  onCommit,
-  max,
-  placeholder,
-}: {
-  label: string;
-  value: number | null;
-  suggested: boolean;
-  format: (value: number) => string;
-  parse: (text: string) => number | null;
-  onCommit: (value: number | null) => void;
-  max?: number;
-  placeholder?: string;
-}) {
-  const shown = value === null ? "" : format(value);
-  return (
-    <td className="px-1.5 py-1">
-      <Input
-        aria-label={label}
-        className={cn(
-          "h-9 rounded-xl text-center text-sm",
-          suggested && "text-muted-foreground",
-        )}
-        inputMode="numeric"
-        placeholder={placeholder}
-        defaultValue={shown}
-        key={`${shown}|${suggested}`}
-        onBlur={(e) => {
-          const text = e.target.value.trim();
-          if (text === "") return onCommit(null);
-          const parsed = parse(text);
-          if (parsed === null || parsed < 0) e.target.value = shown;
-          else onCommit(max === undefined ? parsed : Math.min(parsed, max));
-        }}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") e.currentTarget.blur();
-        }}
-      />
-    </td>
-  );
-}
-
-const litres = (text: string) => {
-  const n = Number(text.replace(",", "."));
-  return Number.isFinite(n) ? Math.ceil(Math.max(0, Math.min(9999, n))) : null;
-};
 
 const ROW_LABELS: Record<EditableFuelRow, MessageKey> = {
   plannedTrip: "plan.fuel.row.plannedTrip",

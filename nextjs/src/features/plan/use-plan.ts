@@ -5,14 +5,13 @@ import { routeKey } from "~/data/flight";
 import { isaTemperatureC } from "~/domain/atmosphere";
 import { computeClimb } from "~/domain/climb";
 import {
-  DEFAULT_TAXI_L,
   type FuelPlanningInput,
   computeFuelPlanning,
 } from "~/domain/fuel-planning";
 import { distanceNm } from "~/domain/geo";
 import { parseMetar } from "~/domain/metar";
 import { type Segment, computeNavLog } from "~/domain/navlog";
-import { computeLoading } from "~/domain/weight-balance";
+import { computeLoading, weightBalanceSheet } from "~/domain/weight-balance";
 import { windComponents } from "~/domain/wind";
 import { useFlight } from "~/stores/flight";
 
@@ -85,8 +84,8 @@ export function usePlan() {
 
   // Loading first: the climb depends on the take-off weight. Trip fuel is refined below.
   const wb = aircraft?.weightBalance ?? null;
-  const taxiL = flight.fuelOverrides.startTaxi?.fuelL ?? DEFAULT_TAXI_L;
-  const takeoffFuelL = Math.max(0, flight.fuel.blockL - taxiL);
+  // Legacy W&B: the usable fuel is the block fuel (taxi fuel is not deducted).
+  const takeoffFuelL = flight.fuel.blockL;
   const takeoffLoading = wb
     ? computeLoading(wb, { stationsKg: flight.stationsKg, fuelL: takeoffFuelL })
     : null;
@@ -203,19 +202,20 @@ export function usePlan() {
       })
     : null;
   const tripFuelL = firstPass?.rows.plannedTrip.fuelL ?? 0;
-  const landingFuelL = Math.max(0, takeoffFuelL - tripFuelL);
-  const loading =
-    wb && takeoffLoading
-      ? {
-          takeoff: takeoffLoading,
-          landing: computeLoading(wb, {
-            stationsKg: flight.stationsKg,
-            fuelL: landingFuelL,
-          }),
-          takeoffFuelL,
-          landingFuelL,
-        }
+  const sheetFor = (alternateFuelL: number) =>
+    wb
+      ? weightBalanceSheet(wb, {
+          stationsKg: flight.stationsKg,
+          usableFuelL: takeoffFuelL,
+          tripFuelL,
+          alternateFuelL,
+        })
       : null;
+  // Take-off and landing weights do not depend on the alternate fuel.
+  const weights = sheetFor(0);
+  const loading = weights
+    ? { takeoff: weights.takeoff, landing: weights.landing }
+    : null;
 
   // The alternate's climb uses the landing weight, known only once trip fuel is.
   const fuelPlanning =
@@ -247,5 +247,6 @@ export function usePlan() {
     fuelConditionsSource:
       metarTemperature !== null ? (flight.departure?.ident ?? null) : null,
     loading,
+    weightBalance: sheetFor(fuelPlanning?.rows.alternate.fuelL ?? 0),
   };
 }

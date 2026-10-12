@@ -70,3 +70,51 @@ export function computeLoading(
     withinEnvelope: insidePolygon(wb.envelope, momentKgm, totalKg),
   };
 }
+
+export type WeightBalanceSheet = ReturnType<typeof weightBalanceSheet>;
+
+/**
+ * The legacy W&B sheet: loaded (take-off) condition with the usable fuel, landing after the trip
+ * fuel, and alternate landing after the alternate fuel too. Fuel never goes below zero.
+ */
+export function weightBalanceSheet(
+  wb: WeightBalance,
+  input: {
+    stationsKg: Partial<Record<StationId, number>>;
+    usableFuelL: number;
+    tripFuelL: number;
+    alternateFuelL: number;
+  },
+) {
+  const kg = (litres: number) => litres * wb.fuel.densityKgPerL;
+  const landingFuelL = Math.max(0, input.usableFuelL - input.tripFuelL);
+  const alternateFuelL = Math.max(0, landingFuelL - input.alternateFuelL);
+  const loading = (fuelL: number) =>
+    computeLoading(wb, { stationsKg: input.stationsKg, fuelL });
+  return {
+    stations: wb.stations.map((s) => {
+      const weightKg = input.stationsKg[s.id] ?? 0;
+      return { ...s, weightKg, momentKgm: weightKg * s.armM };
+    }),
+    empty: {
+      weightKg: wb.emptyWeightKg,
+      armM: wb.emptyArmM,
+      momentKgm: wb.emptyWeightKg * wb.emptyArmM,
+    },
+    fuel: {
+      armM: wb.fuel.armM,
+      usable: { litres: input.usableFuelL, weightKg: kg(input.usableFuelL) },
+      trip: { litres: input.tripFuelL, weightKg: kg(input.tripFuelL) },
+      alternate: {
+        litres: input.alternateFuelL,
+        weightKg: kg(input.alternateFuelL),
+      },
+    },
+    takeoff: loading(input.usableFuelL),
+    landing: loading(landingFuelL),
+    alternateLanding: loading(alternateFuelL),
+    mtowKg: wb.mtowKg,
+    /** Legacy "LW" card: MTOW less the trip fuel. */
+    maxLandingKg: Math.max(0, wb.mtowKg - kg(input.tripFuelL)),
+  };
+}

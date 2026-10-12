@@ -47,7 +47,8 @@ function profileDefaults(
     stationsKg: Object.fromEntries(
       (wb?.stations ?? []).map((s) => [
         s.id,
-        s.id === "pilot" && pilotWeightKg ? pilotWeightKg : s.defaultKg,
+        // Legacy: the pilot weight setting, else the profile's, else 85 kg.
+        s.id === "pilot" ? (pilotWeightKg ?? (s.defaultKg || 85)) : s.defaultKg,
       ]),
     ),
     fuel: { ...flight.fuel, blockL: wb?.fuel.defaultL ?? flight.fuel.blockL },

@@ -54,7 +54,7 @@ test("plans a flight end to end and keeps it across reloads", async ({
   await tab(page, "Fuel");
   await expect(page.getByTestId("fuel-margin")).toBeVisible();
   await tab(page, "W&B");
-  await expect(page.getByTestId("wb-takeoff")).toContainText("kg");
+  await expect(page.getByTestId("wb-status")).toContainText("CG envelope");
   await tab(page, "Performance");
   await expect(page.getByTestId("perf-takeoff-ground-roll")).toHaveText(
     /\d+ m/,
