@@ -42,23 +42,19 @@ describe("cruise lookups match the legacy planner", () => {
     it(id, () => {
       const cruise = aircraft.find((a) => a.id === id)!.cruise!;
       for (const c of recorded.filter((r) => r.id === id)) {
+        const where = JSON.stringify(c);
         if ("mode" in c) {
           const ours = cruisePerformance(cruise, c.alt, c.oat, c.wind, c.mode);
-          expect({
-            ...c,
-            ktas: ours?.ktas ?? null,
-            fuel: ours?.fuelFlowLph ?? null,
-          }).toEqual({
-            ...c,
-            ktas: c.ktas === null ? null : expect.closeTo(c.ktas, 6),
-            fuel: c.fuel === null ? null : expect.closeTo(c.fuel, 6),
-          });
+          expect(ours === null, where).toBe(c.ktas === null);
+          if (ours && c.ktas !== null && c.fuel !== null) {
+            expect(ours.ktas, where).toBeCloseTo(c.ktas, 6);
+            expect(ours.fuelFlowLph, where).toBeCloseTo(c.fuel, 6);
+          }
         } else {
           const flow = fuelFlowAtPower(cruise, c.alt, c.oat, c.pct);
-          expect({ ...c, flow }).toEqual({
-            ...c,
-            flow: c.flow === null ? null : expect.closeTo(c.flow, 6),
-          });
+          expect(flow === null, where).toBe(c.flow === null);
+          if (flow !== null && c.flow !== null)
+            expect(flow, where).toBeCloseTo(c.flow, 6);
         }
       }
     });

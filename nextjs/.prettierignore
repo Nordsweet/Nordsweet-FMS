@@ -3,3 +3,4 @@ out
 public
 pnpm-lock.yaml
 public/maplibre-gl-worker.mjs
+tests/fixtures

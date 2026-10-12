@@ -17,6 +17,8 @@ pnpm dev
 Dane na żywo (METAR/TAF, ATIS, NOTAM, ruch, przestrzenie, punkty VFR) pochodzą z
 [Aviation API Collector](https://aviation.lab.vibecde.com/llms.txt). Historia przepisania i decyzje:
 [`docs/REWRITE_PLAN.md`](docs/REWRITE_PLAN.md).
+Przenoszenie pozostałych ekranów ze starej wersji (instrukcje dla agentów i tablica prac):
+[`AGENTS.md`](AGENTS.md).
 
 Workflow `Next.js validation` (push na `main`/`develop`, pull requesty) uruchamia lint, formatowanie,
 typy, testy jednostkowe, build i testy Playwright.

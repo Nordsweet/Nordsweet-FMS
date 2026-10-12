@@ -88,8 +88,6 @@ export type FuelRowValue = {
   suggested: { minutes: boolean; fuelL: boolean };
 };
 
-const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
-
 function rateOfClimbFpm(
   climb: Aircraft["climb"],
   weightKg: number,
@@ -207,11 +205,16 @@ export function computeFuelPlanning(input: FuelPlanningInput) {
     departurePa,
     input.surfaceTempC,
   );
-  const climbRate = tableRate === null ? null : tableRate * PLANNING_RATE_FACTOR;
+  const climbRate =
+    tableRate === null ? null : tableRate * PLANNING_RATE_FACTOR;
   const climbFlow = (fromFt: number) => {
     const averageFt = fromFt + gainFor(fromFt) / 2;
     const averagePa = pressureAltitudeFt(averageFt, input.qnhHpa);
-    const averageTemp = lapseTemperatureC(input.surfaceTempC, fromFt, averageFt);
+    const averageTemp = lapseTemperatureC(
+      input.surfaceTempC,
+      fromFt,
+      averageFt,
+    );
     return (
       aircraft.climb?.fuelFlowLph ??
       (cruise
@@ -471,5 +474,3 @@ export function routeEconomy(
     averageWindKt: windKt / distanceNm,
   };
 }
-
-export const lerpForTests = lerp;
