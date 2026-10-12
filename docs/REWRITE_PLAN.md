@@ -174,8 +174,13 @@ useful mainly at EPKK, where the data is connected; AIP chart links per airport 
 Not done: approach procedures and VFR circuits, the chart viewer with taxi overlay (charts open in
 the browser's PDF viewer), runway/SID change during flight.
 
-### 7. Checklists, economy, settings, i18n — 4–6 h
-Checklists with voice + autoscroll, route economy, settings, PL/EN dictionaries.
+### 7. Checklists, economy, settings, i18n — 4–6 h ✅ done except route economy
+Delivered: `/v2/checklists` — the aircraft's checklists by phase, tap to tick, progress, autoscroll
+to the next open item, read aloud (Web Speech API, English voice). Settings and PL/EN were done in
+phase 1. Phone layout pass for map/fly/checklists (layers menu, map fills the screen, 40 px controls).
+
+Not done: route economy (best cruise power/altitude) — needs the POH cruise tables migrated first,
+together with cruise/holding fuel flow (see phase 2).
 
 ### 8. Data authoring tools — deferred
 Skipped. Editing reference data becomes an admin feature once the backend exists.

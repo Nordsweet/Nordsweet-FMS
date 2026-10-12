@@ -462,7 +462,7 @@ export function MapView({ basemap, layers, plan }: Props) {
   };
 
   return (
-    <div className="relative h-full w-full">
+    <div className="absolute inset-0">
       <div ref={container} className="h-full w-full" data-testid="map" />
       {airspace.isError && (
         <p className="bg-background/90 absolute top-2 left-2 rounded px-2 py-1 text-sm text-red-400">
