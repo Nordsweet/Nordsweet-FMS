@@ -16,6 +16,8 @@ export const flightSchema = z.object({
   name: z.string(),
   savedAt: z.iso.datetime(),
   aircraftId: z.string().nullable(),
+  /** As typed; a registration with its own profile selects that profile. */
+  registration: z.string().default(""),
   departure: point.nullable(),
   destination: point.nullable(),
   alternate: point.nullable(),
@@ -55,6 +57,7 @@ export function newFlight(): Flight {
     name: "",
     savedAt: new Date().toISOString(),
     aircraftId: null,
+    registration: "",
     departure: null,
     destination: null,
     alternate: null,

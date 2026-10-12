@@ -11,11 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { BriefingSection } from "~/features/plan/briefing";
 import { FuelSection, NavLogSection } from "~/features/plan/navlog-fuel";
 import { PerformanceSection } from "~/features/plan/performance";
-import {
-  AircraftSection,
-  CruiseSection,
-  RouteSection,
-} from "~/features/plan/route";
+import { AircraftSection } from "~/features/plan/aircraft";
+import { CruiseSection, RouteSection } from "~/features/plan/route";
 import { SavedFlightsSection } from "~/features/plan/saved-flights";
 import { TaxiSection } from "~/features/plan/taxi";
 import { WeightBalanceSection } from "~/features/plan/weight-balance";

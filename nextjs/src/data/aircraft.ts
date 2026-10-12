@@ -188,7 +188,12 @@ export const aircraftSchema = z.object({
   registration: z.string().nullable(),
   displayName: z.string(),
   icaoType: z.string(),
+  /** Position in the aircraft type list. */
+  order: z.number(),
+  powerplant: z.enum(["reciprocating", "turbine", "jet"]),
+  engineCount: z.number().int().min(1).max(4).nullable(),
   usableFuelL: z.number().positive().nullable(),
+  fuelTankCapacityL: z.number().positive().nullable(),
   weightBalance: weightBalanceSchema.nullable(),
   takeoff: distancePerformanceSchema.nullable(),
   landing: distancePerformanceSchema.nullable(),

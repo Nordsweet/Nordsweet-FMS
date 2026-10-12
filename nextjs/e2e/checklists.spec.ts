@@ -7,8 +7,8 @@ test("works through an aircraft checklist", async ({ page }) => {
       localStorage.setItem("nordsweet.language.v1", "en");
   });
   await page.goto("/");
-  await page.getByRole("combobox", { name: "Type / registration" }).click();
-  await page.getByRole("option", { name: "Tecnam P2006T" }).click();
+  await page.getByRole("combobox", { name: "Aircraft type" }).click();
+  await page.getByRole("option", { name: "P2006T (P06T)" }).click();
 
   await page.getByRole("link", { name: "Checklists" }).click();
   await expect(

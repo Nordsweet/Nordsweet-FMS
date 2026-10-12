@@ -89,6 +89,7 @@ export function flightFromNordRoute(
       route.aircraftRegistration,
       knownAircraftIds,
     ),
+    registration: route.aircraftRegistration?.trim() ?? "",
     departure: toPoint(points[0]!),
     destination: toPoint(points.at(-1)!),
     // The legacy file stores only the alternate's code; it is resolved against the airport list by the caller.
@@ -140,7 +141,7 @@ export function toNordFile(
         name: flight.name,
         savedAt: flight.savedAt,
         aircraftType: aircraftType ?? "",
-        aircraftRegistration: "",
+        aircraftRegistration: flight.registration,
         departureIcao: flight.departure?.ident ?? "",
         destinationIcao: flight.destination?.ident ?? "",
         alternateIcao: flight.alternate?.ident ?? "",

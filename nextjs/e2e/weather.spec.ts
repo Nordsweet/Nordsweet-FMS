@@ -69,8 +69,8 @@ test("briefs weather, fills landing conditions from the METAR and uses forecast 
   page,
 }) => {
   await page.goto("/");
-  await page.getByRole("combobox", { name: "Type / registration" }).click();
-  await page.getByRole("option", { name: "Cessna R172K" }).click();
+  await page.getByRole("combobox", { name: "Aircraft type" }).click();
+  await page.getByRole("option", { name: "R172K (C172)" }).click();
   await tab(page, "Route");
   await pickPoint(page, "Departure", "EPNT", "EPNT");
   await pickPoint(page, "Destination", "EPKK", "EPKK");

@@ -17,63 +17,12 @@ import { routeKey } from "~/data/flight";
 import { type Procedure } from "~/data/schemas";
 import { midpoint } from "~/domain/geo";
 import { useT } from "~/i18n/use-t";
-import { useSettings } from "~/stores/settings";
 import { useFlight } from "~/stores/flight";
 
 import { NumberField, Section } from "./fields";
 import { CruiseEconomy } from "./economy";
 import { PointSearch } from "./point-search";
 import { usePlan } from "./use-plan";
-
-export function AircraftSection() {
-  const t = useT();
-  const { flight, aircraftList } = usePlan();
-  const update = useFlight((s) => s.update);
-  const pilotWeightKg = useSettings((s) => s.pilotWeightKg);
-
-  return (
-    <Section title={t("plan.aircraft.title")}>
-      <div className="grid gap-1.5">
-        <Label htmlFor="aircraft">{t("plan.aircraft.select")}</Label>
-        <Select
-          value={flight.aircraftId ?? ""}
-          onValueChange={(id) => {
-            const aircraft = aircraftList.find((a) => a.id === id);
-            const wb = aircraft?.weightBalance;
-            // New aircraft: start from its POH/W&B defaults, pilot weight from settings.
-            update({
-              aircraftId: id,
-              stationsKg: Object.fromEntries(
-                (wb?.stations ?? []).map((s) => [
-                  s.id,
-                  s.id === "pilot" && pilotWeightKg
-                    ? pilotWeightKg
-                    : s.defaultKg,
-                ]),
-              ),
-              fuel: {
-                ...flight.fuel,
-                blockL: wb?.fuel.defaultL ?? flight.fuel.blockL,
-              },
-            });
-          }}
-        >
-          <SelectTrigger id="aircraft" className="w-full">
-            <SelectValue placeholder={t("plan.aircraft.placeholder")} />
-          </SelectTrigger>
-          <SelectContent>
-            {aircraftList.map((a) => (
-              <SelectItem key={a.id} value={a.id}>
-                {a.displayName}
-                {a.registration ? ` (${a.registration})` : ""}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-    </Section>
-  );
-}
 
 export function RouteSection() {
   const t = useT();
