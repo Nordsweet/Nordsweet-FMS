@@ -1,4 +1,4 @@
-import { type z } from "zod";
+import { z } from "zod";
 
 import { env } from "~/env";
 
@@ -29,6 +29,33 @@ export class AviationApiError extends Error {
 
 type Params = Record<string, string | number | readonly string[] | undefined>;
 
+async function send<S extends z.ZodType>(
+  path: string,
+  schema: S,
+  url: URL,
+  init?: RequestInit,
+) {
+  const response = await fetch(url, init);
+  const body: unknown = await response.json().catch(() => null);
+  if (!response.ok) {
+    const detail = (body as { detail?: unknown } | null)?.detail;
+    const info =
+      typeof detail === "object" && detail !== null
+        ? (detail as { message?: string; sources?: unknown })
+        : {};
+    const sources = sourcesSchema.safeParse(info.sources);
+    throw new AviationApiError(
+      response.status,
+      info.message ??
+        (typeof detail === "string"
+          ? detail
+          : `Aviation API ${path} failed (${response.status})`),
+      sources.success ? sources.data : {},
+    );
+  }
+  return schema.parse(body);
+}
+
 async function get<S extends z.ZodType>(
   path: string,
   schema: S,
@@ -41,20 +68,15 @@ async function get<S extends z.ZodType>(
       url.searchParams.append(key, String(item));
     }
   }
-  const response = await fetch(url);
-  const body: unknown = await response.json().catch(() => null);
-  if (!response.ok) {
-    const detail = (
-      body as { detail?: { message?: string; sources?: unknown } } | null
-    )?.detail;
-    const sources = sourcesSchema.safeParse(detail?.sources);
-    throw new AviationApiError(
-      response.status,
-      detail?.message ?? `Aviation API ${path} failed (${response.status})`,
-      sources.success ? sources.data : {},
-    );
-  }
-  return schema.parse(body);
+  return send(path, schema, url);
+}
+
+function post<S extends z.ZodType>(path: string, schema: S, body: unknown) {
+  return send(path, schema, new URL(path, env.NEXT_PUBLIC_AVIATION_API_URL), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
 }
 
 const icaoPath = (icao: string, suffix = "") =>
@@ -63,7 +85,19 @@ const icaoPath = (icao: string, suffix = "") =>
 export type Around = { lat: number; lon: number; radiusNm?: number };
 export type AirspacePlan = "current" | "next";
 
+/** Pilot-reported ATIS (collector POST /community/atis). The server marks it unverified. */
+export type CommunityAtisReport = {
+  id: string;
+  airportIcao: string;
+  information: string;
+  atisObservedAt: string;
+  datisText: string;
+  fields: Record<string, string | string[]>;
+};
+
 export const aviationApi = {
+  submitAtis: (report: CommunityAtisReport) =>
+    post("/community/atis", z.object({ id: z.string() }).loose(), report),
   airport: (icao: string) => get(icaoPath(icao), airportResponseSchema),
   weather: (icao: string) =>
     get(icaoPath(icao, "/weather"), weatherResponseSchema),

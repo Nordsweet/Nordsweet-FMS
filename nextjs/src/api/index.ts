@@ -3,7 +3,12 @@ import { mutationOptions, queryOptions } from "@tanstack/react-query";
 import { type Flight } from "~/data/flight";
 import { type LatLon } from "~/domain/geo";
 
-import { type AirspacePlan, type Around, aviationApi } from "./aviation/client";
+import {
+  type AirspacePlan,
+  type Around,
+  type CommunityAtisReport,
+  aviationApi,
+} from "./aviation/client";
 import { loadDataset } from "./datasets";
 import { listFlights, removeFlight, saveFlight } from "./flights";
 import { cachedRemote } from "./remote-cache";
@@ -147,6 +152,12 @@ export const api = {
       async ({ airport }: { airport: string }) =>
         (await loadDataset("frequencies")).filter((f) => f.airport === airport),
       reference,
+    ),
+  },
+  community: {
+    submitAtis: mutation(
+      "community.submitAtis",
+      (report: CommunityAtisReport) => aviationApi.submitAtis(report),
     ),
   },
   weather: {

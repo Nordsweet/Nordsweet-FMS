@@ -64,6 +64,10 @@ export const atisSchema = z.object({
   qnh_hpa: z.number().nullable(),
   qnh_matches_metar: z.boolean().nullable(),
   text: z.string(),
+  /** "community" = pilot report: unauthenticated, must be shown as unverified. */
+  source: z.string().default("atis.guru"),
+  verified: z.boolean().optional(),
+  observed_at: timestamp.nullable().optional(),
 });
 
 export const atisResponseSchema = z.object({

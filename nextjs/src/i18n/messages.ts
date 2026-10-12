@@ -270,6 +270,19 @@ const pl = {
     "Czas i paliwo na tej trasie z wiatrem; zielony — najmniej paliwa, niebieski — najszybciej.",
   "plan.economy.outsideIsa":
     "Temperatura poza zakresem tabeli POH — wartości z krańca tabeli.",
+  "plan.wx.communityReport": "raport pilota — niezweryfikowany",
+  "plan.wx.share.title": "Udostępnij ATIS, który słyszysz",
+  "plan.wx.share.letter": "Litera informacji",
+  "plan.wx.share.time": "Godzina ATIS (UTC)",
+  "plan.wx.share.text": "Treść ATIS",
+  "plan.wx.share.submit": "Udostępnij",
+  "plan.wx.share.done": "Udostępniono.",
+  "plan.wx.share.tooMany": "Za dużo zgłoszeń — spróbuj za minutę.",
+  "plan.wx.share.invalid":
+    "Zgłoszenie odrzucone (sprawdź godzinę — maks. 24 h wstecz).",
+  "plan.wx.share.failed": "Nie udało się wysłać.",
+  "plan.wx.share.note":
+    "Inni zobaczą je jako niezweryfikowany raport pilota przez 24 h.",
   "settings.title": "Ustawienia",
   "settings.language": "Język",
   "settings.homeAirport": "Lotnisko macierzyste (ICAO)",
@@ -548,6 +561,18 @@ const en: Record<MessageKey, string> = {
     "Time and fuel on this route with its winds; green — least fuel, blue — fastest.",
   "plan.economy.outsideIsa":
     "Temperature outside the POH table — edge values used.",
+  "plan.wx.communityReport": "pilot report — unverified",
+  "plan.wx.share.title": "Share the ATIS you heard",
+  "plan.wx.share.letter": "Information letter",
+  "plan.wx.share.time": "ATIS time (UTC)",
+  "plan.wx.share.text": "ATIS text",
+  "plan.wx.share.submit": "Share",
+  "plan.wx.share.done": "Shared.",
+  "plan.wx.share.tooMany": "Too many reports — try again in a minute.",
+  "plan.wx.share.invalid":
+    "Report rejected (check the time — at most 24 h ago).",
+  "plan.wx.share.failed": "Could not send.",
+  "plan.wx.share.note": "Others see it as an unverified pilot report for 24 h.",
   "settings.title": "Settings",
   "settings.language": "Language",
   "settings.homeAirport": "Home airport (ICAO)",

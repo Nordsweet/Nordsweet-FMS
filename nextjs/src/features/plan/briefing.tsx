@@ -1,8 +1,13 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 
 import { api } from "~/api";
+import { AviationApiError } from "~/api/aviation/client";
+import { Button } from "~/components/ui/button";
+import { Input } from "~/components/ui/input";
+import { Label } from "~/components/ui/label";
 import { type FlightPoint } from "~/data/flight";
 import { useT } from "~/i18n/use-t";
 import { cn } from "~/lib/utils";
@@ -117,11 +122,23 @@ function AirportBriefing({
             </pre>
           </div>
           {data.atis.map((atis, i) => (
-            <details key={i} className="grid gap-1">
+            <details
+              key={i}
+              className={cn(
+                "grid gap-1",
+                atis.source === "community" &&
+                  "rounded-md border border-amber-500/60 px-2 py-1",
+              )}
+            >
               <summary className="cursor-pointer text-sm">
                 <span className="font-medium">
                   ATIS {t(`plan.wx.atis.${atis.kind}`)} {atis.letter}
                 </span>{" "}
+                {atis.source === "community" && (
+                  <span className="text-xs font-medium text-amber-500">
+                    {t("plan.wx.communityReport")}{" "}
+                  </span>
+                )}
                 <Age minutes={atis.age_minutes} stale={atis.stale} />
                 {atis.qnh_matches_metar === false && (
                   <span className="text-destructive text-xs">
@@ -135,6 +152,7 @@ function AirportBriefing({
               </pre>
             </details>
           ))}
+          {station.icao === point.ident && <ShareAtis icao={station.icao} />}
           <details>
             <summary className="cursor-pointer text-sm font-medium">
               NOTAM (
@@ -159,6 +177,117 @@ function AirportBriefing({
         </>
       )}
     </div>
+  );
+}
+
+/** Report the ATIS you heard; shown to others as an unverified pilot report. */
+function ShareAtis({ icao }: { icao: string }) {
+  const t = useT();
+  const queryClient = useQueryClient();
+  const now = new Date();
+  const [letter, setLetter] = useState("");
+  const [time, setTime] = useState(now.toISOString().slice(11, 16));
+  const [text, setText] = useState("");
+  const submit = useMutation({
+    ...api.community.submitAtis.mutationOptions(),
+    onSuccess: () => {
+      setLetter("");
+      setText("");
+      return queryClient.invalidateQueries({ queryKey: ["airports.briefing"] });
+    },
+  });
+  const observedAt = () => {
+    // HH:MM UTC today; if that is in the future it was yesterday's report.
+    const [h, m] = time.split(":").map(Number);
+    const at = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), h, m),
+    );
+    if (at.getTime() > Date.now() + 5 * 60000)
+      at.setUTCDate(at.getUTCDate() - 1);
+    return at.toISOString();
+  };
+  const valid =
+    /^[A-Z]$/.test(letter) &&
+    /^\d{2}:\d{2}$/.test(time) &&
+    text.trim().length >= 10;
+  const error =
+    submit.error instanceof AviationApiError
+      ? submit.error.status
+      : submit.error
+        ? 0
+        : null;
+
+  return (
+    <details>
+      <summary className="cursor-pointer text-sm">
+        {t("plan.wx.share.title")}
+      </summary>
+      <form
+        className="mt-2 grid gap-2 text-sm"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!valid) return;
+          submit.mutate({
+            id: crypto.randomUUID(),
+            airportIcao: icao,
+            information: letter,
+            atisObservedAt: observedAt(),
+            datisText: text.trim(),
+            fields: {},
+          });
+        }}
+      >
+        <div className="grid grid-cols-2 gap-2">
+          <Label className="grid gap-1">
+            {t("plan.wx.share.letter")}
+            <Input
+              maxLength={1}
+              value={letter}
+              onChange={(e) =>
+                setLetter(e.target.value.toUpperCase().replace(/[^A-Z]/g, ""))
+              }
+            />
+          </Label>
+          <Label className="grid gap-1">
+            {t("plan.wx.share.time")}
+            <Input
+              type="time"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+            />
+          </Label>
+        </div>
+        <Label className="grid gap-1">
+          {t("plan.wx.share.text")}
+          <textarea
+            className="border-input dark:bg-input/30 min-h-24 rounded-lg border bg-transparent px-2.5 py-1.5"
+            maxLength={12000}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+          />
+        </Label>
+        <div className="flex items-center gap-2">
+          <Button type="submit" size="sm" disabled={!valid || submit.isPending}>
+            {t("plan.wx.share.submit")}
+          </Button>
+          {submit.isSuccess && (
+            <span className="text-emerald-500">{t("plan.wx.share.done")}</span>
+          )}
+          {error !== null && (
+            <span className="text-destructive">
+              {error === 429
+                ? t("plan.wx.share.tooMany")
+                : error === 422
+                  ? t("plan.wx.share.invalid")
+                  : t("plan.wx.share.failed")}
+            </span>
+          )}
+        </div>
+        <p className="text-muted-foreground text-xs">
+          {t("plan.wx.share.note")}
+        </p>
+      </form>
+    </details>
   );
 }
 

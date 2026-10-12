@@ -88,3 +88,68 @@ test("briefs weather, fills landing conditions from the METAR and uses forecast 
     page.getByRole("cell", { name: "270/25" }).first(),
   ).toBeVisible();
 });
+
+test("shows community ATIS as unverified and shares a report", async ({
+  page,
+}) => {
+  const posted: Record<string, unknown>[] = [];
+  const withCommunity = JSON.parse(epkk) as { atis: unknown[] };
+  withCommunity.atis.push({
+    kind: "combined",
+    letter: "Q",
+    received_at: "2026-10-11T11:40:00+00:00",
+    observed_at: "2026-10-11T11:35:00+00:00",
+    age_minutes: 5,
+    stale: false,
+    source: "community",
+    verified: false,
+    text: "EPKK INFO Q RWY 25",
+    qnh_hpa: null,
+    qnh_matches_metar: null,
+  });
+  await page.route("https://aviation.lab.vibecde.com/**", (route) => {
+    const path = new URL(route.request().url()).pathname;
+    if (path === "/community/atis" && route.request().method() === "POST") {
+      posted.push(route.request().postDataJSON() as Record<string, unknown>);
+      return route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify({ id: "x" }),
+      });
+    }
+    if (path === "/airports/EPKK")
+      return route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify(withCommunity),
+      });
+    return route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        icao: "EPNT",
+        aerodrome: null,
+        metar: null,
+        taf: null,
+        atis: [],
+        sources: { "atis.guru": "ok" },
+      }),
+    });
+  });
+  await page.goto("/v2");
+  await pickPoint(page, "Departure", "EPKK", "EPKK");
+
+  const departure = page.getByTestId("wx-departure");
+  await expect(departure).toContainText("pilot report — unverified");
+
+  await departure.getByText("Share the ATIS you heard").click();
+  await departure.getByLabel("Information letter").fill("r");
+  await departure
+    .getByLabel("ATIS text")
+    .fill("EPKK INFORMATION R RWY 25 QNH 1012");
+  await departure.getByRole("button", { name: "Share" }).click();
+  await expect(departure).toContainText("Shared.");
+  expect(posted[0]).toMatchObject({
+    airportIcao: "EPKK",
+    information: "R",
+    fields: {},
+  });
+  expect(String(posted[0]!.atisObservedAt)).toMatch(/Z$/);
+});
