@@ -9,13 +9,17 @@ import { useEffect, useRef, useState } from "react";
 import { api } from "~/api";
 import { Button } from "~/components/ui/button";
 import { type AirspacePlan } from "~/api/aviation/client";
-import { type AirspaceFeature } from "~/api/aviation/schemas";
+import {
+  type AirspaceFeature,
+  type TrafficAircraft,
+} from "~/api/aviation/schemas";
 import { type FlightPoint } from "~/data/flight";
+import { distanceNm } from "~/domain/geo";
 import { useT } from "~/i18n/use-t";
 import { useFlight } from "~/stores/flight";
 
 export type Basemap = "osm" | "dark";
-export type LayerId = "airspace" | "airports" | "vfr" | "ifr";
+export type LayerId = "airspace" | "airports" | "vfr" | "ifr" | "traffic";
 
 type Props = {
   basemap: Basemap;
@@ -49,7 +53,8 @@ type Click =
       kind: "point";
       lngLat: maplibregl.LngLat;
       point: FlightPoint & { name: string; kind: string };
-    };
+    }
+  | { kind: "traffic"; lngLat: maplibregl.LngLat; aircraft: TrafficAircraft };
 
 const toFeatures = (
   rows: {
@@ -83,6 +88,18 @@ export function MapView({ basemap, layers, plan }: Props) {
   const airspace = useQuery(
     api.airspace.around.queryOptions({ ...AIRSPACE_QUERY, plan }),
   );
+  // Traffic in the visible area (rounded so small pans do not refetch), every 10 s while shown.
+  const [view, setView] = useState({
+    lat: POLAND[1],
+    lon: POLAND[0],
+    radiusNm: 250,
+  });
+  const traffic = useQuery({
+    ...api.traffic.around.queryOptions(view),
+    enabled: ready && layers.traffic,
+    refetchInterval: 10_000,
+  });
+  const trafficByHex = useRef(new Map<string, TrafficAircraft>());
 
   // Create the map once. maplibre-gl touches `window`, so it is loaded in the browser only.
   useEffect(() => {
@@ -129,7 +146,14 @@ export function MapView({ basemap, layers, plan }: Props) {
       map.addControl(new ml.ScaleControl({ unit: "nautical" }), "bottom-left");
       map.on("load", () => {
         const empty = { type: "FeatureCollection" as const, features: [] };
-        for (const id of ["airspace", "airports", "vfr", "ifr", "route"])
+        for (const id of [
+          "airspace",
+          "airports",
+          "vfr",
+          "ifr",
+          "route",
+          "traffic",
+        ])
           map.addSource(id, { type: "geojson", data: empty });
         map.addLayer({
           id: "airspace-fill",
@@ -200,6 +224,31 @@ export function MapView({ basemap, layers, plan }: Props) {
           source: "route",
           paint: { "line-color": "#f472b6", "line-width": 3 },
         });
+        map.addLayer({
+          id: "traffic",
+          type: "circle",
+          source: "traffic",
+          paint: {
+            "circle-radius": 5,
+            "circle-color": ["case", ["get", "onGround"], "#a3a3a3", "#facc15"],
+            "circle-stroke-width": 1.5,
+            "circle-stroke-color": "#000000",
+          },
+        });
+        map.on("moveend", () => {
+          const c = map.getCenter();
+          const corner = map.getBounds().getNorthEast();
+          // Centre-to-corner distance covers the whole view; the API allows 1–250 NM.
+          const radius = distanceNm(
+            { lat: c.lat, lon: c.lng },
+            { lat: corner.lat, lon: corner.lng },
+          );
+          setView({
+            lat: Math.round(c.lat * 10) / 10,
+            lon: Math.round(c.lng * 10) / 10,
+            radiusNm: Math.min(250, Math.max(1, Math.ceil(radius / 10) * 10)),
+          });
+        });
 
         map.on("click", (e: maplibregl.MapMouseEvent) => {
           // Points are a few pixels wide: search a finger-sized box and take the nearest.
@@ -210,7 +259,7 @@ export function MapView({ basemap, layers, plan }: Props) {
                 [e.point.x - r, e.point.y - r],
                 [e.point.x + r, e.point.y + r],
               ],
-              { layers: ["airports", "vfr", "ifr"] },
+              { layers: ["traffic", "airports", "vfr", "ifr"] },
             )
             .map((f) => {
               const [lon, lat] = (
@@ -220,6 +269,14 @@ export function MapView({ basemap, layers, plan }: Props) {
               return { f, d: Math.hypot(px.x - e.point.x, px.y - e.point.y) };
             })
             .sort((a, b) => a.d - b.d)[0]?.f;
+          const aircraft =
+            hit?.layer.id === "traffic"
+              ? trafficByHex.current.get(String(hit.properties.hex))
+              : undefined;
+          if (aircraft) {
+            setClick({ kind: "traffic", lngLat: e.lngLat, aircraft });
+            return;
+          }
           if (hit) {
             const [lon, lat] = (
               hit.geometry as unknown as { coordinates: [number, number] }
@@ -259,7 +316,7 @@ export function MapView({ basemap, layers, plan }: Props) {
           }
           setClick(null);
         });
-        for (const layer of ["airports", "vfr", "ifr"]) {
+        for (const layer of ["airports", "vfr", "ifr", "traffic"]) {
           map.on(
             "mouseenter",
             layer,
@@ -309,6 +366,20 @@ export function MapView({ basemap, layers, plan }: Props) {
       ),
     );
   }, [ready, navpoints.data]);
+
+  useEffect(() => {
+    if (!ready) return;
+    const aircraft = layers.traffic ? (traffic.data?.aircraft ?? []) : [];
+    trafficByHex.current = new Map(aircraft.map((a) => [a.hex, a]));
+    void source("traffic")?.setData({
+      type: "FeatureCollection",
+      features: aircraft.map((a) => ({
+        type: "Feature",
+        geometry: { type: "Point", coordinates: [a.lon, a.lat] },
+        properties: { hex: a.hex, onGround: a.on_ground },
+      })),
+    });
+  }, [ready, layers.traffic, traffic.data]);
 
   // Route line and labelled markers (DOM markers need no glyph server, so they work offline).
   useEffect(() => {
@@ -385,6 +456,7 @@ export function MapView({ basemap, layers, plan }: Props) {
     show("airports", layers.airports);
     show("vfr", layers.vfr);
     show("ifr", layers.ifr);
+    show("traffic", layers.traffic);
   }, [ready, basemap, layers]);
 
   const addPoint = (
@@ -419,7 +491,37 @@ export function MapView({ basemap, layers, plan }: Props) {
           >
             ✕
           </button>
-          {click.kind === "point" ? (
+          {click.kind === "traffic" ? (
+            <div className="grid gap-1" data-testid="traffic-card">
+              <div className="font-mono font-semibold">
+                {click.aircraft.callsign ??
+                  click.aircraft.registration ??
+                  click.aircraft.hex}
+              </div>
+              <div className="text-muted-foreground">
+                {[click.aircraft.registration, click.aircraft.type]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </div>
+              <div className="tabular-nums">
+                {click.aircraft.on_ground
+                  ? t("map.traffic.onGround")
+                  : `${click.aircraft.altitude_ft ?? "—"} ft`}{" "}
+                ·{" "}
+                {click.aircraft.ground_speed_kt === null
+                  ? "—"
+                  : Math.round(click.aircraft.ground_speed_kt)}{" "}
+                kt ·{" "}
+                {click.aircraft.track_deg === null
+                  ? "—"
+                  : `${Math.round(click.aircraft.track_deg)}°T`}
+                {click.aircraft.squawk ? ` · ${click.aircraft.squawk}` : ""}
+              </div>
+              <div className="text-muted-foreground text-xs">
+                {t("map.traffic.source")}
+              </div>
+            </div>
+          ) : click.kind === "point" ? (
             <div className="grid gap-2">
               <div>
                 <div className="font-mono font-semibold">

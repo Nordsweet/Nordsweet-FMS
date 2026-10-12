@@ -14,7 +14,7 @@ import {
 import { type Basemap, type LayerId, MapView } from "~/features/map/map-view";
 import { useT } from "~/i18n/use-t";
 
-const LAYERS: LayerId[] = ["airspace", "airports", "vfr", "ifr"];
+const LAYERS: LayerId[] = ["airspace", "airports", "vfr", "ifr", "traffic"];
 
 export default function MapPage() {
   const t = useT();
@@ -25,6 +25,7 @@ export default function MapPage() {
     airports: true,
     vfr: true,
     ifr: false,
+    traffic: false,
   });
 
   return (

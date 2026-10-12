@@ -12,6 +12,7 @@ import { type Language, useSettings } from "~/stores/settings";
 const nav: { href: string; label: MessageKey }[] = [
   { href: "/v2", label: "nav.plan" },
   { href: "/v2/map", label: "nav.map" },
+  { href: "/v2/fly", label: "nav.fly" },
   { href: "/v2/settings", label: "nav.settings" },
 ];
 
