@@ -1,0 +1,8 @@
+# Pre-production (develop) on the homelab: https://dev.fms.lab.vibecde.com (Tailscale only).
+services:
+  web:
+    build: ../nextjs
+    restart: unless-stopped
+    # Localhost only; Caddy (host network) is the entry point and terminates TLS.
+    ports:
+      - "127.0.0.1:8020:80"

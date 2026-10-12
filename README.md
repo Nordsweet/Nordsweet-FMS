@@ -5,7 +5,7 @@ Planowanie lotu VFR, osiągi, pogoda, mapa i nawigacja w locie — aplikacja Nex
 
 | Gałąź | Rola |
 |---|---|
-| `develop` | przedprodukcyjna — nowa aplikacja; dostęp tylko przez Tailscale (brak uwierzytelniania) |
+| `develop` | przedprodukcyjna — https://dev.fms.lab.vibecde.com (tylko Tailscale, brak uwierzytelniania), wdrażana automatycznie ([`deploy/`](deploy/README.md)) |
 | `main` | produkcja (poprzednia wersja do czasu przełączenia) |
 
 ```sh
