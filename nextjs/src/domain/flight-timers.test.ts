@@ -9,6 +9,10 @@ import {
   stepTimers,
   timerElapsed,
   toggleTimer,
+  utilityCountdown,
+  utilityDone,
+  utilityMain,
+  utilityValue,
 } from "./flight-timers";
 
 /** Fly one sample per second; returns the timers and every phase the logic switched to. */
@@ -118,5 +122,21 @@ describe("stepTimers", () => {
     });
     expect(timerElapsed(t.offBlock, 1000 + 3_725_000)).toBe("01:02:05");
     expect(timerElapsed(newTimers().airTime, 0)).toBe("--:--:--");
+  });
+});
+
+describe("utility timers", () => {
+  it("cycles stopwatch → stopped → reset and counts a countdown down", () => {
+    const idle = newTimers().utility[0];
+    const running = utilityMain(idle, 0);
+    expect(utilityValue(running, 65_000)).toBe("01:05");
+    const stopped = utilityMain(running, 70_000);
+    expect(stopped.mode).toBe("stopped");
+    expect(utilityMain(stopped, 80_000)).toEqual(idle);
+    const countdown = utilityCountdown(2, 0);
+    expect(utilityValue(countdown, 500)).toBe("02:00");
+    expect(utilityValue(countdown, 61_000)).toBe("00:59");
+    expect(utilityDone(countdown, 119_999)).toBe(false);
+    expect(utilityDone(countdown, 120_000)).toBe(true);
   });
 });

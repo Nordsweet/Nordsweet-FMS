@@ -7,6 +7,7 @@ import { computeProgress } from "~/domain/progress";
 import { useFlight } from "~/stores/flight";
 import { useInFlight } from "~/stores/inflight";
 import { useMapSettings } from "~/stores/map";
+import { playChime } from "./chime";
 import { useGps } from "./use-gps";
 
 const useAirport = (code: string | undefined) =>
@@ -24,11 +25,13 @@ export function FlightRuntime() {
   const { fix, error } = useGps(enabled || flight.startedAt !== null);
   const { record, setActiveLeg, observe, tick } = flight;
   const departure = useAirport(plan.departure?.ident);
-  const destination = useAirport(plan.destination?.ident);
+  const airports = useQuery(api.airports.list.queryOptions(undefined)).data;
   const flying = flight.startedAt !== null;
   useEffect(() => {
     if (!flying) return;
-    const id = setInterval(() => tick(Date.now()), 1000);
+    const id = setInterval(() => {
+      if (tick(Date.now())) playChime();
+    }, 1000);
     return () => clearInterval(id);
   }, [flying, tick]);
   useEffect(() => {
@@ -44,10 +47,14 @@ export function FlightRuntime() {
       altitudeFt: fix.altitudeFt,
       time: fix.time,
     });
-    // shortcut: the ground is the nearest planned airport (legacy also used terrain when known).
-    const ground = [departure, destination]
-      .filter((a) => a !== null)
-      .sort((a, b) => distanceNm(a, fix) - distanceNm(b, fix))[0];
+    // Legacy: the ground under the aircraft is the nearest airport's elevation.
+    const ground = airports?.reduce<{ d: number; ft: number } | null>(
+      (best, a) => {
+        const d = distanceNm(a, fix);
+        return !best || d < best.d ? { d, ft: a.elevationFt } : best;
+      },
+      null,
+    );
     observe(
       {
         at: Date.parse(fix.time),
@@ -60,7 +67,7 @@ export function FlightRuntime() {
       {
         departureElevationFt: departure?.elevationFt ?? 0,
         cruiseAltitudeFt: plan.cruiseAltitudeFt,
-        groundElevationFt: ground?.elevationFt ?? departure?.elevationFt ?? 0,
+        groundElevationFt: ground?.ft ?? departure?.elevationFt ?? 0,
       },
     );
     // Only a new fix drives the timers; the rest is read at that moment.

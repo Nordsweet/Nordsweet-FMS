@@ -66,6 +66,15 @@ test("flies the route: sequencing, direct-to and debrief", async ({
   ).toContainText(["Off-block"]);
   await expect(page.getByRole("button", { name: "ON-BLOCK" })).toBeVisible();
 
+  // FREDA check: completing it logs the fuel as an event.
+  await page.getByRole("button", { name: "FREDA CHECK" }).click();
+  const freda = page.getByRole("dialog", { name: "FREDA" });
+  await freda.getByRole("button", { name: "YES" }).click();
+  await freda.getByRole("button", { name: "Complete FREDA check" }).click();
+  await expect(
+    page.getByRole("list", { name: "Events" }).getByRole("listitem").first(),
+  ).toContainText("FREDA Fuel check");
+
   await page.getByRole("button", { name: "Close flight" }).click();
   await expect(page.getByTestId("debrief")).toContainText("track points");
 });

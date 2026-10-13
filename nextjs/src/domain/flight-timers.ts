@@ -16,6 +16,8 @@ export type Timer = {
 export type FlightEvent = {
   name: string;
   at: number;
+  /** When it was recorded (landing is back-dated to its candidate time); drives the toast. */
+  notedAt?: number;
   source: "auto" | "manual";
   lat: number | null;
   lon: number | null;
@@ -44,7 +46,21 @@ export type Timers = {
   events: FlightEvent[];
   /** Legacy delayed phase changes: climb 10 s after take-off, taxi-in 20 s after landing. */
   pendingPhase: { phase: "climb" | "taxiin"; dueAt: number } | null;
+  /** TIMER 1 and TIMER 2: stopwatch or 1/2 minute countdown. */
+  utility: [UtilityTimer, UtilityTimer];
 };
+export type UtilityTimer = {
+  mode: "idle" | "stopwatch" | "countdown" | "stopped" | "complete";
+  startedAt: number | null;
+  stoppedAt: number | null;
+  durationMs: number;
+};
+const utilityTimer = (): UtilityTimer => ({
+  mode: "idle",
+  startedAt: null,
+  stoppedAt: null,
+  durationMs: 0,
+});
 
 const CLIMB_DELAY_MS = 10_000;
 const TAXIIN_DELAY_MS = 20_000;
@@ -70,6 +86,7 @@ export const newTimers = (): Timers => ({
   todCandidateAt: null,
   events: [],
   pendingPhase: null,
+  utility: [utilityTimer(), utilityTimer()],
 });
 
 const EVENT_NAMES: Record<TimerKey, [start: string, stop: string]> = {
@@ -97,6 +114,7 @@ function working(t: Timers, at: number, where: Sample | null) {
     next.events.push({
       name,
       at: when,
+      notedAt: at,
       source,
       lat: where?.lat ?? null,
       lon: where?.lon ?? null,
@@ -143,6 +161,7 @@ export function addEvent(t: Timers, name: string, now: number): Timers {
   next.events.push({
     name,
     at: now,
+    notedAt: now,
     source: "manual",
     lat: t.last?.lat ?? null,
     lon: t.last?.lon ?? null,
@@ -304,4 +323,45 @@ export function timerElapsed(t: Timer, now: number) {
   );
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${pad(Math.floor(total / 3600))}:${pad(Math.floor((total % 3600) / 60))}:${pad(total % 60)}`;
+}
+
+/** The utility timer's main button: stop a running one, reset a stopped one, else start a stopwatch. */
+export function utilityMain(u: UtilityTimer, now: number): UtilityTimer {
+  if (u.mode === "stopwatch" || u.mode === "countdown")
+    return { ...u, mode: "stopped", stoppedAt: now };
+  if (u.mode !== "idle") return utilityTimer();
+  return { mode: "stopwatch", startedAt: now, stoppedAt: null, durationMs: 0 };
+}
+
+export const utilityCountdown = (
+  minutes: number,
+  now: number,
+): UtilityTimer => ({
+  mode: "countdown",
+  startedAt: now,
+  stoppedAt: null,
+  durationMs: minutes * 60_000,
+});
+
+/** A countdown that has run out becomes complete (the caller chimes). */
+export const utilityDone = (u: UtilityTimer, now: number) =>
+  u.mode === "countdown" && now - u.startedAt! >= u.durationMs;
+
+/** Legacy "MM:SS" (with hours when needed): time left on a countdown, else elapsed. */
+export function utilityValue(u: UtilityTimer, now: number) {
+  let total = 0;
+  if (u.mode === "countdown")
+    total = Math.max(
+      0,
+      Math.ceil((u.durationMs - (now - u.startedAt!)) / 1000),
+    );
+  else if (u.startedAt !== null)
+    total = Math.max(
+      0,
+      Math.floor(((u.stoppedAt ?? now) - u.startedAt) / 1000),
+    );
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const hours = Math.floor(total / 3600);
+  const rest = `${pad(Math.floor((total % 3600) / 60))}:${pad(total % 60)}`;
+  return hours ? `${pad(hours)}:${rest}` : rest;
 }

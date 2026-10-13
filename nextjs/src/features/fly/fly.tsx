@@ -33,11 +33,11 @@ import { useInFlight } from "~/stores/inflight";
 import { CommsPanel } from "./comms-panel";
 import { ConfigPanel } from "./config-panel";
 import { EmergencyPanel } from "./emergency-panel";
+import { EventToast } from "./event-toast";
+import { FredaDialog } from "./freda-dialog";
 import { InfoPanel } from "./info-panel";
 import { OptionsPanel } from "./options-panel";
 import { useGps } from "./use-gps";
-
-const FREDA_INTERVAL_MIN = 30;
 
 const PHASES = FLIGHT_PHASES;
 type Phase = FlightPhase;
@@ -127,16 +127,10 @@ export function FlyPage() {
   const eteDest = progress
     ? minutesFor(progress.distanceToDestinationNm)
     : null;
-  const fredaDue =
-    flying &&
-    inFlight.lastFredaAt !== null &&
-    now - Date.parse(inFlight.lastFredaAt) >= FREDA_INTERVAL_MIN * 60000;
+  const fredaDue = inFlight.fredaDueAt !== null && now >= inFlight.fredaDueAt;
   const fredaIn =
-    flying && inFlight.lastFredaAt !== null
-      ? Math.max(
-          0,
-          FREDA_INTERVAL_MIN - (now - Date.parse(inFlight.lastFredaAt)) / 60000,
-        )
+    inFlight.fredaDueAt !== null
+      ? Math.max(0, (inFlight.fredaDueAt - now) / 60000)
       : null;
   const summary = summarizeTrack(inFlight.track);
   const rail = RAIL.filter((r) => !r.phases || r.phases.includes(phase));
@@ -216,7 +210,7 @@ export function FlyPage() {
         </Select>
         <Button
           variant={fredaDue ? "destructive" : "outline"}
-          onClick={inFlight.confirmFreda}
+          onClick={inFlight.openFreda}
           data-testid="freda"
         >
           {fredaDue
@@ -284,6 +278,8 @@ export function FlyPage() {
   return (
     <div className="bg-background fixed inset-0 z-40">
       <MapWorkspace embedded />
+      {flying && <EventToast />}
+      {flying && <FredaDialog fix={fix} now={now} />}
       <div className="bg-card/90 absolute top-3 left-1/2 z-30 flex max-w-[calc(100%-1.5rem)] -translate-x-1/2 gap-2 overflow-x-auto rounded-3xl border p-2 backdrop-blur">
         {flying ? (
           <>

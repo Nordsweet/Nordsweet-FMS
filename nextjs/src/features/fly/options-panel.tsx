@@ -3,11 +3,17 @@
 import { useEffect, useState } from "react";
 
 import { Button } from "~/components/ui/button";
-import { type TimerKey, isRunning, timerElapsed } from "~/domain/flight-timers";
+import {
+  type TimerKey,
+  isRunning,
+  timerElapsed,
+  utilityValue,
+} from "~/domain/flight-timers";
 import { useT } from "~/i18n/use-t";
 import { useInFlight } from "~/stores/inflight";
 import { useMapSettings } from "~/stores/map";
 
+import { playChime } from "./chime";
 import { Group, Row } from "./emergency-panel";
 
 const time = (at: number) =>
@@ -63,12 +69,66 @@ function TimerCard({ id, now }: { id: TimerKey; now: number }) {
   );
 }
 
+function UtilityCard({ index, now }: { index: 0 | 1; now: number }) {
+  const t = useT();
+  const timer = useInFlight((s) => s.timers.utility[index]);
+  const main = useInFlight((s) => s.utilityMain);
+  const countdown = useInFlight((s) => s.utilityCountdown);
+  const running = timer.mode === "stopwatch" || timer.mode === "countdown";
+  return (
+    <Group title={t("fly.timers.utility", { n: index + 1 })}>
+      <p className="text-muted-foreground text-xs">
+        {t("fly.timers.utilityRule")}
+      </p>
+      <output
+        className="font-mono text-2xl font-semibold tabular-nums"
+        data-testid={`utility-${index}`}
+      >
+        {utilityValue(timer, now)}
+      </output>
+      <div className="flex flex-wrap gap-2">
+        <Button variant="outline" size="sm" onClick={() => main(index)}>
+          {t(
+            running
+              ? "fly.timers.stop"
+              : timer.mode !== "idle"
+                ? "fly.timers.reset"
+                : "fly.timers.start",
+          )}
+        </Button>
+        {[1, 2].map((minutes) => (
+          <Button
+            key={minutes}
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              // Unlocks audio inside the tap, so the chime can play when the countdown ends.
+              playChime();
+              countdown(index, minutes);
+            }}
+          >
+            {t("fly.timers.minutes", { n: minutes })}
+          </Button>
+        ))}
+      </div>
+      <p className="text-muted-foreground text-xs">
+        {timer.mode === "countdown"
+          ? t("fly.timers.countdownRunning", {
+              n: Math.round(timer.durationMs / 60000),
+            })
+          : t(`fly.timers.utility.${timer.mode}`)}
+      </p>
+    </Group>
+  );
+}
+
 /** Legacy OPTIONS: GPS and map options, Block/Air Time with GPS detection, the event log. */
 export function OptionsPanel() {
   const t = useT();
   const settings = useMapSettings();
   const timers = useInFlight((s) => s.timers);
   const addEvent = useInFlight((s) => s.addEvent);
+  const openFreda = useInFlight((s) => s.openFreda);
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
@@ -110,6 +170,13 @@ export function OptionsPanel() {
           value={timerElapsed(timers.airTime, now)}
         />
       </Group>
+      <UtilityCard index={0} now={now} />
+      <UtilityCard index={1} now={now} />
+      <div>
+        <Button variant="outline" onClick={openFreda}>
+          {t("fly.freda.open")}
+        </Button>
+      </div>
       <Group title={t("fly.events.title")}>
         <div>
           <Button size="sm" variant="outline" onClick={() => addEvent("")}>
