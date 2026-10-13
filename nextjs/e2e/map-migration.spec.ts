@@ -70,7 +70,8 @@ test("selected traffic uses generic source, callsign history, destination reveal
   page,
 }) => {
   test.setTimeout(60000);
-  await page.clock.install({ time: new Date() });
+  const now = Date.now();
+  await page.clock.install({ time: new Date(now) });
   await mocks(page);
   const fixture = JSON.parse(
     fs.readFileSync("src/api/aviation/fixtures/traffic.json", "utf8"),
@@ -94,13 +95,13 @@ test("selected traffic uses generic source, callsign history, destination reveal
             {
               lat: 50,
               lon: 18,
-              sampledAt: Date.now() - 20000,
+              sampledAt: now - 20000,
               callsign: "OLD",
             },
             {
               lat: 50.1,
               lon: 18.2,
-              sampledAt: Date.now() - 10000,
+              sampledAt: now - 10000,
               callsign: "RYR8GK",
             },
           ],
@@ -143,7 +144,9 @@ test("selected traffic uses generic source, callsign history, destination reveal
   await expect(card).toContainText("EGSS");
   await expect(card).not.toContainText(/adsb\.lol|adsb\.fi|Position/);
   await expect(card).toContainText("Confirmed history");
-  await page.clock.pauseAt(new Date(Date.now() + 1000));
+  await page.clock.pauseAt(
+    new Date(await page.evaluate(() => Date.now() + 1000)),
+  );
   await card.getByRole("button", { name: "Show airport name" }).click();
   await expect(card).toContainText("London Stansted Airport");
   await page.clock.fastForward(2999);

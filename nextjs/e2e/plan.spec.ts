@@ -20,6 +20,7 @@ async function pickPoint(
   query: string,
   ident: string,
 ) {
+  await page.getByLabel(label, { exact: true }).fill("");
   await page.getByLabel(label, { exact: true }).fill(query);
   await page.getByRole("option").filter({ hasText: ident }).first().click();
 }
@@ -56,7 +57,14 @@ test("plans a flight end to end and keeps it across reloads", async ({
   );
   await expect(page.getByTestId("perf-landing-obstacle")).toHaveText(/\d+ m/);
 
+  const download = page.waitForEvent("download");
   await page.getByRole("button", { name: "Save a flight" }).click();
+  await expect(page.getByRole("status")).toHaveText("Flight saved");
+  expect((await download).suggestedFilename()).toMatch(/\.nord$/);
+  await expect(
+    page.getByRole("tab", { name: "Current flight", exact: true }),
+  ).toHaveAttribute("aria-selected", "true");
+  await tab(page, "Saved flights");
   await page.getByLabel("Flight name").fill("Test flight");
   await page.getByRole("button", { name: "Save", exact: true }).click();
   await expect(

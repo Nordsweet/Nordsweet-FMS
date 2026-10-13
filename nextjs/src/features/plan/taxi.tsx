@@ -1,7 +1,6 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
 
 import { api } from "~/api";
 import { Label } from "~/components/ui/label";
@@ -68,8 +67,22 @@ function AirportTaxi({
   const first = (type: string) =>
     ground?.elements.find((e) => e.type === type)?.id ?? "";
   // Departure: stand → holding point; arrival: runway → stand.
-  const [from, setFrom] = useState<string | null>(null);
-  const [to, setTo] = useState<string | null>(null);
+  const flight = useFlight((s) => s.flight);
+  const update = useFlight((s) => s.update);
+  const inputKey = `${phase}|${point.ident}`;
+  const inputs = flight.taxiInputs[inputKey] ?? { from: null, to: null };
+  const valid = (id: string | null) =>
+    ground?.elements.some((e) => e.id === id && ENDPOINT_TYPES.has(e.type))
+      ? id
+      : null;
+  const from = valid(inputs.from),
+    to = valid(inputs.to);
+  const change = (patch: Partial<typeof inputs>) =>
+    update({
+      taxiInputs: { ...flight.taxiInputs, [inputKey]: { ...inputs, ...patch } },
+    });
+  const setFrom = (from: string) => change({ from });
+  const setTo = (to: string) => change({ to });
   if (!ground) return null;
   const start =
     from ?? (phase === "departure" ? first("stand") : first("runway"));

@@ -13,7 +13,10 @@ import { FuelSection } from "~/features/plan/fuel";
 import { PerformanceSection } from "~/features/plan/performance";
 import { AircraftSection } from "~/features/plan/aircraft";
 import { RouteSection } from "~/features/plan/route";
-import { SavedFlightsSection } from "~/features/plan/saved-flights";
+import {
+  SaveFlightButton,
+  SavedFlightsSection,
+} from "~/features/plan/saved-flights";
 import { TaxiSection } from "~/features/plan/taxi";
 import { usePlan } from "~/features/plan/use-plan";
 import { WeightBalanceSection } from "~/features/plan/weight-balance";
@@ -50,6 +53,7 @@ const noSubscribe = () => () => undefined;
 export default function PlanPage() {
   const t = useT();
   const [workspace, setWorkspace] = useState("current");
+  const [section, setSection] = useState("aircraft");
 
   // The shell's header slot; null during the static prerender.
   const actions = useSyncExternalStore(
@@ -63,13 +67,7 @@ export default function PlanPage() {
       {actions &&
         createPortal(
           <>
-            <Button
-              variant="outline"
-              className="h-13.5 min-w-41 border-[rgba(141,190,255,0.28)] bg-[rgba(15,29,52,0.92)] shadow-[0_18px_36px_rgba(0,0,0,0.2)] hover:bg-[rgba(26,47,78,0.96)]"
-              onClick={() => setWorkspace("saved")}
-            >
-              {t("plan.saveFlight")}
-            </Button>
+            <SaveFlightButton />
             <StartFlightButton />
           </>,
           actions,
@@ -96,7 +94,11 @@ export default function PlanPage() {
               </p>
             </div>
             <TabsContent value="current" forceMount className={content}>
-              <Tabs defaultValue="aircraft" className={setupPanel}>
+              <Tabs
+                value={section}
+                onValueChange={setSection}
+                className={setupPanel}
+              >
                 <h2 className="text-[0.95rem] font-semibold tracking-[0.12em] uppercase">
                   {t("plan.tab.aircraft")}
                 </h2>
@@ -120,7 +122,12 @@ export default function PlanPage() {
               </Tabs>
             </TabsContent>
             <TabsContent value="saved" forceMount className={content}>
-              <SavedFlightsSection />
+              <SavedFlightsSection
+                onLoaded={() => {
+                  setWorkspace("current");
+                  setSection("route");
+                }}
+              />
             </TabsContent>
           </Tabs>
         </CardContent>

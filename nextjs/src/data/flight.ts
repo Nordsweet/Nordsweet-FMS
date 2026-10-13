@@ -93,6 +93,26 @@ export const flightSchema = z.object({
     .default({}),
   /** Cruise OAT for the POH cruise tables (legacy cruise tile, 15 °C by default). */
   cruiseOatC: z.number().default(15),
+  checklistChecked: z.record(z.string(), z.array(z.string())).default({}),
+  performanceInputs: z
+    .record(
+      z.string(),
+      z.object({
+        runwayId: z.string().nullable().default(null),
+        configId: z.string().nullable().default(null),
+        oatC: z.number().default(15),
+        qnhHpa: z.number().positive().default(1013),
+        windDirectionDeg: z.number().default(0),
+        windSpeedKt: z.number().nonnegative().default(0),
+      }),
+    )
+    .default({}),
+  taxiInputs: z
+    .record(
+      z.string(),
+      z.object({ from: z.string().nullable(), to: z.string().nullable() }),
+    )
+    .default({}),
   stationsKg: z.record(z.string(), z.number().nonnegative()),
 });
 
@@ -125,6 +145,9 @@ export function newFlight(): Flight {
     fuel: { blockL: 0 },
     fuelOverrides: {},
     cruiseOatC: 15,
+    checklistChecked: {},
+    performanceInputs: {},
+    taxiInputs: {},
     stationsKg: {},
   };
 }

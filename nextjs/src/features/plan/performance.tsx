@@ -23,6 +23,7 @@ import {
 import { parseMetar } from "~/domain/metar";
 import { windComponents } from "~/domain/wind";
 import { useT } from "~/i18n/use-t";
+import { useFlight } from "~/stores/flight";
 import { cn } from "~/lib/utils";
 
 import { NumberField, Section, fmt } from "./fields";
@@ -76,16 +77,45 @@ function Phase({ phase }: { phase: "takeoff" | "landing" }) {
     ...api.airports.get.queryOptions({ code: point?.ident ?? "" }),
     enabled: !!point,
   });
-  const [runwayId, setRunwayId] = useState<string | null>(null);
-  const [oatC, setOatC] = useState(15);
-  const [qnhHpa, setQnhHpa] = useState(1013);
-  const [windDirectionDeg, setWindDirectionDeg] = useState(0);
-  const [windSpeedKt, setWindSpeedKt] = useState(0);
+  const update = useFlight((s) => s.update);
+  const inputKey = `${phase}|${point?.ident ?? ""}|${aircraft?.id ?? ""}`;
+  const inputs = flight.performanceInputs[inputKey] ?? {
+    runwayId: null,
+    configId: null,
+    oatC: 15,
+    qnhHpa: 1013,
+    windDirectionDeg: 0,
+    windSpeedKt: 0,
+  };
+  const { runwayId, configId, oatC, qnhHpa, windDirectionDeg, windSpeedKt } =
+    inputs;
+  const change = (patch: Partial<typeof inputs>) => {
+    const current = useFlight.getState().flight;
+    update({
+      performanceInputs: {
+        ...current.performanceInputs,
+        [inputKey]: {
+          ...inputs,
+          ...current.performanceInputs[inputKey],
+          ...patch,
+        },
+      },
+    });
+  };
+  const setRunwayId = (runwayId: string) => change({ runwayId });
+  const setConfigId = (configId: string) => change({ configId });
+  const setOatC = (oatC: number) => change({ oatC });
+  const setQnhHpa = (qnhHpa: number) => change({ qnhHpa });
+  const setWindDirectionDeg = (windDirectionDeg: number) =>
+    change({ windDirectionDeg });
+  const setWindSpeedKt = (windSpeedKt: number) => change({ windSpeedKt });
   const perf = aircraft?.[phase];
-  const [configId, setConfigId] = useState<string | null>(null);
   const { station, briefing } = useBriefing(point);
   const metar = briefing.data?.metar ?? null;
-  const [metarNote, setMetarNote] = useState<string | null>(null);
+  const [metarNote, setMetarNote] = useState<{
+    key: string;
+    text: string;
+  } | null>(null);
 
   const title = t(`plan.perf.${phase}`);
   const ap = airport.data;
@@ -135,8 +165,9 @@ function Phase({ phase }: { phase: "takeoff" | "landing" }) {
         ? (runway.trueHeadingDeg + 180) % 360
         : (values.windDirectionDeg ?? 0),
     );
-    setMetarNote(
-      [
+    setMetarNote({
+      key: inputKey,
+      text: [
         t("plan.perf.fromMetar", {
           icao: station.icao,
           age: fmt(metar.age_minutes),
@@ -148,7 +179,7 @@ function Phase({ phase }: { phase: "takeoff" | "landing" }) {
       ]
         .filter(Boolean)
         .join(" · "),
-    );
+    });
   };
   const maxCrosswind = aircraft?.windLimits?.maxCrosswindKt ?? null;
   const crosswindKt = Math.abs(wind.crosswindKt);
@@ -240,12 +271,12 @@ function Phase({ phase }: { phase: "takeoff" | "landing" }) {
             {t("plan.perf.noMetar")}
           </span>
         )}
-        {metarNote && (
+        {metarNote?.key === inputKey && (
           <span
             className="text-muted-foreground"
             data-testid={`perf-${phase}-metar`}
           >
-            {metarNote}
+            {metarNote.text}
           </span>
         )}
       </div>

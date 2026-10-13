@@ -22,5 +22,11 @@ test("works through an aircraft checklist", async ({ page }) => {
 
   await page.getByRole("button", { name: "SHUTDOWN" }).click();
   await expect(page.getByRole("heading", { name: "SHUTDOWN" })).toBeVisible();
-  await expect(progress).toHaveText(/^0 of \d+$/); // each checklist starts fresh
+  await expect(progress).toHaveText(/^0 of \d+$/); // independent checklist progress
+  await page
+    .getByRole("button", { name: "Before Engine Start", exact: true })
+    .click();
+  await expect(progress).toHaveText(/^1 of \d+$/);
+  await page.getByRole("button", { name: "Start over", exact: true }).click();
+  await expect(progress).toHaveText(/^0 of \d+$/);
 });

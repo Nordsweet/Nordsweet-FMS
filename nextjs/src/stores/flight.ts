@@ -5,6 +5,8 @@ import { type Flight, flightSchema, newFlight } from "~/data/flight";
 
 type FlightStore = {
   flight: Flight;
+  legacyCheckNeeded: boolean;
+  finishLegacyMigration: (flight: Flight | null) => void;
   update: (patch: Partial<Flight>) => void;
   load: (flight: Flight) => void;
   reset: () => void;
@@ -13,11 +15,20 @@ type FlightStore = {
 /** The flight being planned; survives reloads and works offline. */
 export const useFlight = create<FlightStore>()(
   persist(
-    (set) => ({
+    (set, get) => ({
+      legacyCheckNeeded: true,
+      finishLegacyMigration: (flight) => {
+        if (get().legacyCheckNeeded)
+          set({ legacyCheckNeeded: false, ...(flight ? { flight } : {}) });
+      },
       flight: newFlight(),
-      update: (patch) => set((s) => ({ flight: { ...s.flight, ...patch } })),
-      load: (flight) => set({ flight }),
-      reset: () => set({ flight: newFlight() }),
+      update: (patch) =>
+        set((s) => ({
+          legacyCheckNeeded: false,
+          flight: { ...s.flight, ...patch },
+        })),
+      load: (flight) => set({ flight, legacyCheckNeeded: false }),
+      reset: () => set({ flight: newFlight(), legacyCheckNeeded: false }),
     }),
     {
       name: "nordsweet.flight.v2",
@@ -28,7 +39,9 @@ export const useFlight = create<FlightStore>()(
         const parsed = flightSchema.safeParse(
           (persisted as { flight?: unknown } | undefined)?.flight,
         );
-        return parsed.success ? { ...current, flight: parsed.data } : current;
+        return parsed.success
+          ? { ...current, legacyCheckNeeded: false, flight: parsed.data }
+          : current;
       },
     },
   ),

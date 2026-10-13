@@ -4,6 +4,7 @@ import {
   type Flight,
   type FlightPoint,
   newFlight,
+  flightSchema,
   pointRestrictionSchema,
 } from "./flight";
 
@@ -44,6 +45,9 @@ const nordRoute = z.object({
   waypointRestrictions: z.record(z.string(), pointRestrictionSchema).optional(),
   id: z.string().optional(),
   name: z.string().optional(),
+  customName: z.string().optional(),
+  displayName: z.string().optional(),
+  title: z.string().optional(),
   savedAt: z.string().optional(),
   aircraftType: z.string().optional(),
   aircraftRegistration: z.string().optional(),
@@ -108,12 +112,13 @@ export const nordDocumentSchema = z.object({
   format: z.literal("nordsweet.flight"),
   version: z.number(),
   route: nordRoute,
+  plannerState: flightSchema.optional(),
 });
 
 type NordRoute = z.infer<typeof nordRoute>;
 
 /** Legacy profile keys ("A-1A HUSKY", "C152" + "SPRBB") → aircraft ids ("A-1A-HUSKY", "C152-SPRBB"). */
-function aircraftId(
+export function legacyAircraftId(
   type: string | undefined,
   registration: string | undefined,
   known: readonly string[],
@@ -187,12 +192,15 @@ export function flightFromNordRoute(
   return {
     ...flight,
     id: route.id ?? flight.id,
-    name: route.name ?? "",
+    name:
+      [route.customName, route.displayName, route.title, route.name].find(
+        (name) => name?.trim(),
+      ) ?? "",
     savedAt:
       route.savedAt && !Number.isNaN(Date.parse(route.savedAt))
         ? new Date(route.savedAt).toISOString()
         : flight.savedAt,
-    aircraftId: aircraftId(
+    aircraftId: legacyAircraftId(
       route.aircraftType,
       route.aircraftRegistration,
       knownAircraftIds,
@@ -256,7 +264,18 @@ export function parseNordFile(
 ) {
   const doc = nordDocumentSchema.parse(JSON.parse(text));
   return {
-    flight: flightFromNordRoute(doc.route, knownAircraftIds),
+    flight: flightSchema.parse(
+      doc.plannerState
+        ? {
+            ...doc.plannerState,
+            aircraftId:
+              doc.plannerState.aircraftId &&
+              knownAircraftIds.includes(doc.plannerState.aircraftId)
+                ? doc.plannerState.aircraftId
+                : null,
+          }
+        : flightFromNordRoute(doc.route, knownAircraftIds),
+    ),
     alternateCode:
       doc.route.alternateIcao?.trim() === ""
         ? null
@@ -269,7 +288,7 @@ export function toNordFile(
   flight: Flight,
   aircraftType: string | null,
   /** The planned route (all points); defaults to departure, waypoints, destination. */
-  points: FlightPoint[] = [
+  points: (FlightPoint & { altitudeFt?: number })[] = [
     flight.departure,
     ...flight.waypoints,
     flight.destination,
@@ -277,6 +296,7 @@ export function toNordFile(
 ) {
   return JSON.stringify(
     {
+      plannerState: flightSchema.parse(flight),
       format: "nordsweet.flight",
       savedAt: flight.savedAt,
       version: 1,
@@ -344,7 +364,7 @@ export function toNordFile(
             name: p.ident,
             lat: p.lat,
             lon: p.lon,
-            altitudeFt: flight.cruiseAltitudeFt,
+            altitudeFt: p.altitudeFt ?? flight.cruiseAltitudeFt,
           })),
         },
       },

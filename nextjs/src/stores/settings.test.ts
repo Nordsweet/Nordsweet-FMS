@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { readLegacySettings } from "./settings";
+import { settingsSchema, readLegacySettings } from "./settings";
 
 const storage = (values: Record<string, string>) => ({
   getItem: (key: string) => values[key] ?? null,
@@ -35,4 +35,25 @@ describe("readLegacySettings", () => {
       ),
     ).toEqual({});
   });
+});
+
+it("migrates checklist/ATIS toggles and remembered voice without credentials", () => {
+  expect(
+    readLegacySettings(
+      storage({
+        "nordsweet.atisAutoscroll.v1": "0",
+        "nordsweet.checklistAutoscroll.v1": "1",
+        "nordsweet.checklistVoiceGender.v1": "male",
+        "nordsweet.checklistVoiceUri.v1.male.en-us": "David",
+      }),
+    ),
+  ).toEqual({
+    atisAutoscroll: false,
+    checklistAutoscroll: true,
+    checklistVoiceGender: "male",
+    checklistVoiceUris: { "male.en-us": "David" },
+  });
+  expect(
+    settingsSchema.partial().safeParse({ language: "invalid" }).success,
+  ).toBe(false);
 });
