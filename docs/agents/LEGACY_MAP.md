@@ -62,7 +62,7 @@ merged to `develop`. One owner per row.
 
 | Area | Status | Owner | Notes |
 |---|---|---|---|
-| Map visual parity with legacy | in progress | Codex 2026-10-13 | Legacy chart palette, symbols, labels, sizing and zoom restored; [inventory](MAP_VISUAL_PARITY.md). 29 E2E and 150 unit tests pass. |
+| Map visual parity with legacy | done | | Legacy chart palette, symbols, labels, sizing and zoom restored; [inventory](MAP_VISUAL_PARITY.md). 29 E2E and 150 unit tests pass. |
 | CI map navigation regression | done | | PR #5: update E2E navigation to match preparation and flight views; 26 E2E and 135 unit tests pass. |
 | Preparation navigation and map flight planner | done | | Owner clarification: exactly Settings icon / Flight Planner / Map; graphical route automatically shared with the form.  PR #3 merged into develop. |
 | Preparation-mode parity audit (Home tabs, saved flights, settings, checklists; no Start flight) | done | | `codex/preflight-parity-audit`; [inventory and changelog](PREFLIGHT_AUDIT_CHANGELOG.md), legacy main 5265bc5  PR #3 merged into develop. |

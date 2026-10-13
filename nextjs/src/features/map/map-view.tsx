@@ -47,6 +47,7 @@ import {
 } from "./symbols";
 import { TrafficCard } from "./traffic-card";
 import { useMapAnimation } from "./use-map-animation";
+import { useChartLabels } from "./use-chart-labels";
 import { FloatingDetails } from "./floating-details";
 import { AirspaceDetails } from "./airspace-details";
 import { useT } from "~/i18n/use-t";
@@ -455,9 +456,22 @@ export function MapView({
           paint: { "icon-opacity": ["get", "alpha"] },
         });
 
+        map.addLayer({
+          id: "gps-trail-halo",
+          type: "line",
+          source: "gps-trail",
+          layout: { "line-cap": "round", "line-join": "round" },
+          paint: { "line-color": "rgba(118,242,164,.28)", "line-width": 7 },
+        });
+        map.addLayer({
+          id: "traffic-trail-halo",
+          type: "line",
+          source: "traffic-trail",
+          paint: { "line-color": "rgba(255,255,255,.82)", "line-width": 5.2 },
+        });
         for (const [id, color, dash] of [
-          ["gps-trail", "#0ea5e9", false],
-          ["gps-vector", "#0ea5e9", true],
+          ["gps-trail", "rgba(118,242,164,.94)", false],
+          ["gps-vector", "rgba(36,79,134,.9)", false],
           ["traffic-trail", "#f59e0b", false],
           ["traffic-vector", "#f59e0b", true],
           ["traffic-estimate", "#00a6c7", true],
@@ -469,7 +483,8 @@ export function MapView({
             source: id,
             paint: {
               "line-color": color,
-              "line-width": 2,
+              "line-width":
+                id === "gps-trail" ? 2.8 : id === "traffic-trail" ? 2.6 : 2,
               ...(dash ? { "line-dasharray": [4, 3] } : {}),
             },
           });
@@ -494,7 +509,7 @@ export function MapView({
           id: "gps-ticks",
           type: "line",
           source: "gps-ticks",
-          paint: { "line-color": "#0ea5e9", "line-width": 2 },
+          paint: { "line-color": "rgba(36,79,134,.9)", "line-width": 2 },
         });
         map.addLayer({
           id: "ownship",
@@ -894,162 +909,15 @@ export function MapView({
     settings.request(null);
   }, [ready, settings, route]);
 
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!ready || !map || !settings.labels) return;
-    let cancelled = false;
-    const labels: maplibregl.Marker[] = [];
-    const animatedLabels = planeLabels.current;
-    void import("maplibre-gl").then((ml) => {
-      if (cancelled) return;
-      const bounds = map.getBounds(),
-        zoom = map.getZoom();
-      const points = [
-        ...(layers.airports && zoom >= 8
-          ? (airports.data ?? []).filter((a) => zoom >= 9 || a.isIcao)
-          : []),
-        ...(navpoints.data ?? []).filter(
-          (p) =>
-            zoom >= 8 &&
-            (p.kind === "vfr-reporting-point"
-              ? layers.vfr
-              : p.kind === "navaid"
-                ? layers.navaids
-                : layers.ifr),
-        ),
-      ];
-      for (const p of points) {
-        if (!bounds.contains([p.lon, p.lat])) continue;
-        const label = document.createElement("span");
-        label.className = "legacy-map-label";
-        label.classList.add(
-          "type" in p ? "legacy-airport-label" : "legacy-nav-label",
-        );
-        label.textContent =
-          "type" in p && zoom >= 9
-            ? p.name !== p.ident && p.isIcao
-              ? `${p.name} / ${p.ident}`
-              : p.name
-            : p.ident;
-        if ("type" in p && zoom >= 9) {
-          const detail = document.createElement("small");
-          detail.textContent =
-            `AD ${Math.round(p.elevationFt)} ft AMSL` +
-            (p.runways[0]?.lengthM ? ` / RWY ${p.runways[0].lengthM} m` : "");
-          label.append(detail);
-        }
-        label.title = p.name;
-        labels.push(
-          new ml.Marker({
-            element: label,
-            anchor: "left",
-            offset: "type" in p ? [10, -4] : [6, -5],
-            rotationAlignment: "map",
-          })
-            .setLngLat([p.lon, p.lat])
-            .addTo(map),
-        );
-      }
-      const own = fix
-        ? projectedPosition(fix, fix.time, fix.groundSpeedKt, fix.trackDeg, now)
-        : null;
-      if (own && fix?.trackDeg != null && (fix.groundSpeedKt ?? 0) >= 1)
-        for (let minute = 1; minute <= 5; minute++) {
-          const p = destinationPoint(
-            own,
-            fix.trackDeg,
-            (fix.groundSpeedKt! * minute) / 60,
-          );
-          const label = document.createElement("span");
-          label.className = "legacy-map-label";
-          label.textContent = String(minute);
-          labels.push(
-            new ml.Marker({ element: label, anchor: "left", offset: [12, 0] })
-              .setLngLat([p.lon, p.lat])
-              .addTo(map),
-          );
-        }
-      if (layers.airspace)
-        for (const zone of zones) {
-          const ring = zone.geometry.coordinates[0];
-          if (!ring?.length) continue;
-          const center = [
-            ring.reduce((v, p) => v + (p[0] ?? 0), 0) / ring.length,
-            ring.reduce((v, p) => v + (p[1] ?? 0), 0) / ring.length,
-          ] as [number, number];
-          if (!bounds.contains(center)) continue;
-          const label = document.createElement("span");
-          label.className = "legacy-map-label";
-          label.textContent = zone.properties.name;
-          label.style.color = zone.properties.active_now
-            ? "#b41532"
-            : (airspacePalette[
-                airspaceKind(zone.properties.name, zone.properties.class)
-              ] ?? airspacePalette.OTHER)!.stroke;
-          label.style.fontWeight = zone.properties.active_now ? "700" : "600";
-          labels.push(
-            new ml.Marker({
-              element: label,
-              anchor: "left",
-              offset: [3, -3],
-              rotationAlignment: "map",
-            })
-              .setLngLat(center)
-              .addTo(map),
-          );
-        }
-      if (
-        layers.traffic &&
-        map.getBounds().getEast() - map.getBounds().getWest() < 8
-      )
-        for (const a of traffic.data?.aircraft ?? []) {
-          const p = projectedPosition(
-            a,
-            a.position_time,
-            a.ground_speed_kt,
-            a.track_deg,
-            now,
-          );
-          if (!p || !bounds.contains([p.lon, p.lat])) continue;
-          const label = document.createElement("span");
-          label.className = "legacy-map-label";
-          label.className = "legacy-traffic-label";
-          const identity = document.createElement("strong");
-          identity.textContent =
-            trafficCallsign(a.callsign) || (a.registration ?? a.hex);
-          const detail = document.createElement("small");
-          detail.textContent = `${a.track_deg == null ? "TRK --" : `${Math.round(a.track_deg).toString().padStart(3, "0")} deg`} / ${a.altitude_ft == null ? "ALT --" : `${Math.round(a.altitude_ft)} ft`} / ${a.ground_speed_kt == null ? "SPD --" : `${Math.round(a.ground_speed_kt)} kt`}`;
-          label.append(identity, detail);
-          const marker = new ml.Marker({
-            element: label,
-            anchor: "left",
-            offset: [8, -4.5],
-            rotationAlignment: "map",
-          })
-            .setLngLat([p.lon, p.lat])
-            .addTo(map);
-          animatedLabels.set(a.hex, marker);
-          labels.push(marker);
-        }
-    });
-    return () => {
-      cancelled = true;
-      labels.forEach((label) => label.remove());
-      animatedLabels.clear();
-    };
-  }, [
-    ready,
-    settings.labels,
-    fix,
+  useChartLabels(mapRef, ready, {
+    airports: airports.data ?? [],
+    points: navpoints.data ?? [],
     zones,
-    airports.data,
-    plannedRoute,
-    navpoints.data,
+    aircraft: traffic.data?.aircraft ?? [],
     layers,
-    view,
-    traffic.data,
-    now,
-  ]);
+    enabled: settings.labels,
+    fix,
+  });
 
   // Route line and labelled markers (DOM markers need no glyph server, so they work offline).
   useEffect(() => {
@@ -1188,6 +1056,7 @@ export function MapView({
     show("direct-to", layers.route);
     show("traffic-estimate", layers.traffic);
     show("traffic-trail", layers.traffic);
+    show("traffic-trail-halo", layers.traffic);
     show("traffic-vector", layers.traffic);
     for (const marker of markers.current)
       marker.getElement().style.display = layers.route ? "" : "none";

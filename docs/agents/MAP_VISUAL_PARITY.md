@@ -6,6 +6,9 @@ scaling in the typed application. Reference: live Sites `/airspaces-map` and
 
 The map remains a MapLibre React feature. Offline sprites render the original
 canvas paths at a pixel ratio of two; no legacy runtime or globals are loaded.
+Chart labels use two local canvas surfaces (cached static chart and moving
+traffic/GPS labels), preserving the original system fonts without thousands of
+DOM markers competing with accelerated GPX replay and phase/event updates.
 Collector-backed data and the existing preparation flight draft remain the
 sources of state. The previously requested Settings / Flight Planner / Map
 navigation and automatic sharing of graphical route edits remain in place.
