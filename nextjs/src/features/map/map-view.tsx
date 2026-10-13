@@ -5,6 +5,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import { useQuery } from "@tanstack/react-query";
 import type * as maplibregl from "maplibre-gl";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { api } from "~/api";
 import { Button } from "~/components/ui/button";
@@ -38,9 +39,15 @@ import { useMapSettings, type Basemap, type LayerId } from "~/stores/map";
 import { useGps } from "~/features/fly/use-gps";
 import { MapSummary } from "./map-summary";
 import { PointDetails } from "./point-details";
-import { aircraftSymbol } from "./symbols";
+import {
+  aircraftSymbol,
+  pointSymbol,
+  pointSymbols,
+  airspacePalette,
+} from "./symbols";
 import { TrafficCard } from "./traffic-card";
 import { useMapAnimation } from "./use-map-animation";
+import { useChartLabels } from "./use-chart-labels";
 import { FloatingDetails } from "./floating-details";
 import { AirspaceDetails } from "./airspace-details";
 import { useT } from "~/i18n/use-t";
@@ -55,23 +62,36 @@ type Props = {
   plan: AirspacePlan | "none";
   /** The info box (counts, filters, summary); the in-flight map shows it only with Layers open. */
   overlay?: boolean;
+  toolsContainer?: HTMLDivElement | null;
 };
 
-const POLAND: [number, number] = [19.4, 52.0];
+const POLAND: [[number, number], [number, number]] = [
+  [13.75, 48.65],
+  [24.45, 55.15],
+];
 /** The API's coverage (PL, CZ, SK) fits one 250 NM query around central Poland/Czechia. */
 /** The airspace the map loads; the flight COMMs panel reads the same cached query. */
 export const AIRSPACE_QUERY = { lat: 50.8, lon: 18.5, radiusNm: 250 };
 
 const CLASS_COLOR: maplibregl.ExpressionSpecification = [
   "match",
-  ["get", "class"],
-  ["CTR", "C", "D", "B", "A"],
-  "#3b82f6",
-  ["R", "P", "Q"],
-  "#ef4444",
-  ["RMZ", "TMZ"],
-  "#a855f7",
-  "#9ca3af",
+  ["get", "kind"],
+  "OTHER",
+  airspacePalette.OTHER!.stroke,
+  ...Object.entries(airspacePalette)
+    .filter(([kind]) => kind !== "OTHER")
+    .flatMap(([kind, style]) => [kind, style.stroke]),
+  airspacePalette.OTHER!.stroke,
+];
+const CLASS_FILL: maplibregl.ExpressionSpecification = [
+  "match",
+  ["get", "kind"],
+  "OTHER",
+  airspacePalette.OTHER!.fill,
+  ...Object.entries(airspacePalette)
+    .filter(([kind]) => kind !== "OTHER")
+    .flatMap(([kind, style]) => [kind, style.fill]),
+  airspacePalette.OTHER!.fill,
 ];
 
 type Click =
@@ -97,17 +117,31 @@ const toFeatures = (
     lat: number;
     lon: number;
     kind: string;
+    symbol?: string;
+    heading?: number;
   }[],
 ) => ({
   type: "FeatureCollection" as const,
   features: rows.map((r) => ({
     type: "Feature" as const,
     geometry: { type: "Point" as const, coordinates: [r.lon, r.lat] },
-    properties: { ident: r.ident, name: r.name, kind: r.kind },
+    properties: {
+      ident: r.ident,
+      name: r.name,
+      kind: r.kind,
+      symbol: r.symbol ?? "ifr",
+      heading: r.heading ?? 0,
+    },
   })),
 });
 
-export function MapView({ basemap, layers, plan, overlay = true }: Props) {
+export function MapView({
+  basemap,
+  layers,
+  plan,
+  overlay = true,
+  toolsContainer,
+}: Props) {
   const t = useT();
   const container = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -154,8 +188,8 @@ export function MapView({ basemap, layers, plan, overlay = true }: Props) {
   );
   // Traffic in the visible area (rounded so small pans do not refetch), every 15 s while shown.
   const [view, setView] = useState({
-    lat: POLAND[1],
-    lon: POLAND[0],
+    lat: 51.9,
+    lon: 19.1,
     radiusNm: 250,
   });
   const traffic = useQuery({
@@ -248,8 +282,8 @@ export function MapView({ basemap, layers, plan, overlay = true }: Props) {
       ml.setWorkerUrl("/maplibre-gl-worker.mjs");
       const map = new ml.Map({
         container: container.current,
-        center: POLAND,
-        zoom: 5.5,
+        bounds: POLAND,
+        fitBoundsOptions: { padding: 28 },
         attributionControl: { compact: true },
         style: {
           version: 8,
@@ -266,22 +300,18 @@ export function MapView({ basemap, layers, plan, overlay = true }: Props) {
             {
               id: "background",
               type: "background",
-              paint: { "background-color": "#0b0f14" },
+              paint: { "background-color": "#faf9f4" },
             },
             {
               id: "osm",
               type: "raster",
               source: "osm",
-              paint: { "raster-brightness-max": 0.75 },
+              paint: { "raster-brightness-max": 1 },
             },
           ],
         },
       });
       mapRef.current = map;
-      map.addControl(
-        new ml.NavigationControl({ visualizePitch: false }),
-        "top-right",
-      );
       map.addControl(new ml.ScaleControl({ unit: "nautical" }), "bottom-left");
       // Overlay initialization must not wait for remote raster tiles (offline/slow networks).
       map.once("style.load", () => {
@@ -315,15 +345,10 @@ export function MapView({ basemap, layers, plan, overlay = true }: Props) {
             "fill-color": [
               "case",
               ["==", ["get", "active_now"], true],
-              "#ef4444",
-              CLASS_COLOR,
+              "rgba(221,54,84,.22)",
+              CLASS_FILL,
             ],
-            "fill-opacity": [
-              "case",
-              ["==", ["get", "active_now"], true],
-              0.3,
-              0.06,
-            ],
+            "fill-opacity": 1,
           },
         });
         map.addLayer({
@@ -334,66 +359,77 @@ export function MapView({ basemap, layers, plan, overlay = true }: Props) {
             "line-color": [
               "case",
               ["==", ["get", "active_now"], true],
-              "#ef4444",
+              "#d92947",
               CLASS_COLOR,
             ],
-            "line-width": ["case", ["==", ["get", "active_now"], true], 2, 1],
+            "line-width": [
+              "case",
+              ["==", ["get", "active_now"], true],
+              2.2,
+              1.2,
+            ],
           },
         });
+        for (const symbol of pointSymbols)
+          map.addImage(`point-${symbol}`, pointSymbol(symbol), {
+            pixelRatio: 2,
+          });
+        for (const id of ["ifr", "vfr", "airports", "navaids"])
+          map.addLayer({
+            id,
+            type: "symbol",
+            source: id,
+            layout: {
+              "icon-image": ["concat", "point-", ["get", "symbol"]],
+              "icon-rotate": ["get", "heading"],
+              "icon-rotation-alignment": "map",
+              "icon-allow-overlap": true,
+            },
+          });
         map.addLayer({
-          id: "ifr",
-          type: "circle",
-          source: "ifr",
-          minzoom: 7,
-          paint: { "circle-radius": 3, "circle-color": "#94a3b8" },
-        });
-        map.addLayer({
-          id: "vfr",
-          type: "circle",
-          source: "vfr",
-          minzoom: 7,
-          paint: {
-            "circle-radius": 4,
-            "circle-color": "#22c55e",
-            "circle-stroke-width": 1,
-            "circle-stroke-color": "#052e16",
-          },
-        });
-        map.addLayer({
-          id: "airports",
-          type: "circle",
-          source: "airports",
-          paint: {
-            "circle-radius": ["interpolate", ["linear"], ["zoom"], 5, 3, 10, 7],
-            "circle-color": "#38bdf8",
-            "circle-stroke-width": 1,
-            "circle-stroke-color": "#082f49",
-          },
+          id: "route-halo",
+          type: "line",
+          source: "route",
+          paint: { "line-color": "rgba(255,0,255,.36)", "line-width": 4 },
         });
         map.addLayer({
           id: "route",
           type: "line",
           source: "route",
-          paint: { "line-color": "#f472b6", "line-width": 3 },
+          paint: { "line-color": "#ff00ff", "line-width": 1.6 },
         });
         map.addLayer({
           id: "planned-route",
           type: "line",
           source: "planned-route",
           paint: {
-            "line-color": "#f472b6",
+            "line-color": "#ff00ff",
             "line-width": 2,
             "line-opacity": 0.4,
             "line-dasharray": [4, 3],
           },
         });
-        map.addImage("aircraft", aircraftSymbol([0, 166, 199]));
-        map.addImage("aircraft-flarm", aircraftSymbol([34, 197, 94]));
-        map.addImage("aircraft-ground", aircraftSymbol([163, 163, 163]));
-        map.addImage("aircraft-red", aircraftSymbol([220, 38, 38]));
-        map.addImage("aircraft-amber", aircraftSymbol([245, 158, 11]));
-        map.addImage("aircraft-caution", aircraftSymbol([255, 255, 255]));
-        map.addImage("aircraft-ownship", aircraftSymbol([239, 68, 68]));
+        map.addImage("aircraft", aircraftSymbol([17, 17, 17]), {
+          pixelRatio: 2,
+        });
+        map.addImage("aircraft-flarm", aircraftSymbol([17, 17, 17]), {
+          pixelRatio: 2,
+        });
+        map.addImage("aircraft-ground", aircraftSymbol([17, 17, 17]), {
+          pixelRatio: 2,
+        });
+        map.addImage("aircraft-red", aircraftSymbol([220, 38, 38]), {
+          pixelRatio: 2,
+        });
+        map.addImage("aircraft-amber", aircraftSymbol([245, 158, 11]), {
+          pixelRatio: 2,
+        });
+        map.addImage("aircraft-caution", aircraftSymbol([255, 255, 255]), {
+          pixelRatio: 2,
+        });
+        map.addImage("aircraft-ownship", aircraftSymbol([36, 79, 134], true), {
+          pixelRatio: 2,
+        });
         map.addLayer({
           id: "traffic",
           type: "symbol",
@@ -420,13 +456,26 @@ export function MapView({ basemap, layers, plan, overlay = true }: Props) {
           paint: { "icon-opacity": ["get", "alpha"] },
         });
 
+        map.addLayer({
+          id: "gps-trail-halo",
+          type: "line",
+          source: "gps-trail",
+          layout: { "line-cap": "round", "line-join": "round" },
+          paint: { "line-color": "rgba(118,242,164,.28)", "line-width": 7 },
+        });
+        map.addLayer({
+          id: "traffic-trail-halo",
+          type: "line",
+          source: "traffic-trail",
+          paint: { "line-color": "rgba(255,255,255,.82)", "line-width": 5.2 },
+        });
         for (const [id, color, dash] of [
-          ["gps-trail", "#0ea5e9", false],
-          ["gps-vector", "#0ea5e9", true],
+          ["gps-trail", "rgba(118,242,164,.94)", false],
+          ["gps-vector", "rgba(36,79,134,.9)", false],
           ["traffic-trail", "#f59e0b", false],
           ["traffic-vector", "#f59e0b", true],
           ["traffic-estimate", "#00a6c7", true],
-          ["direct-to", "#f472b6", false],
+          ["direct-to", "#ff00ff", false],
         ] as const) {
           map.addLayer({
             id,
@@ -434,7 +483,8 @@ export function MapView({ basemap, layers, plan, overlay = true }: Props) {
             source: id,
             paint: {
               "line-color": color,
-              "line-width": 2,
+              "line-width":
+                id === "gps-trail" ? 2.8 : id === "traffic-trail" ? 2.6 : 2,
               ...(dash ? { "line-dasharray": [4, 3] } : {}),
             },
           });
@@ -459,7 +509,7 @@ export function MapView({ basemap, layers, plan, overlay = true }: Props) {
           id: "gps-ticks",
           type: "line",
           source: "gps-ticks",
-          paint: { "line-color": "#0ea5e9", "line-width": 2 },
+          paint: { "line-color": "rgba(36,79,134,.9)", "line-width": 2 },
         });
         map.addLayer({
           id: "ownship",
@@ -474,18 +524,6 @@ export function MapView({ basemap, layers, plan, overlay = true }: Props) {
           paint: { "icon-opacity": ["get", "alpha"] },
         });
 
-        map.addLayer({
-          id: "navaids",
-          type: "circle",
-          source: "navaids",
-          minzoom: 7,
-          paint: {
-            "circle-radius": 5,
-            "circle-color": "#a855f7",
-            "circle-stroke-width": 2,
-            "circle-stroke-color": "#ffffff",
-          },
-        });
         map.on("dragstart", () => useMapSettings.getState().follow(false));
         let lastCursorUpdate = 0;
         map.on("mousemove", (event) => {
@@ -554,9 +592,13 @@ export function MapView({ basemap, layers, plan, overlay = true }: Props) {
             });
             return;
           }
-          const routeHit = map.queryRenderedFeatures(e.point, {
-            layers: ["route"],
-          })[0];
+          const routeHit = map.queryRenderedFeatures(
+            [
+              [e.point.x - 6, e.point.y - 6],
+              [e.point.x + 6, e.point.y + 6],
+            ],
+            { layers: ["route"] },
+          )[0];
           if (routeHit) {
             const segment = nearestRouteSegment(routeRef.current, {
               lat: e.lngLat.lat,
@@ -594,6 +636,14 @@ export function MapView({ basemap, layers, plan, overlay = true }: Props) {
             () => (map.getCanvas().style.cursor = ""),
           );
         }
+        const camera = () => {
+          if (!container.current) return;
+          container.current.dataset.centerLon = String(map.getCenter().lng);
+          container.current.dataset.centerLat = String(map.getCenter().lat);
+          container.current.dataset.zoom = String(map.getZoom());
+        };
+        camera();
+        map.on("move", camera);
         mapRef.current = map;
         setReady(true);
       });
@@ -612,14 +662,32 @@ export function MapView({ basemap, layers, plan, overlay = true }: Props) {
     if (ready)
       void source("airspace")?.setData({
         type: "FeatureCollection",
-        features: zones,
+        features: zones.map((zone) => ({
+          ...zone,
+          properties: {
+            ...zone.properties,
+            kind: airspaceKind(zone.properties.name, zone.properties.class),
+          },
+        })),
       });
   }, [ready, zones]);
 
   useEffect(() => {
     if (ready && airports.data)
       void source("airports")?.setData(
-        toFeatures(airports.data.map((a) => ({ ...a, kind: "airport" }))),
+        toFeatures(
+          airports.data.map((a) => ({
+            ...a,
+            kind: "airport",
+            symbol:
+              a.type === "controlled"
+                ? "controlled"
+                : a.isIcao
+                  ? "runway"
+                  : "airport",
+            heading: a.runways[0]?.trueHeadingDeg ?? 0,
+          })),
+        ),
       );
   }, [ready, airports.data]);
 
@@ -627,7 +695,9 @@ export function MapView({ basemap, layers, plan, overlay = true }: Props) {
     if (!ready || !navpoints.data) return;
     void source("vfr")?.setData(
       toFeatures(
-        navpoints.data.filter((p) => p.kind === "vfr-reporting-point"),
+        navpoints.data
+          .filter((p) => p.kind === "vfr-reporting-point")
+          .map((p) => ({ ...p, symbol: "reporting" })),
       ),
     );
     void source("ifr")?.setData(
@@ -638,7 +708,22 @@ export function MapView({ basemap, layers, plan, overlay = true }: Props) {
       ),
     );
     void source("navaids")?.setData(
-      toFeatures(navpoints.data.filter((p) => p.kind === "navaid")),
+      toFeatures(
+        navpoints.data
+          .filter((p) => p.kind === "navaid")
+          .map((p) => ({
+            ...p,
+            symbol: /VOR.*DME/i.test(p.navaid?.type ?? "")
+              ? "vordme"
+              : /VOR/i.test(p.navaid?.type ?? "")
+                ? "vor"
+                : /DME/i.test(p.navaid?.type ?? "")
+                  ? "dme"
+                  : /NDB/i.test(p.navaid?.type ?? "")
+                    ? "ndb"
+                    : "navaid",
+          })),
+      ),
     );
   }, [ready, navpoints.data]);
 
@@ -802,14 +887,15 @@ export function MapView({ basemap, layers, plan, overlay = true }: Props) {
   useEffect(() => {
     const map = mapRef.current;
     if (!ready || !map || !settings.command) return;
-    if (settings.command === "reset")
-      map.jumpTo({
-        center: POLAND,
-        zoom: 5.5,
-        bearing: 0,
-        padding: { top: 0, bottom: 0, left: 0, right: 0 },
+    if (settings.command === "zoomIn" || settings.command === "zoomOut")
+      map.easeTo({
+        zoom:
+          map.getZoom() + Math.log2(settings.command === "zoomIn" ? 1.3 : 0.77),
+        duration: 0,
       });
-    else if (route.length) {
+    if (settings.command === "reset")
+      map.fitBounds(POLAND, { padding: 28, bearing: 0, duration: 0 });
+    else if (settings.command === "fit" && route.length) {
       const xs = route.map((p) => p.lon),
         ys = route.map((p) => p.lat);
       map.fitBounds(
@@ -823,125 +909,15 @@ export function MapView({ basemap, layers, plan, overlay = true }: Props) {
     settings.request(null);
   }, [ready, settings, route]);
 
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!ready || !map || !settings.labels) return;
-    let cancelled = false;
-    const labels: maplibregl.Marker[] = [];
-    const animatedLabels = planeLabels.current;
-    void import("maplibre-gl").then((ml) => {
-      if (cancelled) return;
-      const bounds = map.getBounds(),
-        zoom = map.getZoom();
-      const points = [
-        ...(layers.airports ? (airports.data ?? []) : []),
-        ...(navpoints.data ?? []).filter(
-          (p) =>
-            zoom >= 7 &&
-            (p.kind === "vfr-reporting-point"
-              ? layers.vfr
-              : p.kind === "navaid"
-                ? layers.navaids
-                : layers.ifr),
-        ),
-      ];
-      for (const p of points) {
-        if (!bounds.contains([p.lon, p.lat])) continue;
-        const label = document.createElement("span");
-        label.className =
-          "pointer-events-none rounded bg-background/75 px-1 text-[10px] text-primary";
-        label.textContent = p.ident;
-        label.title = p.name;
-        labels.push(
-          new ml.Marker({ element: label, anchor: "left", offset: [8, 0] })
-            .setLngLat([p.lon, p.lat])
-            .addTo(map),
-        );
-      }
-      const own = fix
-        ? projectedPosition(fix, fix.time, fix.groundSpeedKt, fix.trackDeg, now)
-        : null;
-      if (own && fix?.trackDeg != null && (fix.groundSpeedKt ?? 0) >= 1)
-        for (let minute = 1; minute <= 5; minute++) {
-          const p = destinationPoint(
-            own,
-            fix.trackDeg,
-            (fix.groundSpeedKt! * minute) / 60,
-          );
-          const label = document.createElement("span");
-          label.className =
-            "pointer-events-none rounded bg-background/75 px-1 text-[10px] text-primary";
-          label.textContent = String(minute);
-          labels.push(
-            new ml.Marker({ element: label, anchor: "left", offset: [12, 0] })
-              .setLngLat([p.lon, p.lat])
-              .addTo(map),
-          );
-        }
-      if (layers.airspace && zoom >= 7)
-        for (const zone of zones) {
-          const ring = zone.geometry.coordinates[0];
-          if (!ring?.length) continue;
-          const center = [
-            ring.reduce((v, p) => v + (p[0] ?? 0), 0) / ring.length,
-            ring.reduce((v, p) => v + (p[1] ?? 0), 0) / ring.length,
-          ] as [number, number];
-          if (!bounds.contains(center)) continue;
-          const label = document.createElement("span");
-          label.className =
-            "pointer-events-none rounded bg-background/75 px-1 text-[10px] text-primary";
-          label.textContent = zone.properties.name;
-          labels.push(
-            new ml.Marker({ element: label }).setLngLat(center).addTo(map),
-          );
-        }
-      if (layers.traffic && zoom >= 7)
-        for (const a of traffic.data?.aircraft ?? []) {
-          const p = projectedPosition(
-            a,
-            a.position_time,
-            a.ground_speed_kt,
-            a.track_deg,
-            now,
-          );
-          if (!p || !bounds.contains([p.lon, p.lat])) continue;
-          const label = document.createElement("span");
-          label.className =
-            "pointer-events-none rounded bg-background/75 px-1 text-[10px] text-primary";
-          label.textContent = [
-            trafficCallsign(a.callsign) || (a.registration ?? a.hex),
-            `${a.altitude_ft ?? "—"} ft`,
-            `${a.ground_speed_kt === null ? "—" : Math.round(a.ground_speed_kt)} kt`,
-          ].join(" · ");
-          const marker = new ml.Marker({
-            element: label,
-            anchor: "left",
-            offset: [12, 0],
-          })
-            .setLngLat([p.lon, p.lat])
-            .addTo(map);
-          animatedLabels.set(a.hex, marker);
-          labels.push(marker);
-        }
-    });
-    return () => {
-      cancelled = true;
-      labels.forEach((label) => label.remove());
-      animatedLabels.clear();
-    };
-  }, [
-    ready,
-    settings.labels,
-    fix,
+  useChartLabels(mapRef, ready, {
+    airports: airports.data ?? [],
+    points: navpoints.data ?? [],
     zones,
-    airports.data,
-    plannedRoute,
-    navpoints.data,
+    aircraft: traffic.data?.aircraft ?? [],
     layers,
-    view,
-    traffic.data,
-    now,
-  ]);
+    enabled: settings.labels,
+    fix,
+  });
 
   // Route line and labelled markers (DOM markers need no glyph server, so they work offline).
   useEffect(() => {
@@ -1004,8 +980,7 @@ export function MapView({ basemap, layers, plan, overlay = true }: Props) {
         ...(flight.alternate ? [flight.alternate] : []),
       ].map((p) => {
         const el = document.createElement("div");
-        el.className =
-          "rounded bg-pink-500 px-1 text-[11px] font-semibold text-white shadow";
+        el.className = "legacy-route-marker";
         el.dataset.routeMarker = p.ident;
         el.textContent = settings.labels ? p.ident : "●";
         el.style.cursor = "pointer";
@@ -1033,7 +1008,7 @@ export function MapView({ basemap, layers, plan, overlay = true }: Props) {
             },
           });
         });
-        return new ml.Marker({ element: el, anchor: "bottom", offset: [0, -4] })
+        return new ml.Marker({ element: el, anchor: "left", offset: [0, -11] })
           .setLngLat([p.lon, p.lat])
           .addTo(map);
       });
@@ -1061,6 +1036,11 @@ export function MapView({ basemap, layers, plan, overlay = true }: Props) {
       "visibility",
       basemap === "osm" ? "visible" : "none",
     );
+    map.setPaintProperty(
+      "background",
+      "background-color",
+      basemap === "dark" ? "#05070b" : "#faf9f4",
+    );
     const show = (id: string, on: boolean) =>
       map.setLayoutProperty(id, "visibility", on ? "visible" : "none");
     show("airspace-fill", layers.airspace);
@@ -1071,10 +1051,12 @@ export function MapView({ basemap, layers, plan, overlay = true }: Props) {
     show("traffic", layers.traffic);
     show("navaids", layers.navaids);
     show("route", layers.route);
+    show("route-halo", layers.route);
     show("planned-route", layers.route);
     show("direct-to", layers.route);
     show("traffic-estimate", layers.traffic);
     show("traffic-trail", layers.traffic);
+    show("traffic-trail-halo", layers.traffic);
     show("traffic-vector", layers.traffic);
     for (const marker of markers.current)
       marker.getElement().style.display = layers.route ? "" : "none";
@@ -1166,122 +1148,148 @@ export function MapView({ basemap, layers, plan, overlay = true }: Props) {
   };
 
   return (
-    <div className="absolute inset-0">
+    <div className="legacy-map absolute inset-0">
       <div
         ref={container}
         className="h-full w-full"
         data-testid="map"
         data-map-ready={ready}
       />
-      {cursorPosition && (
-        <output className="bg-background/90 pointer-events-none absolute right-2 bottom-2 rounded border px-2 py-1 text-xs">
-          {cursorPosition.lat.toFixed(5)}, {cursorPosition.lon.toFixed(5)}
-        </output>
-      )}
-      <div
-        hidden={!overlay}
-        className="bg-background/90 absolute top-2 left-2 z-10 grid max-w-xs gap-1 rounded border p-2 text-xs"
-      >
-        {airspace.isError && (
-          <span className="text-destructive">
-            {t("map.airspaceUnavailable")}
-          </span>
-        )}
-        {layers.traffic && traffic.isError && (
-          <span className="text-destructive">
-            {t("maptools.trafficUnavailable")}
-          </span>
-        )}
-        {(airspace.isFetching || (layers.traffic && traffic.isFetching)) && (
-          <span>{t("maptools.loading")}</span>
-        )}
-        <span>
-          {t("maptools.counts", {
-            zones: zones.length,
-            points: route.length,
-            traffic: traffic.data?.aircraft.length ?? 0,
-          })}
-        </span>
-        <details>
-          <summary>{t("maptools.filter")}</summary>
-          <div className="flex flex-wrap gap-1">
-            {Array.from(
-              new Set(
-                [
-                  ...(airspace.data?.features ?? []),
-                  ...(imported.data ?? []),
-                ].map((zone) =>
-                  airspaceKind(zone.properties.name, zone.properties.class),
-                ),
-              ),
-            )
-              .sort()
-              .map((className) => (
-                <label key={className}>
-                  <input
-                    type="checkbox"
-                    checked={!settings.hiddenClasses.includes(className)}
-                    onChange={(e) =>
-                      settings.update({
-                        hiddenClasses: e.target.checked
-                          ? settings.hiddenClasses.filter(
-                              (c) => c !== className,
-                            )
-                          : [...settings.hiddenClasses, className],
-                      })
-                    }
-                  />
-                  {className}
-                </label>
-              ))}
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => settings.update({ hiddenClasses: [] })}
-            >
-              {t("maptools.all")}
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() =>
-                settings.update({
-                  hiddenClasses: Array.from(
-                    new Set(
-                      [
-                        ...(airspace.data?.features ?? []),
-                        ...(imported.data ?? []),
-                      ].map((z) =>
-                        airspaceKind(z.properties.name, z.properties.class),
-                      ),
+      {toolsContainer &&
+        createPortal(
+          <div hidden={!overlay} className="legacy-map-info grid gap-2 text-xs">
+            {airspace.isError && (
+              <span className="text-destructive">
+                {t("map.airspaceUnavailable")}
+              </span>
+            )}
+            {layers.traffic && traffic.isError && (
+              <span className="text-destructive">
+                {t("maptools.trafficUnavailable")}
+              </span>
+            )}
+            {(airspace.isFetching ||
+              (layers.traffic && traffic.isFetching)) && (
+              <span>{t("maptools.loading")}</span>
+            )}
+            <span>
+              {t("maptools.counts", {
+                zones: zones.length,
+                points: route.length,
+                traffic: traffic.data?.aircraft.length ?? 0,
+              })}
+            </span>
+            <details open>
+              <summary>{t("maptools.filter")}</summary>
+              <div className="flex flex-wrap gap-1">
+                {Array.from(
+                  new Set(
+                    [
+                      ...(airspace.data?.features ?? []),
+                      ...(imported.data ?? []),
+                    ].map((zone) =>
+                      airspaceKind(zone.properties.name, zone.properties.class),
                     ),
                   ),
-                })
-              }
-            >
-              {t("maptools.clear")}
-            </Button>
-          </div>
-        </details>
-        <MapSummary
-          route={route}
-          zones={[...(airspace.data?.features ?? []), ...(imported.data ?? [])]}
-          crossed={crossed}
-          plan={plan}
-        />
+                )
+                  .sort()
+                  .map((className) => (
+                    <label key={className}>
+                      <input
+                        type="checkbox"
+                        checked={!settings.hiddenClasses.includes(className)}
+                        onChange={(e) =>
+                          settings.update({
+                            hiddenClasses: e.target.checked
+                              ? settings.hiddenClasses.filter(
+                                  (c) => c !== className,
+                                )
+                              : [...settings.hiddenClasses, className],
+                          })
+                        }
+                      />
+                      {className}{" "}
+                      <small>
+                        {
+                          [
+                            ...(airspace.data?.features ?? []),
+                            ...(imported.data ?? []),
+                          ].filter(
+                            (z) =>
+                              airspaceKind(
+                                z.properties.name,
+                                z.properties.class,
+                              ) === className,
+                          ).length
+                        }
+                      </small>
+                    </label>
+                  ))}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => settings.update({ hiddenClasses: [] })}
+                >
+                  {t("maptools.all")}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    settings.update({
+                      hiddenClasses: Array.from(
+                        new Set(
+                          [
+                            ...(airspace.data?.features ?? []),
+                            ...(imported.data ?? []),
+                          ].map((z) =>
+                            airspaceKind(z.properties.name, z.properties.class),
+                          ),
+                        ),
+                      ),
+                    })
+                  }
+                >
+                  {t("maptools.clear")}
+                </Button>
+              </div>
+            </details>
+            <MapSummary
+              route={route}
+              zones={[
+                ...(airspace.data?.features ?? []),
+                ...(imported.data ?? []),
+              ]}
+              crossed={crossed}
+              plan={plan}
+            />
+            <span>
+              {t("maptools.crossed")}: {crossed.length}
+            </span>
+          </div>,
+          toolsContainer,
+        )}
+      <div className="legacy-map-readout">
         <span>
-          {t("maptools.crossed")}: {crossed.length}
+          {t("maptools.route")}: {route.map((p) => p.ident).join(" - ") || "--"}
         </span>
-        {(settings.gpsEnabled || navigation.startedAt) && (
+        <span>
+          {cursorPosition
+            ? `${cursorPosition.lat.toFixed(5)}, ${cursorPosition.lon.toFixed(5)}`
+            : "--"}
+        </span>
+        {true && (
           <span data-testid="map-gps-status">
-            {gpsError
-              ? t(`fly.gps.${gpsError}`)
-              : fix
-                ? t("fly.gps.fix", {
-                    accuracy: Math.round(fix.accuracyM),
-                    time: fix.time.slice(11, 16) + "Z",
-                  })
-                : t("fly.gps.waiting")}
+            {!settings.gpsEnabled && !navigation.startedAt
+              ? "GPS off"
+              : gpsError
+                ? t(`fly.gps.${gpsError}`)
+                : fix
+                  ? t("fly.gps.fix", {
+                      accuracy: Math.round(fix.accuracyM),
+                      time: fix.time.slice(11, 16) + "Z",
+                    })
+                  : t("fly.gps.waiting")}
           </span>
         )}
       </div>

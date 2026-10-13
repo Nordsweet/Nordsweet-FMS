@@ -3,6 +3,13 @@ import { mapToolsEn, mapToolsPl } from "./map-tools";
 
 const pl = {
   ...mapToolsPl,
+  "maplegacy.airspace": "Strefy",
+  "maplegacy.traffic": "Live traffic",
+  "maplegacy.black": "Black",
+  "maplegacy.title": "Airspace Map",
+  "maplegacy.currentTrack": "Current track",
+  "maplegacy.zoomIn": "Powiększ",
+  "maplegacy.zoomOut": "Pomniejsz",
   "nav.planner": "Flight Planner",
   "nav.graphicalPlan": "Map",
   "mapplanner.title": "Planer lotu na mapie",
@@ -497,7 +504,7 @@ const pl = {
   "checklists.phase.descent": "Zniżanie",
   "checklists.phase.landing": "Lądowanie",
   "checklists.phase.taxiin": "Po lądowaniu",
-  "map.layers": "Warstwy",
+  "map.layers": "Layers",
   "plan.wx.communityReport": "raport pilota — niezweryfikowany",
   "plan.wx.share.title": "Udostępnij ATIS, który słyszysz",
   "plan.wx.share.letter": "Litera informacji",
@@ -678,6 +685,13 @@ export type MessageKey = keyof typeof pl;
 
 const en: Record<MessageKey, string> = {
   ...mapToolsEn,
+  "maplegacy.airspace": "Airspaces",
+  "maplegacy.traffic": "Live traffic",
+  "maplegacy.black": "Black",
+  "maplegacy.title": "Airspace Map",
+  "maplegacy.currentTrack": "Current track",
+  "maplegacy.zoomIn": "Zoom in",
+  "maplegacy.zoomOut": "Zoom out",
   "nav.planner": "Flight Planner",
   "nav.graphicalPlan": "Map",
   "mapplanner.title": "Map flight planner",

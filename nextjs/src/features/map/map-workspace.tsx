@@ -27,11 +27,26 @@ export function MapWorkspace({ embedded = false }: { embedded?: boolean }) {
   const client = useQueryClient();
   const imported = useMutation(api.map.importAirspace.mutationOptions());
   const [notice, setNotice] = useState<string | null>(null);
-  const [toolsOpen, setToolsOpen] = useState(false);
+  const [toolsOpen, setToolsOpen] = useState(!embedded);
+  const [toolsContainer, setToolsContainer] = useState<HTMLDivElement | null>(
+    null,
+  );
   const label = (id: LayerId) =>
     id === "route" || id === "navaids"
       ? t(`maptools.layer.${id}`)
       : t(`map.layer.${id}`);
+  const displayLabel = (id: LayerId) =>
+    id === "vfr"
+      ? "VFR"
+      : id === "ifr"
+        ? "IFR"
+        : id === "navaids"
+          ? "Navaids"
+          : id === "traffic"
+            ? t("maplegacy.traffic")
+            : id === "airspace"
+              ? t("maplegacy.airspace")
+              : label(id);
   async function importFile(file: File | undefined, kind: "gpx" | "airspace") {
     if (!file) return;
     try {
@@ -60,236 +75,269 @@ export function MapWorkspace({ embedded = false }: { embedded?: boolean }) {
   return (
     <div
       className={
-        embedded ? "absolute inset-0" : "-m-4 flex min-h-96 flex-1 flex-col"
+        embedded
+          ? "legacy-map-workspace embedded absolute inset-0"
+          : "legacy-map-workspace -m-4 flex min-h-96 flex-1 flex-col"
       }
     >
-      {embedded && (
+      {
         <Button
           size="sm"
           variant={toolsOpen ? "default" : "outline"}
           aria-expanded={toolsOpen}
-          className="bg-card/90 absolute right-3 bottom-8 z-20 backdrop-blur"
+          className="legacy-layers-button absolute z-20"
           onClick={() => setToolsOpen(!toolsOpen)}
         >
           {t("map.layers")}
         </Button>
-      )}
+      }
       <div
-        hidden={embedded && !toolsOpen}
+        hidden={!toolsOpen}
         className={
           embedded
-            ? "bg-card/95 absolute right-3 bottom-18 z-20 flex max-h-[calc(100%-6rem)] max-w-[min(36rem,calc(100%-1rem))] flex-wrap items-center gap-2 overflow-y-auto rounded-2xl border p-3 text-sm backdrop-blur"
-            : "flex flex-wrap items-center gap-2 border-b px-4 py-2 text-sm"
+            ? "legacy-map-tools absolute z-20 flex flex-wrap items-center gap-2 overflow-y-auto"
+            : "legacy-map-tools flex flex-wrap items-center gap-2"
         }
       >
-        <MapSelect
-          label={t("map.basemap")}
-          value={settings.basemap}
-          options={[
-            { value: "osm", label: "OpenStreetMap" },
-            { value: "dark", label: t("map.basemapDark") },
-          ]}
-          onChange={(basemap) => settings.update({ basemap })}
-        />
-        <MapSelect
-          label={t("map.plan")}
-          value={settings.plan}
-          options={[
-            { value: "current", label: t("map.planCurrent") },
-            { value: "next", label: t("map.planNext") },
-            { value: "none", label: t("maptools.none") },
-          ]}
-          onChange={(plan) => settings.update({ plan })}
-        />
-        {mapLayers.map((id) => (
-          <Label key={id}>
-            <input
-              type="checkbox"
-              checked={settings.layers[id]}
-              onChange={(e) =>
-                settings.update({
-                  layers: { ...settings.layers, [id]: e.target.checked },
-                })
-              }
-            />
-            {label(id)}
-          </Label>
-        ))}
-        <Label>
-          <input
-            type="checkbox"
-            checked={settings.labels}
-            onChange={(e) => settings.update({ labels: e.target.checked })}
-          />
-          {t("maptools.labels")}
-        </Label>
-        <Label>
-          <input
-            type="checkbox"
-            checked={settings.trackUp}
-            onChange={(e) => settings.update({ trackUp: e.target.checked })}
-          />
-          {t("maptools.trackUp")}
-        </Label>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => {
-            settings.follow(false);
-            settings.request("fit");
-          }}
-        >
-          {t("maptools.fit")}
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => {
-            settings.follow(false);
-            settings.request("reset");
-          }}
-        >
-          {t("maptools.reset")}
-        </Button>
-        <Button
-          size="sm"
-          aria-pressed={settings.gpsEnabled}
-          variant={settings.gpsEnabled ? "default" : "outline"}
-          onClick={() => settings.setGps(!settings.gpsEnabled)}
-        >
-          {t("maptools.gps")}
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          disabled={!settings.gpsEnabled}
-          onClick={() => settings.follow(true)}
-        >
-          {t("maptools.center")}
-        </Button>
-        {embedded && (
-          <Button
-            size="sm"
-            disabled={!navigation.startedAt && route.length < 2}
-            onClick={() =>
-              navigation.startedAt
-                ? navigation.end()
-                : (settings.setGps(true), navigation.start(route))
-            }
+        <h1 className="legacy-map-tools-title">{t("maplegacy.title")}</h1>
+        <div className="legacy-tool-section legacy-route-tools">
+          <form
+            className="flex gap-2"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              const data = new FormData(e.currentTarget);
+              const value = data.get("route");
+              const routeText = typeof value === "string" ? value : "";
+              const tokens = routeText
+                .trim()
+                .toUpperCase()
+                .split(/\s+/)
+                .filter(Boolean);
+              const [departure, destination] = await Promise.all([
+                api.airports.get.call({ code: tokens[0] ?? "" }),
+                api.airports.get.call({ code: tokens.at(-1) ?? "" }),
+              ]);
+              update({
+                routeText,
+                ...(departure && destination
+                  ? {
+                      departure: {
+                        ident: departure.ident,
+                        lat: departure.lat,
+                        lon: departure.lon,
+                      },
+                      destination: {
+                        ident: destination.ident,
+                        lat: destination.lat,
+                        lon: destination.lon,
+                      },
+                      sid: null,
+                      star: null,
+                      approach: null,
+                    }
+                  : {}),
+              });
+            }}
           >
-            {t(navigation.startedAt ? "maptools.end" : "maptools.start")}
-          </Button>
-        )}
-        {navigation.route[0]?.ident === "DCT" && navigation.startedAt && (
+            <Input
+              aria-label={t("maptools.route")}
+              name="route"
+              defaultValue={flight.routeText}
+              key={flight.routeText}
+            />
+            <Button size="sm" type="submit">
+              {t("maptools.build")}
+            </Button>
+          </form>
+        </div>
+        <div className="legacy-tool-section legacy-upload-tools">
+          <Label>
+            {t("maptools.importGpx")}
+            <input
+              type="file"
+              accept=".gpx"
+              className="max-w-44"
+              onChange={(e) => void importFile(e.target.files?.[0], "gpx")}
+            />
+          </Label>
+          <Label>
+            {t("maptools.importAirspace")}
+            <input
+              type="file"
+              accept=".txt,.air,.openair,.json"
+              className="max-w-44"
+              onChange={(e) => void importFile(e.target.files?.[0], "airspace")}
+            />
+          </Label>
           <Button
             size="sm"
             variant="outline"
-            disabled={!fix || !!gpsError}
-            onClick={() => {
-              if (fix) navigation.resumeRoute(route, fix);
+            onClick={async () => {
+              await api.map.saveAirspace.call([]);
+              await client.invalidateQueries({
+                queryKey: ["map.importedAirspace"],
+              });
             }}
           >
-            {t("maptools.cancelDirect")}
+            {t("maptools.clearImported")}
           </Button>
-        )}
-        <form
-          className="flex gap-2"
-          onSubmit={async (e) => {
-            e.preventDefault();
-            const data = new FormData(e.currentTarget);
-            const value = data.get("route");
-            const routeText = typeof value === "string" ? value : "";
-            const tokens = routeText
-              .trim()
-              .toUpperCase()
-              .split(/\s+/)
-              .filter(Boolean);
-            const [departure, destination] = await Promise.all([
-              api.airports.get.call({ code: tokens[0] ?? "" }),
-              api.airports.get.call({ code: tokens.at(-1) ?? "" }),
-            ]);
-            update({
-              routeText,
-              ...(departure && destination
-                ? {
-                    departure: {
-                      ident: departure.ident,
-                      lat: departure.lat,
-                      lon: departure.lon,
-                    },
-                    destination: {
-                      ident: destination.ident,
-                      lat: destination.lat,
-                      lon: destination.lon,
-                    },
-                    sid: null,
-                    star: null,
-                    approach: null,
-                  }
-                : {}),
-            });
-          }}
-        >
-          <Input
-            aria-label={t("maptools.route")}
-            name="route"
-            defaultValue={flight.routeText}
-            key={flight.routeText}
-          />
-          <Button size="sm" type="submit">
-            {t("maptools.build")}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={async () => {
+              try {
+                const points = await api.navpoints.refresh.call(undefined);
+                client.setQueryData(
+                  api.navpoints.list.queryOptions(undefined).queryKey,
+                  points,
+                );
+                await client.invalidateQueries({
+                  queryKey: ["airspace.around"],
+                });
+                setNotice(t("maptools.imported", { count: points.length }));
+              } catch {
+                setNotice(t("maptools.noData"));
+              }
+            }}
+          >
+            {t("maptools.refresh")}
           </Button>
-        </form>
-        <Label>
-          {t("maptools.importGpx")}
-          <input
-            type="file"
-            accept=".gpx"
-            className="max-w-44"
-            onChange={(e) => void importFile(e.target.files?.[0], "gpx")}
+        </div>
+        <div className="legacy-tool-section legacy-basemap-tools">
+          <MapSelect
+            label={t("map.basemap")}
+            value={settings.basemap}
+            options={[
+              { value: "osm", label: "OpenStreetMap" },
+              { value: "dark", label: t("maplegacy.black") },
+            ]}
+            onChange={(basemap) => settings.update({ basemap })}
           />
-        </Label>
-        <Label>
-          {t("maptools.importAirspace")}
-          <input
-            type="file"
-            accept=".txt,.air,.openair,.json"
-            className="max-w-44"
-            onChange={(e) => void importFile(e.target.files?.[0], "airspace")}
+        </div>
+        <div className="legacy-tool-section legacy-layer-tools">
+          <MapSelect
+            label={t("map.plan")}
+            value={settings.plan}
+            options={[
+              { value: "current", label: t("map.planCurrent") },
+              { value: "next", label: t("map.planNext") },
+              { value: "none", label: t("maptools.none") },
+            ]}
+            onChange={(plan) => settings.update({ plan })}
           />
-        </Label>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={async () => {
-            await api.map.saveAirspace.call([]);
-            await client.invalidateQueries({
-              queryKey: ["map.importedAirspace"],
-            });
-          }}
-        >
-          {t("maptools.clearImported")}
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={async () => {
-            try {
-              const points = await api.navpoints.refresh.call(undefined);
-              client.setQueryData(
-                api.navpoints.list.queryOptions(undefined).queryKey,
-                points,
-              );
-              await client.invalidateQueries({ queryKey: ["airspace.around"] });
-              setNotice(t("maptools.imported", { count: points.length }));
-            } catch {
-              setNotice(t("maptools.noData"));
-            }
-          }}
-        >
-          {t("maptools.refresh")}
-        </Button>
+          {mapLayers.map((id) => (
+            <Label key={id}>
+              <input
+                type="checkbox"
+                aria-label={label(id)}
+                checked={settings.layers[id]}
+                onChange={(e) =>
+                  settings.update({
+                    layers: { ...settings.layers, [id]: e.target.checked },
+                  })
+                }
+              />
+              {displayLabel(id)}
+            </Label>
+          ))}
+        </div>
+        <div className="legacy-tool-section legacy-navigation-tools">
+          <Label>
+            <input
+              type="checkbox"
+              checked={settings.labels}
+              onChange={(e) => settings.update({ labels: e.target.checked })}
+            />
+            {t("maptools.labels")}
+          </Label>
+          <Label>
+            <input
+              type="checkbox"
+              checked={settings.trackUp}
+              onChange={(e) => settings.update({ trackUp: e.target.checked })}
+            />
+            {t("maptools.trackUp")}
+          </Label>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              settings.follow(false);
+              settings.request("fit");
+            }}
+          >
+            {t("maptools.fit")}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            aria-label={t("maplegacy.zoomIn")}
+            onClick={() => settings.request("zoomIn")}
+          >
+            +
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            aria-label={t("maplegacy.zoomOut")}
+            onClick={() => settings.request("zoomOut")}
+          >
+            −
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              settings.follow(false);
+              settings.request("reset");
+            }}
+          >
+            {t("maptools.reset")}
+          </Button>
+          <Button
+            size="sm"
+            aria-pressed={settings.gpsEnabled}
+            variant={settings.gpsEnabled ? "default" : "outline"}
+            onClick={() => settings.setGps(!settings.gpsEnabled)}
+          >
+            {t("maptools.gps")}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={!settings.gpsEnabled}
+            onClick={() => settings.follow(true)}
+          >
+            {t("maptools.center")}
+          </Button>
+          {embedded && (
+            <Button
+              size="sm"
+              disabled={!navigation.startedAt && route.length < 2}
+              onClick={() =>
+                navigation.startedAt
+                  ? navigation.end()
+                  : (settings.setGps(true), navigation.start(route))
+              }
+            >
+              {t(navigation.startedAt ? "maptools.end" : "maptools.start")}
+            </Button>
+          )}
+          {navigation.route[0]?.ident === "DCT" && navigation.startedAt && (
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={!fix || !!gpsError}
+              onClick={() => {
+                if (fix) navigation.resumeRoute(route, fix);
+              }}
+            >
+              {t("maptools.cancelDirect")}
+            </Button>
+          )}
+        </div>{" "}
         {notice && <span role="status">{notice}</span>}
+        <div className="legacy-map-inventory" ref={setToolsContainer} />
       </div>
       <div
         className={
@@ -309,6 +357,7 @@ export function MapWorkspace({ embedded = false }: { embedded?: boolean }) {
             layers={settings.layers}
             plan={settings.plan}
             overlay={!embedded || toolsOpen}
+            toolsContainer={toolsContainer}
           />
         </div>
       </div>

@@ -34,8 +34,10 @@ export function TrafficCard({
   const fields = [
     [t("maptools.source"), source],
     [
-      t("maptools.track"),
-      aircraft.track_deg === null ? "—" : `${Math.round(aircraft.track_deg)}°T`,
+      t("maplegacy.currentTrack"),
+      aircraft.track_deg === null
+        ? "—"
+        : `${Math.round(aircraft.track_deg).toString().padStart(3, "0")} deg`,
     ],
     [
       t("maptools.groundSpeed"),
@@ -47,16 +49,20 @@ export function TrafficCard({
       t("maptools.altitude"),
       aircraft.on_ground ? "GND" : `${aircraft.altitude_ft ?? "—"} ft`,
     ],
-    [t("maptools.verticalSpeed"), `${aircraft.vertical_rate_fpm ?? "—"} fpm`],
+    [
+      t("maptools.verticalSpeed"),
+      aircraft.vertical_rate_fpm === null
+        ? "--"
+        : `${aircraft.vertical_rate_fpm > 0 ? "+" : ""}${Math.round(aircraft.vertical_rate_fpm)} fpm`,
+    ],
     [t("maptools.type"), aircraft.type ?? "—"],
     [t("maptools.registration"), aircraft.registration ?? "—"],
-    [t("maptools.squawk"), aircraft.squawk ?? "—"],
   ];
   return (
-    <div className="grid gap-2" data-testid="traffic-card">
+    <div className="legacy-traffic-card grid gap-2" data-testid="traffic-card">
       <strong>{callsign || (aircraft.registration ?? aircraft.hex)}</strong>
       <span className="text-muted-foreground text-xs">
-        {[aircraft.registration, aircraft.hex].filter(Boolean).join(" · ")}
+        {[aircraft.registration, aircraft.hex].filter(Boolean).join(" | ")}
       </span>
       <div className="grid grid-cols-2 gap-2">
         {fields.map(([label, value]) => (

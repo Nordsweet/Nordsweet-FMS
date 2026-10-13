@@ -28,7 +28,7 @@ export function FloatingDetails({
   }
   return (
     <div
-      className="bg-popover absolute right-2 bottom-8 left-2 z-20 max-h-[65%] overflow-y-auto rounded-lg border p-3 text-sm shadow-lg sm:left-auto sm:w-80"
+      className="legacy-map-details absolute right-2 bottom-8 left-2 z-20 max-h-[65%] overflow-y-auto sm:left-auto"
       role="dialog"
       aria-label={t("map.details")}
       style={{ transform: `translate(${position.x}px,${position.y}px)` }}

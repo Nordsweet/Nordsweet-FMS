@@ -28,7 +28,7 @@ export function MapSelect<T extends string>({
       <SelectTrigger size="sm" aria-label={label}>
         <SelectValue />
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent className="legacy-map-select-content">
         {options.map((option) => (
           <SelectItem value={option.value} key={option.value}>
             {option.label}
