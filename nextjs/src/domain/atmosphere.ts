@@ -28,4 +28,3 @@ export function isaPressureHpa(pressureAltitudeFt: number) {
     ISA_SEA_LEVEL_HPA * (1 - 6.8755856e-6 * pressureAltitudeFt) ** 5.2558797
   );
 }
-

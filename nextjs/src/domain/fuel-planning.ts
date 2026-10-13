@@ -448,7 +448,6 @@ export function computeFuelPlanning(input: FuelPlanningInput) {
   };
 }
 
-
 /** Legacy route economy: each leg flown at its average altitude in the given mode. */
 export function routeEconomy(
   input: Pick<FuelPlanningInput, "aircraft" | "legs" | "cruiseOatC">,
