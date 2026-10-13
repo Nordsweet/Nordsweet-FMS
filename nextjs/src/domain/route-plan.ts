@@ -1,4 +1,5 @@
 import { type Airport, type Procedure, type Runway } from "~/data/schemas";
+import { type FlightPoint } from "~/data/flight";
 
 import { toRad } from "./angles";
 import { distanceNm, initialBearingDeg } from "./geo";
@@ -37,6 +38,7 @@ export type PlannerWind = {
 };
 
 export type AltitudeRestriction = {
+  source?: "user";
   label: string;
   minFt: number | null;
   maxFt: number | null;
@@ -52,6 +54,11 @@ export type ProcedureChoice = {
 };
 
 export type RoutePoint = {
+  userRestriction?: {
+    speedKt: number | null;
+    altitudeFt: number | null;
+    altitudeMode: "at" | "above" | "below";
+  };
   /** Key for altitude/WX entries: ident, coordinate id, THRxx, TOC/TOD. */
   id: string;
   kind:
@@ -126,7 +133,11 @@ export type RoutePlanInput = {
   /** Variant picked for "SID NAVUR"-style requests, keyed by choice key. */
   inlineSelections: Record<string, string>;
   /** Points added on the map, inserted into the nearest leg. */
-  insertedWaypoints: { ident: string; lat: number; lon: number }[];
+  insertedWaypoints: FlightPoint[];
+  pointRestrictions?: Record<
+    string,
+    NonNullable<RoutePoint["userRestriction"]>
+  >;
   waypointAltitudes: Record<string, number>;
   waypointWx: Record<string, WxRow[]>;
   /** Current conditions wind: route wind where no waypoint WX is entered. */
@@ -756,10 +767,25 @@ export function parseAltitudeFeet(value: string) {
   return ft ? Number(ft[1]) : null;
 }
 
-// shortcut: pilot-entered restrictions (legacy map editor) are not ported yet; procedure ones only.
 export function altitudeRestriction(
   point: RoutePoint | null | undefined,
 ): AltitudeRestriction | null {
+  const user = point?.userRestriction;
+  if (user?.altitudeFt !== null && user?.altitudeFt !== undefined) {
+    const feet = Math.round(user.altitudeFt);
+    return {
+      label: `${user.altitudeMode === "below" ? "Below" : user.altitudeMode === "above" ? "Above" : "At"} ${feet} ft`,
+      source: "user",
+      minFt: user.altitudeMode === "below" ? null : feet,
+      maxFt: user.altitudeMode === "above" ? null : feet,
+      type:
+        user.altitudeMode === "above"
+          ? "atOrAbove"
+          : user.altitudeMode === "below"
+            ? "atOrBelow"
+            : "exact",
+    };
+  }
   const altitude = point?.procedureLeg?.altitude;
   if (!altitude) return null;
   const feet = parseAltitudeFeet(altitude.raw);
@@ -772,6 +798,8 @@ export function altitudeRestriction(
 }
 
 export function speedRestrictionKt(point: RoutePoint | null | undefined) {
+  if (point?.userRestriction?.speedKt)
+    return Math.max(1, Math.round(point.userRestriction.speedKt));
   const speed = point?.procedureLeg?.speedKt;
   return finite(speed) && speed > 0 ? Math.round(speed) : null;
 }
@@ -1500,7 +1528,13 @@ export function buildRoutePlan(data: RouteData, input: RoutePlanInput) {
     });
   appendPoint(points, finalPoint);
 
-  const withUserPoints = insertUserWaypoints(points, input.insertedWaypoints);
+  const withUserPoints = insertUserWaypoints(
+    points,
+    input.insertedWaypoints,
+  ).map((p) => ({
+    ...p,
+    userRestriction: input.pointRestrictions?.[pointKey(p)],
+  }));
   const base = verticalProfile(
     input,
     withUserPoints,
@@ -1593,7 +1627,26 @@ function insertUserWaypoints(
       lat: w.lat,
       lon: w.lon,
     };
-    // shortcut: legacy also honours a map anchor (the leg it was dropped on); we use the nearest leg.
+    const anchor = w.anchor;
+    const anchorFrom = anchor
+      ? out.findIndex(
+          (p) =>
+            formatRoutePoint(p) === anchor.from ||
+            (anchor.fromPosition &&
+              Math.abs(p.lat - anchor.fromPosition.lat) < 0.00001 &&
+              Math.abs(p.lon - anchor.fromPosition.lon) < 0.00001),
+        )
+      : -1;
+    const anchorTo = anchor
+      ? out.findIndex(
+          (p, index) =>
+            index > anchorFrom &&
+            (formatRoutePoint(p) === anchor.to ||
+              (anchor.toPosition &&
+                Math.abs(p.lat - anchor.toPosition.lat) < 0.00001 &&
+                Math.abs(p.lon - anchor.toPosition.lon) < 0.00001)),
+        )
+      : -1;
     let at = Math.max(1, out.length - 1);
     let best = Infinity;
     for (let i = 0; i < out.length - 1; i++) {
@@ -1608,7 +1661,11 @@ function insertUserWaypoints(
         at = i + 1;
       }
     }
-    out.splice(at, 0, point);
+    out.splice(
+      anchorFrom >= 0 && anchorTo === anchorFrom + 1 ? anchorTo : at,
+      0,
+      point,
+    );
   }
   return out;
 }

@@ -13,6 +13,7 @@ import { formatHhMm } from "~/domain/fuel-planning";
 import { economySuggestions, rpmMap } from "~/domain/route-economy";
 import {
   type RoutePlan,
+  type AltitudeRestriction,
   altitudeRestriction,
   formatRoutePoint,
   formatRouteWind,
@@ -48,6 +49,21 @@ const settingLabel = (setting: string) => {
   const s = rpmMap(setting);
   return s ? `${s.rpm} RPM / MAP ${num(s.mapInHg)}` : setting;
 };
+
+function restrictionText(
+  restriction: AltitudeRestriction | null,
+  t: ReturnType<typeof useT>,
+) {
+  if (!restriction) return "--";
+  if (restriction.source !== "user") return restriction.label;
+  const mode =
+    restriction.type === "atOrAbove"
+      ? "above"
+      : restriction.type === "atOrBelow"
+        ? "below"
+        : "at";
+  return `${t(`maptools.${mode}`)} ${restriction.minFt ?? restriction.maxFt} ft`;
+}
 
 function Cards({ items }: { items: [string, string][] }) {
   return (
@@ -409,7 +425,7 @@ export function VerticalProfileDialog({
                       <td className="text-primary">
                         {altitudeLabel(s.altitudeFt)}
                       </td>
-                      <td>{s.restriction?.label ?? "--"}</td>
+                      <td>{restrictionText(s.restriction, t)}</td>
                       <td>
                         {s.conflict
                           ? t("plan.route.vp.conflict")
@@ -546,7 +562,7 @@ function ProfileChart({
                 textAnchor={anchor}
                 className="fill-muted-foreground"
               >
-                {s.restriction.label}
+                {restrictionText(s.restriction, t)}
               </text>
             )}
           </g>

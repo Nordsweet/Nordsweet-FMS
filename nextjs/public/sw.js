@@ -7,6 +7,14 @@ self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=
 self.addEventListener('fetch',event=>{
  if(event.request.method!=='GET')return;
  const url=new URL(event.request.url);
+ if(url.hostname==='tile.openstreetmap.org'){
+   event.respondWith(caches.open('map-osm-tiles-v1').then(async cache=>{
+     const cached=await cache.match(event.request);if(cached)return cached;
+     const response=await fetch(event.request);
+     if(response.ok){try{await cache.put(event.request,response.clone());const keys=await cache.keys();if(keys.length>600)await cache.delete(keys[0]);}catch{/* A full offline cache must not discard a successful network tile. */}}
+     return response;
+   }));return;
+ }
  if(url.origin!==self.location.origin||url.pathname.startsWith('/api/'))return;
  if(url.pathname.startsWith('/_next/static/')){
    event.respondWith(caches.match(event.request).then(cached=>cached||fetch(event.request)));return;

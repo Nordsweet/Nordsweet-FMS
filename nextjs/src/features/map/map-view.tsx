@@ -4,28 +4,55 @@ import "maplibre-gl/dist/maplibre-gl.css";
 
 import { useQuery } from "@tanstack/react-query";
 import type * as maplibregl from "maplibre-gl";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { api } from "~/api";
 import { Button } from "~/components/ui/button";
 import { type AirspacePlan } from "~/api/aviation/client";
+import { type TrafficAircraft } from "~/api/aviation/schemas";
 import {
-  type AirspaceFeature,
-  type TrafficAircraft,
-} from "~/api/aviation/schemas";
+  pointKey,
+  formatRoutePoint,
+  speedRestrictionKt,
+} from "~/domain/route-plan";
 import { type FlightPoint } from "~/data/flight";
-import { distanceNm } from "~/domain/geo";
+import { distanceNm, initialBearingDeg, destinationPoint } from "~/domain/geo";
+import {
+  airspaceKind,
+  plannedAltitudeForZone,
+  nearestRouteSegment,
+  nextWaypointIdent,
+  polygonContainsPoint,
+  projectedPosition,
+  routeCrossesPolygon,
+  routeSegmentMinutes,
+} from "~/domain/map-navigation";
+import {
+  currentCallsignHistory,
+  trafficCallsign,
+  trafficTrailSegments,
+} from "~/domain/traffic-history";
+import { useTrafficSession } from "~/stores/traffic-session";
+import { useInFlight } from "~/stores/inflight";
+import { useMapSettings, type Basemap, type LayerId } from "~/stores/map";
+import { useGps } from "~/features/fly/use-gps";
+import { MapSummary } from "./map-summary";
+import { PointDetails } from "./point-details";
+import { aircraftSymbol } from "./symbols";
+import { TrafficCard } from "./traffic-card";
+import { useMapAnimation } from "./use-map-animation";
+import { FloatingDetails } from "./floating-details";
+import { AirspaceDetails } from "./airspace-details";
 import { useT } from "~/i18n/use-t";
 import { usePlan } from "~/features/plan/use-plan";
 import { useFlight } from "~/stores/flight";
 
-export type Basemap = "osm" | "dark";
-export type LayerId = "airspace" | "airports" | "vfr" | "ifr" | "traffic";
+export type { Basemap, LayerId } from "~/stores/map";
 
 type Props = {
   basemap: Basemap;
   layers: Record<LayerId, boolean>;
-  plan: AirspacePlan;
+  plan: AirspacePlan | "none";
 };
 
 const POLAND: [number, number] = [19.4, 52.0];
@@ -46,16 +73,19 @@ const CLASS_COLOR: maplibregl.ExpressionSpecification = [
 
 type Click =
   | {
+      kind: "segment";
+      lngLat: maplibregl.LngLat;
+    }
+  | {
       kind: "airspace";
       lngLat: maplibregl.LngLat;
-      feature: AirspaceFeature["properties"];
     }
   | {
       kind: "point";
       lngLat: maplibregl.LngLat;
       point: FlightPoint & { name: string; kind: string };
     }
-  | { kind: "traffic"; lngLat: maplibregl.LngLat; aircraft: TrafficAircraft };
+  | { kind: "traffic"; lngLat: maplibregl.LngLat; hex: string };
 
 const toFeatures = (
   rows: {
@@ -79,18 +109,47 @@ export function MapView({ basemap, layers, plan }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markers = useRef<maplibregl.Marker[]>([]);
+  const planeLabels = useRef(new Map<string, maplibregl.Marker>());
+  const [cursorPosition, setCursorPosition] = useState<{
+    lat: number;
+    lon: number;
+  } | null>(null);
   const [ready, setReady] = useState(false);
   const [click, setClick] = useState<Click | null>(null);
   const flight = useFlight((s) => s.flight);
   const update = useFlight((s) => s.update);
-  const { route } = usePlan();
+  const { route: plannedRoute, plan: routePlan, cruiseSpeedKt } = usePlan();
+  const settings = useMapSettings();
+  const navigation = useInFlight();
+  const { fix, error: gpsError } = useGps(settings.gpsEnabled);
+  const route = navigation.startedAt ? navigation.route : plannedRoute;
+  const routeRef = useRef(route);
+  useEffect(() => {
+    routeRef.current = route;
+  }, [route]);
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+  const imported = useQuery(api.map.importedAirspace.queryOptions(undefined));
+  const { histories, observe } = useTrafficSession();
+  const selectedHex = click?.kind === "traffic" ? click.hex : "";
+  const selectedHistoryQuery = useQuery({
+    ...api.traffic.history.queryOptions({ hex: selectedHex }),
+    enabled: !!selectedHex,
+    retry: false,
+  });
 
   const airports = useQuery(api.airports.list.queryOptions(undefined));
   const navpoints = useQuery(api.navpoints.list.queryOptions(undefined));
   const airspace = useQuery(
-    api.airspace.around.queryOptions({ ...AIRSPACE_QUERY, plan }),
+    api.airspace.around.queryOptions({
+      ...AIRSPACE_QUERY,
+      plan: plan === "none" ? "current" : plan,
+    }),
   );
-  // Traffic in the visible area (rounded so small pans do not refetch), every 10 s while shown.
+  // Traffic in the visible area (rounded so small pans do not refetch), every 15 s while shown.
   const [view, setView] = useState({
     lat: POLAND[1],
     lon: POLAND[0],
@@ -99,9 +158,83 @@ export function MapView({ basemap, layers, plan }: Props) {
   const traffic = useQuery({
     ...api.traffic.around.queryOptions(view),
     enabled: ready && layers.traffic,
-    refetchInterval: 10_000,
+    refetchInterval: 15_000,
   });
+  const zones = useMemo(
+    () =>
+      [...(airspace.data?.features ?? []), ...(imported.data ?? [])]
+        .map((zone) =>
+          plan === "none"
+            ? {
+                ...zone,
+                properties: {
+                  ...zone.properties,
+                  activations: [],
+                  active_now: null,
+                },
+              }
+            : zone,
+        )
+        .filter(
+          (zone) =>
+            !settings.hiddenClasses.includes(
+              airspaceKind(zone.properties.name, zone.properties.class),
+            ),
+        ),
+    [airspace.data, imported.data, plan, settings.hiddenClasses],
+  );
+  const zonesRef = useRef(zones);
+  useEffect(() => {
+    zonesRef.current = zones;
+  }, [zones]);
+  const crossed = zones.filter((zone) =>
+    routeCrossesPolygon(route, zone.geometry.coordinates),
+  );
+  const selectedAircraft =
+    click?.kind === "traffic" && layers.traffic
+      ? (traffic.data?.aircraft.find((a) => a.hex === click.hex) ?? null)
+      : null;
+  const selectedSegment =
+    click?.kind === "segment"
+      ? nearestRouteSegment(route, {
+          lat: click.lngLat.lat,
+          lon: click.lngLat.lng,
+        })
+      : null;
+  const inspectionZones =
+    click?.kind === "airspace"
+      ? zones.filter((zone) =>
+          polygonContainsPoint(zone.geometry.coordinates, {
+            lat: click.lngLat.lat,
+            lon: click.lngLat.lng,
+          }),
+        )
+      : [];
+  const selectedHistory = useMemo(
+    () =>
+      selectedAircraft
+        ? currentCallsignHistory(
+            selectedHistoryQuery.data ?? [],
+            histories.get(selectedAircraft.hex) ?? [],
+            trafficCallsign(selectedAircraft.callsign),
+          )
+        : [],
+    [selectedAircraft, selectedHistoryQuery.data, histories],
+  );
   const trafficByHex = useRef(new Map<string, TrafficAircraft>());
+
+  useMapAnimation({
+    mapRef,
+    ready,
+    aircraft: traffic.data?.aircraft,
+    trafficEnabled: layers.traffic,
+    fix,
+    following: settings.following,
+    trackUp: settings.trackUp,
+    labels: planeLabels,
+    selectedHex,
+    directRoute: route[0]?.ident === "DCT" ? route : null,
+  });
 
   // Create the map once. maplibre-gl touches `window`, so it is loaded in the browser only.
   useEffect(() => {
@@ -141,12 +274,15 @@ export function MapView({ basemap, layers, plan }: Props) {
           ],
         },
       });
+      mapRef.current = map;
       map.addControl(
         new ml.NavigationControl({ visualizePitch: false }),
         "top-right",
       );
       map.addControl(new ml.ScaleControl({ unit: "nautical" }), "bottom-left");
-      map.on("load", () => {
+      // Overlay initialization must not wait for remote raster tiles (offline/slow networks).
+      map.once("style.load", () => {
+        if (cancelled) return;
         const empty = { type: "FeatureCollection" as const, features: [] };
         for (const id of [
           "airspace",
@@ -155,6 +291,17 @@ export function MapView({ basemap, layers, plan }: Props) {
           "ifr",
           "route",
           "traffic",
+          "ownship",
+          "gps-trail",
+          "gps-vector",
+          "gps-accuracy",
+          "gps-ticks",
+          "traffic-trail",
+          "traffic-vector",
+          "traffic-estimate",
+          "direct-to",
+          "navaids",
+          "planned-route",
         ])
           map.addSource(id, { type: "geojson", data: empty });
         map.addLayer({
@@ -227,17 +374,126 @@ export function MapView({ basemap, layers, plan }: Props) {
           paint: { "line-color": "#f472b6", "line-width": 3 },
         });
         map.addLayer({
-          id: "traffic",
-          type: "circle",
-          source: "traffic",
+          id: "planned-route",
+          type: "line",
+          source: "planned-route",
           paint: {
-            "circle-radius": 5,
-            "circle-color": ["case", ["get", "onGround"], "#a3a3a3", "#facc15"],
-            "circle-stroke-width": 1.5,
-            "circle-stroke-color": "#000000",
+            "line-color": "#f472b6",
+            "line-width": 2,
+            "line-opacity": 0.4,
+            "line-dasharray": [4, 3],
           },
         });
+        map.addImage("aircraft", aircraftSymbol([0, 166, 199]));
+        map.addImage("aircraft-flarm", aircraftSymbol([34, 197, 94]));
+        map.addImage("aircraft-ground", aircraftSymbol([163, 163, 163]));
+        map.addImage("aircraft-red", aircraftSymbol([220, 38, 38]));
+        map.addImage("aircraft-amber", aircraftSymbol([245, 158, 11]));
+        map.addImage("aircraft-caution", aircraftSymbol([255, 255, 255]));
+        map.addImage("aircraft-ownship", aircraftSymbol([239, 68, 68]));
+        map.addLayer({
+          id: "traffic",
+          type: "symbol",
+          source: "traffic",
+          layout: {
+            "icon-image": [
+              "case",
+              ["==", ["get", "alert"], "red"],
+              "aircraft-red",
+              ["==", ["get", "alert"], "amber"],
+              "aircraft-amber",
+              ["==", ["get", "alert"], "caution"],
+              "aircraft-caution",
+              ["get", "onGround"],
+              "aircraft-ground",
+              ["get", "flarm"],
+              "aircraft-flarm",
+              "aircraft",
+            ],
+            "icon-rotate": ["get", "track"],
+            "icon-rotation-alignment": "map",
+            "icon-allow-overlap": true,
+          },
+          paint: { "icon-opacity": ["get", "alpha"] },
+        });
+
+        for (const [id, color, dash] of [
+          ["gps-trail", "#0ea5e9", false],
+          ["gps-vector", "#0ea5e9", true],
+          ["traffic-trail", "#f59e0b", false],
+          ["traffic-vector", "#f59e0b", true],
+          ["traffic-estimate", "#00a6c7", true],
+          ["direct-to", "#f472b6", false],
+        ] as const) {
+          map.addLayer({
+            id,
+            type: "line",
+            source: id,
+            paint: {
+              "line-color": color,
+              "line-width": 2,
+              ...(dash ? { "line-dasharray": [4, 3] } : {}),
+            },
+          });
+        }
+        map.addLayer({
+          id: "gps-accuracy",
+          type: "fill",
+          source: "gps-accuracy",
+          paint: { "fill-color": "#244f86", "fill-opacity": 0.1 },
+        });
+        map.addLayer({
+          id: "gps-accuracy-line",
+          type: "line",
+          source: "gps-accuracy",
+          paint: {
+            "line-color": "#244f86",
+            "line-opacity": 0.35,
+            "line-width": 1.2,
+          },
+        });
+        map.addLayer({
+          id: "gps-ticks",
+          type: "line",
+          source: "gps-ticks",
+          paint: { "line-color": "#0ea5e9", "line-width": 2 },
+        });
+        map.addLayer({
+          id: "ownship",
+          type: "symbol",
+          source: "ownship",
+          layout: {
+            "icon-image": "aircraft-ownship",
+            "icon-rotate": ["get", "track"],
+            "icon-rotation-alignment": "map",
+            "icon-allow-overlap": true,
+          },
+          paint: { "icon-opacity": ["get", "alpha"] },
+        });
+
+        map.addLayer({
+          id: "navaids",
+          type: "circle",
+          source: "navaids",
+          minzoom: 7,
+          paint: {
+            "circle-radius": 5,
+            "circle-color": "#a855f7",
+            "circle-stroke-width": 2,
+            "circle-stroke-color": "#ffffff",
+          },
+        });
+        map.on("dragstart", () => useMapSettings.getState().follow(false));
+        let lastCursorUpdate = 0;
+        map.on("mousemove", (event) => {
+          if (Date.now() - lastCursorUpdate < 100) return;
+          lastCursorUpdate = Date.now();
+          setCursorPosition({ lat: event.lngLat.lat, lon: event.lngLat.lng });
+        });
+        let lastViewportUpdate = 0;
         map.on("moveend", () => {
+          if (Date.now() - lastViewportUpdate < 1100) return;
+          lastViewportUpdate = Date.now();
           const c = map.getCenter();
           const corner = map.getBounds().getNorthEast();
           // Centre-to-corner distance covers the whole view; the API allows 1–250 NM.
@@ -261,7 +517,7 @@ export function MapView({ basemap, layers, plan }: Props) {
                 [e.point.x - r, e.point.y - r],
                 [e.point.x + r, e.point.y + r],
               ],
-              { layers: ["traffic", "airports", "vfr", "ifr"] },
+              { layers: ["traffic", "airports", "vfr", "ifr", "navaids"] },
             )
             .map((f) => {
               const [lon, lat] = (
@@ -276,7 +532,7 @@ export function MapView({ basemap, layers, plan }: Props) {
               ? trafficByHex.current.get(String(hit.properties.hex))
               : undefined;
           if (aircraft) {
-            setClick({ kind: "traffic", lngLat: e.lngLat, aircraft });
+            setClick({ kind: "traffic", lngLat: e.lngLat, hex: aircraft.hex });
             return;
           }
           if (hit) {
@@ -295,24 +551,29 @@ export function MapView({ basemap, layers, plan }: Props) {
             });
             return;
           }
-          const zone = map.queryRenderedFeatures(e.point, {
-            layers: ["airspace-fill"],
+          const routeHit = map.queryRenderedFeatures(e.point, {
+            layers: ["route"],
           })[0];
-          if (zone) {
-            const p = zone.properties;
-            // GeoJSON properties come back flattened: nested arrays arrive as JSON strings.
-            const activations =
-              typeof p.activations === "string"
-                ? (JSON.parse(p.activations) as unknown[])
-                : [];
+          if (routeHit) {
+            const segment = nearestRouteSegment(routeRef.current, {
+              lat: e.lngLat.lat,
+              lon: e.lngLat.lng,
+            });
+            if (segment) {
+              setClick({ kind: "segment", lngLat: e.lngLat });
+              return;
+            }
+          }
+          const activeZones = zonesRef.current.filter((zone) =>
+            polygonContainsPoint(zone.geometry.coordinates, {
+              lat: e.lngLat.lat,
+              lon: e.lngLat.lng,
+            }),
+          );
+          if (activeZones.length) {
             setClick({
               kind: "airspace",
               lngLat: e.lngLat,
-              feature: {
-                ...(p as AirspaceFeature["properties"]),
-                activations:
-                  activations as AirspaceFeature["properties"]["activations"],
-              },
             });
             return;
           }
@@ -345,8 +606,12 @@ export function MapView({ basemap, layers, plan }: Props) {
     mapRef.current?.getSource<maplibregl.GeoJSONSource>(id);
 
   useEffect(() => {
-    if (ready && airspace.data) void source("airspace")?.setData(airspace.data);
-  }, [ready, airspace.data]);
+    if (ready)
+      void source("airspace")?.setData({
+        type: "FeatureCollection",
+        features: zones,
+      });
+  }, [ready, zones]);
 
   useEffect(() => {
     if (ready && airports.data)
@@ -364,8 +629,13 @@ export function MapView({ basemap, layers, plan }: Props) {
     );
     void source("ifr")?.setData(
       toFeatures(
-        navpoints.data.filter((p) => p.kind !== "vfr-reporting-point"),
+        navpoints.data.filter(
+          (p) => p.kind !== "vfr-reporting-point" && p.kind !== "navaid",
+        ),
       ),
+    );
+    void source("navaids")?.setData(
+      toFeatures(navpoints.data.filter((p) => p.kind === "navaid")),
     );
   }, [ready, navpoints.data]);
 
@@ -373,15 +643,302 @@ export function MapView({ basemap, layers, plan }: Props) {
     if (!ready) return;
     const aircraft = layers.traffic ? (traffic.data?.aircraft ?? []) : [];
     trafficByHex.current = new Map(aircraft.map((a) => [a.hex, a]));
+    const animated = aircraft.flatMap((a) => {
+      const position = projectedPosition(
+        a,
+        a.position_time,
+        a.ground_speed_kt,
+        a.track_deg,
+        now,
+      );
+      return position ? [{ a, position }] : [];
+    });
     void source("traffic")?.setData({
       type: "FeatureCollection",
-      features: aircraft.map((a) => ({
+      features: animated.map(({ a, position }) => ({
         type: "Feature",
-        geometry: { type: "Point", coordinates: [a.lon, a.lat] },
-        properties: { hex: a.hex, onGround: a.on_ground },
+        geometry: { type: "Point", coordinates: [position.lon, position.lat] },
+        properties: {
+          hex: a.hex,
+          onGround: a.on_ground,
+          alpha: position.alpha,
+          track: a.track_deg ?? 0,
+          flarm: a.sources.some((value) => /flarm|ogn/i.test(value)),
+        },
       })),
     });
-  }, [ready, layers.traffic, traffic.data]);
+    void source("traffic-vector")?.setData({
+      type: "FeatureCollection",
+      features:
+        selectedAircraft && layers.traffic
+          ? [
+              {
+                type: "Feature",
+                properties: {},
+                geometry: {
+                  type: "LineString",
+                  coordinates: [
+                    [selectedAircraft.lon, selectedAircraft.lat],
+                    [
+                      destinationPoint(
+                        selectedAircraft,
+                        selectedAircraft.track_deg ?? 0,
+                        ((selectedAircraft.ground_speed_kt ?? 0) * 2) / 60,
+                      ).lon,
+                      destinationPoint(
+                        selectedAircraft,
+                        selectedAircraft.track_deg ?? 0,
+                        ((selectedAircraft.ground_speed_kt ?? 0) * 2) / 60,
+                      ).lat,
+                    ],
+                  ],
+                },
+              },
+            ]
+          : [],
+    });
+    void source("traffic-trail")?.setData({
+      type: "FeatureCollection",
+      features:
+        layers.traffic && selectedHistory.length >= 2
+          ? [
+              {
+                type: "Feature",
+                properties: {},
+                geometry: {
+                  type: "MultiLineString",
+                  coordinates: trafficTrailSegments(selectedHistory),
+                },
+              },
+            ]
+          : [],
+    });
+  }, [
+    ready,
+    layers.traffic,
+    traffic.data,
+    now,
+    selectedHex,
+    selectedHistoryQuery.data,
+    selectedAircraft,
+    selectedHistory,
+  ]);
+
+  useEffect(() => {
+    observe(traffic.data?.aircraft ?? []);
+  }, [traffic.data, observe]);
+
+  useEffect(() => {
+    if (!ready) return;
+    const position = fix
+      ? projectedPosition(fix, fix.time, fix.groundSpeedKt, fix.trackDeg, now)
+      : null;
+    void source("ownship")?.setData({
+      type: "FeatureCollection",
+      features: position
+        ? [
+            {
+              type: "Feature",
+              properties: { alpha: position.alpha, track: fix?.trackDeg ?? 0 },
+              geometry: {
+                type: "Point",
+                coordinates: [position.lon, position.lat],
+              },
+            },
+          ]
+        : [],
+    });
+    void source("gps-trail")?.setData({
+      type: "FeatureCollection",
+      features:
+        settings.gpsEnabled && settings.gpsTrack.length >= 2
+          ? [
+              {
+                type: "Feature",
+                properties: {},
+                geometry: {
+                  type: "LineString",
+                  coordinates: settings.gpsTrack.map((p) => [p.lon, p.lat]),
+                },
+              },
+            ]
+          : [],
+    });
+    if (fix) {
+      const end = destinationPoint(
+        fix,
+        fix.trackDeg ?? 0,
+        ((fix.groundSpeedKt ?? 0) * 5) / 60,
+      );
+      void source("gps-vector")?.setData({
+        type: "FeatureCollection",
+        features: position
+          ? [
+              {
+                type: "Feature",
+                properties: {},
+                geometry: {
+                  type: "LineString",
+                  coordinates: [
+                    [position.lon, position.lat],
+                    [end.lon, end.lat],
+                  ],
+                },
+              },
+            ]
+          : [],
+      });
+    }
+    if (!fix)
+      void source("gps-vector")?.setData({
+        type: "FeatureCollection",
+        features: [],
+      });
+  }, [ready, fix, now, settings.gpsTrack, settings.gpsEnabled]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map || !settings.command) return;
+    if (settings.command === "reset")
+      map.jumpTo({
+        center: POLAND,
+        zoom: 5.5,
+        bearing: 0,
+        padding: { top: 0, bottom: 0, left: 0, right: 0 },
+      });
+    else if (route.length) {
+      const xs = route.map((p) => p.lon),
+        ys = route.map((p) => p.lat);
+      map.fitBounds(
+        [
+          [Math.min(...xs), Math.min(...ys)],
+          [Math.max(...xs), Math.max(...ys)],
+        ],
+        { padding: 60, maxZoom: 12 },
+      );
+    }
+    settings.request(null);
+  }, [ready, settings, route]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map || !settings.labels) return;
+    let cancelled = false;
+    const labels: maplibregl.Marker[] = [];
+    const animatedLabels = planeLabels.current;
+    void import("maplibre-gl").then((ml) => {
+      if (cancelled) return;
+      const bounds = map.getBounds(),
+        zoom = map.getZoom();
+      const points = [
+        ...(layers.airports ? (airports.data ?? []) : []),
+        ...(navpoints.data ?? []).filter(
+          (p) =>
+            zoom >= 7 &&
+            (p.kind === "vfr-reporting-point"
+              ? layers.vfr
+              : p.kind === "navaid"
+                ? layers.navaids
+                : layers.ifr),
+        ),
+      ];
+      for (const p of points) {
+        if (!bounds.contains([p.lon, p.lat])) continue;
+        const label = document.createElement("span");
+        label.className =
+          "pointer-events-none rounded bg-background/75 px-1 text-[10px] text-primary";
+        label.textContent = p.ident;
+        label.title = p.name;
+        labels.push(
+          new ml.Marker({ element: label, anchor: "left", offset: [8, 0] })
+            .setLngLat([p.lon, p.lat])
+            .addTo(map),
+        );
+      }
+      const own = fix
+        ? projectedPosition(fix, fix.time, fix.groundSpeedKt, fix.trackDeg, now)
+        : null;
+      if (own && fix?.trackDeg != null && (fix.groundSpeedKt ?? 0) >= 1)
+        for (let minute = 1; minute <= 5; minute++) {
+          const p = destinationPoint(
+            own,
+            fix.trackDeg,
+            (fix.groundSpeedKt! * minute) / 60,
+          );
+          const label = document.createElement("span");
+          label.className =
+            "pointer-events-none rounded bg-background/75 px-1 text-[10px] text-primary";
+          label.textContent = String(minute);
+          labels.push(
+            new ml.Marker({ element: label, anchor: "left", offset: [12, 0] })
+              .setLngLat([p.lon, p.lat])
+              .addTo(map),
+          );
+        }
+      if (layers.airspace && zoom >= 7)
+        for (const zone of zones) {
+          const ring = zone.geometry.coordinates[0];
+          if (!ring?.length) continue;
+          const center = [
+            ring.reduce((v, p) => v + (p[0] ?? 0), 0) / ring.length,
+            ring.reduce((v, p) => v + (p[1] ?? 0), 0) / ring.length,
+          ] as [number, number];
+          if (!bounds.contains(center)) continue;
+          const label = document.createElement("span");
+          label.className =
+            "pointer-events-none rounded bg-background/75 px-1 text-[10px] text-primary";
+          label.textContent = zone.properties.name;
+          labels.push(
+            new ml.Marker({ element: label }).setLngLat(center).addTo(map),
+          );
+        }
+      if (layers.traffic && zoom >= 7)
+        for (const a of traffic.data?.aircraft ?? []) {
+          const p = projectedPosition(
+            a,
+            a.position_time,
+            a.ground_speed_kt,
+            a.track_deg,
+            now,
+          );
+          if (!p || !bounds.contains([p.lon, p.lat])) continue;
+          const label = document.createElement("span");
+          label.className =
+            "pointer-events-none rounded bg-background/75 px-1 text-[10px] text-primary";
+          label.textContent = [
+            trafficCallsign(a.callsign) || (a.registration ?? a.hex),
+            `${a.altitude_ft ?? "—"} ft`,
+            `${a.ground_speed_kt === null ? "—" : Math.round(a.ground_speed_kt)} kt`,
+          ].join(" · ");
+          const marker = new ml.Marker({
+            element: label,
+            anchor: "left",
+            offset: [12, 0],
+          })
+            .setLngLat([p.lon, p.lat])
+            .addTo(map);
+          animatedLabels.set(a.hex, marker);
+          labels.push(marker);
+        }
+    });
+    return () => {
+      cancelled = true;
+      labels.forEach((label) => label.remove());
+      animatedLabels.clear();
+    };
+  }, [
+    ready,
+    settings.labels,
+    fix,
+    zones,
+    airports.data,
+    plannedRoute,
+    navpoints.data,
+    layers,
+    view,
+    traffic.data,
+    now,
+  ]);
 
   // Route line and labelled markers (DOM markers need no glyph server, so they work offline).
   useEffect(() => {
@@ -396,7 +953,10 @@ export function MapView({ basemap, layers, plan }: Props) {
           properties: {},
           geometry: {
             type: "LineString",
-            coordinates: points.map((p) => [p.lon, p.lat]),
+            coordinates: (points[0]?.ident === "DCT"
+              ? points.slice(1)
+              : points
+            ).map((p) => [p.lon, p.lat]),
           },
         },
         ...(flight.destination && flight.alternate
@@ -416,8 +976,26 @@ export function MapView({ basemap, layers, plan }: Props) {
           : []),
       ],
     });
+    void source("planned-route")?.setData({
+      type: "FeatureCollection",
+      features:
+        route[0]?.ident === "DCT" && plannedRoute.length >= 2
+          ? [
+              {
+                type: "Feature",
+                properties: {},
+                geometry: {
+                  type: "LineString",
+                  coordinates: plannedRoute.map((p) => [p.lon, p.lat]),
+                },
+              },
+            ]
+          : [],
+    });
     markers.current.forEach((m) => m.remove());
+    let cancelled = false;
     void import("maplibre-gl").then((ml) => {
+      if (cancelled) return;
       markers.current = [
         ...points,
         ...(flight.alternate ? [flight.alternate] : []),
@@ -425,13 +1003,52 @@ export function MapView({ basemap, layers, plan }: Props) {
         const el = document.createElement("div");
         el.className =
           "rounded bg-pink-500 px-1 text-[11px] font-semibold text-white shadow";
-        el.textContent = p.ident;
+        el.dataset.routeMarker = p.ident;
+        el.textContent = settings.labels ? p.ident : "●";
+        el.style.cursor = "pointer";
+        el.style.display = layers.route ? "" : "none";
+        el.tabIndex = 0;
+        el.setAttribute("role", "button");
+        el.setAttribute("aria-label", p.ident);
+        el.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            el.click();
+          }
+        });
+        el.addEventListener("click", (event) => {
+          event.stopPropagation();
+          setClick({
+            kind: "point",
+            lngLat: new ml.LngLat(p.lon, p.lat),
+            point: {
+              ...p,
+              name: p.ident,
+              kind: airports.data?.some((a) => a.ident === p.ident)
+                ? "airport"
+                : "route",
+            },
+          });
+        });
         return new ml.Marker({ element: el, anchor: "bottom", offset: [0, -4] })
           .setLngLat([p.lon, p.lat])
           .addTo(map);
       });
     });
-  }, [ready, route, flight.destination, flight.alternate]);
+    return () => {
+      cancelled = true;
+      markers.current.forEach((marker) => marker.remove());
+    };
+  }, [
+    ready,
+    route,
+    flight.destination,
+    flight.alternate,
+    settings.labels,
+    airports.data,
+    plannedRoute,
+    layers.route,
+  ]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -449,145 +1066,298 @@ export function MapView({ basemap, layers, plan }: Props) {
     show("vfr", layers.vfr);
     show("ifr", layers.ifr);
     show("traffic", layers.traffic);
+    show("navaids", layers.navaids);
+    show("route", layers.route);
+    show("planned-route", layers.route);
+    show("direct-to", layers.route);
+    show("traffic-estimate", layers.traffic);
+    show("traffic-trail", layers.traffic);
+    show("traffic-vector", layers.traffic);
+    for (const marker of markers.current)
+      marker.getElement().style.display = layers.route ? "" : "none";
   }, [ready, basemap, layers]);
 
+  const segmentTime = (index: number) => {
+    const target = route[index + 1],
+      from = route[index];
+    if (!target || !from) return "--";
+    const point = routePlan?.points.find(
+      (p) => formatRoutePoint(p) === target.ident,
+    );
+    const speed = point
+      ? speedRestrictionKt(point)
+      : (flight.pointRestrictions[target.ident]?.speedKt ?? null);
+    const minutes = routeSegmentMinutes(
+      distanceNm(from, target),
+      cruiseSpeedKt,
+      speed,
+    );
+    return minutes === null
+      ? "--"
+      : String(Math.floor(minutes / 60)).padStart(2, "0") +
+          ":" +
+          String(minutes % 60).padStart(2, "0");
+  };
+  const createWaypoint = (
+    segment: NonNullable<ReturnType<typeof nearestRouteSegment>>,
+  ) => {
+    const ident = nextWaypointIdent(route),
+      from = route[segment.index]!,
+      to = route[segment.index + 1]!;
+    const waypoint = {
+      ident,
+      ...segment.point,
+      anchor: {
+        from: from.ident,
+        to: to.ident,
+        fromPosition: { lat: from.lat, lon: from.lon },
+        toPosition: { lat: to.lat, lon: to.lon },
+      },
+    };
+    const altitude = (point: typeof from) => {
+      const match = routePlan?.points.find(
+        (p) => p.lat === point.lat && p.lon === point.lon,
+      );
+      return match
+        ? (routePlan?.pointAltitudeByKey[pointKey(match)] ??
+            flight.cruiseAltitudeFt)
+        : flight.cruiseAltitudeFt;
+    };
+    const altitudeFt = Math.round(
+      altitude(from) + (altitude(to) - altitude(from)) * segment.fraction,
+    );
+    const before = flight.waypoints.findIndex(
+      (p) => p.ident === to.ident && p.lat === to.lat && p.lon === to.lon,
+    );
+    const after = flight.waypoints.findIndex(
+      (p) => p.ident === from.ident && p.lat === from.lat && p.lon === from.lon,
+    );
+    const insertAt =
+      before >= 0 ? before : after >= 0 ? after + 1 : flight.waypoints.length;
+    update({
+      waypoints: [
+        ...flight.waypoints.slice(0, insertAt),
+        waypoint,
+        ...flight.waypoints.slice(insertAt),
+      ],
+      waypointAltitudes: { ...flight.waypointAltitudes, [ident]: altitudeFt },
+    });
+    if (navigation.startedAt)
+      navigation.insertWaypoint(segment.index + 1, waypoint);
+    setClick(null);
+  };
   const addPoint = (
     point: FlightPoint,
     as: "departure" | "destination" | "waypoint",
   ) => {
     const p = { ident: point.ident, lat: point.lat, lon: point.lon };
     if (as === "waypoint") update({ waypoints: [...flight.waypoints, p] });
-    else update({ [as]: p });
+    else
+      update({
+        [as]: p,
+        ...(as === "departure"
+          ? { sid: null }
+          : { star: null, approach: null }),
+      });
     setClick(null);
   };
 
   return (
     <div className="absolute inset-0">
-      <div ref={container} className="h-full w-full" data-testid="map" />
-      {airspace.isError && (
-        <p className="bg-background/90 text-destructive absolute top-2 left-2 rounded px-2 py-1 text-sm">
-          {t("map.airspaceUnavailable")}
-        </p>
+      <div
+        ref={container}
+        className="h-full w-full"
+        data-testid="map"
+        data-map-ready={ready}
+      />
+      {cursorPosition && (
+        <output className="bg-background/90 pointer-events-none absolute right-2 bottom-2 rounded border px-2 py-1 text-xs">
+          {cursorPosition.lat.toFixed(5)}, {cursorPosition.lon.toFixed(5)}
+        </output>
       )}
-      {click && (
-        <div
-          className="bg-popover absolute right-2 bottom-8 left-2 z-10 max-h-[45%] overflow-y-auto rounded-lg border p-3 text-sm shadow-lg sm:left-auto sm:w-80"
-          role="dialog"
-          aria-label={t("map.details")}
-        >
-          <button
-            type="button"
-            className="text-muted-foreground hover:text-foreground float-right pointer-coarse:min-h-10 pointer-coarse:px-2"
-            onClick={() => setClick(null)}
-            aria-label={t("map.close")}
+      <div className="bg-background/90 absolute top-2 left-2 z-10 grid max-w-xs gap-1 rounded border p-2 text-xs">
+        {airspace.isError && (
+          <span className="text-destructive">
+            {t("map.airspaceUnavailable")}
+          </span>
+        )}
+        {layers.traffic && traffic.isError && (
+          <span className="text-destructive">
+            {t("maptools.trafficUnavailable")}
+          </span>
+        )}
+        {(airspace.isFetching || (layers.traffic && traffic.isFetching)) && (
+          <span>{t("maptools.loading")}</span>
+        )}
+        <span>
+          {t("maptools.counts", {
+            zones: zones.length,
+            points: route.length,
+            traffic: traffic.data?.aircraft.length ?? 0,
+          })}
+        </span>
+        <details>
+          <summary>{t("maptools.filter")}</summary>
+          <div className="flex flex-wrap gap-1">
+            {Array.from(
+              new Set(
+                [
+                  ...(airspace.data?.features ?? []),
+                  ...(imported.data ?? []),
+                ].map((zone) =>
+                  airspaceKind(zone.properties.name, zone.properties.class),
+                ),
+              ),
+            )
+              .sort()
+              .map((className) => (
+                <label key={className}>
+                  <input
+                    type="checkbox"
+                    checked={!settings.hiddenClasses.includes(className)}
+                    onChange={(e) =>
+                      settings.update({
+                        hiddenClasses: e.target.checked
+                          ? settings.hiddenClasses.filter(
+                              (c) => c !== className,
+                            )
+                          : [...settings.hiddenClasses, className],
+                      })
+                    }
+                  />
+                  {className}
+                </label>
+              ))}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => settings.update({ hiddenClasses: [] })}
+            >
+              {t("maptools.all")}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() =>
+                settings.update({
+                  hiddenClasses: Array.from(
+                    new Set(
+                      [
+                        ...(airspace.data?.features ?? []),
+                        ...(imported.data ?? []),
+                      ].map((z) =>
+                        airspaceKind(z.properties.name, z.properties.class),
+                      ),
+                    ),
+                  ),
+                })
+              }
+            >
+              {t("maptools.clear")}
+            </Button>
+          </div>
+        </details>
+        <MapSummary
+          route={route}
+          zones={[...(airspace.data?.features ?? []), ...(imported.data ?? [])]}
+          crossed={crossed}
+          plan={plan}
+        />
+        <span>
+          {t("maptools.crossed")}: {crossed.length}
+        </span>
+        {(settings.gpsEnabled || navigation.startedAt) && (
+          <span data-testid="map-gps-status">
+            {gpsError
+              ? t(`fly.gps.${gpsError}`)
+              : fix
+                ? t("fly.gps.fix", {
+                    accuracy: Math.round(fix.accuracyM),
+                    time: fix.time.slice(11, 16) + "Z",
+                  })
+                : t("fly.gps.waiting")}
+          </span>
+        )}
+      </div>
+      {click &&
+        (click.kind !== "traffic" || selectedAircraft) &&
+        (click.kind !== "segment" || selectedSegment) && (
+          <FloatingDetails
+            key={
+              click.kind === "traffic"
+                ? click.hex
+                : click.kind === "point"
+                  ? click.point.ident
+                  : click.kind
+            }
+            onClose={() => setClick(null)}
+            draggable={click.kind === "traffic"}
           >
-            ✕
-          </button>
-          {click.kind === "traffic" ? (
-            <div className="grid gap-1" data-testid="traffic-card">
-              <div className="font-mono font-semibold">
-                {click.aircraft.callsign ??
-                  click.aircraft.registration ??
-                  click.aircraft.hex}
-              </div>
-              <div className="text-muted-foreground">
-                {[click.aircraft.registration, click.aircraft.type]
-                  .filter(Boolean)
-                  .join(" · ")}
-              </div>
-              <div className="tabular-nums">
-                {click.aircraft.on_ground
-                  ? t("map.traffic.onGround")
-                  : `${click.aircraft.altitude_ft ?? "—"} ft`}{" "}
-                ·{" "}
-                {click.aircraft.ground_speed_kt === null
-                  ? "—"
-                  : Math.round(click.aircraft.ground_speed_kt)}{" "}
-                kt ·{" "}
-                {click.aircraft.track_deg === null
-                  ? "—"
-                  : `${Math.round(click.aircraft.track_deg)}°T`}
-                {click.aircraft.squawk ? ` · ${click.aircraft.squawk}` : ""}
-              </div>
-              <div className="text-muted-foreground text-xs">
-                {t("map.traffic.source")}
-              </div>
-            </div>
-          ) : click.kind === "point" ? (
-            <div className="grid gap-2">
-              <div>
-                <div className="font-mono font-semibold">
-                  {click.point.ident}
-                </div>
-                <div className="text-muted-foreground">
-                  {click.point.name} ·{" "}
-                  {t(`plan.point.${click.point.kind}` as "plan.point.airport")}
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {click.point.kind === "airport" && (
-                  <>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => addPoint(click.point, "departure")}
-                    >
-                      {t("plan.route.departure")}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => addPoint(click.point, "destination")}
-                    >
-                      {t("plan.route.destination")}
-                    </Button>
-                  </>
-                )}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => addPoint(click.point, "waypoint")}
-                >
-                  {t("plan.route.addWaypoint")}
+            {click.kind === "traffic" && selectedAircraft ? (
+              <TrafficCard
+                key={selectedAircraft.hex + (selectedAircraft.callsign ?? "")}
+                aircraft={selectedAircraft}
+                historyCount={selectedHistory.length}
+              />
+            ) : click.kind === "point" ? (
+              <PointDetails
+                key={click.point.ident}
+                point={click.point}
+                now={now}
+                addPoint={addPoint}
+              />
+            ) : click.kind === "segment" ? (
+              <div className="grid gap-2">
+                <strong>{t("maptools.segment")}</strong>
+                <span>
+                  {route[selectedSegment!.index]?.ident} →{" "}
+                  {route[selectedSegment!.index + 1]?.ident}
+                </span>
+                <span>
+                  {t("maptools.distance")}:{" "}
+                  {distanceNm(
+                    route[selectedSegment!.index]!,
+                    route[selectedSegment!.index + 1]!,
+                  ).toFixed(1)}{" "}
+                  NM
+                </span>
+                <span>
+                  {t("maptools.track")}:{" "}
+                  {Math.round(
+                    initialBearingDeg(
+                      route[selectedSegment!.index]!,
+                      route[selectedSegment!.index + 1]!,
+                    ),
+                  ) % 360}
+                  °T
+                </span>
+                <span>
+                  {t("maptools.time")}: {segmentTime(selectedSegment!.index)}
+                </span>
+                <Button onClick={() => createWaypoint(selectedSegment!)}>
+                  {t("maptools.createWaypoint")}
                 </Button>
               </div>
-            </div>
-          ) : (
-            <div className="grid gap-1">
-              <div className="font-semibold">{click.feature.name}</div>
-              <div className="text-muted-foreground">
-                {t("map.class")} {click.feature.class} · {click.feature.lower} –{" "}
-                {click.feature.upper}
-              </div>
-              {click.feature.activations.length === 0 ? (
-                <div className="text-muted-foreground">
-                  {t("map.notBooked")}
-                </div>
-              ) : (
-                <ul className="grid gap-1">
-                  {click.feature.activations.map((a, i) => (
-                    <li
-                      key={i}
-                      className={
-                        click.feature.active_now ? "text-destructive" : ""
-                      }
-                    >
-                      {a.starts_at.slice(11, 16)}–{a.ends_at.slice(11, 16)} UTC
-                      · {a.lower}–{a.upper}
-                      {a.remarks ? ` · ${a.remarks}` : ""}
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {click.feature.active_now && (
-                <div className="text-destructive font-medium">
-                  {t("map.activeNow")}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
+            ) : click.kind === "airspace" ? (
+              <AirspaceDetails
+                zones={inspectionZones.map((zone) => zone.properties)}
+                plannedFtByZone={inspectionZones.map((zone) =>
+                  plannedAltitudeForZone(
+                    (routePlan?.points ?? []).map((p) => ({
+                      ...p,
+                      altitudeFt:
+                        routePlan?.pointAltitudeByKey[pointKey(p)] ?? null,
+                    })),
+                    zone.geometry.coordinates,
+                    flight.cruiseAltitudeFt,
+                  ),
+                )}
+                plannedFt={routePlan?.altitudeFt ?? flight.cruiseAltitudeFt}
+                currentFt={fix?.altitudeFt ?? null}
+              />
+            ) : null}
+          </FloatingDetails>
+        )}
     </div>
   );
 }

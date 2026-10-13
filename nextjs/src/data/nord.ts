@@ -1,6 +1,11 @@
 import { z } from "zod";
 
-import { type Flight, type FlightPoint, newFlight } from "./flight";
+import {
+  type Flight,
+  type FlightPoint,
+  newFlight,
+  pointRestrictionSchema,
+} from "./flight";
 
 /**
  * Legacy `.nord` flight files (format "nordsweet.flight", version 1) and the planner's saved routes
@@ -12,7 +17,31 @@ const numberish = z
   .transform((v) => Number(v))
   .pipe(z.number());
 
+const anchorEnd = z.preprocess(
+  (value) => (typeof value === "string" ? { id: value } : value),
+  z.object({
+    id: z.string().optional(),
+    name: z.string().optional(),
+    lat: numberish.optional(),
+    lon: numberish.optional(),
+  }),
+);
+const anchorSchema = z
+  .object({ from: anchorEnd, to: anchorEnd })
+  .transform(({ from, to }) => ({
+    from: (from.id ?? from.name ?? "").trim().toUpperCase(),
+    to: (to.id ?? to.name ?? "").trim().toUpperCase(),
+    ...(from.lat !== undefined && from.lon !== undefined
+      ? { fromPosition: { lat: from.lat, lon: from.lon } }
+      : {}),
+    ...(to.lat !== undefined && to.lon !== undefined
+      ? { toPosition: { lat: to.lat, lon: to.lon } }
+      : {}),
+  }));
+
 const nordRoute = z.object({
+  pointRestrictions: z.record(z.string(), pointRestrictionSchema).optional(),
+  waypointRestrictions: z.record(z.string(), pointRestrictionSchema).optional(),
   id: z.string().optional(),
   name: z.string().optional(),
   savedAt: z.string().optional(),
@@ -36,6 +65,7 @@ const nordRoute = z.object({
         name: z.string().optional(),
         lat: numberish,
         lon: numberish,
+        anchor: anchorSchema.optional(),
       }),
     )
     .optional(),
@@ -108,6 +138,7 @@ export function nordRouteFields(flight: Flight) {
     departure,
     destination,
     waypoints,
+    pointRestrictions,
     routeText,
     sid,
     star,
@@ -123,6 +154,7 @@ export function nordRouteFields(flight: Flight) {
     departure,
     destination,
     waypoints,
+    pointRestrictions,
     routeText,
     sid,
     star,
@@ -166,6 +198,8 @@ export function flightFromNordRoute(
       knownAircraftIds,
     ),
     registration: route.aircraftRegistration?.trim() ?? "",
+    pointRestrictions:
+      route.pointRestrictions ?? route.waypointRestrictions ?? {},
     departure: toPoint(points[0]!),
     destination: toPoint(points.at(-1)!),
     // The legacy file stores only the alternate's code; it is resolved against the airport list by the caller.
@@ -179,7 +213,9 @@ export function flightFromNordRoute(
             const ident = (w.label ?? w.name ?? w.id ?? "")
               .trim()
               .toUpperCase();
-            return ident ? [{ ident, lat: w.lat, lon: w.lon }] : [];
+            return ident
+              ? [{ ident, lat: w.lat, lon: w.lon, anchor: w.anchor }]
+              : [];
           }),
         }),
     sid: selection(route.sid),
@@ -260,11 +296,31 @@ export function toNordFile(
         sid: flight.sid ?? "NONE",
         star: flight.star ?? "NONE",
         plannerCruiseSpeedEco: flight.cruiseSpeedEco,
+        waypointRestrictions: Object.fromEntries(
+          Object.entries(flight.pointRestrictions).map(([key, value]) => [
+            key,
+            {
+              ...(value.speedKt === null ? {} : { speedKt: value.speedKt }),
+              ...(value.altitudeFt === null
+                ? {}
+                : {
+                    altitudeFt: value.altitudeFt,
+                    altitudeMode: value.altitudeMode,
+                  }),
+            },
+          ]),
+        ),
         insertedWaypoints: flight.waypoints.map((p) => ({
           id: p.ident,
           label: p.ident,
           lat: p.lat,
           lon: p.lon,
+          anchor: p.anchor
+            ? {
+                from: { id: p.anchor.from, ...p.anchor.fromPosition },
+                to: { id: p.anchor.to, ...p.anchor.toPosition },
+              }
+            : undefined,
         })),
         waypointAltitudes: Object.fromEntries(
           Object.entries(flight.waypointAltitudes).map(([k, v]) => [

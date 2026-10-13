@@ -138,6 +138,12 @@ export const activationSchema = z.object({
 });
 
 const position = z.tuple([z.number(), z.number()]);
+export const airspaceServiceSchema = z.object({
+  frequencyMhz: z.string(),
+  callsign: z.string().default(""),
+  sector: z.string().nullable().default(null),
+  serviceId: z.string().default(""),
+});
 
 export const airspaceFeatureSchema = z.object({
   type: z.literal("Feature"),
@@ -154,6 +160,7 @@ export const airspaceFeatureSchema = z.object({
     activations: z.array(activationSchema),
     /** null: not booked in the plan (permanent zones always look like this). */
     active_now: z.boolean().nullable(),
+    frequencies: z.array(airspaceServiceSchema).default([]),
   }),
 });
 

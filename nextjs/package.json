@@ -5,8 +5,8 @@
   "type": "module",
   "packageManager": "pnpm@11.19.0",
   "scripts": {
-    "dev": "cp node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs public/ && next dev --hostname 127.0.0.1",
-    "build": "cp node_modules/maplibre-gl/dist/maplibre-gl-worker.mjs public/ && next build --webpack && node scripts/finalize-export.mjs",
+    "dev": "node scripts/copy-map-worker.mjs && next dev --hostname 127.0.0.1",
+    "build": "node scripts/copy-map-worker.mjs && next build --webpack && node scripts/finalize-export.mjs",
     "start": "node scripts/serve-export.mjs",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

@@ -33,11 +33,11 @@ function Age({ minutes, stale }: { minutes: number | null; stale: boolean }) {
   );
 }
 
-function AirportBriefing({
+export function AirportBriefing({
   role,
   point,
 }: {
-  role: "departure" | "destination" | "alternate";
+  role: "departure" | "destination" | "alternate" | "selected";
   point: FlightPoint;
 }) {
   const t = useT();
@@ -46,12 +46,16 @@ function AirportBriefing({
     api.charts.byAirport.queryOptions({ airport: point.ident }),
   );
   const data = briefing.data;
-  const notamSource = data?.sources.notamify;
+  const notamSource =
+    data?.sources.notamify === "ok" || data?.sources.notac === "ok"
+      ? "ok"
+      : data?.sources.notamify;
 
   return (
     <div className="grid gap-2" data-testid={`wx-${role}`}>
       <h3 className="font-medium">
-        {t(`plan.route.${role}`)} — {point.ident}
+        {role === "selected" ? t("maptools.weather") : t(`plan.route.${role}`)}{" "}
+        — {point.ident}
         {station && station.icao !== point.ident && (
           <span className="text-muted-foreground font-normal">
             {" "}

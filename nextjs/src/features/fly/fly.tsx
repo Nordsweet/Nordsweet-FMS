@@ -76,21 +76,6 @@ export function FlyPage() {
     flying && fix
       ? computeProgress(inFlight.route, fix, inFlight.activeLeg)
       : null;
-  const { setActiveLeg, record } = inFlight;
-  useEffect(() => {
-    if (progress && progress.activeLeg !== inFlight.activeLeg)
-      setActiveLeg(progress.activeLeg);
-  }, [progress, inFlight.activeLeg, setActiveLeg]);
-  useEffect(() => {
-    if (flying && fix)
-      record({
-        lat: fix.lat,
-        lon: fix.lon,
-        altitudeFt: fix.altitudeFt,
-        time: fix.time,
-      });
-  }, [flying, fix, record]);
-
   const variation = fix ? magneticVariationDeg(fix) : 0;
   const mag = (trueDeg: number | null) =>
     trueDeg === null ? null : trueToMagneticDeg(trueDeg, variation);

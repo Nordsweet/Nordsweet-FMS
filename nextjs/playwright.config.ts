@@ -14,7 +14,8 @@ export default defineConfig({
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
-    command: `PORT=${port} node scripts/serve-export.mjs`,
+    command: "node scripts/serve-export.mjs",
+    env: { PORT: String(port) },
     url: `http://127.0.0.1:${port}`,
     reuseExistingServer: !process.env.CI,
   },

@@ -71,7 +71,7 @@ merged to `develop`. One owner per row.
 | Performance (charts/readouts, runway use, glide, persisted conditions) | open | | |
 | Taxi diagram / ground connectivity | open | | |
 | In-flight (timers, events, phases, FREDA detail, debrief, last-state save, COMMs hand-off, proximity alerts) | open | | `public/comms.js` |
-| Map incl. in-flight map view (point/route editing, GPX/OpenAir import, offline tiles, layer prefs, route restrictions + map-anchored waypoints) | reserved | cursor (owner, 2026-10-13) | do not touch `features/map` |
+| Map incl. in-flight map view (point/route editing, GPX/OpenAir import, offline tiles, layer prefs, route restrictions + map-anchored waypoints) | done | Codex 2026-10-13 | PR #2; [handoff](MAP_HANDOFF.md) |
 | Airspace browser, traffic page | open | | |
 | Checklists (voice gender/voice, autoscroll toggle) | open | | |
 | Settings & remaining legacy key migration (§3) | open | | |

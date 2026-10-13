@@ -177,6 +177,7 @@ export function usePlan() {
           },
           inlineSelections: flight.inlineProcedureSelections,
           insertedWaypoints: flight.waypoints,
+          pointRestrictions: flight.pointRestrictions,
           waypointAltitudes: flight.waypointAltitudes,
           waypointWx: flight.waypointWx,
           conditionsWind: surfaceWind(metar),

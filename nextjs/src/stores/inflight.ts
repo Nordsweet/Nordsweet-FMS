@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
 import { type LatLon, distanceNm } from "~/domain/geo";
-import { type NavPoint, directTo } from "~/domain/progress";
+import { type NavPoint, directTo, computeProgress } from "~/domain/progress";
 import { type TrackPoint } from "~/domain/track";
 
 /** Record a track point at most this often (5 s) unless the aircraft has not moved. */
@@ -19,6 +19,9 @@ type InFlight = {
   end: () => void;
   setActiveLeg: (leg: number) => void;
   goDirect: (targetIndex: number, position: LatLon) => void;
+  goToPoint: (target: NavPoint, position: LatLon) => void;
+  insertWaypoint: (index: number, point: NavPoint) => void;
+  resumeRoute: (route: NavPoint[], position: LatLon) => void;
   record: (point: TrackPoint) => void;
   confirmFreda: () => void;
 };
@@ -49,6 +52,33 @@ export const useInFlight = create<InFlight>()(
           route: directTo(s.route, position, targetIndex),
           activeLeg: 0,
         })),
+      goToPoint: (target, position) =>
+        set((s) => {
+          const index = s.route.findIndex(
+            (p) =>
+              p.ident === target.ident &&
+              p.lat === target.lat &&
+              p.lon === target.lon,
+          );
+          return {
+            route: directTo(
+              index >= 0 ? s.route : [target],
+              position,
+              Math.max(0, index),
+            ),
+            activeLeg: 0,
+          };
+        }),
+      insertWaypoint: (index, point) =>
+        set((s) => ({
+          route: [...s.route.slice(0, index), point, ...s.route.slice(index)],
+          activeLeg: index <= s.activeLeg ? s.activeLeg + 1 : s.activeLeg,
+        })),
+      resumeRoute: (route, position) =>
+        set({
+          route,
+          activeLeg: computeProgress(route, position, 0)?.activeLeg ?? 0,
+        }),
       record: (point) =>
         set((s) => {
           const last = s.track.at(-1);
