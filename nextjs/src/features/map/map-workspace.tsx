@@ -14,7 +14,8 @@ import { useGps } from "~/features/fly/use-gps";
 import { MapSelect } from "./map-select";
 import { MapView } from "./map-view";
 
-export function MapWorkspace() {
+/** `embedded`: the in-flight background map (legacy `?embed=1`): full-bleed, tools behind Layers. */
+export function MapWorkspace({ embedded = false }: { embedded?: boolean }) {
   const t = useT(),
     settings = useMapSettings(),
     flight = useFlight((s) => s.flight),
@@ -25,6 +26,7 @@ export function MapWorkspace() {
   const client = useQueryClient();
   const imported = useMutation(api.map.importAirspace.mutationOptions());
   const [notice, setNotice] = useState<string | null>(null);
+  const [toolsOpen, setToolsOpen] = useState(false);
   const label = (id: LayerId) =>
     id === "route" || id === "navaids"
       ? t(`maptools.layer.${id}`)
@@ -55,8 +57,30 @@ export function MapWorkspace() {
     }
   }
   return (
-    <div className="-m-4 flex min-h-96 flex-1 flex-col">
-      <div className="flex flex-wrap items-center gap-2 border-b px-4 py-2 text-sm">
+    <div
+      className={
+        embedded ? "absolute inset-0" : "-m-4 flex min-h-96 flex-1 flex-col"
+      }
+    >
+      {embedded && (
+        <Button
+          size="sm"
+          variant={toolsOpen ? "default" : "outline"}
+          aria-expanded={toolsOpen}
+          className="bg-card/90 absolute right-3 bottom-8 z-20 backdrop-blur"
+          onClick={() => setToolsOpen(!toolsOpen)}
+        >
+          {t("map.layers")}
+        </Button>
+      )}
+      <div
+        hidden={embedded && !toolsOpen}
+        className={
+          embedded
+            ? "bg-card/95 absolute right-3 bottom-18 z-20 flex max-h-[calc(100%-6rem)] max-w-[min(36rem,calc(100%-1rem))] flex-wrap items-center gap-2 overflow-y-auto rounded-2xl border p-3 text-sm backdrop-blur"
+            : "flex flex-wrap items-center gap-2 border-b px-4 py-2 text-sm"
+        }
+      >
         <MapSelect
           label={t("map.basemap")}
           value={settings.basemap}
@@ -264,11 +288,14 @@ export function MapWorkspace() {
         </Button>
         {notice && <span role="status">{notice}</span>}
       </div>
-      <div className="relative min-h-0 flex-1">
+      <div
+        className={embedded ? "absolute inset-0" : "relative min-h-0 flex-1"}
+      >
         <MapView
           basemap={settings.basemap}
           layers={settings.layers}
           plan={settings.plan}
+          overlay={!embedded || toolsOpen}
         />
       </div>
     </div>

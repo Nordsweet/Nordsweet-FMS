@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { api } from "~/api";
@@ -16,16 +17,48 @@ import {
 import { type FlightPoint } from "~/data/flight";
 import { magneticVariationDeg, trueToMagneticDeg } from "~/domain/magnetic";
 import { computeProgress } from "~/domain/progress";
-import { summarizeTrack, toGpx } from "~/domain/track";
+import { type TrackPoint, summarizeTrack, toGpx } from "~/domain/track";
+import { ChecklistsPage } from "~/features/checklists/checklists";
+import { BriefingSection } from "~/features/plan/briefing";
 import { fmt, fmtMinutes } from "~/features/plan/fields";
+import { PerformanceSection } from "~/features/plan/performance";
+import { TaxiSection } from "~/features/plan/taxi";
 import { usePlan } from "~/features/plan/use-plan";
 import { useT } from "~/i18n/use-t";
 import { cn } from "~/lib/utils";
+import { MapWorkspace } from "~/features/map/map-workspace";
 import { useInFlight } from "~/stores/inflight";
+import { useMapSettings } from "~/stores/map";
 
 import { useGps } from "./use-gps";
 
 const FREDA_INTERVAL_MIN = 30;
+
+const PHASES = [
+  "taxiout",
+  "takeoff",
+  "climb",
+  "cruise",
+  "descent",
+  "landing",
+  "taxiin",
+] as const;
+type Phase = (typeof PHASES)[number];
+type Panel =
+  "route" | "comms" | "wx" | "rwy" | "checklist" | "info" | "options";
+/** Legacy rail per phase (EMER, CONFIG and the chart viewer are not ported yet). */
+const RAIL: { id: Panel; phases?: Phase[] }[] = [
+  { id: "route", phases: ["taxiout", "taxiin"] },
+  { id: "comms" },
+  {
+    id: "wx",
+    phases: ["taxiout", "takeoff", "cruise", "descent", "landing", "taxiin"],
+  },
+  { id: "rwy", phases: ["takeoff", "landing"] },
+  { id: "checklist" },
+  { id: "info" },
+  { id: "options" },
+];
 
 function Tile({
   label,
@@ -66,6 +99,10 @@ export function FlyPage() {
   const { fix, error } = useGps(true);
   const [now, setNow] = useState(() => Date.now());
   const [debrief, setDebrief] = useState(false);
+  // shortcut: the phase is picked by hand and not persisted; legacy also switched it automatically.
+  const [phase, setPhase] = useState<Phase>("taxiout");
+  const [panel, setPanel] = useState<Panel | null>(null);
+  const settings = useMapSettings();
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 15000);
@@ -98,215 +135,318 @@ export function FlyPage() {
         )
       : null;
   const summary = summarizeTrack(inFlight.track);
+  const rail = RAIL.filter((r) => !r.phases || r.phases.includes(phase));
+  const open = rail.some((r) => r.id === panel) ? panel : null;
 
-  return (
-    <div className="mx-auto grid max-w-5xl gap-4">
+  const navigation = (
+    <>
+      <section
+        className="grid grid-cols-2 gap-2 sm:grid-cols-3"
+        aria-label={t("fly.next")}
+      >
+        <Tile
+          label={t("fly.next")}
+          value={progress?.next.ident ?? "—"}
+          testId="fly-next"
+        />
+        <Tile
+          label={t("fly.distance")}
+          value={progress ? `${fmt(progress.distanceToNextNm, 1)} NM` : "—"}
+          testId="fly-distance"
+        />
+        <Tile
+          label={t("fly.bearing")}
+          value={deg(mag(progress?.bearingToNextDeg ?? null))}
+        />
+        <Tile
+          label={t("fly.dtk")}
+          value={deg(mag(progress?.desiredTrackDeg ?? null))}
+        />
+        <Tile
+          label={t("fly.xte")}
+          value={
+            progress
+              ? `${fmt(Math.abs(progress.crossTrackNm), 1)} ${progress.crossTrackNm >= 0 ? "R" : "L"}`
+              : "—"
+          }
+          alert={!!progress && Math.abs(progress.crossTrackNm) > 1}
+          testId="fly-xte"
+        />
+        <Tile label={t("fly.ete")} value={fmtMinutes(eteNext)} />
+        <Tile label={t("fly.gs")} value={gs === null ? "—" : `${fmt(gs)} kt`} />
+        <Tile label={t("fly.track")} value={deg(mag(fix?.trackDeg ?? null))} />
+        <Tile
+          label={t("fly.altitude")}
+          value={fix?.altitudeFt == null ? "—" : `${fmt(fix.altitudeFt)} ft`}
+        />
+        <Tile
+          label={`${t("fly.destination")} ${inFlight.route.at(-1)?.ident ?? ""}`}
+          value={
+            progress ? `${fmt(progress.distanceToDestinationNm, 1)} NM` : "—"
+          }
+        />
+        <Tile label={t("fly.ete")} value={fmtMinutes(eteDest)} />
+        <Tile
+          label={t("fly.eta")}
+          value={eteDest === null ? "—" : utc(new Date(now + eteDest * 60000))}
+        />
+      </section>
       <div className="flex flex-wrap items-center gap-2">
-        <h1 className="text-primary mr-auto text-[1.05rem] font-semibold tracking-[0.04em] uppercase">
-          {t("fly.title")}
-        </h1>
-        {!flying ? (
-          <Button
-            disabled={planRoute.length < 2}
-            onClick={() => {
-              inFlight.start(planRoute);
-              setDebrief(false);
-            }}
-          >
-            {t("fly.start")}
-          </Button>
+        <Select
+          value=""
+          onValueChange={(v) => fix && inFlight.goDirect(Number(v), fix)}
+          disabled={!fix}
+        >
+          <SelectTrigger className="w-48" aria-label={t("fly.directTo")}>
+            <SelectValue placeholder={t("fly.directTo")} />
+          </SelectTrigger>
+          <SelectContent>
+            {inFlight.route.map((p, i) =>
+              i > 0 ? (
+                <SelectItem key={`${p.ident}-${i}`} value={String(i)}>
+                  {p.ident}
+                </SelectItem>
+              ) : null,
+            )}
+          </SelectContent>
+        </Select>
+        <Button
+          variant={fredaDue ? "destructive" : "outline"}
+          onClick={inFlight.confirmFreda}
+          data-testid="freda"
+        >
+          {fredaDue
+            ? t("fly.fredaDue")
+            : t("fly.fredaIn", {
+                minutes: fredaIn === null ? "—" : fmt(fredaIn),
+              })}
+        </Button>
+        <span className="text-muted-foreground text-xs">
+          {t("fly.fredaItems")}
+        </span>
+      </div>
+    </>
+  );
+
+  const content: Record<Panel, React.ReactNode> = {
+    route: <TaxiSection />,
+    comms: (
+      <Frequencies
+        points={[flight.departure, flight.destination, flight.alternate]}
+      />
+    ),
+    wx: <BriefingSection />,
+    rwy: <PerformanceSection />,
+    checklist: <ChecklistsPage />,
+    info: navigation,
+    options: (
+      <div className="flex flex-wrap gap-2">
+        <Button
+          aria-pressed={settings.gpsEnabled}
+          variant={settings.gpsEnabled ? "default" : "outline"}
+          onClick={() => settings.setGps(!settings.gpsEnabled)}
+        >
+          {t("maptools.gps")}
+        </Button>
+        <Button
+          aria-pressed={settings.trackUp}
+          variant={settings.trackUp ? "default" : "outline"}
+          onClick={() => settings.update({ trackUp: !settings.trackUp })}
+        >
+          {t("maptools.trackUp")}
+        </Button>
+        <Button variant="outline" onClick={() => settings.follow(true)}>
+          {t("maptools.center")}
+        </Button>
+      </div>
+    ),
+  };
+
+  const gpsText = error
+    ? t(`fly.gps.${error === "denied" ? "denied" : "unavailable"}`)
+    : fix
+      ? t("fly.gps.fix", {
+          accuracy: fmt(fix.accuracyM),
+          time: utc(new Date(fix.time)),
+        })
+      : t("fly.gps.waiting");
+  const chip =
+    "bg-card/90 rounded-full border px-3 py-1.5 text-xs backdrop-blur";
+
+  // Legacy flight view: the airspace map full screen, the phase bar on top, the phase's tools on
+  // the right; each tool opens its panel beside the rail.
+  return (
+    <div className="bg-background fixed inset-0 z-40">
+      <MapWorkspace embedded />
+      <div className="bg-card/90 absolute top-3 left-1/2 z-30 flex max-w-[calc(100%-1.5rem)] -translate-x-1/2 gap-2 overflow-x-auto rounded-3xl border p-2 backdrop-blur">
+        {flying ? (
+          <>
+            {PHASES.map((p) => (
+              <Button
+                key={p}
+                variant={p === phase ? "default" : "outline"}
+                aria-pressed={p === phase}
+                className="shrink-0"
+                onClick={() => setPhase(p)}
+              >
+                {t(`fly.phase.${p}`)}
+              </Button>
+            ))}
+            <Button
+              variant="outline"
+              className="border-primary shrink-0"
+              onClick={() => {
+                inFlight.end();
+                setPanel(null);
+                setDebrief(true);
+              }}
+            >
+              {t("fly.end")}
+            </Button>
+          </>
         ) : (
-          <Button
-            variant="destructive"
-            onClick={() => {
-              inFlight.end();
-              setDebrief(true);
-            }}
-          >
-            {t("fly.end")}
-          </Button>
+          <>
+            <Button variant="outline" className="shrink-0" asChild>
+              <Link href="/">{t("nav.plan")}</Link>
+            </Button>
+            <Button
+              className="shrink-0"
+              disabled={planRoute.length < 2}
+              onClick={() => {
+                inFlight.start(planRoute);
+                setPhase("taxiout");
+                setDebrief(false);
+              }}
+            >
+              {t("fly.start")}
+            </Button>
+          </>
         )}
       </div>
 
-      <p
-        className={cn(
-          "text-sm",
-          error ? "text-destructive" : "text-muted-foreground",
-        )}
-        data-testid="gps-status"
-      >
-        {error
-          ? t(`fly.gps.${error === "denied" ? "denied" : "unavailable"}`)
-          : fix
-            ? t("fly.gps.fix", {
-                accuracy: fmt(fix.accuracyM),
-                time: utc(new Date(fix.time)),
-              })
-            : t("fly.gps.waiting")}
-      </p>
-      {!flying && planRoute.length < 2 && (
-        <p className="text-muted-foreground text-sm">
-          {t("plan.navlog.empty")}
-        </p>
-      )}
-
       {flying && (
-        <>
-          <section
-            className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4"
-            aria-label={t("fly.next")}
-          >
-            <Tile
-              label={t("fly.next")}
-              value={progress?.next.ident ?? "—"}
-              testId="fly-next"
-            />
-            <Tile
-              label={t("fly.distance")}
-              value={progress ? `${fmt(progress.distanceToNextNm, 1)} NM` : "—"}
-              testId="fly-distance"
-            />
-            <Tile
-              label={t("fly.bearing")}
-              value={deg(mag(progress?.bearingToNextDeg ?? null))}
-            />
-            <Tile
-              label={t("fly.dtk")}
-              value={deg(mag(progress?.desiredTrackDeg ?? null))}
-            />
-            <Tile
-              label={t("fly.xte")}
-              value={
-                progress
-                  ? `${fmt(Math.abs(progress.crossTrackNm), 1)} ${progress.crossTrackNm >= 0 ? "R" : "L"}`
-                  : "—"
-              }
-              alert={!!progress && Math.abs(progress.crossTrackNm) > 1}
-              testId="fly-xte"
-            />
-            <Tile label={t("fly.ete")} value={fmtMinutes(eteNext)} />
-            <Tile
-              label={t("fly.gs")}
-              value={gs === null ? "—" : `${fmt(gs)} kt`}
-            />
-            <Tile
-              label={t("fly.track")}
-              value={deg(mag(fix?.trackDeg ?? null))}
-            />
-            <Tile
-              label={t("fly.altitude")}
-              value={
-                fix?.altitudeFt == null ? "—" : `${fmt(fix.altitudeFt)} ft`
-              }
-            />
-          </section>
-          <section
-            className="grid grid-cols-2 gap-2 sm:grid-cols-3"
-            aria-label={t("fly.destination")}
-          >
-            <Tile
-              label={`${t("fly.destination")} ${inFlight.route.at(-1)?.ident ?? ""}`}
-              value={
-                progress
-                  ? `${fmt(progress.distanceToDestinationNm, 1)} NM`
-                  : "—"
-              }
-            />
-            <Tile label={t("fly.ete")} value={fmtMinutes(eteDest)} />
-            <Tile
-              label={t("fly.eta")}
-              value={
-                eteDest === null ? "—" : utc(new Date(now + eteDest * 60000))
-              }
-            />
-          </section>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <Select
-              value=""
-              onValueChange={(v) => fix && inFlight.goDirect(Number(v), fix)}
-              disabled={!fix}
-            >
-              <SelectTrigger className="w-48" aria-label={t("fly.directTo")}>
-                <SelectValue placeholder={t("fly.directTo")} />
-              </SelectTrigger>
-              <SelectContent>
-                {inFlight.route.map((p, i) =>
-                  i > 0 ? (
-                    <SelectItem key={`${p.ident}-${i}`} value={String(i)}>
-                      {p.ident}
-                    </SelectItem>
-                  ) : null,
-                )}
-              </SelectContent>
-            </Select>
+        <nav
+          aria-label={t("fly.title")}
+          className="absolute top-30 right-3 z-30 grid max-h-[calc(100%-12rem)] gap-2 overflow-y-auto"
+        >
+          {rail.map((r) => (
             <Button
-              variant={fredaDue ? "destructive" : "outline"}
-              onClick={inFlight.confirmFreda}
-              data-testid="freda"
+              key={r.id}
+              variant={open === r.id ? "default" : "outline"}
+              aria-expanded={open === r.id}
+              className="bg-card/90 h-13 w-20 px-1 text-[0.7rem] backdrop-blur"
+              onClick={() => setPanel(open === r.id ? null : r.id)}
             >
-              {fredaDue
-                ? t("fly.fredaDue")
-                : t("fly.fredaIn", {
-                    minutes: fredaIn === null ? "—" : fmt(fredaIn),
-                  })}
+              {t(`fly.panel.${r.id}`)}
             </Button>
-            <span className="text-muted-foreground text-xs">
-              {t("fly.fredaItems")}
-            </span>
-          </div>
-
-          <Frequencies
-            points={[flight.departure, flight.destination, flight.alternate]}
-          />
-        </>
+          ))}
+        </nav>
       )}
 
-      {debrief && !flying && (
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              <h2>{t("fly.debrief")}</h2>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-3 text-sm">
-            <p data-testid="debrief">
-              {t("fly.debriefSummary", {
-                time: fmtMinutes(summary.minutes),
-                distance: fmt(summary.distanceNm, 1),
-                altitude:
-                  summary.maxAltitudeFt === null
-                    ? "—"
-                    : fmt(summary.maxAltitudeFt),
-                points: inFlight.track.length,
-              })}
+      {(open ?? (!flying && (debrief || planRoute.length < 2))) && (
+        <section
+          role="dialog"
+          aria-label={open ? t(`fly.panel.${open}`) : t("fly.title")}
+          className="bg-card/95 absolute top-20 right-3 left-3 z-40 grid max-h-[calc(100%-9rem)] content-start gap-4 overflow-y-auto rounded-3xl border p-4 backdrop-blur sm:right-26 sm:left-auto sm:w-[min(32rem,calc(100%-8rem))]"
+        >
+          {open ? (
+            <>
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="text-primary font-semibold tracking-[0.08em] uppercase">
+                  {t(`fly.panel.${open}`)}
+                </h2>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPanel(null)}
+                >
+                  {t("map.close")}
+                </Button>
+              </div>
+              {content[open]}
+            </>
+          ) : debrief ? (
+            <Debrief
+              summary={summary}
+              track={inFlight.track}
+              name={flight.name}
+            />
+          ) : (
+            <p className="text-muted-foreground text-sm">
+              {t("plan.navlog.empty")}
             </p>
-            <div>
-              <Button
-                variant="outline"
-                disabled={inFlight.track.length === 0}
-                onClick={() => {
-                  const name =
-                    flight.name.trim() === "" ? "flight" : flight.name;
-                  const url = URL.createObjectURL(
-                    new Blob([toGpx(inFlight.track, name)], {
-                      type: "application/gpx+xml",
-                    }),
-                  );
-                  Object.assign(document.createElement("a"), {
-                    href: url,
-                    download: `${name}.gpx`,
-                  }).click();
-                  URL.revokeObjectURL(url);
-                }}
-              >
-                {t("fly.exportGpx")}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+          )}
+        </section>
       )}
+
+      <div className="absolute bottom-8 left-3 z-30 flex max-w-[calc(100%-8rem)] flex-wrap gap-2">
+        <span className={chip}>
+          {t("fly.routeChip", {
+            route: (flying ? inFlight.route : planRoute)
+              .map((p) => p.ident)
+              .join(" - "),
+          })}
+        </span>
+        <span className={chip}>
+          {progress
+            ? `${progress.next.ident} ${fmt(progress.distanceToNextNm, 1)} NM`
+            : "--"}
+        </span>
+        <span
+          className={cn(chip, error && "text-destructive")}
+          data-testid="gps-status"
+        >
+          {gpsText}
+        </span>
+      </div>
     </div>
+  );
+}
+
+function Debrief({
+  summary,
+  track,
+  name,
+}: {
+  summary: ReturnType<typeof summarizeTrack>;
+  track: TrackPoint[];
+  name: string;
+}) {
+  const t = useT();
+  return (
+    <>
+      <h2 className="text-primary font-semibold tracking-[0.08em] uppercase">
+        {t("fly.debrief")}
+      </h2>
+      <p data-testid="debrief" className="text-sm">
+        {t("fly.debriefSummary", {
+          time: fmtMinutes(summary.minutes),
+          distance: fmt(summary.distanceNm, 1),
+          altitude:
+            summary.maxAltitudeFt === null ? "—" : fmt(summary.maxAltitudeFt),
+          points: track.length,
+        })}
+      </p>
+      <div>
+        <Button
+          variant="outline"
+          disabled={track.length === 0}
+          onClick={() => {
+            const file = name.trim() === "" ? "flight" : name;
+            const url = URL.createObjectURL(
+              new Blob([toGpx(track, file)], { type: "application/gpx+xml" }),
+            );
+            Object.assign(document.createElement("a"), {
+              href: url,
+              download: `${file}.gpx`,
+            }).click();
+            URL.revokeObjectURL(url);
+          }}
+        >
+          {t("fly.exportGpx")}
+        </Button>
+      </div>
+    </>
   );
 }
 
@@ -322,7 +462,7 @@ function Frequencies({ points }: { points: (FlightPoint | null)[] }) {
           <h2>{t("fly.frequencies")}</h2>
         </CardTitle>
       </CardHeader>
-      <CardContent className="grid gap-2 text-sm sm:grid-cols-3">
+      <CardContent className="grid gap-2 text-sm sm:grid-cols-3 lg:grid-cols-1">
         {idents.map((ident) => (
           <AirportFrequencies key={ident} ident={ident} />
         ))}

@@ -15,9 +15,11 @@ import { AircraftSection } from "~/features/plan/aircraft";
 import { RouteSection } from "~/features/plan/route";
 import { SavedFlightsSection } from "~/features/plan/saved-flights";
 import { TaxiSection } from "~/features/plan/taxi";
+import { usePlan } from "~/features/plan/use-plan";
 import { WeightBalanceSection } from "~/features/plan/weight-balance";
 import { type MessageKey } from "~/i18n/messages";
 import { useT } from "~/i18n/use-t";
+import { useInFlight } from "~/stores/inflight";
 
 /** The original "aircraft card" that holds the section tabs. */
 const setupPanel =
@@ -68,12 +70,7 @@ export default function PlanPage() {
             >
               {t("plan.saveFlight")}
             </Button>
-            <Button
-              asChild
-              className="h-13.5 min-w-41 border-white/45 bg-[linear-gradient(135deg,rgba(118,242,164,0.98),rgba(122,243,211,0.94))]"
-            >
-              <Link href="/fly">{t("plan.startFlight")}</Link>
-            </Button>
+            <StartFlightButton />
           </>,
           actions,
         )}
@@ -132,5 +129,28 @@ export default function PlanPage() {
         {t("plan.disclaimer")}
       </p>
     </div>
+  );
+}
+
+/** Legacy "Start a flight": starts the flight (unless one is in progress) and opens the flight view. */
+function StartFlightButton() {
+  const t = useT();
+  const { route } = usePlan();
+  const flying = useInFlight((s) => s.startedAt !== null);
+  const start = useInFlight((s) => s.start);
+  return (
+    <Button
+      asChild
+      className="h-13.5 min-w-41 border-white/45 bg-[linear-gradient(135deg,rgba(118,242,164,0.98),rgba(122,243,211,0.94))]"
+    >
+      <Link
+        href="/fly"
+        onClick={() => {
+          if (!flying && route.length >= 2) start(route);
+        }}
+      >
+        {t("plan.startFlight")}
+      </Link>
+    </Button>
   );
 }

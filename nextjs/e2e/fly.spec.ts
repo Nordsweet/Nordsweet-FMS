@@ -37,18 +37,20 @@ test("flies the route: sequencing, direct-to and debrief", async ({
 
   await page.goto("/fly");
   await page.getByRole("button", { name: "Start flight" }).click();
+  await page.getByRole("button", { name: "Info", exact: true }).click();
   await expect(page.getByTestId("fly-next")).toHaveText("BBBB");
   await expect(page.getByTestId("fly-xte")).toHaveText(/^1\.\d L$/); // 0.02° north of the (great-circle) track
 
   await context.setGeolocation({ latitude: 50, longitude: 20.05, accuracy: 5 }); // abeam BBBB
   await expect(page.getByTestId("fly-next")).toHaveText("CCCC");
   await page.reload(); // in-flight state survives a reload
+  await page.getByRole("button", { name: "Info", exact: true }).click();
   await expect(page.getByTestId("fly-next")).toHaveText("CCCC");
 
   await page.getByRole("combobox", { name: "Direct to…" }).click();
   await page.getByRole("option", { name: "CCCC" }).click();
   await expect(page.getByTestId("fly-xte")).toHaveText(/0\.0/);
 
-  await page.getByRole("button", { name: "End flight" }).click();
+  await page.getByRole("button", { name: "Close flight" }).click();
   await expect(page.getByTestId("debrief")).toContainText("track points");
 });

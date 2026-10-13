@@ -189,11 +189,12 @@ test("map restrictions persist and navigation shares flight state across pages",
     .click();
   await expect(page.getByTestId("map-gps-status")).toContainText("5");
   await page.getByRole("link", { name: "Fly", exact: true }).click();
+  await page.getByRole("button", { name: "Info", exact: true }).click();
   await expect(page.getByTestId("fly-next")).toHaveText("B");
   await context.setGeolocation({ latitude: 50, longitude: 20.05, accuracy: 5 });
   await expect(page.getByTestId("fly-next")).toHaveText("C");
-  await page.getByRole("link", { name: "Map", exact: true }).click();
-  await page.waitForURL("**/map");
+  // The flight view covers the app navigation, like the legacy flight modal.
+  await page.goto("/map");
   await page.reload();
   await expect(
     page.getByRole("button", { name: "End navigation", exact: true }),

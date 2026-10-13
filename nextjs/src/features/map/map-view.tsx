@@ -53,6 +53,8 @@ type Props = {
   basemap: Basemap;
   layers: Record<LayerId, boolean>;
   plan: AirspacePlan | "none";
+  /** The info box (counts, filters, summary); the in-flight map shows it only with Layers open. */
+  overlay?: boolean;
 };
 
 const POLAND: [number, number] = [19.4, 52.0];
@@ -104,7 +106,7 @@ const toFeatures = (
   })),
 });
 
-export function MapView({ basemap, layers, plan }: Props) {
+export function MapView({ basemap, layers, plan, overlay = true }: Props) {
   const t = useT();
   const container = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -1175,7 +1177,10 @@ export function MapView({ basemap, layers, plan }: Props) {
           {cursorPosition.lat.toFixed(5)}, {cursorPosition.lon.toFixed(5)}
         </output>
       )}
-      <div className="bg-background/90 absolute top-2 left-2 z-10 grid max-w-xs gap-1 rounded border p-2 text-xs">
+      <div
+        hidden={!overlay}
+        className="bg-background/90 absolute top-2 left-2 z-10 grid max-w-xs gap-1 rounded border p-2 text-xs"
+      >
         {airspace.isError && (
           <span className="text-destructive">
             {t("map.airspaceUnavailable")}

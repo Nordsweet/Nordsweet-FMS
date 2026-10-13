@@ -26,7 +26,7 @@ Function-name areas (count of functions) — grep `^function (get|render|build|h
 | ATIS pad / D-ATIS | 220 | `Atis`, `Datis` | structured ATIS pad + community ATIS |
 | Route planner | 190 | `Planner`, `Route`, `Procedure`, `Waypoint` | Route tab, vertical profile, economy, waypoint WX |
 | Taxi / ground | 130 | `Taxi`, `Ground`, `Runway` | |
-| In-flight | 110 | `Flight`, `Freda`, `Debrief`, `Utility` | timers, events, FREDA, debrief |
+| In-flight (timers, events, phases, FREDA detail, debrief, last-state save, COMMs hand-off, proximity alerts) | in progress | claude 2026-10-13 | flight view shell done (`features/fly/fly.tsx`): full-screen map, phase bar, per-phase rail (ROUTE=taxi, COMMs=frequencies, WX, RWY=performance, CHECKLIST, INFO=nav, OPTIONS), chips. Open: EMER, CONFIG, PROC/TAXI charts, automatic phase changes, COMMs radio plan, INFO phase performance, timers/events | `public/comms.js` |
 | Checklists | 48 | `Checklist` | voice, autoscroll |
 | Cruise | 38 | `Cruise` | cruise tiles (OAT, wind, RPM/MAP) |
 | Aircraft | 35 | `Aircraft` | profiles, registration, last state |
