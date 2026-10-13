@@ -236,5 +236,3 @@ export function economySuggestions(
     oatC,
   };
 }
-
-export type EconomySuggestions = ReturnType<typeof economySuggestions>;

@@ -67,12 +67,11 @@ merged to `develop`. One owner per row.
 | Planner › Fuel tab | done | claude 2026-10-13 | rows, overrides, FOB/fuel added, notes; matches legacy (see §5) |
 | Planner › W&B tab | done | claude 2026-10-13 | sheet, linked fuel, envelope chart; matches legacy |
 | Planner › Route tab | done | claude 2026-10-13 | `domain/route-plan.ts` (+ `route-economy.ts`): tokens, airways, SID/STAR/APPROACH (NONE/AUTO/id + inline variant), thresholds, TOC/TOD/SOC, ALT at point, waypoint WX, schedule, ECO; dialogs; load route. Matches legacy leg for leg (main 1888742) |
-| Route: pilot-entered restrictions and map-anchored waypoint insertion | open | | legacy map editor features; route uses procedure restrictions and nearest-leg insertion |
 | Weather / ATIS pad parser, waypoint forecasts, AWOS | open | | API boundary only |
 | Performance (charts/readouts, runway use, glide, persisted conditions) | open | | |
 | Taxi diagram / ground connectivity | open | | |
 | In-flight (timers, events, phases, FREDA detail, debrief, last-state save, COMMs hand-off, proximity alerts) | open | | `public/comms.js` |
-| Map (point/route editing, GPX/OpenAir import, offline tiles, layer prefs) | open | | |
+| Map incl. in-flight map view (point/route editing, GPX/OpenAir import, offline tiles, layer prefs, route restrictions + map-anchored waypoints) | reserved | cursor (owner, 2026-10-13) | do not touch `features/map` |
 | Airspace browser, traffic page | open | | |
 | Checklists (voice gender/voice, autoscroll toggle) | open | | |
 | Settings & remaining legacy key migration (§3) | open | | |

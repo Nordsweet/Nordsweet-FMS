@@ -997,8 +997,6 @@ function findTopOfClimb(
   return latest;
 }
 
-export type VerticalProfile = ReturnType<typeof verticalProfile>;
-
 function verticalProfile(
   input: RoutePlanInput,
   points: RoutePoint[],

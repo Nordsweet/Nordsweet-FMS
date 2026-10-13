@@ -147,7 +147,7 @@ export function RouteSection() {
           <ProcedureSelect
             key={type}
             type={type}
-            {...procedureOptions[type]}
+            {...procedureOptions(type)}
             value={flight[selectionField[type]]}
             onChange={(value) => update({ [selectionField[type]]: value })}
           />
@@ -253,15 +253,16 @@ export function RouteSection() {
           </ol>
         </>
       )}
-      <WaypointWxDialog pointKey={wxKey} onClose={() => setWxKey(null)} />
-      <EconomyDialog
-        open={dialog === "economy"}
-        onClose={() => setDialog(null)}
-      />
-      <VerticalProfileDialog
-        open={dialog === "profile"}
-        onClose={() => setDialog(null)}
-      />
+      {/* Mounted only while open: each one derives the plan again. */}
+      {wxKey && (
+        <WaypointWxDialog pointKey={wxKey} onClose={() => setWxKey(null)} />
+      )}
+      {dialog === "economy" && (
+        <EconomyDialog open onClose={() => setDialog(null)} />
+      )}
+      {dialog === "profile" && (
+        <VerticalProfileDialog open onClose={() => setDialog(null)} />
+      )}
     </Section>
   );
 }

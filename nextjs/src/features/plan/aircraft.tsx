@@ -16,7 +16,6 @@ import { type Flight } from "~/data/flight";
 import {
   aircraftLabel,
   aircraftTypes,
-  defaultFuelIndicationMode,
   formatMth,
   normalizeRegistration,
   performanceStatus,
@@ -147,11 +146,7 @@ export function AircraftSection() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="auto">
-                  {t("plan.aircraft.fuelIndication.auto", {
-                    mode: t(
-                      `plan.aircraft.fuelIndication.${defaultFuelIndicationMode(type, registration)}`,
-                    ),
-                  })}
+                  {t("plan.aircraft.fuelIndication.auto")}
                 </SelectItem>
                 <SelectItem value="exact">
                   {t("plan.aircraft.fuelIndication.exact")}

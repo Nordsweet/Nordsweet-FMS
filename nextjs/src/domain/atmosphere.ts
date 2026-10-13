@@ -29,8 +29,3 @@ export function isaPressureHpa(pressureAltitudeFt: number) {
   );
 }
 
-/** True airspeed from indicated (IAS ≈ CAS) at a density altitude. */
-export function trueAirspeedKt(iasKt: number, densityAltitudeFt: number) {
-  const sigma = (1 - 6.8755856e-6 * densityAltitudeFt) ** 4.2558797;
-  return iasKt / Math.sqrt(sigma);
-}

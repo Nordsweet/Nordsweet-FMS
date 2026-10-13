@@ -195,38 +195,17 @@ export function usePlan() {
     routeData && routeInput ? buildRoutePlan(routeData, routeInput) : null;
   const routeContext =
     routeData && routeInput ? createRouteContext(routeData, routeInput) : null;
-  const procedureType = ["SID", "STAR", "APPROACH"] as const;
+  const requested =
+    routeData && routeInput ? requestedProcedures(routeData, routeInput) : null;
   /** Per select: its airport's procedures, the AUTO pick, and the one named in the route text. */
-  const procedureOptions = Object.fromEntries(
-    procedureType.map((type) => {
-      const airport = type === "SID" ? departureAirport : destinationAirport;
-      return [
-        type,
-        {
-          procedures: routeContext?.proceduresAt(airport, type) ?? [],
-          suggested: routeContext?.suggested(airport, type) ?? null,
-          requested:
-            routeData && routeInput
-              ? requestedProcedures(routeData, routeInput)[type]
-              : null,
-          selected:
-            routeContext?.selected(
-              airport,
-              type,
-              routeInput?.selections[type] ?? null,
-            ) ?? null,
-        },
-      ];
-    }),
-  ) as Record<
-    ProcedureType,
-    {
-      procedures: Procedure[];
-      suggested: Procedure | null;
-      requested: Procedure | null;
-      selected: Procedure | null;
-    }
-  >;
+  const procedureOptions = (type: ProcedureType) => {
+    const airport = type === "SID" ? departureAirport : destinationAirport;
+    return {
+      procedures: routeContext?.proceduresAt(airport, type) ?? [],
+      suggested: routeContext?.suggested(airport, type) ?? null,
+      requested: requested?.[type] ?? null,
+    };
+  };
 
   // Legs at their average point altitude and wind, as the legacy fuel table and economy use them.
   const routeLegs =
