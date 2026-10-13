@@ -1645,7 +1645,6 @@ await loadScript("./traffic-proxy-config.js");
         }
         details.push(
           trafficDetail("Type", traffic.type || "--"),
-          trafficDetail("Registration", formatTrafficRegistrationForDetails(traffic)),
           trafficDetail("Position", Number(traffic.lat).toFixed(4) + ", " + Number(traffic.lon).toFixed(4))
         );
         refs.trafficMenuDetails.innerHTML = details.join("");
