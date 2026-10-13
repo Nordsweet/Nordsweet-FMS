@@ -3,6 +3,33 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 
+test('History arriving for an uppercase aircraft refreshes the map immediately',async()=>{
+  const source=fs.readFileSync('src/runtime/airspaces-map.js','utf8');
+  const start=source.indexOf('      async function loadTrafficHistory(');
+  const remoteTrafficHistories=new Map();
+  let mapRenders=0;
+  let detailRenders=0;
+  const scope={remoteTrafficHistories,AbortController,window:{setTimeout,clearTimeout},
+    COLLECTOR_TRAFFIC_URL:'https://collector.example/traffic',
+    state:{selectedTraffic:{hex:'ABCDEF'}},
+    normalizeTrafficHistorySamples:rows=>rows,
+    renderMap:()=>mapRenders++,renderTrafficMenuDetails:()=>detailRenders++,
+    fetch:async url=>{
+      assert.equal(url,'https://collector.example/traffic/abcdef/history');
+      return {ok:true,json:async()=>({hex:'ABCDEF',history:[{sampledAt:1},{sampledAt:2}]})};
+    }};
+  vm.createContext(scope);
+  vm.runInContext(source.slice(start,source.indexOf('\n      function ',start+1)),scope);
+  await scope.loadTrafficHistory({hex:'ABCDEF'});
+  assert.equal(remoteTrafficHistories.get('abcdef').samples.length,2);
+  assert.equal(mapRenders,1);
+  assert.equal(detailRenders,1);
+  scope.state.selectedTraffic={hex:'123456'};
+  remoteTrafficHistories.clear();
+  await scope.loadTrafficHistory({hex:'ABCDEF'});
+  assert.equal(mapRenders,1,'Do not redraw a different aircraft after selection changes');
+});
+
 test('Selected traffic keeps all remote samples before session and appends new live positions',()=>{
   const source=fs.readFileSync('src/runtime/airspaces-map.js','utf8');
   const start=source.indexOf('      function selectedTrafficHistory(');

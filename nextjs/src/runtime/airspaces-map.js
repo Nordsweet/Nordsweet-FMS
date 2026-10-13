@@ -2584,7 +2584,7 @@ await loadScript("./traffic-proxy-config.js");
           const response=await fetch(COLLECTOR_TRAFFIC_URL.replace(/\/$/,'')+'/'+hex+'/history',{signal:controller.signal,headers:{Accept:'application/json'}});
           if(!response.ok)throw new Error('HTTP '+response.status);
           const payload=await response.json();
-          if(payload.hex!==hex)throw new Error('Aircraft mismatch');
+          if(String(payload.hex || '').toLowerCase()!==hex)throw new Error('Aircraft mismatch');
           const samples=normalizeTrafficHistorySamples(payload.history).sort((a,b)=>a.sampledAt-b.sampledAt);
           if(!samples.length)throw new Error('No provider history');
           entry.samples=samples;
@@ -2595,7 +2595,7 @@ await loadScript("./traffic-proxy-config.js");
           window.clearTimeout(timeout);
           entry.pending=false;
           while(remoteTrafficHistories.size>8)remoteTrafficHistories.delete(remoteTrafficHistories.keys().next().value);
-          if(state.selectedTraffic?.hex===hex){renderTrafficMenuDetails(state.selectedTraffic);renderMap();}
+          if(String(state.selectedTraffic?.hex || '').toLowerCase()===hex){renderTrafficMenuDetails(state.selectedTraffic);renderMap();}
         }
       }
 
