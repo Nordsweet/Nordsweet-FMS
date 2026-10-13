@@ -11,6 +11,7 @@ import { Label } from "~/components/ui/label";
 import { type FlightPoint } from "~/data/flight";
 import { useT } from "~/i18n/use-t";
 import { cn } from "~/lib/utils";
+import { useSettings } from "~/stores/settings";
 import { useFlight } from "~/stores/flight";
 
 import { Section, fmt } from "./fields";
@@ -41,6 +42,7 @@ export function AirportBriefing({
   point: FlightPoint;
 }) {
   const t = useT();
+  const autoscroll = useSettings((s) => s.atisAutoscroll);
   const { station, briefing } = useBriefing(point);
   const charts = useQuery(
     api.charts.byAirport.queryOptions({ airport: point.ident }),
@@ -128,6 +130,13 @@ export function AirportBriefing({
           {data.atis.map((atis, i) => (
             <details
               key={i}
+              onToggle={(e) => {
+                if (autoscroll && e.currentTarget.open)
+                  e.currentTarget.scrollIntoView({
+                    block: "nearest",
+                    behavior: "smooth",
+                  });
+              }}
               className={cn(
                 "grid gap-1",
                 atis.source === "community" &&

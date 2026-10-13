@@ -2,10 +2,8 @@
 
 import {
   ClipboardList,
-  ListChecks,
   type LucideIcon,
   Map as MapIcon,
-  Navigation,
   Settings,
 } from "lucide-react";
 import Link from "next/link";
@@ -15,13 +13,10 @@ import { Button } from "~/components/ui/button";
 import { useT } from "~/i18n/use-t";
 import { FlightRuntime } from "~/features/fly/flight-runtime";
 import { type MessageKey } from "~/i18n/messages";
-import { type Language, useSettings } from "~/stores/settings";
 
 const nav: { href: string; label: MessageKey; icon: LucideIcon }[] = [
-  { href: "/", label: "nav.plan", icon: ClipboardList },
-  { href: "/map", label: "nav.map", icon: MapIcon },
-  { href: "/fly", label: "nav.fly", icon: Navigation },
-  { href: "/checklists", label: "nav.checklists", icon: ListChecks },
+  { href: "/", label: "nav.planner", icon: ClipboardList },
+  { href: "/map", label: "nav.graphicalPlan", icon: MapIcon },
 ];
 
 /** Pages render their own top-right actions here (see usePageActions). */
@@ -31,9 +26,6 @@ export const PAGE_ACTIONS_ID = "page-actions";
 export function AppShell({ children }: { children: React.ReactNode }) {
   const t = useT();
   const pathname = usePathname();
-  const language = useSettings((s) => s.language);
-  const update = useSettings((s) => s.update);
-  const nextLanguage: Language = language === "pl" ? "en" : "pl";
   const variant = (href: string) => (pathname === href ? "default" : "outline");
 
   return (
@@ -65,13 +57,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </Link>
             </Button>
           ))}
-          <Button
-            variant="outline"
-            className="h-13.5 max-sm:size-12"
-            onClick={() => update({ language: nextLanguage })}
-          >
-            {nextLanguage.toUpperCase()}
-          </Button>
         </nav>
         <div
           id={PAGE_ACTIONS_ID}

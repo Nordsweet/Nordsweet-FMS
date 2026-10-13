@@ -1,5 +1,7 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
+import { api } from "~/api";
 import { useState } from "react";
 
 import { Input } from "~/components/ui/input";
@@ -67,6 +69,12 @@ export function AircraftSection() {
   const t = useT();
   const { flight, aircraft, aircraftList } = usePlan();
   const update = useFlight((s) => s.update);
+  const homeAirport = useSettings((s) => s.homeAirportIcao);
+  const home = useQuery(
+    api.airports.get.queryOptions({
+      code: homeAirport.trim() === "" ? "EPKK" : homeAirport,
+    }),
+  );
   const pilotWeightKg = useSettings((s) => s.pilotWeightKg);
   const registration = normalizeRegistration(flight.registration);
   const type = aircraft?.type ?? null;
@@ -82,7 +90,12 @@ export function AircraftSection() {
 
   const select = (nextType: string, nextRegistration: string) => {
     const next = resolveAircraft(aircraftList, nextType, nextRegistration);
+    const point = home.data
+      ? { ident: home.data.ident, lat: home.data.lat, lon: home.data.lon }
+      : null;
     update({
+      ...(point && !flight.departure ? { departure: point } : {}),
+      ...(point && !flight.destination ? { destination: point } : {}),
       registration: nextRegistration,
       ...(next?.id !== flight.aircraftId &&
         profileDefaults(next, flight, pilotWeightKg)),

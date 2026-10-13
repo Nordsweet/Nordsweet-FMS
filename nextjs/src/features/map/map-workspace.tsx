@@ -12,6 +12,7 @@ import { useInFlight } from "~/stores/inflight";
 import { usePlan } from "~/features/plan/use-plan";
 import { useGps } from "~/features/fly/use-gps";
 import { MapSelect } from "./map-select";
+import { PreparationPlanner } from "./preparation-planner";
 import { MapView } from "./map-view";
 
 /** `embedded`: the in-flight background map (legacy `?embed=1`): full-bleed, tools behind Layers. */
@@ -166,17 +167,19 @@ export function MapWorkspace({ embedded = false }: { embedded?: boolean }) {
         >
           {t("maptools.center")}
         </Button>
-        <Button
-          size="sm"
-          disabled={!navigation.startedAt && route.length < 2}
-          onClick={() =>
-            navigation.startedAt
-              ? navigation.end()
-              : (settings.setGps(true), navigation.start(route))
-          }
-        >
-          {t(navigation.startedAt ? "maptools.end" : "maptools.start")}
-        </Button>
+        {embedded && (
+          <Button
+            size="sm"
+            disabled={!navigation.startedAt && route.length < 2}
+            onClick={() =>
+              navigation.startedAt
+                ? navigation.end()
+                : (settings.setGps(true), navigation.start(route))
+            }
+          >
+            {t(navigation.startedAt ? "maptools.end" : "maptools.start")}
+          </Button>
+        )}
         {navigation.route[0]?.ident === "DCT" && navigation.startedAt && (
           <Button
             size="sm"
@@ -289,14 +292,25 @@ export function MapWorkspace({ embedded = false }: { embedded?: boolean }) {
         {notice && <span role="status">{notice}</span>}
       </div>
       <div
-        className={embedded ? "absolute inset-0" : "relative min-h-0 flex-1"}
+        className={
+          embedded
+            ? "absolute inset-0"
+            : "grid flex-1 lg:grid-cols-[21rem_minmax(0,1fr)]"
+        }
       >
-        <MapView
-          basemap={settings.basemap}
-          layers={settings.layers}
-          plan={settings.plan}
-          overlay={!embedded || toolsOpen}
-        />
+        {!embedded && <PreparationPlanner />}
+        <div
+          className={
+            embedded ? "absolute inset-0" : "relative min-h-112 min-w-0"
+          }
+        >
+          <MapView
+            basemap={settings.basemap}
+            layers={settings.layers}
+            plan={settings.plan}
+            overlay={!embedded || toolsOpen}
+          />
+        </div>
       </div>
     </div>
   );

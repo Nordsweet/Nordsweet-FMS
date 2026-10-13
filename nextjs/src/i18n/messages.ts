@@ -3,6 +3,16 @@ import { mapToolsEn, mapToolsPl } from "./map-tools";
 
 const pl = {
   ...mapToolsPl,
+  "nav.planner": "Flight Planner",
+  "nav.graphicalPlan": "Map",
+  "mapplanner.title": "Planer lotu na mapie",
+  "mapplanner.hint":
+    "Kliknij lotnisko lub punkt na mapie i wybierz start, cel albo punkt trasy. Formularz lotu i mapa korzystają z tej samej trasy.",
+  "mapplanner.points": "Przebieg trasy",
+  "mapplanner.added": "Punkty dodane na mapie",
+  "mapplanner.empty": "Wybierz lotnisko startu i cel, aby zaplanować trasę.",
+  "mapplanner.remove": "Usuń punkt {point}",
+
   "app.name": "Nordsweet FMS",
   "nav.plan": "Plan lotu",
   "nav.settings": "Ustawienia",
@@ -201,8 +211,7 @@ const pl = {
   "plan.wx.atis.departure": "odlot",
   "plan.wx.atis.combined": "",
   "plan.wx.qnhMismatch": "QNH różni się od METAR",
-  "plan.wx.source":
-    "Źródło: Aviation API (AVWX, ATIS.guru, Notamify). Dane niecertyfikowane.",
+  "plan.wx.source": "Źródło: Aviation API Collector. Dane niecertyfikowane.",
   "plan.perf.fillFromMetar": "Wypełnij z METAR",
   "plan.perf.noMetar": "Brak METAR.",
   "plan.perf.fromMetar": "z METAR {icao} ({age} min)",
@@ -369,6 +378,16 @@ const pl = {
   "settings.language": "Język",
   "settings.homeAirport": "Lotnisko macierzyste (ICAO)",
   "settings.pilotWeight": "Masa pilota (kg)",
+  "settings.atisAutoscroll": "Automatyczne przewijanie ATIS",
+  "settings.checklistAutoscroll": "Automatyczne przewijanie checklisty",
+  "settings.checklistVoiceGender": "Głos checklisty",
+  "settings.voiceFemale": "Żeński",
+  "settings.voiceMale": "Męski",
+  "plan.saved.exportRoute": "Eksport {format}",
+  "plan.saved.rename": "Zmień nazwę",
+  "plan.saved.saveError": "Nie udało się zapisać lotu. Spróbuj ponownie.",
+  "plan.saved.saved": "Lot zapisany",
+
   "settings.unknownAirport": "Nieznane lotnisko",
   "plan.route.arrival": "Lotnisko docelowe",
   "plan.route.legs": "Odcinki trasy",
@@ -513,6 +532,16 @@ export type MessageKey = keyof typeof pl;
 
 const en: Record<MessageKey, string> = {
   ...mapToolsEn,
+  "nav.planner": "Flight Planner",
+  "nav.graphicalPlan": "Map",
+  "mapplanner.title": "Map flight planner",
+  "mapplanner.hint":
+    "Click an airport or point on the map and select departure, destination or route waypoint. The flight form and map share the same route.",
+  "mapplanner.points": "Route points",
+  "mapplanner.added": "Points added on the map",
+  "mapplanner.empty": "Choose departure and destination to plan a route.",
+  "mapplanner.remove": "Remove point {point}",
+
   "app.name": "Nordsweet FMS",
   "nav.plan": "Flight plan",
   "nav.settings": "Settings",
@@ -711,8 +740,7 @@ const en: Record<MessageKey, string> = {
   "plan.wx.atis.departure": "departure",
   "plan.wx.atis.combined": "",
   "plan.wx.qnhMismatch": "QNH differs from METAR",
-  "plan.wx.source":
-    "Source: Aviation API (AVWX, ATIS.guru, Notamify). Data is not certified.",
+  "plan.wx.source": "Source: Aviation API Collector. Data is not certified.",
   "plan.perf.fillFromMetar": "Fill from METAR",
   "plan.perf.noMetar": "No METAR.",
   "plan.perf.fromMetar": "from METAR {icao} ({age} min)",
@@ -878,6 +906,16 @@ const en: Record<MessageKey, string> = {
   "settings.language": "Language",
   "settings.homeAirport": "Home airport (ICAO)",
   "settings.pilotWeight": "Pilot weight (kg)",
+  "settings.atisAutoscroll": "ATIS autoscroll",
+  "settings.checklistAutoscroll": "Checklist autoscroll",
+  "settings.checklistVoiceGender": "Checklist voice",
+  "settings.voiceFemale": "Female",
+  "settings.voiceMale": "Male",
+  "plan.saved.exportRoute": "Export {format}",
+  "plan.saved.rename": "Rename",
+  "plan.saved.saveError": "Unable to save this flight. Please try again.",
+  "plan.saved.saved": "Flight saved",
+
   "settings.unknownAirport": "Unknown airport",
   "plan.route.arrival": "Arrival",
   "plan.route.legs": "Route legs",

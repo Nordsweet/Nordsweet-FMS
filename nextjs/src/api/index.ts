@@ -9,7 +9,17 @@ import {
   aviationApi,
 } from "./aviation/client";
 import { loadDataset } from "./datasets";
-import { listFlights, removeFlight, saveFlight } from "./flights";
+import {
+  listFlights,
+  removeFlight,
+  renameFlight,
+  saveFlight,
+  importFlight,
+  exportFlight,
+  exportFlightWithRoute,
+  exportRoute,
+  legacyDraft,
+} from "./flights";
 import { cachedRemote, replaceCachedRemote } from "./remote-cache";
 import { findAirport, searchAirports, searchNavpoints } from "./search";
 import { vfrPointToNavpoint } from "./vfr-points";
@@ -90,9 +100,20 @@ export const api = {
     list: query("aircraft.list", () => loadDataset("aircraft"), reference),
   },
   flights: {
+    legacyDraft: query("flights.legacyDraft", legacyDraft, reference),
     // Local and cheap: always re-read, so a restored (persisted) cache never hides a save.
     list: query("flights.list", () => listFlights(), { staleTime: 0 }),
     save: mutation("flights.save", (flight: Flight) => saveFlight(flight)),
+    import: mutation("flights.import", importFlight),
+    exportWithRoute: mutation("flights.exportWithRoute", exportFlightWithRoute),
+    exportRoute: mutation("flights.exportRoute", exportRoute),
+    export: mutation("flights.export", (flight: Flight) =>
+      exportFlight(flight),
+    ),
+    rename: mutation("flights.rename", renameFlight),
+    snapshot: mutation("flights.snapshot", (flight: Flight) =>
+      saveFlight({ ...flight, id: crypto.randomUUID() }),
+    ),
     remove: mutation("flights.remove", (id: string) => removeFlight(id)),
   },
   airports: {

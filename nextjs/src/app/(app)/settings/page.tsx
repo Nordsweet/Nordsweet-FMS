@@ -19,6 +19,7 @@ import { type Language, useSettings } from "~/stores/settings";
 export default function SettingsPage() {
   const t = useT();
   const settings = useSettings();
+  const airports = useQuery(api.airports.list.queryOptions(undefined));
 
   return (
     <Card className="mx-auto max-w-xl">
@@ -49,13 +50,22 @@ export default function SettingsPage() {
           <Label htmlFor="homeAirport">{t("settings.homeAirport")}</Label>
           <Input
             id="homeAirport"
-            maxLength={12}
+            maxLength={64}
+            list="home-airports"
+            placeholder="EPKK"
             autoCapitalize="characters"
             value={settings.homeAirportIcao}
             onChange={(e) =>
               settings.update({ homeAirportIcao: e.target.value.toUpperCase() })
             }
           />
+          <datalist id="home-airports">
+            {(airports.data ?? []).map((airport) => (
+              <option key={airport.ident} value={airport.ident}>
+                {airport.name}
+              </option>
+            ))}
+          </datalist>
           <HomeAirportName code={settings.homeAirportIcao} />
         </div>
         <div className="grid gap-2">
@@ -73,6 +83,39 @@ export default function SettingsPage() {
               })
             }
           />
+        </div>
+        {(["atisAutoscroll", "checklistAutoscroll"] as const).map((field) => (
+          <label key={field} className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              checked={settings[field]}
+              onChange={(e) => settings.update({ [field]: e.target.checked })}
+            />
+            {t(`settings.${field}`)}
+          </label>
+        ))}
+        <div className="grid gap-2">
+          <Label htmlFor="checklistVoiceGender">
+            {t("settings.checklistVoiceGender")}
+          </Label>
+          <Select
+            value={settings.checklistVoiceGender}
+            onValueChange={(value) =>
+              settings.update({
+                checklistVoiceGender: value === "male" ? "male" : "female",
+              })
+            }
+          >
+            <SelectTrigger id="checklistVoiceGender">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="female">
+                {t("settings.voiceFemale")}
+              </SelectItem>
+              <SelectItem value="male">{t("settings.voiceMale")}</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </CardContent>
     </Card>

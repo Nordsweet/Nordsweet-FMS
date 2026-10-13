@@ -4,12 +4,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useId, useRef, useState } from "react";
 
 import { api } from "~/api";
-import { findAirport } from "~/api/search";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
-import { newFlight } from "~/data/flight";
-import { parseNordFile, toNordFile } from "~/data/nord";
+import { Dialog, DialogContent, DialogTitle } from "~/components/ui/dialog";
+import { type Flight, newFlight } from "~/data/flight";
 import { useT } from "~/i18n/use-t";
 import { useFlight } from "~/stores/flight";
 
@@ -25,49 +24,62 @@ function download(fileName: string, text: string) {
     download: fileName,
   });
   link.click();
-  URL.revokeObjectURL(url);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-export function SavedFlightsSection() {
+export function SavedFlightsSection({ onLoaded }: { onLoaded?: () => void }) {
   const t = useT();
   const nameId = useId();
   const fileInput = useRef<HTMLInputElement>(null);
   const [error, setError] = useState("");
   const queryClient = useQueryClient();
-  const { flight, route, aircraft, aircraftList } = usePlan();
+  const { flight, exportPoints } = usePlan();
+  const [renaming, setRenaming] = useState<Flight | null>(null);
+  const [renameText, setRenameText] = useState("");
   const update = useFlight((s) => s.update);
   const load = useFlight((s) => s.load);
   const flights = useQuery(api.flights.list.queryOptions(undefined));
-  const airports = useQuery(api.airports.list.queryOptions(undefined));
   const refresh = () =>
     queryClient.invalidateQueries({ queryKey: ["flights.list"] });
   const save = useMutation({
-    ...api.flights.save.mutationOptions(),
+    ...api.flights.snapshot.mutationOptions(),
     onSuccess: refresh,
+    onError: () => setError(t("plan.saved.saveError")),
   });
+  const rename = useMutation({
+    ...api.flights.rename.mutationOptions(),
+    onSuccess: () => {
+      setRenaming(null);
+      void refresh();
+    },
+    onError: () => setError(t("plan.saved.saveError")),
+  });
+  const exportFile = async (flight: Flight) => {
+    try {
+      const file = await api.flights.exportWithRoute.call({
+        flight,
+        points: exportPoints,
+      });
+      download(file.fileName, file.text);
+    } catch {
+      setError(t("plan.saved.saveError"));
+    }
+  };
   const remove = useMutation({
     ...api.flights.remove.mutationOptions(),
     onSuccess: refresh,
+    onError: () => setError(t("plan.saved.saveError")),
   });
 
   const importFiles = async (files: FileList) => {
     setError("");
     for (const file of Array.from(files)) {
       try {
-        const { flight: imported, alternateCode } = parseNordFile(
-          await file.text(),
-          aircraftList.map((a) => a.id),
-        );
-        const alternate = alternateCode
-          ? findAirport(airports.data ?? [], alternateCode)
-          : undefined;
-        await save.mutateAsync({
-          ...imported,
-          name: imported.name || file.name.replace(/\.nord$/, ""),
-          alternate: alternate
-            ? { ident: alternate.ident, lat: alternate.lat, lon: alternate.lon }
-            : null,
+        await api.flights.import.call({
+          text: await file.text(),
+          fileName: file.name,
         });
+        await refresh();
       } catch {
         setError(t("plan.saved.importError", { file: file.name }));
       }
@@ -85,10 +97,19 @@ export function SavedFlightsSection() {
         />
       </div>
       <div className="flex flex-wrap gap-2">
-        <Button onClick={() => save.mutate(flight)}>
+        <Button
+          disabled={save.isPending || !flight.departure || !flight.destination}
+          onClick={() => save.mutate(flight)}
+        >
           {t("plan.saved.save")}
         </Button>
-        <Button variant="outline" onClick={() => load(newFlight())}>
+        <Button
+          variant="outline"
+          onClick={() => {
+            load(newFlight());
+            onLoaded?.();
+          }}
+        >
           {t("plan.saved.new")}
         </Button>
         <Button variant="outline" onClick={() => fileInput.current?.click()}>
@@ -97,12 +118,7 @@ export function SavedFlightsSection() {
         <Button
           variant="outline"
           disabled={!flight.departure}
-          onClick={() =>
-            download(
-              `${flight.name.trim() === "" ? (flight.departure?.ident ?? "flight") : flight.name}.nord`,
-              toNordFile(flight, aircraft?.type ?? null, route),
-            )
-          }
+          onClick={() => void exportFile(flight)}
         >
           {t("plan.saved.export")}
         </Button>
@@ -119,12 +135,37 @@ export function SavedFlightsSection() {
           }}
         />
       </div>
+      <Dialog
+        open={!!renaming}
+        onOpenChange={(open) => {
+          if (!open) setRenaming(null);
+        }}
+      >
+        <DialogContent className="max-w-lg" aria-describedby={undefined}>
+          <DialogTitle>{t("plan.saved.rename")}</DialogTitle>
+          <Label htmlFor="rename-flight">{t("plan.saved.name")}</Label>
+          <Input
+            id="rename-flight"
+            value={renameText}
+            onChange={(e) => setRenameText(e.target.value)}
+          />
+          <Button
+            disabled={rename.isPending}
+            onClick={() => {
+              if (renaming)
+                rename.mutate({ id: renaming.id, name: renameText });
+            }}
+          >
+            {t("plan.saved.save")}
+          </Button>
+        </DialogContent>
+      </Dialog>
       {error && <p className="text-destructive text-sm">{error}</p>}
       <ul className="grid gap-1" aria-label={t("plan.saved.list")}>
         {(flights.data ?? []).map((f) => (
           <li
             key={f.id}
-            className="flex items-center gap-2 rounded-md border px-2 py-1 text-sm"
+            className="flex flex-wrap items-center gap-2 rounded-md border px-2 py-1 text-sm"
           >
             <span className="flex-1">
               {f.name ||
@@ -134,9 +175,30 @@ export function SavedFlightsSection() {
                 · {new Date(f.savedAt).toLocaleString()}
               </span>
             </span>
-            <Button size="sm" variant="ghost" onClick={() => load(f)}>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                load(f);
+                onLoaded?.();
+              }}
+            >
               {t("plan.saved.load")}
             </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                setRenaming(f);
+                setRenameText(f.name);
+              }}
+            >
+              {t("plan.saved.rename")}
+            </Button>
+            <RouteExportButtons
+              flight={f}
+              onError={() => setError(t("plan.saved.saveError"))}
+            />
             <Button
               size="sm"
               variant="ghost"
@@ -153,5 +215,109 @@ export function SavedFlightsSection() {
         )}
       </ul>
     </Section>
+  );
+}
+
+/** Legacy header action saves a fresh snapshot and downloads it without leaving the planner. */
+export function SaveFlightButton() {
+  const t = useT();
+  const { flight, exportPoints } = usePlan();
+  const client = useQueryClient();
+  const [message, setMessage] = useState("");
+  const save = useMutation({
+    ...api.flights.snapshot.mutationOptions(),
+    onMutate: () => ({ points: exportPoints }),
+    onSuccess: async (saved, _flight, context) => {
+      void client.invalidateQueries({ queryKey: ["flights.list"] });
+      try {
+        const file = await api.flights.exportWithRoute.call({
+          flight: saved,
+          points: context?.points ?? exportPoints,
+        });
+        download(file.fileName, file.text);
+        setMessage(t("plan.saved.saved"));
+      } catch {
+        setMessage(t("plan.saved.saveError"));
+      }
+    },
+    onError: () => setMessage(t("plan.saved.saveError")),
+  });
+  return (
+    <div className="grid gap-1">
+      <Button
+        variant="outline"
+        className="h-13.5 min-w-41"
+        disabled={save.isPending || !flight.departure || !flight.destination}
+        onClick={() => {
+          setMessage("");
+          save.mutate(flight);
+        }}
+      >
+        {t("plan.saveFlight")}
+      </Button>
+      {message && (
+        <span role="status" className="text-xs">
+          {message}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function RouteExportButtons({
+  flight,
+  onError,
+}: {
+  flight: Flight;
+  onError: () => void;
+}) {
+  const t = useT();
+  const { exportPoints } = usePlan(flight);
+  const exportFile = async (format: "gpx" | "kml") => {
+    try {
+      const points = exportPoints;
+      const file = await api.flights.exportRoute.call({
+        flight,
+        format,
+        points,
+      });
+      download(file.fileName, file.text);
+    } catch {
+      onError();
+    }
+  };
+  const exportNord = async () => {
+    try {
+      const file = await api.flights.exportWithRoute.call({
+        flight,
+        points: exportPoints,
+      });
+      download(file.fileName, file.text);
+    } catch {
+      onError();
+    }
+  };
+  return (
+    <>
+      <Button
+        size="sm"
+        variant="ghost"
+        disabled={!exportPoints.length}
+        onClick={() => void exportNord()}
+      >
+        {t("plan.saved.export")}
+      </Button>
+      {(["gpx", "kml"] as const).map((format) => (
+        <Button
+          key={format}
+          size="sm"
+          variant="ghost"
+          disabled={!exportPoints.length}
+          onClick={() => void exportFile(format)}
+        >
+          {t("plan.saved.exportRoute", { format: format.toUpperCase() })}
+        </Button>
+      ))}
+    </>
   );
 }

@@ -12,6 +12,7 @@ const tab = (page: Page, name: string) =>
   page.getByRole("tab", { name, exact: true }).click();
 
 async function pickPoint(page: Page, label: string, ident: string) {
+  await page.getByLabel(label, { exact: true }).fill("");
   await page.getByLabel(label, { exact: true }).fill(ident);
   await page.getByRole("option").filter({ hasText: ident }).first().click();
 }

@@ -3,7 +3,7 @@ import { useMemo } from "react";
 
 import { api } from "~/api";
 import { type Airport, type Navpoint, type Procedure } from "~/data/schemas";
-import { type FlightPoint } from "~/data/flight";
+import { type Flight, type FlightPoint } from "~/data/flight";
 import { findAirport } from "~/api/search";
 import { pressureAltitudeFt } from "~/domain/atmosphere";
 import { cruisePerformance } from "~/domain/cruise-performance";
@@ -112,8 +112,9 @@ function speedForDuration(
 }
 
 /** Everything the planner shows, derived from the current flight. */
-export function usePlan() {
-  const flight = useFlight((s) => s.flight);
+export function usePlan(snapshot?: Flight) {
+  const draft = useFlight((s) => s.flight);
+  const flight = snapshot ?? draft;
   const aircraftList = useQuery(api.aircraft.list.queryOptions(undefined));
   const aircraft =
     aircraftList.data?.find((a) => a.id === flight.aircraftId) ?? null;
@@ -267,6 +268,16 @@ export function usePlan() {
         (p) => p !== null,
       );
 
+  const exportPoints = plan
+    ? plan.points.map((p) => ({
+        ident: formatRoutePoint(p),
+        lat: p.lat,
+        lon: p.lon,
+        altitudeFt:
+          plan.pointAltitudeByKey[pointKey(p)] ?? flight.cruiseAltitudeFt,
+      }))
+    : route.map((p) => ({ ...p, altitudeFt: flight.cruiseAltitudeFt }));
+
   const fuelInput: Omit<FuelPlanningInput, "landingWeightKg"> | null =
     aircraft && plan && departureAirport && destinationAirport
       ? {
@@ -334,6 +345,7 @@ export function usePlan() {
     aircraft,
     aircraftList: aircraftList.data ?? [],
     routeData,
+    exportPoints,
     departureAirport,
     destinationAirport,
     alternateAirport,

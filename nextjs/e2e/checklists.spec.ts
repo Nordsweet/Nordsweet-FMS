@@ -10,7 +10,7 @@ test("works through an aircraft checklist", async ({ page }) => {
   await page.getByRole("combobox", { name: "Aircraft type" }).click();
   await page.getByRole("option", { name: "P2006T (P06T)" }).click();
 
-  await page.getByRole("link", { name: "Checklists" }).click();
+  await page.goto("/checklists");
   await expect(
     page.getByRole("heading", { name: "Before Engine Start" }),
   ).toBeVisible();
@@ -22,5 +22,11 @@ test("works through an aircraft checklist", async ({ page }) => {
 
   await page.getByRole("button", { name: "SHUTDOWN" }).click();
   await expect(page.getByRole("heading", { name: "SHUTDOWN" })).toBeVisible();
-  await expect(progress).toHaveText(/^0 of \d+$/); // each checklist starts fresh
+  await expect(progress).toHaveText(/^0 of \d+$/); // independent checklist progress
+  await page
+    .getByRole("button", { name: "Before Engine Start", exact: true })
+    .click();
+  await expect(progress).toHaveText(/^1 of \d+$/);
+  await page.getByRole("button", { name: "Start over", exact: true }).click();
+  await expect(progress).toHaveText(/^0 of \d+$/);
 });
