@@ -51,6 +51,21 @@ test("flies the route: sequencing, direct-to and debrief", async ({
   await page.getByRole("option", { name: "CCCC" }).click();
   await expect(page.getByTestId("fly-xte")).toHaveText(/0\.0/);
 
+  // OPTIONS: manual Block Time, the event log and the phase survive a reload.
+  await page.getByRole("button", { name: "Cruise", exact: true }).click();
+  await page.getByRole("button", { name: "Options", exact: true }).click();
+  await page.getByRole("button", { name: "OFF-BLOCK" }).click();
+  await expect(page.getByTestId("timer-offBlock")).not.toHaveText("--:--:--");
+  await page.reload();
+  await expect(
+    page.getByRole("button", { name: "Cruise", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: "Options", exact: true }).click();
+  await expect(
+    page.getByRole("list", { name: "Events" }).getByRole("listitem"),
+  ).toContainText(["Off-block"]);
+  await expect(page.getByRole("button", { name: "ON-BLOCK" })).toBeVisible();
+
   await page.getByRole("button", { name: "Close flight" }).click();
   await expect(page.getByTestId("debrief")).toContainText("track points");
 });

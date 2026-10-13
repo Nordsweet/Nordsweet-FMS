@@ -29,12 +29,12 @@ import { useT } from "~/i18n/use-t";
 import { cn } from "~/lib/utils";
 import { MapWorkspace } from "~/features/map/map-workspace";
 import { useInFlight } from "~/stores/inflight";
-import { useMapSettings } from "~/stores/map";
 
 import { CommsPanel } from "./comms-panel";
 import { ConfigPanel } from "./config-panel";
 import { EmergencyPanel } from "./emergency-panel";
 import { InfoPanel } from "./info-panel";
+import { OptionsPanel } from "./options-panel";
 import { useGps } from "./use-gps";
 
 const FREDA_INTERVAL_MIN = 30;
@@ -107,7 +107,6 @@ export function FlyPage() {
   // shortcut: the phase is picked by hand; legacy also switched it automatically.
   const { phase, setPhase, config } = inFlight;
   const [panel, setPanel] = useState<Panel | null>(null);
-  const settings = useMapSettings();
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 15000);
@@ -266,27 +265,7 @@ export function FlyPage() {
         {navigation}
       </>
     ),
-    options: (
-      <div className="flex flex-wrap gap-2">
-        <Button
-          aria-pressed={settings.gpsEnabled}
-          variant={settings.gpsEnabled ? "default" : "outline"}
-          onClick={() => settings.setGps(!settings.gpsEnabled)}
-        >
-          {t("maptools.gps")}
-        </Button>
-        <Button
-          aria-pressed={settings.trackUp}
-          variant={settings.trackUp ? "default" : "outline"}
-          onClick={() => settings.update({ trackUp: !settings.trackUp })}
-        >
-          {t("maptools.trackUp")}
-        </Button>
-        <Button variant="outline" onClick={() => settings.follow(true)}>
-          {t("maptools.center")}
-        </Button>
-      </div>
-    ),
+    options: <OptionsPanel />,
   };
 
   const gpsText = error

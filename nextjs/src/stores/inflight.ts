@@ -7,6 +7,16 @@ import {
   type FlightPhase,
   DEFAULT_CLIMB_CONFIG,
 } from "~/domain/flight-phase";
+import {
+  type Sample,
+  type TimerKey,
+  type Timers,
+  addEvent,
+  duePhase,
+  newTimers,
+  stepTimers,
+  toggleTimer,
+} from "~/domain/flight-timers";
 import { type LatLon, distanceNm } from "~/domain/geo";
 import { type NavPoint, directTo, computeProgress } from "~/domain/progress";
 import { type TrackPoint } from "~/domain/track";
@@ -39,7 +49,18 @@ type InFlight = {
   /** The flight view's phase tab and its CONFIG choices (legacy state). */
   phase: FlightPhase;
   config: FlightConfig;
+  /** Block/Air Time, flight events and the pending automatic phase change. */
+  timers: Timers;
   setPhase: (phase: FlightPhase) => void;
+  /** A GPS sample: timers, events and automatic phase changes (legacy GPS detection). */
+  observe: (
+    sample: Sample,
+    ctx: Omit<Parameters<typeof stepTimers>[2], "phase">,
+  ) => void;
+  /** Applies a delayed phase change once it is due. */
+  tick: (now: number) => void;
+  toggleTimer: (key: TimerKey) => void;
+  addEvent: (name: string) => void;
   configure: (patch: Partial<FlightConfig>) => void;
   start: (route: NavPoint[]) => void;
   end: () => void;
@@ -63,7 +84,41 @@ export const useInFlight = create<InFlight>()(
       lastFredaAt: null,
       phase: "taxiout",
       config: DEFAULT_CONFIG,
+      timers: newTimers(),
       setPhase: (phase) => set({ phase }),
+      observe: (sample, ctx) =>
+        set((s) => {
+          const { timers, phase } = stepTimers(s.timers, sample, {
+            ...ctx,
+            phase: s.phase,
+          });
+          // Legacy FREDA is due 30 min after take-off.
+          const tookOff =
+            timers.airTime.startedAt !== null &&
+            s.timers.airTime.startedAt === null;
+          return {
+            timers,
+            ...(phase ? { phase } : {}),
+            ...(tookOff
+              ? {
+                  lastFredaAt: new Date(
+                    timers.airTime.startedAt!,
+                  ).toISOString(),
+                }
+              : {}),
+          };
+        }),
+      tick: (now) =>
+        set((s) => {
+          const due = duePhase(s.timers, now);
+          return due
+            ? { timers: due.timers, ...(due.phase ? { phase: due.phase } : {}) }
+            : s;
+        }),
+      toggleTimer: (key) =>
+        set((s) => ({ timers: toggleTimer(s.timers, key, Date.now()) })),
+      addEvent: (name) =>
+        set((s) => ({ timers: addEvent(s.timers, name, Date.now()) })),
       configure: (patch) => set((s) => ({ config: { ...s.config, ...patch } })),
       start: (route) => {
         const now = new Date().toISOString();
@@ -74,6 +129,7 @@ export const useInFlight = create<InFlight>()(
           track: [],
           lastFredaAt: now,
           phase: "taxiout",
+          timers: newTimers(),
         });
       },
       end: () => set({ startedAt: null }),
@@ -134,6 +190,7 @@ export const useInFlight = create<InFlight>()(
         lastFredaAt,
         phase,
         config,
+        timers,
       }) => ({
         startedAt,
         route,
@@ -142,6 +199,7 @@ export const useInFlight = create<InFlight>()(
         lastFredaAt,
         phase,
         config,
+        timers,
       }),
     },
   ),
