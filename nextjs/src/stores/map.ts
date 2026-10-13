@@ -48,11 +48,11 @@ type MapState = Preferences & {
   observeGps: (point: TrackPoint) => void;
   gpsEnabled: boolean;
   following: boolean;
-  command: "fit" | "reset" | null;
+  command: "fit" | "reset" | "zoomIn" | "zoomOut" | null;
   update: (patch: Partial<Preferences>) => void;
   setGps: (enabled: boolean) => void;
   follow: (following: boolean) => void;
-  request: (command: "fit" | "reset" | null) => void;
+  request: (command: "fit" | "reset" | "zoomIn" | "zoomOut" | null) => void;
 };
 
 export function readLegacyMap(

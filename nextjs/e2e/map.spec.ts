@@ -38,16 +38,27 @@ test("map shows airspace and sets the departure from a tapped airport", async ({
   await page.waitForTimeout(2000); // map style load + data
   expect(airspaceRequests).toBeGreaterThan(0);
 
-  // Pixel of EPKK at the initial view (zoom 5.5 around 19.4E 52N; MapLibre world = 512·2^z px).
+  // Use the rendered camera because the legacy bounds fit the viewport.
   const box = (await page.getByTestId("map").boundingBox())!;
-  const world = 2 ** 5.5 * 512;
+  const world =
+    2 ** Number(await page.getByTestId("map").getAttribute("data-zoom")) * 512;
   const merc = (lat: number) =>
     Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360));
   await page.mouse.click(
-    box.x + box.width / 2 + ((19.7855 - 19.4) / 360) * world,
+    box.x +
+      box.width / 2 +
+      ((19.7855 -
+        Number(await page.getByTestId("map").getAttribute("data-center-lon"))) /
+        360) *
+        world,
     box.y +
       box.height / 2 +
-      ((merc(52) - merc(50.0778)) / (2 * Math.PI)) * world,
+      ((merc(
+        Number(await page.getByTestId("map").getAttribute("data-center-lat")),
+      ) -
+        merc(50.0778)) /
+        (2 * Math.PI)) *
+        world,
   );
   const card = page.getByRole("dialog", { name: "Details" });
   await expect(card).toContainText("EPKK");
@@ -101,14 +112,25 @@ test("shows live traffic and its details", async ({ page }) => {
   await page.waitForTimeout(2000);
 
   const box = (await page.getByTestId("map").boundingBox())!;
-  const world = 2 ** 5.5 * 512;
+  const world =
+    2 ** Number(await page.getByTestId("map").getAttribute("data-zoom")) * 512;
   const merc = (lat: number) =>
     Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360));
   await page.mouse.click(
-    box.x + box.width / 2 + ((18.248217 - 19.4) / 360) * world,
+    box.x +
+      box.width / 2 +
+      ((18.248217 -
+        Number(await page.getByTestId("map").getAttribute("data-center-lon"))) /
+        360) *
+        world,
     box.y +
       box.height / 2 +
-      ((merc(52) - merc(50.174142)) / (2 * Math.PI)) * world,
+      ((merc(
+        Number(await page.getByTestId("map").getAttribute("data-center-lat")),
+      ) -
+        merc(50.174142)) /
+        (2 * Math.PI)) *
+        world,
   );
   await expect(page.getByTestId("traffic-card")).toContainText("RYR8GK");
   await expect(page.getByTestId("traffic-card")).toContainText("23550 ft");

@@ -130,14 +130,26 @@ test("selected traffic uses generic source, callsign history, destination reveal
   await page.getByLabel("Airports", { exact: true }).uncheck();
   await page.waitForTimeout(2000);
   const box = (await page.getByTestId("map").boundingBox())!,
-    world = 2 ** 5.5 * 512;
+    world =
+      2 ** Number(await page.getByTestId("map").getAttribute("data-zoom")) *
+      512;
   const merc = (lat: number) =>
     Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360));
   await page.mouse.click(
-    box.x + box.width / 2 + ((18.248217 - 19.4) / 360) * world,
+    box.x +
+      box.width / 2 +
+      ((18.248217 -
+        Number(await page.getByTestId("map").getAttribute("data-center-lon"))) /
+        360) *
+        world,
     box.y +
       box.height / 2 +
-      ((merc(52) - merc(50.174142)) / (2 * Math.PI)) * world,
+      ((merc(
+        Number(await page.getByTestId("map").getAttribute("data-center-lat")),
+      ) -
+        merc(50.174142)) /
+        (2 * Math.PI)) *
+        world,
   );
   const card = page.getByTestId("traffic-card");
   await expect(card).toContainText("RYR8GK");
@@ -211,6 +223,7 @@ test("map restrictions persist and navigation shares flight state across pages",
   await expect(
     page.getByRole("button", { name: "End navigation", exact: true }),
   ).toHaveCount(0);
+  await page.getByRole("button", { name: "Layers", exact: true }).click();
   await page.locator("[data-route-marker]").filter({ hasText: /^B$/ }).click();
   await page.getByRole("button", { name: "Restriction", exact: true }).click();
   await expect(page.getByLabel("Speed (kt)", { exact: true })).toHaveValue(
@@ -251,16 +264,31 @@ test("GPX route edits keep inserted point order and discard stale leg details", 
     '<gpx><rte><rtept lat="49.5" lon="18"><name>A</name></rtept><rtept lat="51.5" lon="20"><name>B</name></rtept><rtept lat="52" lon="22"><name>C</name></rtept></rte></gpx>',
   );
   await expect(page.locator("[data-route-marker]")).toHaveText(["A", "B", "C"]);
+  await page.getByRole("button", { name: "Layers", exact: true }).click();
   const tap = async (latitude = 50.5, longitude = 19) => {
     const box = (await page.getByTestId("map").boundingBox())!,
-      world = 2 ** 5.5 * 512;
+      world =
+        2 ** Number(await page.getByTestId("map").getAttribute("data-zoom")) *
+        512;
     const merc = (lat: number) =>
       Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360));
     await page.mouse.click(
-      box.x + box.width / 2 + ((longitude - 19.4) / 360) * world,
+      box.x +
+        box.width / 2 +
+        ((longitude -
+          Number(
+            await page.getByTestId("map").getAttribute("data-center-lon"),
+          )) /
+          360) *
+          world,
       box.y +
         box.height / 2 +
-        ((merc(52) - merc(latitude)) / (2 * Math.PI)) * world,
+        ((merc(
+          Number(await page.getByTestId("map").getAttribute("data-center-lat")),
+        ) -
+          merc(latitude)) /
+          (2 * Math.PI)) *
+          world,
     );
   };
   await tap();

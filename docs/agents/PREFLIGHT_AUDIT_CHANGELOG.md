@@ -16,6 +16,11 @@ does not expose navigation start/end controls. Application behavior is unchanged
 
 ## Acceptance inventory
 
+Map appearance follow-up: restore the legacy map palette, local chart symbols,
+route/traffic labels, Poland bounds, proportional zoom, light controls and
+detail cards; see [map appearance inventory](MAP_VISUAL_PARITY.md). The typed
+map adapter, Collector and shared preparation draft remain in use.
+
 The legacy Home screen exposes Aircraft, Route, Fuel, W&B, Saved Flights and Settings before
 Start a flight. Develop additionally exposes Weather, Performance/taxi, Map and Checklists.
 The live comparison used P2006T, EPKK to ACHA, 3000 ft and 120 kt; reference source and automated
