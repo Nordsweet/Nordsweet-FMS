@@ -75,7 +75,6 @@ type Click =
   | {
       kind: "segment";
       lngLat: maplibregl.LngLat;
-      segment: NonNullable<ReturnType<typeof nearestRouteSegment>>;
     }
   | {
       kind: "airspace";
@@ -86,7 +85,7 @@ type Click =
       lngLat: maplibregl.LngLat;
       point: FlightPoint & { name: string; kind: string };
     }
-  | { kind: "traffic"; lngLat: maplibregl.LngLat; aircraft: TrafficAircraft };
+  | { kind: "traffic"; lngLat: maplibregl.LngLat; hex: string };
 
 const toFeatures = (
   rows: {
@@ -135,7 +134,7 @@ export function MapView({ basemap, layers, plan }: Props) {
   }, []);
   const imported = useQuery(api.map.importedAirspace.queryOptions(undefined));
   const { histories, observe } = useTrafficSession();
-  const selectedHex = click?.kind === "traffic" ? click.aircraft.hex : "";
+  const selectedHex = click?.kind === "traffic" ? click.hex : "";
   const selectedHistoryQuery = useQuery({
     ...api.traffic.history.queryOptions({ hex: selectedHex }),
     enabled: !!selectedHex,
@@ -193,8 +192,14 @@ export function MapView({ basemap, layers, plan }: Props) {
   );
   const selectedAircraft =
     click?.kind === "traffic" && layers.traffic
-      ? (traffic.data?.aircraft.find((a) => a.hex === click.aircraft.hex) ??
-        null)
+      ? (traffic.data?.aircraft.find((a) => a.hex === click.hex) ?? null)
+      : null;
+  const selectedSegment =
+    click?.kind === "segment"
+      ? nearestRouteSegment(route, {
+          lat: click.lngLat.lat,
+          lon: click.lngLat.lng,
+        })
       : null;
   const inspectionZones =
     click?.kind === "airspace"
@@ -527,7 +532,7 @@ export function MapView({ basemap, layers, plan }: Props) {
               ? trafficByHex.current.get(String(hit.properties.hex))
               : undefined;
           if (aircraft) {
-            setClick({ kind: "traffic", lngLat: e.lngLat, aircraft });
+            setClick({ kind: "traffic", lngLat: e.lngLat, hex: aircraft.hex });
             return;
           }
           if (hit) {
@@ -555,7 +560,7 @@ export function MapView({ basemap, layers, plan }: Props) {
               lon: e.lngLat.lng,
             });
             if (segment) {
-              setClick({ kind: "segment", lngLat: e.lngLat, segment });
+              setClick({ kind: "segment", lngLat: e.lngLat });
               return;
             }
           }
@@ -1121,8 +1126,20 @@ export function MapView({ basemap, layers, plan }: Props) {
     const altitudeFt = Math.round(
       altitude(from) + (altitude(to) - altitude(from)) * segment.fraction,
     );
+    const before = flight.waypoints.findIndex(
+      (p) => p.ident === to.ident && p.lat === to.lat && p.lon === to.lon,
+    );
+    const after = flight.waypoints.findIndex(
+      (p) => p.ident === from.ident && p.lat === from.lat && p.lon === from.lon,
+    );
+    const insertAt =
+      before >= 0 ? before : after >= 0 ? after + 1 : flight.waypoints.length;
     update({
-      waypoints: [...flight.waypoints, waypoint],
+      waypoints: [
+        ...flight.waypoints.slice(0, insertAt),
+        waypoint,
+        ...flight.waypoints.slice(insertAt),
+      ],
       waypointAltitudes: { ...flight.waypointAltitudes, [ident]: altitudeFt },
     });
     if (navigation.startedAt)
@@ -1262,83 +1279,85 @@ export function MapView({ basemap, layers, plan }: Props) {
           </span>
         )}
       </div>
-      {click && (click.kind !== "traffic" || selectedAircraft) && (
-        <FloatingDetails
-          key={
-            click.kind === "traffic"
-              ? click.aircraft.hex
-              : click.kind === "point"
-                ? click.point.ident
-                : click.kind
-          }
-          onClose={() => setClick(null)}
-          draggable={click.kind === "traffic"}
-        >
-          {click.kind === "traffic" && selectedAircraft ? (
-            <TrafficCard
-              key={selectedAircraft.hex + (selectedAircraft.callsign ?? "")}
-              aircraft={selectedAircraft}
-              historyCount={selectedHistory.length}
-            />
-          ) : click.kind === "point" ? (
-            <PointDetails
-              key={click.point.ident}
-              point={click.point}
-              now={now}
-              addPoint={addPoint}
-            />
-          ) : click.kind === "segment" ? (
-            <div className="grid gap-2">
-              <strong>{t("maptools.segment")}</strong>
-              <span>
-                {route[click.segment.index]?.ident} →{" "}
-                {route[click.segment.index + 1]?.ident}
-              </span>
-              <span>
-                {t("maptools.distance")}:{" "}
-                {distanceNm(
-                  route[click.segment.index]!,
-                  route[click.segment.index + 1]!,
-                ).toFixed(1)}{" "}
-                NM
-              </span>
-              <span>
-                {t("maptools.track")}:{" "}
-                {Math.round(
-                  initialBearingDeg(
-                    route[click.segment.index]!,
-                    route[click.segment.index + 1]!,
+      {click &&
+        (click.kind !== "traffic" || selectedAircraft) &&
+        (click.kind !== "segment" || selectedSegment) && (
+          <FloatingDetails
+            key={
+              click.kind === "traffic"
+                ? click.hex
+                : click.kind === "point"
+                  ? click.point.ident
+                  : click.kind
+            }
+            onClose={() => setClick(null)}
+            draggable={click.kind === "traffic"}
+          >
+            {click.kind === "traffic" && selectedAircraft ? (
+              <TrafficCard
+                key={selectedAircraft.hex + (selectedAircraft.callsign ?? "")}
+                aircraft={selectedAircraft}
+                historyCount={selectedHistory.length}
+              />
+            ) : click.kind === "point" ? (
+              <PointDetails
+                key={click.point.ident}
+                point={click.point}
+                now={now}
+                addPoint={addPoint}
+              />
+            ) : click.kind === "segment" ? (
+              <div className="grid gap-2">
+                <strong>{t("maptools.segment")}</strong>
+                <span>
+                  {route[selectedSegment!.index]?.ident} →{" "}
+                  {route[selectedSegment!.index + 1]?.ident}
+                </span>
+                <span>
+                  {t("maptools.distance")}:{" "}
+                  {distanceNm(
+                    route[selectedSegment!.index]!,
+                    route[selectedSegment!.index + 1]!,
+                  ).toFixed(1)}{" "}
+                  NM
+                </span>
+                <span>
+                  {t("maptools.track")}:{" "}
+                  {Math.round(
+                    initialBearingDeg(
+                      route[selectedSegment!.index]!,
+                      route[selectedSegment!.index + 1]!,
+                    ),
+                  ) % 360}
+                  °T
+                </span>
+                <span>
+                  {t("maptools.time")}: {segmentTime(selectedSegment!.index)}
+                </span>
+                <Button onClick={() => createWaypoint(selectedSegment!)}>
+                  {t("maptools.createWaypoint")}
+                </Button>
+              </div>
+            ) : click.kind === "airspace" ? (
+              <AirspaceDetails
+                zones={inspectionZones.map((zone) => zone.properties)}
+                plannedFtByZone={inspectionZones.map((zone) =>
+                  plannedAltitudeForZone(
+                    (routePlan?.points ?? []).map((p) => ({
+                      ...p,
+                      altitudeFt:
+                        routePlan?.pointAltitudeByKey[pointKey(p)] ?? null,
+                    })),
+                    zone.geometry.coordinates,
+                    flight.cruiseAltitudeFt,
                   ),
-                ) % 360}
-                °T
-              </span>
-              <span>
-                {t("maptools.time")}: {segmentTime(click.segment.index)}
-              </span>
-              <Button onClick={() => createWaypoint(click.segment)}>
-                {t("maptools.createWaypoint")}
-              </Button>
-            </div>
-          ) : click.kind === "airspace" ? (
-            <AirspaceDetails
-              zones={inspectionZones.map((zone) => zone.properties)}
-              plannedFtByZone={inspectionZones.map((zone) =>
-                plannedAltitudeForZone(
-                  (routePlan?.points ?? []).map((p) => ({
-                    ...p,
-                    altitudeFt:
-                      routePlan?.pointAltitudeByKey[pointKey(p)] ?? null,
-                  })),
-                  zone.geometry.coordinates,
-                  flight.cruiseAltitudeFt,
-                ),
-              )}
-              plannedFt={routePlan?.altitudeFt ?? flight.cruiseAltitudeFt}
-              currentFt={fix?.altitudeFt ?? null}
-            />
-          ) : null}
-        </FloatingDetails>
-      )}
+                )}
+                plannedFt={routePlan?.altitudeFt ?? flight.cruiseAltitudeFt}
+                currentFt={fix?.altitudeFt ?? null}
+              />
+            ) : null}
+          </FloatingDetails>
+        )}
     </div>
   );
 }

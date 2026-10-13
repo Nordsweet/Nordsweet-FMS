@@ -30,27 +30,27 @@ Source was inspected for popup interactions and GPS/traffic motion; browser test
 new app's imports, point editor, traffic details and shared navigation. Live source data cannot
 be compared numerically to deterministic fixtures; external feeds are mocked in browser tests.
 
-| Legacy operation                                                       | New implementation / evidence                                                                                            |
-| ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Route input/build, fit, reset Poland, zoom/pan                         | MapWorkspace + native MapLibre controls, shared planner                                                                  |
-| OpenStreetMap / Black                                                  | Persisted basemap preference; legacy Black key migrates                                                                  |
-| Current / next / no AUP; refresh                                       | Typed collector plan query, annotation removal for no AUP, explicit API refresh                                          |
-| Legacy direct JSON/OpenAir/CUP feed loading                            | Collector-backed queries/refresh; local JSON/OpenAir import remains available                                            |
-| Layer toggles, labels, all/clear type filters                          | Persisted settings, independent route/navaid layers, labels rendered without remote glyphs                               |
-| GPX tracks/routes/waypoints                                            | Namespace-aware boundary parsing; route persisted; browser reload/error scenario                                         |
-| OpenAir polygons/circles, DMS/CUP/decimal coordinates                  | Pure parser + local IndexedDB imports, unit/golden/browser tests                                                         |
-| Point add/remove, dep/dest, WX, NOTAM, charts                          | Typed point panel, reused planner dialogs and airport briefing/router data                                               |
-| Point speed/altitude at/above/below restrictions                       | Flight schema + route domain; normalized rounding; `.nord` round-trip and browser reload tests                           |
-| Leg distance/true bearing/HH:MM, create anchored WPT                   | Pure snap + route anchor insertion; altitude interpolation and planner constraints                                       |
-| Route / radio / crossed-zone summaries                                 | React tabs; endpoint radio phases, route-ordered FIS/FIR rows, limits and AUP times                                      |
-| Overlapping-zone inspector                                             | Polygon hit testing incl. holes, per-zone planned altitude, live altitude, vertical profile, service rows                |
-| GPS follow/center, track up, pan detaches follow                       | Shared watch and animation adapter; background recording across page changes                                             |
-| Ownship, accuracy circle, track, five-minute vector/ticks              | Confirmed observations separated from animated position; GPS trail also works without starting a flight                  |
-| Traffic refresh/viewport, 24 FPS estimates, fade, source/type/identity | Typed collector feed; generic ADS-B/Flarm source; 60–120 second fade; CPA colour thresholds preserved                    |
-| Traffic selection, trace, two-minute projection                        | Collector history plus newer observations; current callsign only; gaps over five minutes split                           |
-| Draggable traffic popup and Destination                                | Typed panel; adsbdb ICAO field; airport name shown for three seconds; browser assertions                                 |
-| Offline map/data                                                       | Existing app precache + remote query snapshots; imported zones in IndexedDB; visited OSM tile cache bounded to 600 tiles |
-| PL / EN                                                                | Map strings in `i18n/map-tools.ts`, existing labels/briefing reused                                                      |
+| Legacy operation                                                       | New implementation / evidence                                                                                                |
+| ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Route input/build, fit, reset Poland, zoom/pan                         | MapWorkspace + native MapLibre controls, shared planner                                                                      |
+| OpenStreetMap / Black                                                  | Persisted basemap preference; legacy Black key migrates                                                                      |
+| Current / next / no AUP; refresh                                       | Typed collector plan query, annotation removal for no AUP, explicit API refresh                                              |
+| Legacy direct JSON/OpenAir/CUP feed loading                            | Collector-backed queries/refresh; local JSON/OpenAir import remains available                                                |
+| Layer toggles, labels, all/clear type filters                          | Persisted settings, independent route/navaid layers, labels rendered without remote glyphs                                   |
+| GPX tracks/routes/waypoints                                            | Namespace-aware boundary parsing; route persisted; single-point imports and ordered insertion; browser reload/error scenario |
+| OpenAir polygons/circles, DMS/CUP/decimal coordinates                  | Pure parser + local IndexedDB imports, unit/golden/browser tests                                                             |
+| Point add/remove, dep/dest, WX, NOTAM, charts                          | Typed point panel, reused planner dialogs and airport briefing/router data                                                   |
+| Point speed/altitude at/above/below restrictions                       | Flight schema + route domain; normalized rounding; `.nord` round-trip and browser reload tests                               |
+| Leg distance/true bearing/HH:MM, create anchored WPT                   | Pure snap + route anchor insertion; altitude interpolation and planner constraints                                           |
+| Route / radio / crossed-zone summaries                                 | React tabs; endpoint radio phases, route-ordered FIS/FIR rows, limits and AUP times                                          |
+| Overlapping-zone inspector                                             | Polygon hit testing incl. holes, per-zone planned altitude, live altitude, vertical profile, service rows                    |
+| GPS follow/center, track up, pan detaches follow                       | Shared watch and animation adapter; background recording across page changes                                                 |
+| Ownship, accuracy circle, track, five-minute vector/ticks              | Confirmed observations separated from animated position; GPS trail also works without starting a flight                      |
+| Traffic refresh/viewport, 24 FPS estimates, fade, source/type/identity | Typed collector feed; generic ADS-B/Flarm source; 60–120 second fade; CPA colour thresholds preserved                        |
+| Traffic selection, trace, two-minute projection                        | Collector history plus newer observations; current callsign only; gaps over five minutes split                               |
+| Draggable traffic popup and Destination                                | Typed panel; adsbdb ICAO field; airport name shown for three seconds; browser assertions                                     |
+| Offline map/data                                                       | Existing app precache + remote query snapshots; imported zones in IndexedDB; visited OSM tile cache bounded to 600 tiles     |
+| PL / EN                                                                | Map strings in `i18n/map-tools.ts`, existing labels/briefing reused                                                          |
 
 ## Intended differences and limits
 
@@ -78,7 +78,7 @@ be compared numerically to deterministic fixtures; external feeds are mocked in 
 ## Validation
 
 Prettier, ESLint, Next route type generation, TypeScript, Vitest, production static export and the
-full Playwright suite were run from `nextjs/`: 124 Vitest tests in 25 files and 21 Playwright tests passed. Visual QA of the imported-point restriction panel found no page errors; captures remain local.
+full Playwright suite were run from `nextjs/`: 124 Vitest tests in 25 files and 22 Playwright tests passed. Visual QA of the imported-point restriction panel found no page errors; captures remain local.
 The pnpm launcher tried to reinstall the shared dependency junction and refused its external target;
 the same installed tool entry points were run directly in the repository's prescribed order.
 Worker copy and Playwright export-server startup scripts now work on Windows as well as POSIX.

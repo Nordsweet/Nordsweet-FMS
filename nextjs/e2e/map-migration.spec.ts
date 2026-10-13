@@ -69,6 +69,8 @@ test("GPX and imported airspace survive reload; invalid GPX keeps the route", as
 test("selected traffic uses generic source, callsign history, destination reveal and draggable details", async ({
   page,
 }) => {
+  test.setTimeout(60000);
+  await page.clock.install({ time: new Date() });
   await mocks(page);
   const fixture = JSON.parse(
     fs.readFileSync("src/api/aviation/fixtures/traffic.json", "utf8"),
@@ -141,10 +143,15 @@ test("selected traffic uses generic source, callsign history, destination reveal
   await expect(card).toContainText("EGSS");
   await expect(card).not.toContainText(/adsb\.lol|adsb\.fi|Position/);
   await expect(card).toContainText("Confirmed history");
+  await page.clock.pauseAt(new Date(Date.now() + 1000));
   await card.getByRole("button", { name: "Show airport name" }).click();
   await expect(card).toContainText("London Stansted Airport");
-  await expect(card).toContainText("EGSS", { timeout: 4500 });
+  await page.clock.fastForward(2999);
+  await expect(card).toContainText("London Stansted Airport");
+  await page.clock.fastForward(1);
+  await expect(card).toContainText("EGSS");
   await expect(card).not.toContainText("London Stansted Airport");
+  await page.clock.resume();
   const panel = page.getByRole("dialog", { name: "Details" });
   await panel.getByText("Details", { exact: true }).scrollIntoViewIfNeeded();
   const before = (await panel.boundingBox())!,
@@ -199,4 +206,67 @@ test("map restrictions persist and navigation shares flight state across pages",
   await expect(page.getByLabel("Altitude (ft)", { exact: true })).toHaveValue(
     "4000",
   );
+});
+
+test("GPX route edits keep inserted point order and discard stale leg details", async ({
+  page,
+}) => {
+  test.setTimeout(60000);
+  await mocks(page);
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto("/map");
+  await expect(page.getByTestId("map")).toHaveAttribute(
+    "data-map-ready",
+    "true",
+  );
+  for (const label of [
+    "Airports",
+    "VFR points",
+    "IFR points and navaids",
+    "Navaids",
+    "Traffic (ADS-B)",
+  ])
+    await page.getByLabel(label, { exact: true }).uncheck();
+  const upload = (text: string) =>
+    page.getByLabel("Import GPX").setInputFiles({
+      name: "edit.gpx",
+      mimeType: "application/gpx+xml",
+      buffer: Buffer.from(text),
+    });
+  await upload(
+    '<gpx><rte><rtept lat="49.5" lon="18"><name>A</name></rtept><rtept lat="51.5" lon="20"><name>B</name></rtept><rtept lat="52" lon="22"><name>C</name></rtept></rte></gpx>',
+  );
+  await expect(page.locator("[data-route-marker]")).toHaveText(["A", "B", "C"]);
+  const tap = async (latitude = 50.5, longitude = 19) => {
+    const box = (await page.getByTestId("map").boundingBox())!,
+      world = 2 ** 5.5 * 512;
+    const merc = (lat: number) =>
+      Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360));
+    await page.mouse.click(
+      box.x + box.width / 2 + ((longitude - 19.4) / 360) * world,
+      box.y +
+        box.height / 2 +
+        ((merc(52) - merc(latitude)) / (2 * Math.PI)) * world,
+    );
+  };
+  await tap();
+  await expect(page.getByRole("dialog", { name: "Details" })).toContainText(
+    "Route segment",
+  );
+  await page
+    .getByRole("button", { name: "Create waypoint", exact: true })
+    .click();
+  await expect(page.locator("[data-route-marker]")).toHaveText([
+    "A",
+    "WPT 1",
+    "B",
+    "C",
+  ]);
+  await tap(51.75, 21);
+  await expect(page.getByRole("dialog", { name: "Details" })).toBeVisible();
+  await upload('<gpx><wpt lat="50" lon="19"><name>A</name></wpt></gpx>');
+  await expect(page.locator("[data-route-marker]")).toHaveText(["A"]);
+  await expect(page.getByRole("dialog", { name: "Details" })).toBeHidden();
+  expect(errors).toEqual([]);
 });

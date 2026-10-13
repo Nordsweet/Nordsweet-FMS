@@ -50,6 +50,7 @@ export function TrafficCard({
     [t("maptools.verticalSpeed"), `${aircraft.vertical_rate_fpm ?? "—"} fpm`],
     [t("maptools.type"), aircraft.type ?? "—"],
     [t("maptools.registration"), aircraft.registration ?? "—"],
+    [t("maptools.squawk"), aircraft.squawk ?? "—"],
   ];
   return (
     <div className="grid gap-2" data-testid="traffic-card">

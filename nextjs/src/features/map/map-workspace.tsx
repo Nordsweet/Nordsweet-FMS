@@ -37,7 +37,7 @@ export function MapWorkspace() {
         const points = await api.map.importGpx.call(text);
         update({
           departure: points[0]!,
-          destination: points.at(-1)!,
+          destination: points.length > 1 ? points.at(-1)! : null,
           waypoints: points.slice(1, -1),
           routeText: "",
           sid: null,
