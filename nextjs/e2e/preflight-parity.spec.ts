@@ -84,7 +84,7 @@ test("keeps preparation conditions, taxi selections and legacy preferences acros
   await expect(
     page.getByRole("combobox", { name: "Checklist voice", exact: true }),
   ).toContainText("Male");
-  await page.getByRole("link", { name: "Flight plan", exact: true }).click();
+  await page.getByRole("link", { name: "Flight Planner", exact: true }).click();
   await expect(
     page.getByRole("tab", { name: "Aircraft", exact: true }),
   ).toBeVisible();

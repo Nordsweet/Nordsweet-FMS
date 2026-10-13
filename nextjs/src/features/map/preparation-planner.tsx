@@ -1,5 +1,4 @@
 "use client";
-import Link from "next/link";
 import { Button } from "~/components/ui/button";
 import { AirportField } from "~/features/plan/airport-field";
 import { NumberField, fmt } from "~/features/plan/fields";
@@ -92,9 +91,6 @@ export function PreparationPlanner() {
           }}
         >
           {t("maptools.fit")}
-        </Button>
-        <Button variant="outline" size="sm" asChild>
-          <Link href="/">{t("nav.plan")}</Link>
         </Button>
       </div>
       <h2 className="font-medium">{t("mapplanner.points")}</h2>

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-test("preparation navigation exposes only Settings and Map and shares the map plan with the form", async ({
+test("preparation navigation exposes exactly Settings, Flight Planner and Map and shares the map plan with the form", async ({
   page,
 }) => {
   await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => route.abort());
@@ -9,13 +9,14 @@ test("preparation navigation exposes only Settings and Map and shares the map pl
   });
   await page.goto("/");
   const navigation = page.locator("header nav");
-  await expect(navigation.getByRole("link")).toHaveCount(2);
+  await expect(navigation.getByRole("link")).toHaveCount(3);
+  await expect(navigation.getByRole("button")).toHaveCount(0);
   await expect(
     navigation.getByRole("link", { name: "Settings", exact: true }),
   ).toBeVisible();
   await expect(
-    navigation.getByRole("link", { name: "Flight plan", exact: true }),
-  ).toHaveCount(0);
+    navigation.getByRole("link", { name: "Flight Planner", exact: true }),
+  ).toBeVisible();
   await expect(
     navigation.getByRole("link", { name: "Fly", exact: true }),
   ).toHaveCount(0);
@@ -43,7 +44,9 @@ test("preparation navigation exposes only Settings and Map and shares the map pl
   await expect(page.getByTestId("map-planner-points")).toContainText("EPNT");
   await planner.getByLabel("Altitude", { exact: true }).fill("4500");
   await planner.getByLabel("Altitude", { exact: true }).blur();
-  await planner.getByRole("link", { name: "Flight plan", exact: true }).click();
+  await navigation
+    .getByRole("link", { name: "Flight Planner", exact: true })
+    .click();
   await page.getByRole("tab", { name: "Route", exact: true }).click();
   await expect(page.getByLabel("Departure", { exact: true })).toHaveValue(
     "EPKK",
@@ -62,15 +65,13 @@ test("plans coordinate routes imported from GPX and removes a map waypoint", asy
     localStorage.setItem("nordsweet.language.v1", "en");
   });
   await page.goto("/map");
-  await page
-    .getByLabel("Import GPX", { exact: true })
-    .setInputFiles({
-      name: "route.gpx",
-      mimeType: "application/gpx+xml",
-      buffer: Buffer.from(
-        '<gpx><rte><rtept lat="52" lon="19"><name>A</name></rtept><rtept lat="52.1" lon="19.1"><name>MID</name></rtept><rtept lat="52.2" lon="19.2"><name>C</name></rtept></rte></gpx>',
-      ),
-    });
+  await page.getByLabel("Import GPX", { exact: true }).setInputFiles({
+    name: "route.gpx",
+    mimeType: "application/gpx+xml",
+    buffer: Buffer.from(
+      '<gpx><rte><rtept lat="52" lon="19"><name>A</name></rtept><rtept lat="52.1" lon="19.1"><name>MID</name></rtept><rtept lat="52.2" lon="19.2"><name>C</name></rtept></rte></gpx>',
+    ),
+  });
   await expect(page.getByTestId("map-planner-points")).toContainText("MID");
   await expect(page.getByTestId("map-planner-summary")).not.toContainText(
     "NaN",
@@ -81,6 +82,20 @@ test("plans coordinate routes imported from GPX and removes a map waypoint", asy
     .click();
   await expect(page.getByTestId("map-planner-points")).not.toContainText("MID");
   await expect(page.getByTestId("map-planner-points")).toContainText("C");
+  await page
+    .locator("header nav")
+    .getByRole("link", { name: "Flight Planner", exact: true })
+    .click();
+  await page.getByRole("tab", { name: "Route", exact: true }).click();
+  await expect(page.getByLabel("Departure", { exact: true })).toHaveValue("A");
+  await expect(page.getByLabel("Arrival", { exact: true })).toHaveValue("C");
+  await page
+    .locator("header nav")
+    .getByRole("link", { name: "Map", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Map flight planner", exact: true }),
+  ).toBeVisible();
   await page.reload();
   await expect(page.getByTestId("map-planner-points")).not.toContainText("MID");
 });

@@ -87,9 +87,12 @@ state across pages`, and `legacy URLs land on the new screens` (includes a PFD/F
 
 ## Owner correction: preparation navigation and map planner
 
-- Remove Flight plan, Fly and Checklists links from the preparation header. Keep Settings, Map
-  and the language switch. The Home form remains the main flight setup screen; Map and Settings
-  provide a local return link to it. Flight-mode checklist controls remain available in their own view.
+- Preparation navigation contains exactly three controls: Settings (gear icon), Flight Planner,
+  and Map. Remove Fly/Checklists and the header language toggle. Language is selected in Settings.
+  Flight Planner opens the Home flight form; Map opens graphical planning.
+- The map and form observe one persisted flight draft: graphical airport/waypoint/route edits appear
+  in Flight Planner automatically, without importing, copying or creating another flight. Switching
+  screens and reloading retains the same route. Header navigation replaces redundant local return links.
 - The standalone Map is a preparation planner: add an airport/parameter sidebar, distance and ETE,
   shared route-point list and deletion of map-added points. Existing clicks on airports/VFR points
   and empty map positions can set departure/destination or add a waypoint; the same persisted
@@ -105,4 +108,4 @@ state across pages`, and `legacy URLs land on the new screens` (includes a PFD/F
   airport/altitude synchronization. The checklist screen test now opens its route directly because
   the owner removed its preparation navigation link.
 
-Verification of this correction: formatting, lint/type checks, 135 unit tests and static build pass. The 22 preparation browser tests passed; both map-planner regressions passed again after final empty-state fixes, including GPX coordinate planning, removal and reload persistence.
+Verification of this correction: formatting, lint/type checks, 135 unit tests and static build pass. The 23 preparation browser tests passed; both map-planner regressions passed again after final empty-state fixes, including GPX coordinate planning, removal and reload persistence.

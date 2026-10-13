@@ -3,6 +3,8 @@ import { mapToolsEn, mapToolsPl } from "./map-tools";
 
 const pl = {
   ...mapToolsPl,
+  "nav.planner": "Flight Planner",
+  "nav.graphicalPlan": "Map",
   "mapplanner.title": "Planer lotu na mapie",
   "mapplanner.hint":
     "Kliknij lotnisko lub punkt na mapie i wybierz start, cel albo punkt trasy. Formularz lotu i mapa korzystają z tej samej trasy.",
@@ -486,6 +488,8 @@ export type MessageKey = keyof typeof pl;
 
 const en: Record<MessageKey, string> = {
   ...mapToolsEn,
+  "nav.planner": "Flight Planner",
+  "nav.graphicalPlan": "Map",
   "mapplanner.title": "Map flight planner",
   "mapplanner.hint":
     "Click an airport or point on the map and select departure, destination or route waypoint. The flight form and map share the same route.",

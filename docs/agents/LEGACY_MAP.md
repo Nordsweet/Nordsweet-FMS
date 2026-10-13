@@ -62,7 +62,7 @@ merged to `develop`. One owner per row.
 
 | Area | Status | Owner | Notes |
 |---|---|---|---|
-| Preparation navigation and map flight planner | in progress | Codex 2026-10-13 | Owner clarification: exactly Settings icon / Flight Planner / Map; graphical route automatically shared with the form. |
+| Preparation navigation and map flight planner | ready for review | Codex 2026-10-13 | Owner clarification: exactly Settings icon / Flight Planner / Map; graphical route automatically shared with the form. |
 | Preparation-mode parity audit (Home tabs, saved flights, settings, checklists; no Start flight) | ready for review | Codex 2026-10-13 | `codex/preflight-parity-audit`; [inventory and changelog](PREFLIGHT_AUDIT_CHANGELOG.md), legacy main 5265bc5 |
 | Look & feel (palette, panels, tabs, header) | done | claude 2026-10-12 | desktop; phone/iPad pass later |
 | Planner › Aircraft tab | done | claude 2026-10-12 | type list, registration profiles, FREDA indication, last state/MTH |
