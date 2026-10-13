@@ -69,8 +69,11 @@ function WarningList({ warnings }: { warnings: PerformanceWarning[] }) {
   );
 }
 
-function Phase({ phase }: { phase: "takeoff" | "landing" }) {
-  const t = useT();
+/**
+ * Take-off or landing distances for the planned airport with the stored inputs. Shared by the
+ * planner and the flight view's INFO panel; `empty` names what is missing.
+ */
+export function usePhasePerformance(phase: "takeoff" | "landing") {
   const { flight, aircraft, loading } = usePlan();
   const point = phase === "takeoff" ? flight.departure : flight.destination;
   const airport = useQuery({
@@ -87,8 +90,6 @@ function Phase({ phase }: { phase: "takeoff" | "landing" }) {
     windDirectionDeg: 0,
     windSpeedKt: 0,
   };
-  const { runwayId, configId, oatC, qnhHpa, windDirectionDeg, windSpeedKt } =
-    inputs;
   const change = (patch: Partial<typeof inputs>) => {
     const current = useFlight.getState().flight;
     update({
@@ -102,32 +103,20 @@ function Phase({ phase }: { phase: "takeoff" | "landing" }) {
       },
     });
   };
-  const setRunwayId = (runwayId: string) => change({ runwayId });
-  const setConfigId = (configId: string) => change({ configId });
-  const setOatC = (oatC: number) => change({ oatC });
-  const setQnhHpa = (qnhHpa: number) => change({ qnhHpa });
-  const setWindDirectionDeg = (windDirectionDeg: number) =>
-    change({ windDirectionDeg });
-  const setWindSpeedKt = (windSpeedKt: number) => change({ windSpeedKt });
+  const base = { point, inputs, inputKey, change, aircraft };
   const perf = aircraft?.[phase];
-  const { station, briefing } = useBriefing(point);
-  const metar = briefing.data?.metar ?? null;
-  const [metarNote, setMetarNote] = useState<{
-    key: string;
-    text: string;
-  } | null>(null);
-
-  const title = t(`plan.perf.${phase}`);
   const ap = airport.data;
   const weightKg = loading?.[phase].totalKg;
   if (!point || !ap)
-    return <Phase.Empty title={title} text={t("plan.perf.needAirport")} />;
-  if (!perf) return <Phase.Empty title={title} text={t("plan.perf.noData")} />;
+    return { ...base, empty: "plan.perf.needAirport" as const };
+  if (!perf) return { ...base, empty: "plan.perf.noData" as const };
   if (weightKg === undefined)
-    return <Phase.Empty title={title} text={t("plan.perf.needWeight")} />;
+    return { ...base, empty: "plan.perf.needWeight" as const };
   if (!ap.runways.length)
-    return <Phase.Empty title={title} text={t("plan.perf.noRunways")} />;
+    return { ...base, empty: "plan.perf.noRunways" as const };
 
+  const { runwayId, configId, oatC, qnhHpa, windDirectionDeg, windSpeedKt } =
+    inputs;
   const runway =
     ap.runways.find((r) => r.designator === runwayId) ?? ap.runways[0]!;
   const config =
@@ -151,7 +140,55 @@ function Phase({ phase }: { phase: "takeoff" | "landing" }) {
   // Take-off: ground roll must fit the TORA. Landing: distance from 50 ft must fit the LDA.
   const requiredM =
     phase === "takeoff" ? result.groundRollM : result.obstacle50ftM;
-  const fits = availableM !== null && requiredM <= availableM;
+  return {
+    ...base,
+    empty: null,
+    perf,
+    ap,
+    weightKg,
+    runway,
+    config,
+    pa,
+    wind,
+    result,
+    availableM,
+    fits: availableM !== null && requiredM <= availableM,
+  };
+}
+
+function Phase({ phase }: { phase: "takeoff" | "landing" }) {
+  const t = useT();
+  const p = usePhasePerformance(phase);
+  const { point, inputs, inputKey, change, aircraft } = p;
+  const { oatC, qnhHpa, windDirectionDeg, windSpeedKt } = inputs;
+  const setRunwayId = (runwayId: string) => change({ runwayId });
+  const setConfigId = (configId: string) => change({ configId });
+  const setOatC = (oatC: number) => change({ oatC });
+  const setQnhHpa = (qnhHpa: number) => change({ qnhHpa });
+  const setWindDirectionDeg = (windDirectionDeg: number) =>
+    change({ windDirectionDeg });
+  const setWindSpeedKt = (windSpeedKt: number) => change({ windSpeedKt });
+  const { station, briefing } = useBriefing(point);
+  const metar = briefing.data?.metar ?? null;
+  const [metarNote, setMetarNote] = useState<{
+    key: string;
+    text: string;
+  } | null>(null);
+
+  const title = t(`plan.perf.${phase}`);
+  if (p.empty !== null) return <Phase.Empty title={title} text={t(p.empty)} />;
+  const {
+    perf,
+    ap,
+    weightKg,
+    runway,
+    config,
+    pa,
+    wind,
+    result,
+    availableM,
+    fits,
+  } = p;
   const fillFromMetar = () => {
     if (!metar || !station) return;
     const values = parseMetar(metar.raw);

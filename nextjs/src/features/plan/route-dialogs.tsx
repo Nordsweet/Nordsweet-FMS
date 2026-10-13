@@ -45,7 +45,8 @@ const altitudeLabel = (ft: number | null | undefined) =>
       : `${Math.round(ft)} ft`;
 
 /** Legacy "2250 RPM / MAP 28"; other table settings as written. */
-const settingLabel = (setting: string) => {
+/** Legacy "1900 RPM / MAP 20" for a cruise table setting. */
+export const settingLabel = (setting: string) => {
   const s = rpmMap(setting);
   return s ? `${s.rpm} RPM / MAP ${num(s.mapInHg)}` : setting;
 };

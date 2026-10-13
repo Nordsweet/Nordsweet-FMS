@@ -1,4 +1,4 @@
-// Legacy P2006T one-engine-inop climb tables (Vyse/Vxse) → public/data/aircraft.json `emergencyClimb`.
+// Legacy P2006T climb tables (flaps × Vx/Vy × engines) → public/data/aircraft.json `climbTables`.
 // Same grid as `climb`: weight → pressure altitude → temperature, with the POH ISA column as a point.
 const fs = require("fs");
 const path = require("path");
@@ -17,14 +17,17 @@ vm.runInContext(
 );
 const perf = ctx.P2006T_PERFORMANCE;
 
-function convert(table) {
+function convert(table, flaps, profile, engines) {
   const weights = Object.keys(table.weightsKg)
     .map(Number)
     .sort((a, b) => a - b);
   return {
+    flaps,
+    profile,
+    engines,
     speedLabel: table.speedLabel,
     powerSetting: table.powerSetting,
-    flaps: table.flaps,
+    flapsLabel: table.flaps,
     landingGear: table.landingGear,
     source: `Legacy p2006t-performance.js: ${table.source}`,
     grid: {
@@ -65,9 +68,14 @@ function convert(table) {
 const file = path.join(__dirname, "../../public/data/aircraft.json");
 const aircraft = JSON.parse(fs.readFileSync(file, "utf8"));
 const p2006t = aircraft.find((a) => a.id === "P2006T");
-p2006t.emergencyClimb = {
-  vyse: convert(perf.climbOneEngineInopVy),
-  vxse: convert(perf.climbOneEngineInopVx),
-};
+delete p2006t.emergencyClimb;
+p2006t.climbTables = [
+  convert(perf.climb, "takeoff", "vy", "both"),
+  convert(perf.climbVx, "takeoff", "vx", "both"),
+  convert(perf.climbFlapsUpVy, "up", "vy", "both"),
+  convert(perf.climbFlapsUpVx, "up", "vx", "both"),
+  convert(perf.climbOneEngineInopVy, "up", "vy", "one-inop"),
+  convert(perf.climbOneEngineInopVx, "up", "vx", "one-inop"),
+];
 fs.writeFileSync(file, JSON.stringify(aircraft));
-console.log("P2006T emergencyClimb: vyse + vxse");
+console.log("P2006T climbTables:", p2006t.climbTables.length);

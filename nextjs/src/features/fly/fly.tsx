@@ -11,7 +11,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
-import { type FlightPhase, FLIGHT_PHASES } from "~/domain/flight-phase";
+import {
+  type FlightPhase,
+  FLIGHT_PHASES,
+  checklistFlaps,
+} from "~/domain/flight-phase";
 import { magneticVariationDeg, trueToMagneticDeg } from "~/domain/magnetic";
 import { computeProgress } from "~/domain/progress";
 import { type TrackPoint, summarizeTrack, toGpx } from "~/domain/track";
@@ -19,7 +23,7 @@ import { ChecklistsPage } from "~/features/checklists/checklists";
 import { BriefingSection } from "~/features/plan/briefing";
 import { fmt, fmtMinutes } from "~/features/plan/fields";
 import { PerformanceSection } from "~/features/plan/performance";
-import { TaxiSection } from "~/features/plan/taxi";
+import { AirportTaxi } from "~/features/plan/taxi";
 import { usePlan } from "~/features/plan/use-plan";
 import { useT } from "~/i18n/use-t";
 import { cn } from "~/lib/utils";
@@ -28,7 +32,9 @@ import { useInFlight } from "~/stores/inflight";
 import { useMapSettings } from "~/stores/map";
 
 import { CommsPanel } from "./comms-panel";
+import { ConfigPanel } from "./config-panel";
 import { EmergencyPanel } from "./emergency-panel";
+import { InfoPanel } from "./info-panel";
 import { useGps } from "./use-gps";
 
 const FREDA_INTERVAL_MIN = 30;
@@ -36,17 +42,24 @@ const FREDA_INTERVAL_MIN = 30;
 const PHASES = FLIGHT_PHASES;
 type Phase = FlightPhase;
 type Panel =
-  "emer" | "route" | "comms" | "wx" | "rwy" | "checklist" | "info" | "options";
-/** Legacy rail per phase (CONFIG and the chart viewer are not ported yet). */
+  | "emer"
+  | "route"
+  | "comms"
+  | "wx"
+  | "config"
+  | "rwy"
+  | "checklist"
+  | "info"
+  | "options";
+/** Legacy rail per phase, in legacy order (the chart viewer is not ported). */
 const RAIL: { id: Panel; phases?: Phase[] }[] = [
   { id: "emer" },
   { id: "route", phases: ["taxiout", "taxiin"] },
   { id: "comms" },
-  {
-    id: "wx",
-    phases: ["taxiout", "takeoff", "cruise", "descent", "landing", "taxiin"],
-  },
+  { id: "wx", phases: ["cruise"] },
+  { id: "config", phases: ["takeoff", "climb", "cruise", "landing"] },
   { id: "rwy", phases: ["takeoff", "landing"] },
+  { id: "wx", phases: ["taxiout", "takeoff", "descent", "landing", "taxiin"] },
   { id: "checklist" },
   { id: "info" },
   { id: "options" },
@@ -91,8 +104,8 @@ export function FlyPage() {
   const { fix, error } = useGps(true);
   const [now, setNow] = useState(() => Date.now());
   const [debrief, setDebrief] = useState(false);
-  // shortcut: the phase is picked by hand and not persisted; legacy also switched it automatically.
-  const [phase, setPhase] = useState<Phase>("taxiout");
+  // shortcut: the phase is picked by hand; legacy also switched it automatically.
+  const { phase, setPhase, config } = inFlight;
   const [panel, setPanel] = useState<Panel | null>(null);
   const settings = useMapSettings();
 
@@ -222,12 +235,37 @@ export function FlyPage() {
 
   const content: Record<Panel, React.ReactNode> = {
     emer: <EmergencyPanel phase={phase} />,
-    route: <TaxiSection />,
+    route: (flying
+      ? phase === "taxiin"
+        ? flight.destination
+        : flight.departure
+      : null) && (
+      <AirportTaxi
+        point={(phase === "taxiin" ? flight.destination : flight.departure)!}
+        phase={phase === "taxiin" ? "arrival" : "departure"}
+      />
+    ),
+    config: <ConfigPanel phase={phase} />,
     comms: <CommsPanel phase={phase} fix={fix} now={now} />,
     wx: <BriefingSection />,
     rwy: <PerformanceSection />,
-    checklist: <ChecklistsPage />,
-    info: navigation,
+    checklist: (
+      <ChecklistsPage
+        phase={phase}
+        expected={(checklist, action) =>
+          checklistFlaps(phase, checklist.name, action, config)
+        }
+      />
+    ),
+    info: (
+      <>
+        <InfoPanel phase={phase} />
+        <h3 className="text-primary text-xs font-semibold tracking-[0.08em] uppercase">
+          {t("fly.info.navigation")}
+        </h3>
+        {navigation}
+      </>
+    ),
     options: (
       <div className="flex flex-wrap gap-2">
         <Button

@@ -13,7 +13,18 @@ import { cn } from "~/lib/utils";
 
 const itemKey = (section: number, item: number) => `${section}-${item}`;
 
-function ChecklistItems({ checklist }: { checklist: Checklist }) {
+/** Overrides an item's expected value (the flight view's CONFIG flaps); null keeps it. */
+type Expected = (checklist: Checklist, action: string) => string | null;
+
+function ChecklistItems({
+  checklist,
+  expected,
+}: {
+  checklist: Checklist;
+  expected?: Expected;
+}) {
+  const value = (action: string, own: string) =>
+    expected?.(checklist, action) ?? own;
   const t = useT();
   const settings = useSettings();
   const flight = useFlight((s) => s.flight);
@@ -79,7 +90,7 @@ function ChecklistItems({ checklist }: { checklist: Checklist }) {
     const open = checklist.sections.flatMap((s, si) =>
       s.items
         .filter((_, ii) => !checked.has(itemKey(si, ii)))
-        .map((i) => `${i.action}: ${i.expected}`),
+        .map((i) => `${i.action}: ${value(i.action, i.expected)}`),
     );
     open.forEach((line, i) => {
       const utterance = new SpeechSynthesisUtterance(line);
@@ -157,7 +168,7 @@ function ChecklistItems({ checklist }: { checklist: Checklist }) {
                     />
                     <span className="flex-1">{item.action}</span>
                     <span className="font-mono font-semibold">
-                      {item.expected}
+                      {value(item.action, item.expected)}
                     </span>
                   </label>
                 </li>
@@ -170,16 +181,28 @@ function ChecklistItems({ checklist }: { checklist: Checklist }) {
   );
 }
 
-export function ChecklistsPage() {
+/** All checklists, or (flight view) the active phase's with the CONFIG flap callouts. */
+export function ChecklistsPage({
+  phase,
+  expected,
+}: {
+  phase?: (typeof checklistPhases)[number];
+  expected?: Expected;
+} = {}) {
   const t = useT();
   const { aircraft } = usePlan();
-  const checklists = aircraft?.checklists ?? [];
+  const checklists = (aircraft?.checklists ?? []).filter(
+    (c) => !phase || c.phase === phase,
+  );
   const [selected, setSelected] = useState<string | null>(null);
   const current = checklists.find((c) => c.id === selected) ?? checklists[0];
 
   return (
     <div className="mx-auto grid max-w-3xl gap-4">
-      <h1 className="text-primary text-[1.05rem] font-semibold tracking-[0.04em] uppercase">
+      <h1
+        hidden={!!phase}
+        className="text-primary text-[1.05rem] font-semibold tracking-[0.04em] uppercase"
+      >
         {t("checklists.title")}
         {aircraft && (
           <span className="text-muted-foreground font-normal">
@@ -219,7 +242,11 @@ export function ChecklistsPage() {
               ))}
           </nav>
           <h2 className="font-semibold">{current.name}</h2>
-          <ChecklistItems key={current.id} checklist={current} />
+          <ChecklistItems
+            key={current.id}
+            checklist={current}
+            expected={expected}
+          />
         </>
       )}
     </div>

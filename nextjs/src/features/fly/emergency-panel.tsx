@@ -2,14 +2,15 @@
 
 import {
   type FlightPhase,
+  climbTableFor,
+  climbTableRead,
   emergencyAltitude,
-  emergencyClimb,
   phaseAirport,
 } from "~/domain/flight-phase";
 import { usePlan } from "~/features/plan/use-plan";
 import { useT } from "~/i18n/use-t";
 
-function Row({ label, value }: { label: string; value: string }) {
+export function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between gap-3 text-sm">
       <span className="text-muted-foreground">{label}</span>
@@ -18,7 +19,7 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Group({
+export function Group({
   title,
   children,
 }: {
@@ -88,7 +89,18 @@ export function EmergencyPanel({ phase }: { phase: FlightPhase }) {
       : fuelConditionsSource
         ? `METAR ${fuelConditionsSource}`
         : t("fly.emer.manual");
-  const tables = aircraft?.emergencyClimb;
+  const tables = {
+    vyse: climbTableFor(aircraft?.climbTables ?? [], {
+      flaps: "up",
+      profile: "vy",
+      engines: "one-inop",
+    }),
+    vxse: climbTableFor(aircraft?.climbTables ?? [], {
+      flaps: "up",
+      profile: "vx",
+      engines: "one-inop",
+    }),
+  };
   const pair = (label: string, iasKt: number, rateFpm: number) =>
     `${label} ${Math.round(iasKt)} KIAS / ROC ${Math.round(rateFpm)} ft/min`;
 
@@ -117,21 +129,21 @@ export function EmergencyPanel({ phase }: { phase: FlightPhase }) {
         />
         <Row
           label={t("fly.emer.flaps")}
-          value={tables?.vyse.flaps ?? t("fly.emer.up")}
+          value={tables.vyse?.flapsLabel ?? t("fly.emer.up")}
         />
         <Row
           label={t("fly.emer.gear")}
-          value={tables?.vyse.landingGear ?? t("fly.emer.up")}
+          value={tables.vyse?.landingGear ?? t("fly.emer.up")}
         />
         <Row
           label={t("fly.emer.power")}
-          value={tables?.vyse.powerSetting ?? t("fly.emer.mcp")}
+          value={tables.vyse?.powerSetting ?? t("fly.emer.mcp")}
         />
       </Group>
       {(["vyse", "vxse"] as const).map((key) => {
-        const table = tables?.[key];
+        const table = tables[key];
         const climb = table
-          ? emergencyClimb(
+          ? climbTableRead(
               table,
               takeoffWeightKg,
               context.altitudeFt,

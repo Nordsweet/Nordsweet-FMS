@@ -1,12 +1,33 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
+import { type CruiseMode } from "~/domain/cruise-performance";
+import {
+  type ClimbConfig,
+  type FlightPhase,
+  DEFAULT_CLIMB_CONFIG,
+} from "~/domain/flight-phase";
 import { type LatLon, distanceNm } from "~/domain/geo";
 import { type NavPoint, directTo, computeProgress } from "~/domain/progress";
 import { type TrackPoint } from "~/domain/track";
 
 /** Record a track point at most this often (5 s) unless the aircraft has not moved. */
 const TRACK_INTERVAL_MS = 5000;
+
+export type FlightConfig = {
+  climb: ClimbConfig;
+  /** Checklist flap callouts (legacy takeoffChecklistFlaps / landingChecklistFlaps). */
+  takeoffFlaps: "takeoff" | "up";
+  landingFlaps: "UP" | "APP" | "LDG";
+  cruiseMode: CruiseMode;
+};
+
+const DEFAULT_CONFIG: FlightConfig = {
+  climb: DEFAULT_CLIMB_CONFIG,
+  takeoffFlaps: "takeoff",
+  landingFlaps: "LDG",
+  cruiseMode: "eco-time",
+};
 
 type InFlight = {
   /** null when no flight is in progress. */
@@ -15,6 +36,11 @@ type InFlight = {
   activeLeg: number;
   track: TrackPoint[];
   lastFredaAt: string | null;
+  /** The flight view's phase tab and its CONFIG choices (legacy state). */
+  phase: FlightPhase;
+  config: FlightConfig;
+  setPhase: (phase: FlightPhase) => void;
+  configure: (patch: Partial<FlightConfig>) => void;
   start: (route: NavPoint[]) => void;
   end: () => void;
   setActiveLeg: (leg: number) => void;
@@ -35,6 +61,10 @@ export const useInFlight = create<InFlight>()(
       activeLeg: 0,
       track: [],
       lastFredaAt: null,
+      phase: "taxiout",
+      config: DEFAULT_CONFIG,
+      setPhase: (phase) => set({ phase }),
+      configure: (patch) => set((s) => ({ config: { ...s.config, ...patch } })),
       start: (route) => {
         const now = new Date().toISOString();
         set({
@@ -43,6 +73,7 @@ export const useInFlight = create<InFlight>()(
           activeLeg: 0,
           track: [],
           lastFredaAt: now,
+          phase: "taxiout",
         });
       },
       end: () => set({ startedAt: null }),
@@ -95,12 +126,22 @@ export const useInFlight = create<InFlight>()(
       name: "nordsweet.inflight.v1",
       version: 1,
       storage: createJSONStorage(() => localStorage),
-      partialize: ({ startedAt, route, activeLeg, track, lastFredaAt }) => ({
+      partialize: ({
         startedAt,
         route,
         activeLeg,
         track,
         lastFredaAt,
+        phase,
+        config,
+      }) => ({
+        startedAt,
+        route,
+        activeLeg,
+        track,
+        lastFredaAt,
+        phase,
+        config,
       }),
     },
   ),

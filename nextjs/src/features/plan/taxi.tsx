@@ -53,7 +53,7 @@ function ElementSelect({
   );
 }
 
-function AirportTaxi({
+export function AirportTaxi({
   point,
   phase,
 }: {

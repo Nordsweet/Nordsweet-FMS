@@ -1,4 +1,4 @@
-import { type Aircraft } from "~/data/aircraft";
+import { type ClimbTable } from "~/data/aircraft";
 import { type Airport } from "~/data/schemas";
 
 import { pressureAltitudeFt } from "./atmosphere";
@@ -59,20 +59,38 @@ export function emergencyAltitude(
       };
 }
 
-type EmergencyTable = NonNullable<Aircraft["emergencyClimb"]>["vyse"];
+export type ClimbConfig = Pick<ClimbTable, "flaps" | "profile" | "engines">;
+/** Legacy climb CONFIG defaults: flaps take-off, Vy, both engines. */
+export const DEFAULT_CLIMB_CONFIG: ClimbConfig = {
+  flaps: "takeoff",
+  profile: "vy",
+  engines: "both",
+};
 
-/** Legacy one-engine-inop climb: interpolated, the next conservative table entry, and its basis. */
-export function emergencyClimb(
-  table: EmergencyTable,
+/**
+ * The table for a climb configuration. With one engine inoperative legacy only has flaps-up
+ * tables, so flaps take-off gives none.
+ */
+export const climbTableFor = (tables: ClimbTable[], config: ClimbConfig) =>
+  tables.find(
+    (t) =>
+      t.flaps === config.flaps &&
+      t.profile === config.profile &&
+      t.engines === config.engines,
+  ) ?? null;
+
+/** Legacy climb read: interpolated, the next conservative table entry, and its basis. */
+export function climbTableRead(
+  table: Pick<ClimbTable, "grid">,
   weightKg: number,
   altitudeFt: number,
   temperatureC: number,
 ) {
-  const values = {
+  const values: Record<string, number> = {
     weightKg,
     pressureAltitudeFt: altitudeFt,
     temperatureC,
-  } as Record<string, number>;
+  };
   const value = (axis: string) => values[axis] ?? 0;
   const at: Partial<Record<string, number>> = {};
   return {
@@ -84,4 +102,37 @@ export function emergencyClimb(
       temperatureC: at.temperatureC!,
     },
   };
+}
+
+const checklistId = (name: string) =>
+  name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+
+/**
+ * Legacy getChecklistExpectedDisplayValue: flap lines show the CONFIG flaps — take-off flaps in
+ * take-off (and Before Taxi / Before Take-off on taxi-out), landing flaps in Before Landing / Final
+ * Check. null: keep the checklist's own value.
+ */
+export function checklistFlaps(
+  phase: FlightPhase,
+  checklistName: string,
+  action: string,
+  flaps: { takeoffFlaps: "takeoff" | "up"; landingFlaps: string },
+) {
+  if (!action.toUpperCase().includes("FLAP")) return null;
+  const id = checklistId(checklistName);
+  if (
+    phase === "landing" &&
+    (id.includes("before-landing") || id.includes("final-check"))
+  )
+    return flaps.landingFlaps;
+  if (
+    phase === "takeoff" ||
+    (phase === "taxiout" &&
+      (id.includes("before-taxi") || id.includes("before-take-off")))
+  )
+    return flaps.takeoffFlaps === "up" ? "UP" : "T/O";
+  return null;
 }

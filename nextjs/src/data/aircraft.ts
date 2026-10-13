@@ -55,11 +55,14 @@ export const climbSchema = z.object({
   source: z.string(),
 });
 
-/** One engine inoperative climb (legacy EMER panel): a climb grid with its POH configuration. */
-const emergencyClimbTableSchema = z.object({
+/** A POH climb table for one configuration (legacy CONFIG climb, INFO climb, EMER). */
+export const climbTableSchema = z.object({
+  flaps: z.enum(["takeoff", "up"]),
+  profile: z.enum(["vy", "vx"]),
+  engines: z.enum(["both", "one-inop"]),
   speedLabel: z.string(),
   powerSetting: z.string(),
-  flaps: z.string(),
+  flapsLabel: z.string(),
   landingGear: z.string(),
   grid: gridSchema<ClimbLeaf>(
     z.object({ rateFpm: z.number(), iasKt: z.number().positive() }),
@@ -219,13 +222,8 @@ export const aircraftSchema = z.object({
   takeoff: distancePerformanceSchema.nullable(),
   landing: distancePerformanceSchema.nullable(),
   climb: climbSchema.nullable(),
-  /** Twins only: Vyse/Vxse with one engine inoperative. */
-  emergencyClimb: z
-    .object({
-      vyse: emergencyClimbTableSchema,
-      vxse: emergencyClimbTableSchema,
-    })
-    .optional(),
+  /** Every POH climb configuration, where the legacy data has them (P2006T). */
+  climbTables: z.array(climbTableSchema).default([]),
   cruise: cruiseSchema.nullable(),
   checklists: z.array(checklistSchema),
   windLimits: z
@@ -237,6 +235,7 @@ export const aircraftSchema = z.object({
 });
 
 export type Aircraft = z.infer<typeof aircraftSchema>;
+export type ClimbTable = z.infer<typeof climbTableSchema>;
 export type WeightBalance = z.infer<typeof weightBalanceSchema>;
 export type DistancePerformance = z.infer<typeof distancePerformanceSchema>;
 export type DistanceConfiguration = z.infer<typeof distanceConfigurationSchema>;
