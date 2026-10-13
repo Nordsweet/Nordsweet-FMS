@@ -1562,9 +1562,12 @@ await loadScript("./traffic-proxy-config.js");
         const registration = getTrafficRegistration(traffic);
         if (!registration) return "--";
         if (raw.includes("-")) return raw.replace(/\s+/g, "");
-        // The common Polish and Turkish formats use a two-character prefix.
-        if (/^(SP|TC)[A-Z0-9]{3,4}$/.test(registration)) {
+        // Restore known national prefixes; preserve provider punctuation above.
+        if (/^(SP|TC|OK|OM|OE|OO|OH|OY|SE|LN|PH|HB|HA|CS|EC|EI|ES|YL|LY|UR|YU|YR|LZ|SX|9H|9A|9V|VH|ZK|ZS|ZU|PT|PR|PP|PS|LV|CC|XA|XB|XC|HS|PK|VT)[A-Z0-9]{3,4}$/.test(registration)) {
           return registration.slice(0, 2) + "-" + registration.slice(2);
+        }
+        if (/^[DGFI][A-Z]{4}$/.test(registration) || /^C[FGI][A-Z]{3}$/.test(registration)) {
+          return registration.slice(0, 1) + "-" + registration.slice(1);
         }
         return registration;
       }
@@ -1623,7 +1626,7 @@ await loadScript("./traffic-proxy-config.js");
 
       function updateTrafficMenuHeader(traffic) {
         const callsign = getTrafficCallsign(traffic);
-        const registration = getTrafficRegistration(traffic);
+        const registration = getTrafficRegistration(traffic) ? formatTrafficRegistrationForDetails(traffic) : "";
         refs.trafficMenuTitle.textContent = callsign || registration || getTrafficDisplayName(traffic);
         refs.trafficMenuMeta.textContent = [formatTrafficSource(traffic), registration, traffic.hex].filter(Boolean).join(" | ") || "Traffic";
       }
@@ -1632,7 +1635,6 @@ await loadScript("./traffic-proxy-config.js");
         if (!refs.trafficMenuDetails) return;
         const details = [
           trafficDetail("Source", formatTrafficSource(traffic)),
-          trafficDetail("History", formatTrafficHistory(traffic)),
           trafficDetail("Current track", formatTrafficTrack(traffic.trackDeg)),
           trafficDetail("Ground speed", Number.isFinite(traffic.speedKt) ? Math.round(traffic.speedKt) + " kt" : "--"),
           trafficDetail("Altitude", Number.isFinite(traffic.altitudeFt) ? Math.round(traffic.altitudeFt) + " ft" : "--"),
