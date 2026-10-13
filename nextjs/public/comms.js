@@ -111,7 +111,7 @@
         let entry=entries.get(key);
         if(!entry) {
           const stage=['FIS','Information'].includes(service)?'En-route':context || (['taxiout','takeoff','climb'].includes(phase)?'Departure':['descent','landing','taxiin'].includes(phase)?'Arrival':'En-route');
-          entry={section,title:stage==='En-route'?stage:stage+'-'+service,callsign:name,sector:detail,frequencies:[]};
+          entry={section,service,title:stage==='En-route'?stage:stage+'-'+service,callsign:name,sector:detail,frequencies:[]};
           entries.set(key,entry);
         } else {
           if(/[^\x00-\x7f]/.test(name)) entry.callsign=name;

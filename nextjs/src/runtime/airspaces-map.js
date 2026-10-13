@@ -1632,6 +1632,7 @@ await loadScript("./traffic-proxy-config.js");
         if (!refs.trafficMenuDetails) return;
         const details = [
           trafficDetail("Source", formatTrafficSource(traffic)),
+          trafficDetail("History", formatTrafficHistory(traffic)),
           trafficDetail("Current track", formatTrafficTrack(traffic.trackDeg)),
           trafficDetail("Ground speed", Number.isFinite(traffic.speedKt) ? Math.round(traffic.speedKt) + " kt" : "--"),
           trafficDetail("Altitude", Number.isFinite(traffic.altitudeFt) ? Math.round(traffic.altitudeFt) + " ft" : "--"),
@@ -1702,6 +1703,7 @@ await loadScript("./traffic-proxy-config.js");
         hideAirspaceInspector();
         updateTrafficMenuHeader(traffic);
         renderTrafficMenuDetails(traffic);
+        void loadTrafficHistory(traffic);
         refs.trafficMenu.hidden = false;
         positionTrafficMenu();
         renderMap();
@@ -2357,6 +2359,7 @@ await loadScript("./traffic-proxy-config.js");
           state.selectedTraffic = selectedTraffic;
           updateTrafficMenuHeader(selectedTraffic);
           renderTrafficMenuDetails(selectedTraffic);
+          void loadTrafficHistory(selectedTraffic);
           return;
         }
         state.selectedTraffic = null;
@@ -2565,16 +2568,51 @@ await loadScript("./traffic-proxy-config.js");
         });
       }
 
+      const remoteTrafficHistories = new Map();
+
+      // Fetch the available provider trace on selection, not for every visible aircraft.
+      async function loadTrafficHistory(traffic) {
+        const hex=String(traffic && traffic.hex || '').toLowerCase();
+        if(!/^[0-9a-f]{6}$/.test(hex))return;
+        const previous=remoteTrafficHistories.get(hex);
+        if(previous && (previous.pending || Date.now()-previous.fetchedAt<60000))return;
+        const entry={samples:previous?.samples || [],pending:true,fetchedAt:Date.now(),status:'Loading ADSB.lol history…'};
+        remoteTrafficHistories.set(hex,entry);
+        const controller=new AbortController();
+        const timeout=window.setTimeout(()=>controller.abort(),15000);
+        try {
+          const response=await fetch(COLLECTOR_TRAFFIC_URL.replace(/\/$/,'')+'/'+hex+'/history',{signal:controller.signal,headers:{Accept:'application/json'}});
+          if(!response.ok)throw new Error('HTTP '+response.status);
+          const payload=await response.json();
+          if(payload.hex!==hex)throw new Error('Aircraft mismatch');
+          const samples=normalizeTrafficHistorySamples(payload.history).sort((a,b)=>a.sampledAt-b.sampledAt);
+          if(!samples.length)throw new Error('No provider history');
+          entry.samples=samples;
+          entry.status='ADSB.lol · available history';
+        } catch (_error) {
+          entry.status=entry.samples.length?'Cached ADSB.lol history':'History unavailable · session track only';
+        } finally {
+          window.clearTimeout(timeout);
+          entry.pending=false;
+          while(remoteTrafficHistories.size>8)remoteTrafficHistories.delete(remoteTrafficHistories.keys().next().value);
+          if(state.selectedTraffic?.hex===hex){renderTrafficMenuDetails(state.selectedTraffic);renderMap();}
+        }
+      }
+
       function selectedTrafficHistory(traffic) {
-        return traffic ? (state.traffic.historyById.get(trafficHistoryKey(traffic)) || state.traffic.historyById.get(traffic.id) || []) : [];
+        if(!traffic)return [];
+        const local=state.traffic.historyById.get(trafficHistoryKey(traffic)) || state.traffic.historyById.get(traffic.id) || [];
+        const remote=remoteTrafficHistories.get(String(traffic.hex || '').toLowerCase())?.samples || [];
+        const last=remote.length?remote[remote.length-1].sampledAt:-Infinity;
+        return remote.concat(local.filter(sample=>sample.sampledAt>last));
       }
 
       function formatTrafficHistory(traffic) {
         const history = selectedTrafficHistory(traffic);
-        if (history.length < 2) return "Collecting";
-        const distanceNm = history.slice(1).reduce((total, sample, index) => total + T.haversineNm(history[index], sample), 0);
+        const source=remoteTrafficHistories.get(String(traffic?.hex || '').toLowerCase())?.status || 'Session track';
+        if (history.length < 2) return source;
         const spanMinutes = Math.max(0, Math.round((history[history.length - 1].sampledAt - history[0].sampledAt) / 60000));
-        return distanceNm.toFixed(1) + " NM / " + spanMinutes + " min";
+        return source + ' · ' + spanMinutes + ' min';
       }
 
       function trafficQueryForViewport() {
@@ -2967,7 +3005,7 @@ await loadScript("./traffic-proxy-config.js");
         ctx.beginPath();
         history.forEach((sample, index) => {
           const point = viewport.project(sample);
-          if (index) ctx.lineTo(point.x, point.y);
+          if (index && sample.sampledAt-history[index-1].sampledAt<=300000) ctx.lineTo(point.x, point.y);
           else ctx.moveTo(point.x, point.y);
         });
         ctx.strokeStyle = "rgba(255, 255, 255, 0.82)";
@@ -2977,7 +3015,7 @@ await loadScript("./traffic-proxy-config.js");
         ctx.beginPath();
         history.forEach((sample, index) => {
           const point = viewport.project(sample);
-          if (index) ctx.lineTo(point.x, point.y);
+          if (index && sample.sampledAt-history[index-1].sampledAt<=300000) ctx.lineTo(point.x, point.y);
           else ctx.moveTo(point.x, point.y);
         });
         ctx.strokeStyle = "rgba(245, 158, 11, 0.96)";

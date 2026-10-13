@@ -29925,9 +29925,11 @@ function renderFlightCommsBody() {
   if(!data) return '<p>Loading radio data from the map…</p>';
   const groups=window.NordsweetComms.displayGroups(data);
   const render=section=>groups.filter(group=>group.section===section).map(group=>'<h4>'+escapeHtml(group.title)+'</h4><div class="metric-row"><span>'+escapeHtml(group.callsign)+(group.sector?' / '+escapeHtml(group.sector):'')+'</span><strong style="white-space:normal;overflow-wrap:anywhere;max-width:100%">'+escapeHtml(group.frequencies.join('/'))+' MHz</strong></div>').join('');
-  const time=Number.isFinite(data.seconds)?Math.floor(data.seconds/60)+' min '+String(Math.floor(data.seconds%60)).padStart(2,'0')+' s':'—';
-  const next=render('next');
-  return '<h3>Current · suggested</h3>'+(render('current') || '<p>Not available</p>')+(next?'<h3>Next</h3>'+next:'')+'<h3>Estimated change</h3><p>'+time+(Number.isFinite(data.distanceNm)?' · '+data.distanceNm.toFixed(1)+' NM':'')+(Number.isFinite(data.speedKt)?' · '+Math.round(data.speedKt)+' kt ('+escapeHtml(data.speedSource)+')':'')+'</p><p>'+escapeHtml(data.note)+'</p>'+render('route')+render('arrival');
+  const suggestions=groups.filter(group=>group.section==='next').map(group=>{
+    const service=group.service;
+    return '<p class="comms-change-suggestion">Suggested frequency change to '+escapeHtml(group.frequencies.join('/'))+' '+escapeHtml(group.callsign)+(group.sector?' / '+escapeHtml(group.sector):'')+' ('+escapeHtml(service)+')</p>';
+  }).join('');
+  return '<h3>Current · suggested</h3>'+(render('current') || '<p>Not available</p>')+suggestions+render('route')+render('arrival');
 }
 function renderFlightCommsPopover() {
   refreshFlightComms();
