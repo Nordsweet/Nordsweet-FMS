@@ -84,3 +84,25 @@ state across pages`, and `legacy URLs land on the new screens` (includes a PFD/F
   the library displays Load/Rename/.nord/GPX/KML/Delete, and Settings shows the restored preferences.
 - No flight was started during the audit. Changes are on the feature branch for review; the
   deployed develop site changes only after integration into develop.
+
+## Owner correction: preparation navigation and map planner
+
+- Remove Flight plan, Fly and Checklists links from the preparation header. Keep Settings, Map
+  and the language switch. The Home form remains the main flight setup screen; Map and Settings
+  provide a local return link to it. Flight-mode checklist controls remain available in their own view.
+- The standalone Map is a preparation planner: add an airport/parameter sidebar, distance and ETE,
+  shared route-point list and deletion of map-added points. Existing clicks on airports/VFR points
+  and empty map positions can set departure/destination or add a waypoint; the same persisted
+  flight is used by the form, saving and exports. Coordinate routes use a straight-line distance/ETE
+  fallback when no airport procedure plan is available.
+- Remove Start navigation from the standalone preparation map. Embedded flight-map behavior remains
+  unchanged. No flight or navigation was started while verifying this correction.
+- Inspiration reviewed: [vfr-planner](https://github.com/bwilczek/vfr-planner), particularly
+  [FlightPlanSlider](https://github.com/bwilczek/vfr-planner/blob/master/client/src/js/components/FlightPlanSlider.jsx)
+  and [MapLeaflet](https://github.com/bwilczek/vfr-planner/blob/master/client/src/js/components/MapLeaflet.jsx).
+  Reuse Nordsweet's typed planner and MapLibre; no React/Redux/Rails code copied.
+- New browser regression checks the header links, absence of Start navigation and map-to-form
+  airport/altitude synchronization. The checklist screen test now opens its route directly because
+  the owner removed its preparation navigation link.
+
+Verification of this correction: formatting, lint/type checks, 135 unit tests and static build pass. The 22 preparation browser tests passed; both map-planner regressions passed again after final empty-state fixes, including GPX coordinate planning, removal and reload persistence.

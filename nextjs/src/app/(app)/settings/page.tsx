@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { Button } from "~/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 
 import { api } from "~/api";
@@ -117,6 +119,9 @@ export default function SettingsPage() {
             </SelectContent>
           </Select>
         </div>
+        <Button variant="outline" asChild>
+          <Link href="/">{t("nav.plan")}</Link>
+        </Button>
       </CardContent>
     </Card>
   );

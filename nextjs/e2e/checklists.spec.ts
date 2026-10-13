@@ -10,7 +10,7 @@ test("works through an aircraft checklist", async ({ page }) => {
   await page.getByRole("combobox", { name: "Aircraft type" }).click();
   await page.getByRole("option", { name: "P2006T (P06T)" }).click();
 
-  await page.getByRole("link", { name: "Checklists" }).click();
+  await page.goto("/checklists");
   await expect(
     page.getByRole("heading", { name: "Before Engine Start" }),
   ).toBeVisible();

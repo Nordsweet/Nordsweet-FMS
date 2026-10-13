@@ -3,6 +3,14 @@ import { mapToolsEn, mapToolsPl } from "./map-tools";
 
 const pl = {
   ...mapToolsPl,
+  "mapplanner.title": "Planer lotu na mapie",
+  "mapplanner.hint":
+    "Kliknij lotnisko lub punkt na mapie i wybierz start, cel albo punkt trasy. Formularz lotu i mapa korzystają z tej samej trasy.",
+  "mapplanner.points": "Przebieg trasy",
+  "mapplanner.added": "Punkty dodane na mapie",
+  "mapplanner.empty": "Wybierz lotnisko startu i cel, aby zaplanować trasę.",
+  "mapplanner.remove": "Usuń punkt {point}",
+
   "app.name": "Nordsweet FMS",
   "nav.plan": "Plan lotu",
   "nav.settings": "Ustawienia",
@@ -478,6 +486,14 @@ export type MessageKey = keyof typeof pl;
 
 const en: Record<MessageKey, string> = {
   ...mapToolsEn,
+  "mapplanner.title": "Map flight planner",
+  "mapplanner.hint":
+    "Click an airport or point on the map and select departure, destination or route waypoint. The flight form and map share the same route.",
+  "mapplanner.points": "Route points",
+  "mapplanner.added": "Points added on the map",
+  "mapplanner.empty": "Choose departure and destination to plan a route.",
+  "mapplanner.remove": "Remove point {point}",
+
   "app.name": "Nordsweet FMS",
   "nav.plan": "Flight plan",
   "nav.settings": "Settings",

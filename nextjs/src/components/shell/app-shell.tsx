@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  ClipboardList,
-  ListChecks,
-  type LucideIcon,
-  Map as MapIcon,
-  Navigation,
-  Settings,
-} from "lucide-react";
+import { type LucideIcon, Map as MapIcon, Settings } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -18,10 +11,7 @@ import { type MessageKey } from "~/i18n/messages";
 import { type Language, useSettings } from "~/stores/settings";
 
 const nav: { href: string; label: MessageKey; icon: LucideIcon }[] = [
-  { href: "/", label: "nav.plan", icon: ClipboardList },
   { href: "/map", label: "nav.map", icon: MapIcon },
-  { href: "/fly", label: "nav.fly", icon: Navigation },
-  { href: "/checklists", label: "nav.checklists", icon: ListChecks },
 ];
 
 /** Pages render their own top-right actions here (see usePageActions). */
