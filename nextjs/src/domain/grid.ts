@@ -35,6 +35,8 @@ export function interpolateGrid<L extends Leaf>(
 export function conservativeRead<L>(
   node: Node<L>,
   value: (axis: GridAxis) => number,
+  /** Filled with the table entry picked on each axis (the "for table" basis). */
+  at: Partial<Record<GridAxis, number>> = {},
 ): L {
   if (!isGrid(node)) return node;
   const v = value(node.axis);
@@ -43,7 +45,8 @@ export function conservativeRead<L>(
     node.axis === "headwindKt"
       ? ([...pts].reverse().find((p) => p.at <= v) ?? pts[0]!)
       : (pts.find((p) => p.at >= v) ?? pts[pts.length - 1]!);
-  return conservativeRead(pick.next, value);
+  at[node.axis] = pick.at;
+  return conservativeRead(pick.next, value, at);
 }
 
 /** Highest tabulated value per axis present in the grid. */

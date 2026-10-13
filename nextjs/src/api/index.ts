@@ -176,6 +176,11 @@ export const api = {
     ),
   },
   frequencies: {
+    list: query(
+      "frequencies.list",
+      () => loadDataset("frequencies"),
+      reference,
+    ),
     byAirport: query(
       "frequencies.byAirport",
       async ({ airport }: { airport: string }) =>

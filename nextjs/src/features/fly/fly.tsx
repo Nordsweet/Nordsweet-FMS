@@ -1,12 +1,9 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { api } from "~/api";
 import { Button } from "~/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -14,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "~/components/ui/select";
-import { type FlightPoint } from "~/data/flight";
+import { type FlightPhase, FLIGHT_PHASES } from "~/domain/flight-phase";
 import { magneticVariationDeg, trueToMagneticDeg } from "~/domain/magnetic";
 import { computeProgress } from "~/domain/progress";
 import { type TrackPoint, summarizeTrack, toGpx } from "~/domain/track";
@@ -30,24 +27,19 @@ import { MapWorkspace } from "~/features/map/map-workspace";
 import { useInFlight } from "~/stores/inflight";
 import { useMapSettings } from "~/stores/map";
 
+import { CommsPanel } from "./comms-panel";
+import { EmergencyPanel } from "./emergency-panel";
 import { useGps } from "./use-gps";
 
 const FREDA_INTERVAL_MIN = 30;
 
-const PHASES = [
-  "taxiout",
-  "takeoff",
-  "climb",
-  "cruise",
-  "descent",
-  "landing",
-  "taxiin",
-] as const;
-type Phase = (typeof PHASES)[number];
+const PHASES = FLIGHT_PHASES;
+type Phase = FlightPhase;
 type Panel =
-  "route" | "comms" | "wx" | "rwy" | "checklist" | "info" | "options";
-/** Legacy rail per phase (EMER, CONFIG and the chart viewer are not ported yet). */
+  "emer" | "route" | "comms" | "wx" | "rwy" | "checklist" | "info" | "options";
+/** Legacy rail per phase (CONFIG and the chart viewer are not ported yet). */
 const RAIL: { id: Panel; phases?: Phase[] }[] = [
+  { id: "emer" },
   { id: "route", phases: ["taxiout", "taxiin"] },
   { id: "comms" },
   {
@@ -229,12 +221,9 @@ export function FlyPage() {
   );
 
   const content: Record<Panel, React.ReactNode> = {
+    emer: <EmergencyPanel phase={phase} />,
     route: <TaxiSection />,
-    comms: (
-      <Frequencies
-        points={[flight.departure, flight.destination, flight.alternate]}
-      />
-    ),
+    comms: <CommsPanel phase={phase} fix={fix} now={now} />,
     wx: <BriefingSection />,
     rwy: <PerformanceSection />,
     checklist: <ChecklistsPage />,
@@ -332,9 +321,18 @@ export function FlyPage() {
           {rail.map((r) => (
             <Button
               key={r.id}
-              variant={open === r.id ? "default" : "outline"}
+              variant={
+                r.id === "emer"
+                  ? "destructive"
+                  : open === r.id
+                    ? "default"
+                    : "outline"
+              }
               aria-expanded={open === r.id}
-              className="bg-card/90 h-13 w-20 px-1 text-[0.7rem] backdrop-blur"
+              className={cn(
+                "h-13 w-20 px-1 text-[0.7rem] backdrop-blur",
+                r.id !== "emer" && "bg-card/90",
+              )}
               onClick={() => setPanel(open === r.id ? null : r.id)}
             >
               {t(`fly.panel.${r.id}`)}
@@ -447,49 +445,5 @@ function Debrief({
         </Button>
       </div>
     </>
-  );
-}
-
-function Frequencies({ points }: { points: (FlightPoint | null)[] }) {
-  const t = useT();
-  const idents = [
-    ...new Set(points.filter((p) => p !== null).map((p) => p.ident)),
-  ];
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>
-          <h2>{t("fly.frequencies")}</h2>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="grid gap-2 text-sm sm:grid-cols-3 lg:grid-cols-1">
-        {idents.map((ident) => (
-          <AirportFrequencies key={ident} ident={ident} />
-        ))}
-      </CardContent>
-    </Card>
-  );
-}
-
-function AirportFrequencies({ ident }: { ident: string }) {
-  const t = useT();
-  const { data = [] } = useQuery(
-    api.frequencies.byAirport.queryOptions({ airport: ident }),
-  );
-  return (
-    <div>
-      <div className="font-medium">{ident}</div>
-      {data.length === 0 ? (
-        <div className="text-muted-foreground">{t("fly.noFrequencies")}</div>
-      ) : (
-        <ul>
-          {data.map((f, i) => (
-            <li key={i} className="tabular-nums">
-              <span className="font-mono">{f.frequencyMhz}</span> {f.callsign}
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
   );
 }

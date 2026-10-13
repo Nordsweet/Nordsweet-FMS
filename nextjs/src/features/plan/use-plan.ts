@@ -350,6 +350,9 @@ export function usePlan() {
     fuelConditionsSource:
       metarTemperature !== null ? (flight.departure?.ident ?? null) : null,
     loading,
+    takeoffWeightKg,
+    surfaceTempC,
+    qnhHpa,
     weightBalance: sheetFor(fuelPlanning?.rows.alternate.fuelL ?? 0),
   };
 }

@@ -59,7 +59,8 @@ type Props = {
 
 const POLAND: [number, number] = [19.4, 52.0];
 /** The API's coverage (PL, CZ, SK) fits one 250 NM query around central Poland/Czechia. */
-const AIRSPACE_QUERY = { lat: 50.8, lon: 18.5, radiusNm: 250 };
+/** The airspace the map loads; the flight COMMs panel reads the same cached query. */
+export const AIRSPACE_QUERY = { lat: 50.8, lon: 18.5, radiusNm: 250 };
 
 const CLASS_COLOR: maplibregl.ExpressionSpecification = [
   "match",

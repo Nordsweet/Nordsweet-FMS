@@ -55,6 +55,18 @@ export const climbSchema = z.object({
   source: z.string(),
 });
 
+/** One engine inoperative climb (legacy EMER panel): a climb grid with its POH configuration. */
+const emergencyClimbTableSchema = z.object({
+  speedLabel: z.string(),
+  powerSetting: z.string(),
+  flaps: z.string(),
+  landingGear: z.string(),
+  grid: gridSchema<ClimbLeaf>(
+    z.object({ rateFpm: z.number(), iasKt: z.number().positive() }),
+  ),
+  source: z.string(),
+});
+
 /** POH corrections. Headwind/tailwind values are magnitudes: headwind shortens, tailwind lengthens. */
 export const correctionsSchema = z.object({
   headwind: z
@@ -207,6 +219,13 @@ export const aircraftSchema = z.object({
   takeoff: distancePerformanceSchema.nullable(),
   landing: distancePerformanceSchema.nullable(),
   climb: climbSchema.nullable(),
+  /** Twins only: Vyse/Vxse with one engine inoperative. */
+  emergencyClimb: z
+    .object({
+      vyse: emergencyClimbTableSchema,
+      vxse: emergencyClimbTableSchema,
+    })
+    .optional(),
   cruise: cruiseSchema.nullable(),
   checklists: z.array(checklistSchema),
   windLimits: z
