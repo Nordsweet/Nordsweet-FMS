@@ -30,6 +30,7 @@ import { cn } from "~/lib/utils";
 import { MapWorkspace } from "~/features/map/map-workspace";
 import { useInFlight } from "~/stores/inflight";
 
+import { ChartPanel } from "./chart-panel";
 import { CommsPanel } from "./comms-panel";
 import { ConfigPanel } from "./config-panel";
 import { EmergencyPanel } from "./emergency-panel";
@@ -48,17 +49,22 @@ type Panel =
   | "comms"
   | "wx"
   | "config"
+  | "chart"
   | "rwy"
   | "checklist"
   | "info"
   | "options";
-/** Legacy rail per phase, in legacy order (the chart viewer is not ported). */
+/** Legacy rail per phase, in legacy order. */
 const RAIL: { id: Panel; phases?: Phase[] }[] = [
   { id: "emer" },
   { id: "route", phases: ["taxiout", "taxiin"] },
   { id: "comms" },
   { id: "wx", phases: ["cruise"] },
   { id: "config", phases: ["takeoff", "climb", "cruise", "landing"] },
+  {
+    id: "chart",
+    phases: ["taxiout", "takeoff", "descent", "landing", "taxiin"],
+  },
   { id: "rwy", phases: ["takeoff", "landing"] },
   { id: "wx", phases: ["taxiout", "takeoff", "descent", "landing", "taxiin"] },
   { id: "checklist" },
@@ -135,6 +141,14 @@ export function FlyPage() {
       : null;
   const summary = summarizeTrack(inFlight.track);
   const rail = RAIL.filter((r) => !r.phases || r.phases.includes(phase));
+  const panelLabel = (id: Panel) =>
+    t(
+      id === "chart"
+        ? phase === "taxiout" || phase === "taxiin"
+          ? "fly.panel.taxi"
+          : "fly.panel.proc"
+        : `fly.panel.${id}`,
+    );
   const open = rail.some((r) => r.id === panel) ? panel : null;
 
   const navigation = (
@@ -240,6 +254,7 @@ export function FlyPage() {
       />
     ),
     config: <ConfigPanel phase={phase} />,
+    chart: <ChartPanel phase={phase} />,
     comms: <CommsPanel phase={phase} fix={fix} now={now} />,
     wx: <BriefingSection />,
     rwy: <PerformanceSection />,
@@ -350,7 +365,7 @@ export function FlyPage() {
               )}
               onClick={() => setPanel(open === r.id ? null : r.id)}
             >
-              {t(`fly.panel.${r.id}`)}
+              {panelLabel(r.id)}
             </Button>
           ))}
         </nav>
@@ -359,14 +374,14 @@ export function FlyPage() {
       {(open ?? (!flying && (debrief || planRoute.length < 2))) && (
         <section
           role="dialog"
-          aria-label={open ? t(`fly.panel.${open}`) : t("fly.title")}
+          aria-label={open ? panelLabel(open) : t("fly.title")}
           className="bg-card/95 absolute top-20 right-3 left-3 z-40 grid max-h-[calc(100%-9rem)] content-start gap-4 overflow-y-auto rounded-3xl border p-4 backdrop-blur sm:right-26 sm:left-auto sm:w-[min(32rem,calc(100%-8rem))]"
         >
           {open ? (
             <>
               <div className="flex items-center justify-between gap-2">
                 <h2 className="text-primary font-semibold tracking-[0.08em] uppercase">
-                  {t(`fly.panel.${open}`)}
+                  {panelLabel(open)}
                 </h2>
                 <Button
                   variant="outline"

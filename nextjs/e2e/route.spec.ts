@@ -61,6 +61,14 @@ test("builds the legacy route: AUTO SID/STAR, TOC/TOD, restrictions", async ({
   await expect(profile).toContainText("608 ft/NM");
   await expect(profile.getByTestId("profile-table")).toContainText("TOC");
   await page.keyboard.press("Escape");
+
+  // The flight view's PROC button draws the selected SID (legacy Nordchart).
+  await page.getByRole("link", { name: /start a flight/i }).click();
+  await page.getByRole("button", { name: "Take-off", exact: true }).click();
+  await page.getByRole("button", { name: "PROC", exact: true }).click();
+  await expect(
+    page.getByRole("img", { name: "NAVUR 6J procedure chart" }),
+  ).toBeVisible();
 });
 
 test("free-text route, waypoint WX and schedule", async ({ page }) => {
