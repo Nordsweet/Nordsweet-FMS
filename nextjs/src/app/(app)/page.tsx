@@ -10,10 +10,9 @@ import { Card, CardContent } from "~/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import { BriefingSection } from "~/features/plan/briefing";
 import { FuelSection } from "~/features/plan/fuel";
-import { NavLogSection } from "~/features/plan/navlog";
 import { PerformanceSection } from "~/features/plan/performance";
 import { AircraftSection } from "~/features/plan/aircraft";
-import { CruiseSection, RouteSection } from "~/features/plan/route";
+import { RouteSection } from "~/features/plan/route";
 import { SavedFlightsSection } from "~/features/plan/saved-flights";
 import { TaxiSection } from "~/features/plan/taxi";
 import { WeightBalanceSection } from "~/features/plan/weight-balance";
@@ -28,17 +27,7 @@ const content = "grid gap-4 data-[state=inactive]:hidden";
 
 const TABS: { id: string; label: MessageKey; sections: React.ReactNode }[] = [
   { id: "aircraft", label: "plan.tab.aircraft", sections: <AircraftSection /> },
-  {
-    id: "route",
-    label: "plan.tab.route",
-    sections: (
-      <>
-        <RouteSection />
-        <CruiseSection />
-        <NavLogSection />
-      </>
-    ),
-  },
+  { id: "route", label: "plan.tab.route", sections: <RouteSection /> },
   { id: "weather", label: "plan.tab.weather", sections: <BriefingSection /> },
   { id: "fuel", label: "plan.tab.fuel", sections: <FuelSection /> },
   { id: "wb", label: "plan.tab.wb", sections: <WeightBalanceSection /> },

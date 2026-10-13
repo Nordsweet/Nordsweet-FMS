@@ -23,6 +23,43 @@ const nordRoute = z.object({
   alternateIcao: z.string().optional(),
   altitudeFt: numberish.optional(),
   cruiseSpeedKt: numberish.optional(),
+  routeText: z.string().optional(),
+  sid: z.string().optional(),
+  star: z.string().optional(),
+  approach: z.string().optional(),
+  plannerCruiseSpeedEco: z.boolean().optional(),
+  insertedWaypoints: z
+    .array(
+      z.object({
+        id: z.string().optional(),
+        label: z.string().optional(),
+        name: z.string().optional(),
+        lat: numberish,
+        lon: numberish,
+      }),
+    )
+    .optional(),
+  waypointAltitudes: z.record(z.string(), numberish).optional(),
+  waypointWx: z
+    .record(
+      z.string(),
+      z.array(
+        z.object({
+          altitudeFt: z.coerce.string(),
+          windDirection: z.coerce.string(),
+          windSpeed: z.coerce.string(),
+        }),
+      ),
+    )
+    .optional(),
+  schedule: z
+    .object({
+      departure: z.string().optional(),
+      departureManual: z.boolean().optional(),
+      destination: z.string().optional(),
+      destinationManual: z.boolean().optional(),
+    })
+    .optional(),
   plan: z
     .object({
       points: z.array(
@@ -61,6 +98,45 @@ function aircraftId(
   return known.includes(base) ? base : null;
 }
 
+/** "NONE" or empty → no procedure; "AUTO" or a procedure id as stored. */
+const selection = (value: string | undefined) =>
+  !value || value.toUpperCase() === "NONE" ? null : value;
+
+/** The fields legacy "Load Route" replaces (route only: aircraft, loading and fuel stay). */
+export function nordRouteFields(flight: Flight) {
+  const {
+    departure,
+    destination,
+    waypoints,
+    routeText,
+    sid,
+    star,
+    approach,
+    cruiseAltitudeFt,
+    cruiseTasKt,
+    cruiseSpeedEco,
+    waypointAltitudes,
+    waypointWx,
+    schedule,
+  } = flight;
+  return {
+    departure,
+    destination,
+    waypoints,
+    routeText,
+    sid,
+    star,
+    approach,
+    inlineProcedureSelections: {},
+    cruiseAltitudeFt,
+    cruiseTasKt,
+    cruiseSpeedEco,
+    waypointAltitudes,
+    waypointWx,
+    schedule,
+  };
+}
+
 export function flightFromNordRoute(
   route: NordRoute,
   knownAircraftIds: readonly string[],
@@ -94,7 +170,39 @@ export function flightFromNordRoute(
     destination: toPoint(points.at(-1)!),
     // The legacy file stores only the alternate's code; it is resolved against the airport list by the caller.
     alternate: null,
-    waypoints: points.slice(1, -1).map(toPoint),
+    ...(route.routeText === undefined
+      ? // Files without route text: every planned point between the airports is a waypoint.
+        { waypoints: points.slice(1, -1).map(toPoint) }
+      : {
+          routeText: route.routeText,
+          waypoints: (route.insertedWaypoints ?? []).flatMap((w) => {
+            const ident = (w.label ?? w.name ?? w.id ?? "")
+              .trim()
+              .toUpperCase();
+            return ident ? [{ ident, lat: w.lat, lon: w.lon }] : [];
+          }),
+        }),
+    sid: selection(route.sid),
+    star: selection(route.star),
+    approach: selection(route.approach),
+    cruiseSpeedEco: route.plannerCruiseSpeedEco ?? false,
+    waypointAltitudes: Object.fromEntries(
+      Object.entries(route.waypointAltitudes ?? {})
+        .filter(([, v]) => Number.isFinite(v) && v >= 0)
+        .map(([k, v]) => [k.toUpperCase(), Math.round(v)]),
+    ),
+    waypointWx: route.waypointWx ?? {},
+    // Legacy keeps both times with "manual" flags; only manual ones are inputs here.
+    schedule: {
+      departure:
+        route.schedule?.departureManual !== false
+          ? (route.schedule?.departure ?? "")
+          : "",
+      destination:
+        route.schedule?.destinationManual !== false
+          ? (route.schedule?.destination ?? "")
+          : "",
+    },
     cruiseAltitudeFt:
       route.altitudeFt && route.altitudeFt > 0
         ? route.altitudeFt
@@ -124,7 +232,7 @@ export function parseNordFile(
 export function toNordFile(
   flight: Flight,
   aircraftType: string | null,
-  /** Full route incl. SID/STAR legs; defaults to departure, waypoints, destination. */
+  /** The planned route (all points); defaults to departure, waypoints, destination. */
   points: FlightPoint[] = [
     flight.departure,
     ...flight.waypoints,
@@ -147,10 +255,31 @@ export function toNordFile(
         alternateIcao: flight.alternate?.ident ?? "",
         altitudeFt: String(flight.cruiseAltitudeFt),
         cruiseSpeedKt: String(flight.cruiseTasKt),
-        routeText: flight.waypoints.map((p) => p.ident).join(" "),
-        approach: "NONE",
+        routeText: flight.routeText,
+        approach: flight.approach ?? "NONE",
         sid: flight.sid ?? "NONE",
         star: flight.star ?? "NONE",
+        plannerCruiseSpeedEco: flight.cruiseSpeedEco,
+        insertedWaypoints: flight.waypoints.map((p) => ({
+          id: p.ident,
+          label: p.ident,
+          lat: p.lat,
+          lon: p.lon,
+        })),
+        waypointAltitudes: Object.fromEntries(
+          Object.entries(flight.waypointAltitudes).map(([k, v]) => [
+            k,
+            String(v),
+          ]),
+        ),
+        waypointWx: flight.waypointWx,
+        schedule: {
+          departure: flight.schedule.departure,
+          departureManual: !!flight.schedule.departure,
+          destination: flight.schedule.destination,
+          destinationManual: !!flight.schedule.destination,
+          open: "",
+        },
         plan: {
           altitudeFt: flight.cruiseAltitudeFt,
           cruiseSpeedKt: flight.cruiseTasKt,

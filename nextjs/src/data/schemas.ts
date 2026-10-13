@@ -106,18 +106,29 @@ export const frequencySchema = z.object({
 
 export const procedureSchema = z.object({
   airport: z.string(),
-  type: z.enum(["SID", "STAR"]),
+  type: z.enum(["SID", "STAR", "APPROACH"]),
+  /** Legacy selection value, e.g. "NAVUR6J". */
+  id: z.string().min(1),
   designator: z.string(),
   runways: z.array(z.string()),
   legs: z
     .array(
       z.object({
         ident: z.string(),
-        lat: latitude,
-        lon: longitude,
-        /** As published, e.g. "+2800ft", "FL70". */
-        altitude: z.string().nullable(),
+        /** null: the chart gives none; the fix is looked up by name. */
+        lat: latitude.nullable(),
+        lon: longitude.nullable(),
+        /** As published, e.g. raw "+2800ft" or "FL70". */
+        altitude: z
+          .object({
+            raw: z.string(),
+            type: z.enum(["exact", "atOrAbove", "atOrBelow"]),
+          })
+          .nullable(),
         speedKt: z.number().nullable(),
+        /** Published track and length; null when the chart gives none. */
+        trackMagDeg: z.number().nullable(),
+        distanceNm: z.number().nullable(),
       }),
     )
     .min(1),
@@ -159,6 +170,8 @@ export const datasetSchemas = {
   frequencies: z.array(frequencySchema),
   aircraft: z.array(aircraftSchema),
   procedures: z.array(procedureSchema),
+  /** Airway designator → its fixes in order (legacy navdata keys). */
+  airways: z.record(z.string(), z.array(z.string())),
   ground: z.array(groundSchema),
   charts: z.array(chartSchema),
 } as const;

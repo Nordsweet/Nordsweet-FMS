@@ -1,7 +1,6 @@
 import { mutationOptions, queryOptions } from "@tanstack/react-query";
 
 import { type Flight } from "~/data/flight";
-import { type LatLon } from "~/domain/geo";
 
 import {
   type AirspacePlan,
@@ -14,7 +13,6 @@ import { listFlights, removeFlight, saveFlight } from "./flights";
 import { cachedRemote } from "./remote-cache";
 import { findAirport, searchAirports, searchNavpoints } from "./search";
 import { vfrPointToNavpoint } from "./vfr-points";
-import { fetchWindsAloft } from "./winds-aloft";
 
 /**
  * The app's single data boundary ("dummy backend"). Procedures mirror the planned tRPC
@@ -123,12 +121,16 @@ export const api = {
     ),
   },
   procedures: {
+    all: query("procedures.all", () => loadDataset("procedures"), reference),
     byAirport: query(
       "procedures.byAirport",
       async ({ airport }: { airport: string }) =>
         (await loadDataset("procedures")).filter((p) => p.airport === airport),
       reference,
     ),
+  },
+  airways: {
+    list: query("airways.list", () => loadDataset("airways"), reference),
   },
   ground: {
     byAirport: query(
@@ -166,11 +168,6 @@ export const api = {
       "weather.metarTaf",
       ({ icao }: Icao) => aviationApi.weather(icao),
       live(2 * MINUTE),
-    ),
-    windsAloft: mutation(
-      "weather.windsAloft",
-      ({ points, altitudeFt }: { points: LatLon[]; altitudeFt: number }) =>
-        fetchWindsAloft(points, altitudeFt),
     ),
     atis: query(
       "weather.atis",

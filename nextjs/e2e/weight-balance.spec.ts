@@ -23,8 +23,8 @@ test("W&B sheet matches the legacy planner and shares fuel with the Fuel tab", a
   await page.getByRole("option", { name: "FR172H (C172)" }).click();
   await tab(page, "Route");
   await pickPoint(page, "Departure", "EPWA");
-  await pickPoint(page, "Destination", "EPKK");
-  await pickPoint(page, "Alternate", "EPKT");
+  await pickPoint(page, "Arrival", "EPKK");
+  await pickPoint(page, "Alternate Airport", "EPKT");
   await tab(page, "W&B");
   const usable = page.getByLabel("Usable fuel [L]");
   await usable.fill("120");

@@ -46,7 +46,7 @@ State defaults: the `state = {…}` object (~line 1500). DOM refs: `refs = {…}
 | `nordsweet.language.v1`, `homeAirport.v1`, `pilotWeightKg.v1` | `stores/settings.ts` | migrated |
 | `nordsweet.savedRoutes.v1` | IndexedDB flights (`api/flights.ts`) | migrated once |
 | `nordsweet.aircraftLastState.v1`, `fuelIndicationModes.v1` | `stores/aircraft-state.ts` | migrated |
-| `nordsweet.aircraftType.v1`, `aircraftRegistration.v1`, `lastRoute.v1` | draft flight (`stores/flight.ts`) | **open** |
+| `nordsweet.aircraftType.v1`, `aircraftRegistration.v1`, `lastRoute.v1` | draft flight (`stores/flight.ts`) | **open** (`.nord` route fields are imported/exported) |
 | `nordsweet.fuelPlanning.v1` | flight fuel overrides | **open** (Fuel tab) |
 | `nordsweet.weightBalance.v1` | flight stations / W&B | **open** (W&B tab) |
 | `nordsweet.checklistAutoscroll.v1`, `checklistVoiceGender.v1`, `checklistVoiceUri.v1` | settings | **open** |
@@ -66,7 +66,8 @@ merged to `develop`. One owner per row.
 | Planner › Aircraft tab | done | claude 2026-10-12 | type list, registration profiles, FREDA indication, last state/MTH |
 | Planner › Fuel tab | done | claude 2026-10-13 | rows, overrides, FOB/fuel added, notes; matches legacy (see §5) |
 | Planner › W&B tab | done | claude 2026-10-13 | sheet, linked fuel, envelope chart; matches legacy |
-| Planner › Route tab (schedules, search, free-text route, approach/circuits, ALT at point, restrictions, waypoint WX, economy & vertical-profile modals, load route, invert) | claimed | claude 2026-10-13 | after W&B |
+| Planner › Route tab | done | claude 2026-10-13 | `domain/route-plan.ts` (+ `route-economy.ts`): tokens, airways, SID/STAR/APPROACH (NONE/AUTO/id + inline variant), thresholds, TOC/TOD/SOC, ALT at point, waypoint WX, schedule, ECO; dialogs; load route. Matches legacy leg for leg (main 1888742) |
+| Route: pilot-entered restrictions and map-anchored waypoint insertion | open | | legacy map editor features; route uses procedure restrictions and nearest-leg insertion |
 | Weather / ATIS pad parser, waypoint forecasts, AWOS | open | | API boundary only |
 | Performance (charts/readouts, runway use, glide, persisted conditions) | open | | |
 | Taxi diagram / ground connectivity | open | | |
@@ -101,3 +102,19 @@ Record every one you find here (and assert it in a test).
 - Fuel: verified row-for-row against legacy for P2006T, R172K, FR172H, C152, Husky (with and without
   alternates) using `/tmp/parity`-style scenario runs; the R172K case is an e2e test
   (`e2e/fuel.spec.ts`).
+- Data: procedures come from the waypoint package only (`Waypoints/Poland.js`, 108 incl. 2 approaches)
+  as legacy loads them, and airways from `navdata.js` — `scripts/legacy/import-route-data.cjs`.
+  Airport runways/thresholds/elevations include legacy's ground-data overrides (e.g. EPKK RWY 07
+  TORA 2312 m) — `scripts/legacy/import-airport-overrides.mjs`.
+- Route climb gradient: legacy always uses the P2006T climb table; ours uses the selected aircraft's
+  (450 ft/NM without one). Identical for P2006T; TOC moves for other types.
+- Route runway choice (and so AUTO SID/STAR): legacy uses the departure conditions wind for both
+  airports; ours uses each airport's METAR. Without METARs both pick the longest runway.
+- Economy modal: legacy let every point go to sea level ("S.L." everywhere); airports now stay at or
+  above their elevation and en-route points 1000 ft above the higher airport. Legacy also always
+  showed "Waypoint WX" as wind source; ours says "Cruise tile" until waypoint WX is entered.
+- Route tab: no CALCULATE button (the route recalculates as you type, as legacy did on input).
+  The pre-port nav log table, manual wind/fuel-flow inputs and Open-Meteo winds aloft were removed
+  (not in legacy; Open-Meteo broke the single-data-source rule).
+- Map, fly mode and export use the route's fixes without TOC/TOD.
+

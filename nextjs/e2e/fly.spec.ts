@@ -11,9 +11,6 @@ const flight = {
   waypoints: [{ ident: "BBBB", lat: 50, lon: 20 }],
   cruiseAltitudeFt: 3000,
   cruiseTasKt: 100,
-  wind: { directionDeg: 0, speedKt: 0 },
-  legWinds: null,
-  fuelFlowLph: 30,
   fuel: { blockL: 0 },
   stationsKg: {},
 };

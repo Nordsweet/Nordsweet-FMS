@@ -1,5 +1,6 @@
 import { type LatLon, distanceNm, initialBearingDeg, trackOffset } from "./geo";
-import { type NavPoint } from "./navlog";
+
+export type NavPoint = LatLon & { ident: string };
 
 /** Within this distance of the next waypoint it counts as passed even if not yet abeam. */
 const PASSED_NM = 0.3;

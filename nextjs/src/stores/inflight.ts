@@ -2,8 +2,7 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
 import { type LatLon, distanceNm } from "~/domain/geo";
-import { type NavPoint } from "~/domain/navlog";
-import { directTo } from "~/domain/progress";
+import { type NavPoint, directTo } from "~/domain/progress";
 import { type TrackPoint } from "~/domain/track";
 
 /** Record a track point at most this often (5 s) unless the aircraft has not moved. */

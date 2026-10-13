@@ -65,7 +65,7 @@ async function pickPoint(
   await page.getByRole("option").filter({ hasText: ident }).first().click();
 }
 
-test("briefs weather, fills landing conditions from the METAR and uses forecast winds", async ({
+test("briefs weather and fills landing conditions from the METAR", async ({
   page,
 }) => {
   await page.goto("/");
@@ -73,7 +73,7 @@ test("briefs weather, fills landing conditions from the METAR and uses forecast 
   await page.getByRole("option", { name: "R172K (C172)" }).click();
   await tab(page, "Route");
   await pickPoint(page, "Departure", "EPNT", "EPNT");
-  await pickPoint(page, "Destination", "EPKK", "EPKK");
+  await pickPoint(page, "Arrival", "EPKK", "EPKK");
 
   await tab(page, "Weather");
   const destination = page.getByTestId("wx-destination");
@@ -89,13 +89,6 @@ test("briefs weather, fills landing conditions from the METAR and uses forecast 
   );
   await expect(landing.getByLabel("QNH")).toHaveValue("1010");
   await expect(landing.getByLabel("Wind speed")).toHaveValue("11");
-
-  await tab(page, "Route");
-  await page.getByRole("button", { name: "Use forecast winds aloft" }).click();
-  await expect(page.getByTestId("winds-aloft")).toContainText("900 hPa");
-  await expect(
-    page.getByRole("cell", { name: "270/25" }).first(),
-  ).toBeVisible();
 });
 
 test("shows community ATIS as unverified and shares a report", async ({

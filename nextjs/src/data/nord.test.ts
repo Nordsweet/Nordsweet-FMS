@@ -35,11 +35,9 @@ describe(".nord files", () => {
       cruiseAltitudeFt: 5000,
       cruiseTasKt: 86,
     });
-    expect(flight.waypoints.map((p) => p.ident)).toEqual([
-      "EPNTA",
-      "EPMLR",
-      "EPMLS",
-    ]);
+    // The legacy route is its text; the map-inserted waypoints list is empty.
+    expect(flight.routeText).toBe("epnta epmlr epmls");
+    expect(flight.waypoints).toEqual([]);
   });
 
   it("imports a local flight stored as one point", () => {

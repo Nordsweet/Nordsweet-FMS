@@ -1,7 +1,6 @@
 import { type Aircraft } from "~/data/aircraft";
 
 import { densityAltitudeFt, pressureAltitudeFt } from "./atmosphere";
-import { PLANNING_RATE_FACTOR } from "./climb";
 import {
   cruisePerformance,
   fuelFlowAtPower,
@@ -103,7 +102,11 @@ export type FuelRowValue = {
   suggested: { minutes: boolean; fuelL: boolean };
 };
 
-function rateOfClimbFpm(
+/** Legacy planning margin: plan with 80% of the POH best rate of climb. */
+export const PLANNING_RATE_FACTOR = 0.8;
+
+/** Legacy best-rate climb (rate never above the next conservative table entry) and its IAS. */
+export function bestRateClimb(
   climb: Aircraft["climb"],
   weightKg: number,
   pa: number,
@@ -118,13 +121,16 @@ function rateOfClimbFpm(
     densityAltitudeFt: densityAltitudeFt(pa, tempC),
   };
   const value = (axis: keyof typeof values) => values[axis];
-  // Legacy best-rate climb: never more than the next conservative table entry.
-  const rate = Math.min(
-    interpolateGrid(climb.grid, value).rateFpm,
+  const interpolated = interpolateGrid(climb.grid, value);
+  const rateFpm = Math.min(
+    interpolated.rateFpm,
     conservativeRead(climb.grid, value).rateFpm,
   );
-  return rate > 0 ? rate : null;
+  return rateFpm > 0 ? { rateFpm, iasKt: interpolated.iasKt } : null;
 }
+
+const rateOfClimbFpm = (...args: Parameters<typeof bestRateClimb>) =>
+  bestRateClimb(...args)?.rateFpm ?? null;
 
 export function computeFuelPlanning(input: FuelPlanningInput) {
   const { aircraft, overrides } = input;

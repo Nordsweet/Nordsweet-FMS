@@ -6,11 +6,6 @@ const point = z.object({
   lon: z.number().min(-180).max(180),
 });
 
-const wind = z.object({
-  directionDeg: z.number(),
-  speedKt: z.number().nonnegative(),
-});
-
 export const flightSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -21,25 +16,39 @@ export const flightSchema = z.object({
   departure: point.nullable(),
   destination: point.nullable(),
   alternate: point.nullable(),
+  /** Points added on the map; the route planner inserts each into its nearest leg. */
   waypoints: z.array(point),
-  /** Designators of the chosen SID/STAR; their legs are added around the waypoints. */
+  /** Legacy route text: DCT, airways, procedures ("SID NAVUR"), coordinates. */
+  routeText: z.string().default(""),
+  /** Procedure selects: null = none, "AUTO" = suggested for the runway, else a procedure id. */
   sid: z.string().nullable().default(null),
   star: z.string().nullable().default(null),
+  approach: z.string().nullable().default(null),
+  /** Variant chosen in a leg's Type select for "SID NAVUR"-style requests. */
+  inlineProcedureSelections: z.record(z.string(), z.string()).default({}),
   cruiseAltitudeFt: z.number(),
   cruiseTasKt: z.number().positive(),
-  /** Direction the wind blows from, true. */
-  wind,
-  /** Forecast winds aloft per leg, valid only for the route and altitude they were fetched for. */
-  legWinds: z
-    .object({
-      routeKey: z.string(),
-      winds: z.array(wind),
-      levelHpa: z.number(),
-      validAt: z.string(),
-    })
-    .nullable()
-    .default(null), // flights saved before this field existed
-  fuelFlowLph: z.number().positive(),
+  /** ECO: cruise speed from the route's best-range cruise table speeds. */
+  cruiseSpeedEco: z.boolean().default(false),
+  /** ALT at point typed by the pilot, by point key. */
+  waypointAltitudes: z.record(z.string(), z.number().nonnegative()).default({}),
+  /** Waypoint WX wind profile rows as typed, by point key. */
+  waypointWx: z
+    .record(
+      z.string(),
+      z.array(
+        z.object({
+          altitudeFt: z.string(),
+          windDirection: z.string(),
+          windSpeed: z.string(),
+        }),
+      ),
+    )
+    .default({}),
+  /** Times the pilot set ("YYYY-MM-DDTHH:mm", local); the other one follows the ETE. */
+  schedule: z
+    .object({ departure: z.string(), destination: z.string() })
+    .default({ departure: "", destination: "" }),
   fuel: z.object({ blockL: z.number().nonnegative() }),
   /** Fuel table rows the pilot typed over the planner's suggestion (legacy fuel planning). */
   fuelOverrides: z
@@ -76,22 +85,20 @@ export function newFlight(): Flight {
     destination: null,
     alternate: null,
     waypoints: [],
+    routeText: "",
     sid: null,
     star: null,
+    approach: null,
+    inlineProcedureSelections: {},
     cruiseAltitudeFt: 3000,
     cruiseTasKt: 120,
-    wind: { directionDeg: 0, speedKt: 0 },
-    legWinds: null,
-    // Legacy defaults: 120 kt, and 35 L/h when the aircraft has no cruise table.
-    fuelFlowLph: 35,
+    cruiseSpeedEco: false,
+    waypointAltitudes: {},
+    waypointWx: {},
+    schedule: { departure: "", destination: "" },
     fuel: { blockL: 0 },
     fuelOverrides: {},
     cruiseOatC: 15,
     stationsKg: {},
   };
-}
-
-/** Identifies the legs and level that leg winds were fetched for. */
-export function routeKey(points: FlightPoint[], cruiseAltitudeFt: number) {
-  return `${points.map((p) => `${p.ident}@${p.lat},${p.lon}`).join(">")}|${cruiseAltitudeFt}`;
 }

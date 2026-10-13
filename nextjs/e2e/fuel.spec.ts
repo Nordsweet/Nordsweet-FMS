@@ -24,8 +24,8 @@ test("fuel table matches the legacy planner and takes overrides", async ({
   await page.getByRole("option", { name: "R172K (C172)" }).click();
   await tab(page, "Route");
   await pickPoint(page, "Departure", "EPKK");
-  await pickPoint(page, "Destination", "EPGD");
-  await pickPoint(page, "Alternate", "EPWA");
+  await pickPoint(page, "Arrival", "EPGD");
+  await pickPoint(page, "Alternate Airport", "EPWA");
   await tab(page, "Fuel");
   const block = page.getByLabel("Block fuel fuel litres");
   await block.fill("150");

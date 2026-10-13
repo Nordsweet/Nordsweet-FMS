@@ -33,24 +33,19 @@ test("plans a flight end to end and keeps it across reloads", async ({
 
   await tab(page, "Route");
   await pickPoint(page, "Departure", "EPNT", "EPNT");
-  await pickPoint(page, "Destination", "EPKK", "EPKK");
-  await pickPoint(page, "Add waypoint", "ABAKU", "ABAKU");
-
-  // Climb and descent split the first and last legs at TOC and TOD.
-  await expect(page.getByRole("cell", { name: /^EPNT → TOC/ })).toBeVisible();
-  await expect(page.getByRole("cell", { name: /^TOC → ABAKU/ })).toBeVisible();
-  await expect(page.getByRole("cell", { name: /^TOD → EPKK/ })).toBeVisible();
-  await expect(page.getByTestId("climb-summary")).toContainText("65 L/h");
-
-  // Route economy from the R172K POH cruise table fills TAS and fuel flow.
-  await expect(page.getByTestId("cruise-economy")).toContainText(
-    "2600 RPM / 24 inHg",
+  await pickPoint(page, "Arrival", "EPKK", "EPKK");
+  await page.getByRole("textbox", { name: "Route", exact: true }).fill("ABAKU");
+  await expect(page.getByTestId("route-strip")).toContainText(
+    "EPNT → TOC → ABAKU → TOD → EPKK",
   );
-  await page
-    .getByRole("button", { name: "Use 2600 RPM / 22 inHg" })
-    .first()
-    .click();
-  await expect(page.getByLabel("True airspeed (TAS)")).not.toHaveValue("120");
+
+  // Economy writes the best-range altitude into every point.
+  await page.getByRole("button", { name: "Economy" }).click();
+  await expect(page.getByTestId("economy-points")).toContainText("ABAKU");
+  await page.getByRole("button", { name: "Apply" }).click();
+  await expect(
+    page.getByRole("spinbutton", { name: "Altitude at ABAKU" }),
+  ).not.toHaveValue("");
   await tab(page, "Fuel");
   await expect(page.getByTestId("fuel-margin")).toBeVisible();
   await tab(page, "W&B");
@@ -70,7 +65,7 @@ test("plans a flight end to end and keeps it across reloads", async ({
 
   await page.reload();
   await tab(page, "Route");
-  await expect(page.getByRole("cell", { name: /^TOC → ABAKU/ })).toBeVisible();
+  await expect(page.getByTestId("route-strip")).toContainText("ABAKU");
   await tab(page, "Saved flights");
   await expect(
     page.getByRole("list", { name: "Saved flights list" }),
@@ -88,20 +83,23 @@ test("imports a legacy .nord flight", async ({ page }) => {
   await saved.getByRole("button", { name: "Load" }).first().click();
   await tab(page, "Current flight");
   await tab(page, "Route");
+  await expect(page.getByTestId("route-summary")).toContainText("EPNT -> EPML");
   await expect(
-    page.getByRole("cell", { name: /→ EPML descent/ }),
-  ).toBeVisible();
+    page.getByRole("textbox", { name: "Route", exact: true }),
+  ).toHaveValue("epnta epmlr epmls");
 });
 
 test("adds a SID, shows the taxi route and charts", async ({ page }) => {
   await page.goto("/");
   await tab(page, "Route");
   await pickPoint(page, "Departure", "EPKK", "EPKK");
-  await pickPoint(page, "Destination", "EPNT", "EPNT");
+  await pickPoint(page, "Arrival", "EPNT", "EPNT");
 
   await page.getByRole("combobox", { name: "SID" }).click();
   await page.getByRole("option", { name: /^NAVUR 5F/ }).click();
-  await expect(page.getByRole("cell", { name: /KK801/ }).first()).toBeVisible();
+  await expect(page.getByTestId("route-strip")).toContainText(
+    "EPKK THR07 → KK801",
+  );
 
   await tab(page, "Performance");
   await expect(page.getByTestId("taxi-departure-route")).toHaveText(
