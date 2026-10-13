@@ -62,20 +62,21 @@ merged to `develop`. One owner per row.
 
 | Area | Status | Owner | Notes |
 |---|---|---|---|
+| Preparation-mode parity audit (Home tabs, saved flights, settings, checklists; no Start flight) | in progress | Codex 2026-10-13 | `codex/preflight-parity-audit`; audit deployed develop against legacy main 5265bc5 |
 | Look & feel (palette, panels, tabs, header) | done | claude 2026-10-12 | desktop; phone/iPad pass later |
 | Planner › Aircraft tab | done | claude 2026-10-12 | type list, registration profiles, FREDA indication, last state/MTH |
 | Planner › Fuel tab | done | claude 2026-10-13 | rows, overrides, FOB/fuel added, notes; matches legacy (see §5) |
 | Planner › W&B tab | done | claude 2026-10-13 | sheet, linked fuel, envelope chart; matches legacy |
 | Planner › Route tab | done | claude 2026-10-13 | `domain/route-plan.ts` (+ `route-economy.ts`): tokens, airways, SID/STAR/APPROACH (NONE/AUTO/id + inline variant), thresholds, TOC/TOD/SOC, ALT at point, waypoint WX, schedule, ECO; dialogs; load route. Matches legacy leg for leg (main 1888742) |
-| Weather / ATIS pad parser, waypoint forecasts, AWOS | open | | API boundary only |
-| Performance (charts/readouts, runway use, glide, persisted conditions) | open | | |
-| Taxi diagram / ground connectivity | open | | |
+| Weather / ATIS pad parser, waypoint forecasts, AWOS | in progress | Codex 2026-10-13 | API boundary only |
+| Performance (charts/readouts, runway use, glide, persisted conditions) | in progress | Codex 2026-10-13 | |
+| Taxi diagram / ground connectivity | in progress | Codex 2026-10-13 | |
 | In-flight (timers, events, phases, FREDA detail, debrief, last-state save, COMMs hand-off, proximity alerts) | in progress | claude 2026-10-13 | flight view shell done (`features/fly/fly.tsx`): full-screen map, phase bar, per-phase rail (ROUTE=taxi, COMMs=frequencies, WX, RWY=performance, CHECKLIST, INFO=nav, OPTIONS), chips. Open: EMER, CONFIG, PROC/TAXI charts, automatic phase changes, COMMs radio plan, INFO phase performance, timers/events | `public/comms.js` |
 | Map incl. in-flight map view (point/route editing, GPX/OpenAir import, offline tiles, layer prefs, route restrictions + map-anchored waypoints) | done | Codex 2026-10-13 | PR #2; [handoff](MAP_HANDOFF.md) |
 | Airspace browser, traffic page | open | | |
-| Checklists (voice gender/voice, autoscroll toggle) | open | | |
-| Settings & remaining legacy key migration (§3) | open | | |
-| Saved flights library (rename, route-only import, GPX/KML route export) | open | | |
+| Checklists (voice gender/voice, autoscroll toggle) | in progress | Codex 2026-10-13 | |
+| Settings & remaining legacy key migration (§3) | in progress | Codex 2026-10-13 | |
+| Saved flights library (rename, route-only import, GPX/KML route export) | in progress | Codex 2026-10-13 | |
 | PFD, chart viewer, editors, company flights | out of scope | | only if the owner asks |
 
 ## 5. Known legacy bugs / intended differences
