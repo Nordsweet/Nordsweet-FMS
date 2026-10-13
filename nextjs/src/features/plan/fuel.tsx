@@ -292,7 +292,11 @@ export function FuelSection() {
             </p>
             <p>
               {t("plan.fuel.note.reserve", {
+                powerplant: t(
+                  `plan.aircraft.powerplant.${aircraft.powerplant}`,
+                ),
                 minutes: plan.reserve.minutes,
+                surface: num(plan.reserve.surfaceTempC),
                 source: fuelConditionsSource
                   ? t("plan.fuel.note.reserve.metar", {
                       icao: fuelConditionsSource,

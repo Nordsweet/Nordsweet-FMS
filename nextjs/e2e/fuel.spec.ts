@@ -27,15 +27,15 @@ test("fuel table matches the legacy planner and takes overrides", async ({
   await pickPoint(page, "Arrival", "EPGD");
   await pickPoint(page, "Alternate Airport", "EPWA");
   await tab(page, "Fuel");
-  const block = page.getByLabel("Block fuel fuel litres");
+  const block = page.getByLabel("Block Fuel fuel litres");
   await block.fill("150");
   await block.blur();
 
   // Recorded from the legacy planner (main 113e5a8) on the same scenario.
   const cell = (label: string) => page.getByLabel(label, { exact: true });
-  await expect(cell("Trip time flight time")).toHaveValue("02:59");
-  await expect(cell("Trip time fuel litres")).toHaveValue("72");
-  await expect(cell("Start, taxiing fuel litres")).toHaveValue("4");
+  await expect(cell("Trip Time flight time")).toHaveValue("02:59");
+  await expect(cell("Trip Time fuel litres")).toHaveValue("72");
+  await expect(cell("Start, Taxiing fuel litres")).toHaveValue("4");
   await expect(cell("Climb flight time")).toHaveValue("00:05");
   await expect(cell("Climb fuel litres")).toHaveValue("6");
   await expect(
@@ -49,10 +49,10 @@ test("fuel table matches the legacy planner and takes overrides", async ({
   );
 
   // A typed value replaces the suggestion; clearing it brings the suggestion back.
-  await cell("Start, taxiing fuel litres").fill("10");
-  await cell("Start, taxiing fuel litres").blur();
+  await cell("Start, Taxiing fuel litres").fill("10");
+  await cell("Start, Taxiing fuel litres").blur();
   await expect(page.getByTestId("fuel-minimum")).toHaveText("164");
-  await cell("Start, taxiing fuel litres").fill("");
-  await cell("Start, taxiing fuel litres").blur();
+  await cell("Start, Taxiing fuel litres").fill("");
+  await cell("Start, Taxiing fuel litres").blur();
   await expect(page.getByTestId("fuel-minimum")).toHaveText("158");
 });

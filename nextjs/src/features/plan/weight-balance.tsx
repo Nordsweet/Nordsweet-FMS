@@ -26,7 +26,7 @@ export function WeightBalanceSection() {
 
   if (!aircraft || !wb || !sheet)
     return (
-      <Section title={t("plan.wb.title")}>
+      <Section>
         <p className="text-muted-foreground text-sm">
           {aircraft ? t("plan.wb.noData") : t("plan.aircraft.placeholder")}
         </p>
@@ -85,7 +85,7 @@ export function WeightBalanceSection() {
   );
 
   return (
-    <Section title={t("plan.wb.title")}>
+    <Section>
       <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
         <Card label={t("plan.aircraft.title")}>
           {aircraftLabel(aircraft)}
@@ -288,16 +288,13 @@ function EnvelopeChart({
   const m = { top: 26, right: 24, bottom: 45, left: 58 };
   const plotW = width - m.left - m.right;
   const plotH = height - m.top - m.bottom;
+  // Legacy axes: the profile's chart bounds, else the envelope's extents.
   const moments = wb.envelope.map((p) => p.momentKgm);
-  const weights = [...wb.envelope.map((p) => p.weightKg), wb.mtowKg];
-  const pad = (lo: number, hi: number) => (hi - lo) * 0.06;
-  const minM =
-    Math.min(...moments) - pad(Math.min(...moments), Math.max(...moments));
-  const maxM =
-    Math.max(...moments) + pad(Math.min(...moments), Math.max(...moments));
-  const minW = Math.min(...weights);
-  const maxW =
-    Math.max(...weights) + pad(Math.min(...weights), Math.max(...weights)) / 2;
+  const weights = wb.envelope.map((p) => p.weightKg);
+  const minM = wb.chartBounds?.minMomentKgm ?? Math.min(...moments);
+  const maxM = wb.chartBounds?.maxMomentKgm ?? Math.max(...moments);
+  const minW = wb.chartBounds?.minWeightKg ?? Math.min(...weights);
+  const maxW = wb.chartBounds?.maxWeightKg ?? Math.max(...weights);
   const x = (moment: number) =>
     Math.max(
       m.left,

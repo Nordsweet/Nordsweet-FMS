@@ -137,6 +137,15 @@ export const weightBalanceSchema = z.object({
   envelope: z
     .array(z.object({ weightKg: z.number(), momentKgm: z.number() }))
     .min(3),
+  /** Legacy chart axes where the profile sets them wider than the envelope. */
+  chartBounds: z
+    .object({
+      minMomentKgm: z.number(),
+      maxMomentKgm: z.number(),
+      minWeightKg: z.number(),
+      maxWeightKg: z.number(),
+    })
+    .optional(),
   source: z.string(),
 });
 

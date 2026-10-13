@@ -90,7 +90,7 @@ export function AircraftSection() {
   };
 
   return (
-    <Section title={t("plan.aircraft.title")}>
+    <Section>
       <div className="grid gap-4 sm:grid-cols-[minmax(220px,1fr)_minmax(180px,0.7fr)]">
         <div className="grid gap-1.5">
           <Label htmlFor="aircraft-type">{t("plan.aircraft.type")}</Label>

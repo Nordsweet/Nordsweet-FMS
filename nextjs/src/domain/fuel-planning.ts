@@ -298,6 +298,7 @@ export function computeFuelPlanning(input: FuelPlanningInput) {
     minutes: reserveMinutes,
     fuelL: ceilLitres(reserveLph * (reserveMinutes / 60)),
     airport: reserveAirport.ident,
+    surfaceTempC: input.surfaceTempC,
     holdingTempC,
     fuelFlowLph: reserveLph,
     fromTable: holding !== null,

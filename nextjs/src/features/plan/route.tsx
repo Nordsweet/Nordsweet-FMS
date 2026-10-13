@@ -47,7 +47,7 @@ import { cn } from "~/lib/utils";
 import { useFlight } from "~/stores/flight";
 
 import { NumberField, Section, num } from "./fields";
-import { PointSearch } from "./point-search";
+import { AirportField } from "./airport-field";
 import {
   EconomyDialog,
   VerticalProfileDialog,
@@ -78,7 +78,7 @@ export function RouteSection() {
   const ete = Number.isFinite(eteMinutes) ? formatHhMm(eteMinutes) : "n/a";
 
   return (
-    <Section title={t("plan.route.title")}>
+    <Section>
       <p
         className="text-muted-foreground text-xs font-bold tracking-[0.08em] uppercase"
         data-testid="route-summary"
@@ -90,9 +90,10 @@ export function RouteSection() {
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="flex items-start gap-2">
           <div className="flex-1">
-            <PointSearch
+            <AirportField
               label={t("plan.route.departure")}
               value={flight.departure}
+              placeholder="ICAO"
               onSelect={(departure) => update({ departure })}
             />
           </div>
@@ -100,17 +101,19 @@ export function RouteSection() {
         </div>
         <div className="flex items-start gap-2">
           <div className="flex-1">
-            <PointSearch
+            <AirportField
               label={t("plan.route.arrival")}
               value={flight.destination}
+              placeholder="ICAO"
               onSelect={(destination) => update({ destination })}
             />
           </div>
           <ScheduleButton kind="destination" value={schedule.destination} />
         </div>
-        <PointSearch
+        <AirportField
           label={t("plan.route.alternateAirport")}
           value={flight.alternate}
+          placeholder={t("plan.point.noneIcao")}
           onSelect={(alternate) => update({ alternate })}
         />
         <NumberField

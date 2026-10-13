@@ -9,16 +9,19 @@ export function Section({
   title,
   children,
 }: {
-  title: string;
+  /** Legacy titles only the Fuel tab; the other tabs are named by their tab. */
+  title?: string;
   children: React.ReactNode;
 }) {
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>
-          <h2>{title}</h2>
-        </CardTitle>
-      </CardHeader>
+      {title && (
+        <CardHeader>
+          <CardTitle>
+            <h2>{title}</h2>
+          </CardTitle>
+        </CardHeader>
+      )}
       <CardContent className="grid gap-4">{children}</CardContent>
     </Card>
   );

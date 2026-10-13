@@ -46,5 +46,5 @@ test("W&B sheet matches the legacy planner and shares fuel with the Fuel tab", a
 
   // Usable fuel is the Fuel tab's block fuel.
   await tab(page, "Fuel");
-  await expect(page.getByLabel("Block fuel fuel litres")).toHaveValue("120");
+  await expect(page.getByLabel("Block Fuel fuel litres")).toHaveValue("120");
 });
