@@ -62,6 +62,7 @@ merged to `develop`. One owner per row.
 
 | Area | Status | Owner | Notes |
 |---|---|---|---|
+| CI map navigation regression | done | | PR #5: update E2E navigation to match preparation and flight views; 26 E2E and 135 unit tests pass. |
 | Preparation navigation and map flight planner | done | | Owner clarification: exactly Settings icon / Flight Planner / Map; graphical route automatically shared with the form.  PR #3 merged into develop. |
 | Preparation-mode parity audit (Home tabs, saved flights, settings, checklists; no Start flight) | done | | `codex/preflight-parity-audit`; [inventory and changelog](PREFLIGHT_AUDIT_CHANGELOG.md), legacy main 5265bc5  PR #3 merged into develop. |
 | Look & feel (palette, panels, tabs, header) | done | claude 2026-10-12 | desktop; phone/iPad pass later |
