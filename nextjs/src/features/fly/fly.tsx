@@ -35,6 +35,7 @@ import { ConfigPanel } from "./config-panel";
 import { EmergencyPanel } from "./emergency-panel";
 import { EventToast } from "./event-toast";
 import { FredaDialog } from "./freda-dialog";
+import { GpxReplayDock } from "./gpx-replay";
 import { InfoPanel } from "./info-panel";
 import { OptionsPanel } from "./options-panel";
 import { useGps } from "./use-gps";
@@ -280,6 +281,7 @@ export function FlyPage() {
       <MapWorkspace embedded />
       {flying && <EventToast />}
       {flying && <FredaDialog fix={fix} now={now} />}
+      {flying && inFlight.replayEnabled && <GpxReplayDock />}
       <div className="bg-card/90 absolute top-3 left-1/2 z-30 flex max-w-[calc(100%-1.5rem)] -translate-x-1/2 gap-2 overflow-x-auto rounded-3xl border p-2 backdrop-blur">
         {flying ? (
           <>

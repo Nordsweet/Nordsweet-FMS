@@ -14,6 +14,8 @@ type Snapshot = { fix: GpsFix | null; error: "denied" | "unavailable" | null };
 const empty: Snapshot = { fix: null, error: null };
 let snapshot: Snapshot = empty;
 let watchId: number | null = null;
+/** True while a GPX replay drives the fixes; device positions are ignored. */
+let simulating = false;
 const listeners = new Set<() => void>();
 function publish(value: Snapshot) {
   snapshot = value;
@@ -27,6 +29,7 @@ function subscribe(listener: () => void) {
     else
       watchId = navigator.geolocation.watchPosition(
         ({ coords, timestamp }) => {
+          if (simulating) return;
           if (
             !Number.isFinite(coords.latitude) ||
             !Number.isFinite(coords.longitude) ||
@@ -68,6 +71,7 @@ function subscribe(listener: () => void) {
           });
         },
         (error) =>
+          !simulating &&
           publish({
             fix: snapshot.fix,
             error: error.code === 1 ? "denied" : "unavailable",
@@ -83,6 +87,12 @@ function subscribe(listener: () => void) {
     }
   };
 }
+/** Legacy "Debug with GPX": replayed fixes replace the device GPS; null hands it back. */
+export function simulateFix(fix: GpsFix | null) {
+  simulating = fix !== null;
+  publish({ fix, error: null });
+}
+
 /** A shared browser watch keeps the map and Fly screen on the same GPS observation. */
 export function useGps(enabled: boolean) {
   const listen = useCallback(

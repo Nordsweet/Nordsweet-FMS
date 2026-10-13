@@ -53,6 +53,9 @@ type InFlight = {
   /** Next FREDA check (legacy: 30 min after take-off, then every 30 min); null before take-off. */
   fredaDueAt: number | null;
   fredaOpen: boolean;
+  /** OPTIONS "Debug with GPX": shows the replay dock. */
+  replayEnabled: boolean;
+  setReplayEnabled: (on: boolean) => void;
   openFreda: () => void;
   /** Closing a due check without completing it postpones it to the next 30 min step. */
   closeFreda: () => void;
@@ -95,6 +98,8 @@ export const useInFlight = create<InFlight>()(
       track: [],
       fredaDueAt: null,
       fredaOpen: false,
+      replayEnabled: false,
+      setReplayEnabled: (replayEnabled) => set({ replayEnabled }),
       openFreda: () => set({ fredaOpen: true }),
       closeFreda: () =>
         set((s) => {
@@ -129,10 +134,15 @@ export const useInFlight = create<InFlight>()(
       setPhase: (phase) => set({ phase }),
       observe: (sample, ctx) =>
         set((s) => {
-          const { timers, phase } = stepTimers(s.timers, sample, {
+          // Delayed phase changes run on sample time too (a GPX replay runs ahead of the clock).
+          const due = duePhase(s.timers, sample.at);
+          const current = due?.phase ?? s.phase;
+          const step = stepTimers(due?.timers ?? s.timers, sample, {
             ...ctx,
-            phase: s.phase,
+            phase: current,
           });
+          const { timers } = step;
+          const phase = step.phase ?? (current !== s.phase ? current : null);
           // Legacy FREDA is due 30 min after take-off.
           const tookOff =
             timers.airTime.startedAt !== null &&
@@ -276,6 +286,7 @@ export const useInFlight = create<InFlight>()(
         track,
         fredaDueAt,
         fredaOpen,
+        replayEnabled,
         phase,
         config,
         timers,
@@ -286,6 +297,7 @@ export const useInFlight = create<InFlight>()(
         track,
         fredaDueAt,
         fredaOpen,
+        replayEnabled,
         phase,
         config,
         timers,

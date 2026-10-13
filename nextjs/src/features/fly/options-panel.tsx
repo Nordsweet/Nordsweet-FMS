@@ -129,6 +129,8 @@ export function OptionsPanel() {
   const timers = useInFlight((s) => s.timers);
   const addEvent = useInFlight((s) => s.addEvent);
   const openFreda = useInFlight((s) => s.openFreda);
+  const replayEnabled = useInFlight((s) => s.replayEnabled);
+  const setReplayEnabled = useInFlight((s) => s.setReplayEnabled);
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
@@ -177,6 +179,14 @@ export function OptionsPanel() {
           {t("fly.freda.open")}
         </Button>
       </div>
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={replayEnabled}
+          onChange={(e) => setReplayEnabled(e.target.checked)}
+        />
+        {t("fly.replay.enable")}
+      </label>
       <Group title={t("fly.events.title")}>
         <div>
           <Button size="sm" variant="outline" onClick={() => addEvent("")}>
