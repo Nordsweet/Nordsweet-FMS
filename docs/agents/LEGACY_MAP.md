@@ -62,22 +62,22 @@ merged to `develop`. One owner per row.
 
 | Area | Status | Owner | Notes |
 |---|---|---|---|
-| Preparation navigation and map flight planner | ready for review | Codex 2026-10-13 | Owner clarification: exactly Settings icon / Flight Planner / Map; graphical route automatically shared with the form. |
-| Preparation-mode parity audit (Home tabs, saved flights, settings, checklists; no Start flight) | ready for review | Codex 2026-10-13 | `codex/preflight-parity-audit`; [inventory and changelog](PREFLIGHT_AUDIT_CHANGELOG.md), legacy main 5265bc5 |
+| Preparation navigation and map flight planner | done | | Owner clarification: exactly Settings icon / Flight Planner / Map; graphical route automatically shared with the form.  PR #3 merged into develop. |
+| Preparation-mode parity audit (Home tabs, saved flights, settings, checklists; no Start flight) | done | | `codex/preflight-parity-audit`; [inventory and changelog](PREFLIGHT_AUDIT_CHANGELOG.md), legacy main 5265bc5  PR #3 merged into develop. |
 | Look & feel (palette, panels, tabs, header) | done | claude 2026-10-12 | desktop; phone/iPad pass later |
 | Planner › Aircraft tab | done | claude 2026-10-12 | type list, registration profiles, FREDA indication, last state/MTH |
 | Planner › Fuel tab | done | claude 2026-10-13 | rows, overrides, FOB/fuel added, notes; matches legacy (see §5) |
 | Planner › W&B tab | done | claude 2026-10-13 | sheet, linked fuel, envelope chart; matches legacy |
 | Planner › Route tab | done | claude 2026-10-13 | `domain/route-plan.ts` (+ `route-economy.ts`): tokens, airways, SID/STAR/APPROACH (NONE/AUTO/id + inline variant), thresholds, TOC/TOD/SOC, ALT at point, waypoint WX, schedule, ECO; dialogs; load route. Matches legacy leg for leg (main 1888742) |
-| Weather / ATIS pad parser, waypoint forecasts, AWOS | partial / review | Codex 2026-10-13 | Preparation briefing audited; ATIS autoscroll restored. Full flight-mode pad/AWOS remains open; see audit changelog. |
-| Performance (charts/readouts, runway use, glide, persisted conditions) | partial / review | Codex 2026-10-13 | Preparation conditions persist per phase/airport/aircraft. Flight-mode climb/glide remains open. |
-| Taxi diagram / ground connectivity | partial / review | Codex 2026-10-13 | Preparation endpoint persistence and airport isolation fixed. Diagram/overlay remains separate scope. |
+| Weather / ATIS pad parser, waypoint forecasts, AWOS | open (preparation fixes merged) | | Preparation briefing audited; ATIS autoscroll restored. Full flight-mode pad/AWOS remains open; see audit changelog.  PR #3 merged into develop. |
+| Performance (charts/readouts, runway use, glide, persisted conditions) | open (preparation fixes merged) | | Preparation conditions persist per phase/airport/aircraft. Flight-mode climb/glide remains open.  PR #3 merged into develop. |
+| Taxi diagram / ground connectivity | open (preparation fixes merged) | | Preparation endpoint persistence and airport isolation fixed. Diagram/overlay remains separate scope.  PR #3 merged into develop. |
 | In-flight (timers, events, phases, FREDA detail, debrief, last-state save, COMMs hand-off, proximity alerts) | in progress | claude 2026-10-13 | flight view shell done (`features/fly/fly.tsx`): full-screen map, phase bar, per-phase rail (ROUTE=taxi, COMMs=frequencies, WX, RWY=performance, CHECKLIST, INFO=nav, OPTIONS), chips. Open: EMER, CONFIG, PROC/TAXI charts, automatic phase changes, COMMs radio plan, INFO phase performance, timers/events | `public/comms.js` |
 | Map incl. in-flight map view (point/route editing, GPX/OpenAir import, offline tiles, layer prefs, route restrictions + map-anchored waypoints) | done | Codex 2026-10-13 | PR #2; [handoff](MAP_HANDOFF.md) |
 | Airspace browser, traffic page | open | | |
-| Checklists (voice gender/voice, autoscroll toggle) | ready for review | Codex 2026-10-13 | Voice preferences/migration, autoscroll and independent checklist progress restored. |
-| Settings & remaining legacy key migration (§3) | partial / review | Codex 2026-10-13 | Home suggestions; settings/draft/fuel/W&B migrations. Community ATIS and flight-only keys remain separate scope. |
-| Saved flights library (rename, route-only import, GPX/KML route export) | ready for review | Codex 2026-10-13 | Immediate snapshot/download, rename, per-flight .nord/GPX/KML export, return-to-route load; existing route-only import retained. |
+| Checklists (voice gender/voice, autoscroll toggle) | done | | Voice preferences/migration, autoscroll and independent checklist progress restored.  PR #3 merged into develop. |
+| Settings & remaining legacy key migration (§3) | open (preparation fixes merged) | | Home suggestions; settings/draft/fuel/W&B migrations. Community ATIS and flight-only keys remain separate scope.  PR #3 merged into develop. |
+| Saved flights library (rename, route-only import, GPX/KML route export) | done | | Immediate snapshot/download, rename, per-flight .nord/GPX/KML export, return-to-route load; existing route-only import retained.  PR #3 merged into develop. |
 | PFD, chart viewer, editors, company flights | out of scope | | only if the owner asks |
 
 ## 5. Known legacy bugs / intended differences
