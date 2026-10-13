@@ -1,0 +1,276 @@
+"use client";
+import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { api } from "~/api";
+import { Button } from "~/components/ui/button";
+import { Input } from "~/components/ui/input";
+import { Label } from "~/components/ui/label";
+import { useT } from "~/i18n/use-t";
+import { useMapSettings, mapLayers, type LayerId } from "~/stores/map";
+import { useFlight } from "~/stores/flight";
+import { useInFlight } from "~/stores/inflight";
+import { usePlan } from "~/features/plan/use-plan";
+import { useGps } from "~/features/fly/use-gps";
+import { MapSelect } from "./map-select";
+import { MapView } from "./map-view";
+
+export function MapWorkspace() {
+  const t = useT(),
+    settings = useMapSettings(),
+    flight = useFlight((s) => s.flight),
+    update = useFlight((s) => s.update),
+    navigation = useInFlight();
+  const { route } = usePlan();
+  const { fix, error: gpsError } = useGps(settings.gpsEnabled);
+  const client = useQueryClient();
+  const imported = useMutation(api.map.importAirspace.mutationOptions());
+  const [notice, setNotice] = useState<string | null>(null);
+  const label = (id: LayerId) =>
+    id === "route" || id === "navaids"
+      ? t(`maptools.layer.${id}`)
+      : t(`map.layer.${id}`);
+  async function importFile(file: File | undefined, kind: "gpx" | "airspace") {
+    if (!file) return;
+    try {
+      const text = await file.text();
+      if (kind === "gpx") {
+        const points = await api.map.importGpx.call(text);
+        update({
+          departure: points[0]!,
+          destination: points.at(-1)!,
+          waypoints: points.slice(1, -1),
+          routeText: "",
+          sid: null,
+          star: null,
+          approach: null,
+        });
+        setNotice(t("maptools.imported", { count: points.length }));
+      } else {
+        const zones = await imported.mutateAsync(text);
+        await client.invalidateQueries({ queryKey: ["map.importedAirspace"] });
+        setNotice(t("maptools.imported", { count: zones.length }));
+      }
+    } catch {
+      setNotice(t("maptools.importError"));
+    }
+  }
+  return (
+    <div className="-m-4 flex min-h-96 flex-1 flex-col">
+      <div className="flex flex-wrap items-center gap-2 border-b px-4 py-2 text-sm">
+        <MapSelect
+          label={t("map.basemap")}
+          value={settings.basemap}
+          options={[
+            { value: "osm", label: "OpenStreetMap" },
+            { value: "dark", label: t("map.basemapDark") },
+          ]}
+          onChange={(basemap) => settings.update({ basemap })}
+        />
+        <MapSelect
+          label={t("map.plan")}
+          value={settings.plan}
+          options={[
+            { value: "current", label: t("map.planCurrent") },
+            { value: "next", label: t("map.planNext") },
+            { value: "none", label: t("maptools.none") },
+          ]}
+          onChange={(plan) => settings.update({ plan })}
+        />
+        {mapLayers.map((id) => (
+          <Label key={id}>
+            <input
+              type="checkbox"
+              checked={settings.layers[id]}
+              onChange={(e) =>
+                settings.update({
+                  layers: { ...settings.layers, [id]: e.target.checked },
+                })
+              }
+            />
+            {label(id)}
+          </Label>
+        ))}
+        <Label>
+          <input
+            type="checkbox"
+            checked={settings.labels}
+            onChange={(e) => settings.update({ labels: e.target.checked })}
+          />
+          {t("maptools.labels")}
+        </Label>
+        <Label>
+          <input
+            type="checkbox"
+            checked={settings.trackUp}
+            onChange={(e) => settings.update({ trackUp: e.target.checked })}
+          />
+          {t("maptools.trackUp")}
+        </Label>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => {
+            settings.follow(false);
+            settings.request("fit");
+          }}
+        >
+          {t("maptools.fit")}
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => {
+            settings.follow(false);
+            settings.request("reset");
+          }}
+        >
+          {t("maptools.reset")}
+        </Button>
+        <Button
+          size="sm"
+          aria-pressed={settings.gpsEnabled}
+          variant={settings.gpsEnabled ? "default" : "outline"}
+          onClick={() => settings.setGps(!settings.gpsEnabled)}
+        >
+          {t("maptools.gps")}
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={!settings.gpsEnabled}
+          onClick={() => settings.follow(true)}
+        >
+          {t("maptools.center")}
+        </Button>
+        <Button
+          size="sm"
+          disabled={!navigation.startedAt && route.length < 2}
+          onClick={() =>
+            navigation.startedAt
+              ? navigation.end()
+              : (settings.setGps(true), navigation.start(route))
+          }
+        >
+          {t(navigation.startedAt ? "maptools.end" : "maptools.start")}
+        </Button>
+        {navigation.route[0]?.ident === "DCT" && navigation.startedAt && (
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={!fix || !!gpsError}
+            onClick={() => {
+              if (fix) navigation.resumeRoute(route, fix);
+            }}
+          >
+            {t("maptools.cancelDirect")}
+          </Button>
+        )}
+        <form
+          className="flex gap-2"
+          onSubmit={async (e) => {
+            e.preventDefault();
+            const data = new FormData(e.currentTarget);
+            const value = data.get("route");
+            const routeText = typeof value === "string" ? value : "";
+            const tokens = routeText
+              .trim()
+              .toUpperCase()
+              .split(/\s+/)
+              .filter(Boolean);
+            const [departure, destination] = await Promise.all([
+              api.airports.get.call({ code: tokens[0] ?? "" }),
+              api.airports.get.call({ code: tokens.at(-1) ?? "" }),
+            ]);
+            update({
+              routeText,
+              ...(departure && destination
+                ? {
+                    departure: {
+                      ident: departure.ident,
+                      lat: departure.lat,
+                      lon: departure.lon,
+                    },
+                    destination: {
+                      ident: destination.ident,
+                      lat: destination.lat,
+                      lon: destination.lon,
+                    },
+                    sid: null,
+                    star: null,
+                    approach: null,
+                  }
+                : {}),
+            });
+          }}
+        >
+          <Input
+            aria-label={t("maptools.route")}
+            name="route"
+            defaultValue={flight.routeText}
+            key={flight.routeText}
+          />
+          <Button size="sm" type="submit">
+            {t("maptools.build")}
+          </Button>
+        </form>
+        <Label>
+          {t("maptools.importGpx")}
+          <input
+            type="file"
+            accept=".gpx"
+            className="max-w-44"
+            onChange={(e) => void importFile(e.target.files?.[0], "gpx")}
+          />
+        </Label>
+        <Label>
+          {t("maptools.importAirspace")}
+          <input
+            type="file"
+            accept=".txt,.air,.openair,.json"
+            className="max-w-44"
+            onChange={(e) => void importFile(e.target.files?.[0], "airspace")}
+          />
+        </Label>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={async () => {
+            await api.map.saveAirspace.call([]);
+            await client.invalidateQueries({
+              queryKey: ["map.importedAirspace"],
+            });
+          }}
+        >
+          {t("maptools.clearImported")}
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={async () => {
+            try {
+              const points = await api.navpoints.refresh.call(undefined);
+              client.setQueryData(
+                api.navpoints.list.queryOptions(undefined).queryKey,
+                points,
+              );
+              await client.invalidateQueries({ queryKey: ["airspace.around"] });
+              setNotice(t("maptools.imported", { count: points.length }));
+            } catch {
+              setNotice(t("maptools.noData"));
+            }
+          }}
+        >
+          {t("maptools.refresh")}
+        </Button>
+        {notice && <span role="status">{notice}</span>}
+      </div>
+      <div className="relative min-h-0 flex-1">
+        <MapView
+          basemap={settings.basemap}
+          layers={settings.layers}
+          plan={settings.plan}
+        />
+      </div>
+    </div>
+  );
+}

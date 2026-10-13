@@ -5,6 +5,8 @@ import { type Airport } from "~/data/schemas";
 
 import { economySuggestions } from "./route-economy";
 import {
+  altitudeRestriction,
+  speedRestrictionKt,
   type RoutePlanInput,
   buildRoutePlan,
   interpolateWindProfile,
@@ -187,5 +189,36 @@ describe("economySuggestions", () => {
     expect(altitudes[0]).toBe(1500);
     expect(altitudes.at(-1)).toBe(500);
     expect(Math.min(...altitudes.slice(1, -1))).toBe(2500);
+  });
+});
+
+it("keeps anchored map points on the requested leg and applies pilot restrictions", () => {
+  const plan = buildRoutePlan(
+    data,
+    input({
+      routeText: "P1 P2 P3",
+      insertedWaypoints: [
+        {
+          ident: "WPT 1",
+          lat: 50.21,
+          lon: 19.01,
+          anchor: { from: "P2", to: "P3" },
+        },
+      ],
+      pointRestrictions: {
+        P2: { speedKt: 80.4, altitudeFt: 4000.4, altitudeMode: "above" },
+      },
+    }),
+  )!;
+  const ids = plan.points.map((p) => p.id);
+  expect(ids.indexOf("WPT 1")).toBeGreaterThan(ids.indexOf("P2"));
+  expect(ids.indexOf("WPT 1")).toBeLessThan(ids.indexOf("P3"));
+  const p = plan.points.find((p) => p.id === "P2")!;
+  expect(speedRestrictionKt(p)).toBe(80);
+  expect(altitudeRestriction(p)).toMatchObject({
+    source: "user",
+    minFt: 4000,
+    maxFt: null,
+    type: "atOrAbove",
   });
 });

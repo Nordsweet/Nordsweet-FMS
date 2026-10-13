@@ -13,6 +13,7 @@ import { usePathname } from "next/navigation";
 
 import { Button } from "~/components/ui/button";
 import { useT } from "~/i18n/use-t";
+import { FlightRuntime } from "~/features/fly/flight-runtime";
 import { type MessageKey } from "~/i18n/messages";
 import { type Language, useSettings } from "~/stores/settings";
 
@@ -37,6 +38,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-dvh flex-col">
+      <FlightRuntime />
       <header className="flex flex-wrap items-center gap-2 px-4 pt-4">
         <nav className="flex flex-wrap gap-2">
           <Button

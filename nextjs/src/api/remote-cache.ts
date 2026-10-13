@@ -4,6 +4,13 @@ type Entry<T> = { savedAt: number; data: T };
 
 const pending = new Map<string, Promise<unknown>>();
 
+/** Explicit source refresh replaces both the in-session and offline reference snapshot. */
+export async function replaceCachedRemote<T>(key: string, data: T) {
+  await set(key, { savedAt: Date.now(), data });
+  pending.set(key, Promise.resolve(data));
+  return data;
+}
+
 /**
  * Remote data that must survive offline: served from IndexedDB while younger than `maxAgeMs`,
  * refreshed otherwise, and served at any age when the refresh fails (no network).

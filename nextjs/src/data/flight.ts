@@ -1,9 +1,33 @@
 import { z } from "zod";
 
+export const pointRestrictionSchema = z.object({
+  speedKt: z.number().positive().nullable().default(null),
+  altitudeFt: z.number().nonnegative().nullable().default(null),
+  altitudeMode: z.enum(["at", "above", "below"]).default("at"),
+});
+
 const point = z.object({
   ident: z.string().min(1),
   lat: z.number().min(-90).max(90),
   lon: z.number().min(-180).max(180),
+  anchor: z
+    .object({
+      from: z.string(),
+      to: z.string(),
+      fromPosition: z
+        .object({
+          lat: z.number().min(-90).max(90),
+          lon: z.number().min(-180).max(180),
+        })
+        .optional(),
+      toPosition: z
+        .object({
+          lat: z.number().min(-90).max(90),
+          lon: z.number().min(-180).max(180),
+        })
+        .optional(),
+    })
+    .optional(),
 });
 
 export const flightSchema = z.object({
@@ -18,6 +42,7 @@ export const flightSchema = z.object({
   alternate: point.nullable(),
   /** Points added on the map; the route planner inserts each into its nearest leg. */
   waypoints: z.array(point),
+  pointRestrictions: z.record(z.string(), pointRestrictionSchema).default({}),
   /** Legacy route text: DCT, airways, procedures ("SID NAVUR"), coordinates. */
   routeText: z.string().default(""),
   /** Procedure selects: null = none, "AUTO" = suggested for the runway, else a procedure id. */
@@ -85,6 +110,7 @@ export function newFlight(): Flight {
     destination: null,
     alternate: null,
     waypoints: [],
+    pointRestrictions: {},
     routeText: "",
     sid: null,
     star: null,

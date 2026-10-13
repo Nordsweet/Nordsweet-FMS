@@ -10,9 +10,16 @@ import {
 } from "./aviation/client";
 import { loadDataset } from "./datasets";
 import { listFlights, removeFlight, saveFlight } from "./flights";
-import { cachedRemote } from "./remote-cache";
+import { cachedRemote, replaceCachedRemote } from "./remote-cache";
 import { findAirport, searchAirports, searchNavpoints } from "./search";
 import { vfrPointToNavpoint } from "./vfr-points";
+import {
+  loadMapAirspace,
+  saveMapAirspace,
+  parseGpx,
+  parseMapAirspace,
+} from "./map-files";
+import { trafficDestination, trafficHistory } from "./traffic-details";
 
 /**
  * The app's single data boundary ("dummy backend"). Procedures mirror the planned tRPC
@@ -67,6 +74,18 @@ type Search = { query: string; limit?: number };
 type Icao = { icao: string };
 
 export const api = {
+  map: {
+    importedAirspace: query("map.importedAirspace", loadMapAirspace, {
+      staleTime: 0,
+    }),
+    saveAirspace: mutation("map.saveAirspace", saveMapAirspace),
+    importGpx: mutation("map.importGpx", async (text: string) =>
+      parseGpx(text),
+    ),
+    importAirspace: mutation("map.importAirspace", async (text: string) =>
+      saveMapAirspace(parseMapAirspace(text)),
+    ),
+  },
   aircraft: {
     list: query("aircraft.list", () => loadDataset("aircraft"), reference),
   },
@@ -98,6 +117,13 @@ export const api = {
     ),
   },
   navpoints: {
+    refresh: mutation("navpoints.refresh", async (_input: void) => {
+      const points = (
+        await aviationApi.places({ kinds: ["vfr_point"] })
+      ).places.map(vfrPointToNavpoint);
+      await replaceCachedRemote("aviation-api.vfr-points.v2", points);
+      return [...(await loadDataset("navpoints")), ...points];
+    }),
     /** Bundled points plus the API's VFR points (when reachable or cached). */
     list: query(
       "navpoints.list",
@@ -183,6 +209,8 @@ export const api = {
     ),
   },
   traffic: {
+    destination: query("traffic.destination", trafficDestination, live(HOUR)),
+    history: query("traffic.history", trafficHistory, live(MINUTE)),
     around: query(
       "traffic.around",
       (around: Around) => aviationApi.traffic(around),

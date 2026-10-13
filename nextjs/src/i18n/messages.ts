@@ -1,6 +1,8 @@
 import { type Language } from "~/stores/settings";
+import { mapToolsEn, mapToolsPl } from "./map-tools";
 
 const pl = {
+  ...mapToolsPl,
   "app.name": "Nordsweet FMS",
   "nav.plan": "Plan lotu",
   "nav.settings": "Ustawienia",
@@ -459,6 +461,7 @@ const pl = {
 export type MessageKey = keyof typeof pl;
 
 const en: Record<MessageKey, string> = {
+  ...mapToolsEn,
   "app.name": "Nordsweet FMS",
   "nav.plan": "Flight plan",
   "nav.settings": "Settings",

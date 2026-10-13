@@ -31,6 +31,10 @@ test("map shows airspace and sets the departure from a tapped airport", async ({
 
   await page.goto("/map");
   await expect(page.locator(".maplibregl-canvas")).toBeVisible();
+  await expect(page.getByTestId("map")).toHaveAttribute(
+    "data-map-ready",
+    "true",
+  );
   await page.waitForTimeout(2000); // map style load + data
   expect(airspaceRequests).toBeGreaterThan(0);
 
@@ -48,7 +52,7 @@ test("map shows airspace and sets the departure from a tapped airport", async ({
   const card = page.getByRole("dialog", { name: "Details" });
   await expect(card).toContainText("EPKK");
   await card.getByRole("button", { name: "Departure" }).click();
-  await expect(page.locator(".maplibregl-marker")).toHaveText(["EPKK"]);
+  await expect(page.locator("[data-route-marker]")).toHaveText(["EPKK"]);
 
   await page.getByRole("link", { name: "Flight plan" }).click();
   await page.getByRole("tab", { name: "Route", exact: true }).click();
@@ -57,10 +61,18 @@ test("map shows airspace and sets the departure from a tapped airport", async ({
 });
 
 test("shows live traffic and its details", async ({ page }) => {
-  const traffic = fs.readFileSync(
+  const trafficText = fs.readFileSync(
     "src/api/aviation/fixtures/traffic.json",
     "utf8",
   );
+  const currentTraffic = JSON.parse(trafficText) as {
+    aircraft: { position_time: string; ground_speed_kt: number | null }[];
+  };
+  for (const aircraft of currentTraffic.aircraft) {
+    aircraft.position_time = new Date().toISOString();
+    aircraft.ground_speed_kt = 0; // This click fixture is stationary; animation is covered separately.
+  }
+  const traffic = JSON.stringify(currentTraffic);
   await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => route.abort());
   await page.route("https://aviation.lab.vibecde.com/**", (route) => {
     const path = new URL(route.request().url()).pathname;
@@ -78,6 +90,10 @@ test("shows live traffic and its details", async ({ page }) => {
   );
   await page.goto("/map");
   await expect(page.locator(".maplibregl-canvas")).toBeVisible();
+  await expect(page.getByTestId("map")).toHaveAttribute(
+    "data-map-ready",
+    "true",
+  );
   await page.getByLabel("Traffic (ADS-B)").check();
   await page.getByLabel("Airports").uncheck(); // keep the tap on the aircraft
   await page.waitForTimeout(2000);
