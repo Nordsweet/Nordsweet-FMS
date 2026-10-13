@@ -4,6 +4,8 @@ import { describe, expect, it } from "vitest";
 
 import { datasetSchemas } from "~/data/schemas";
 
+import { cruisePerformance, cruiseTableRead } from "./cruise-performance";
+
 import { checklistFlaps, climbTableFor, climbTableRead } from "./flight-phase";
 
 const aircraft = datasetSchemas.aircraft.parse(
@@ -61,5 +63,35 @@ describe("checklistFlaps", () => {
     ).toBe("APP");
     expect(checklistFlaps("landing", "GO AROUND", "Flaps", flaps)).toBeNull();
     expect(checklistFlaps("takeoff", "LINE UP", "Lights", flaps)).toBeNull();
+  });
+});
+
+describe("cruise table read and manual setting (legacy CONFIG/INFO cruise)", () => {
+  const cruise = aircraft.find((a) => a.id === "P2006T")!.cruise!;
+  it("reads the nearest table entry like legacy (3000 ft, +15 C, ECO TIME)", () => {
+    const read = cruiseTableRead(cruise, 3000, 15, 0, "eco-time")!;
+    expect(read).toMatchObject({
+      pressureAltitudeFt: 3000,
+      isaDeltaC: 0,
+      setting: "1900 RPM / 20 inHg",
+      ktas: 101,
+      powerPct: 40,
+    });
+    expect(read.fuelFlowLph).toBeCloseTo(22.2, 1);
+  });
+
+  it("uses the exact manual setting, else blends the nearest ones", () => {
+    const exact = cruisePerformance(cruise, 3000, 15, 0, {
+      rpm: 1900,
+      mapInHg: 20,
+    })!;
+    const eco = cruisePerformance(cruise, 3000, 15, 0, "eco-time")!;
+    expect(exact.ktas).toBeCloseTo(eco.ktas, 6);
+    const between = cruisePerformance(cruise, 3000, 15, 0, {
+      rpm: 2150,
+      mapInHg: 23,
+    })!;
+    expect(between.setting).toBe("2150 RPM / 23 inHg");
+    expect(between.ktas).toBeGreaterThan(eco.ktas);
   });
 });

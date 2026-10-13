@@ -6,6 +6,63 @@ import { type Cruise } from "~/data/aircraft";
  * - "eco-distance": best ground distance per litre for the given wind component.
  */
 export type CruiseMode = "eco-time" | "eco-distance";
+/** Legacy CONFIG manual engine setting: the table blended around this RPM and MAP. */
+export type ManualSetting = { rpm: number; mapInHg: number };
+
+/** "2250 RPM / 28 inHg" → numbers. */
+export function rpmMap(setting: string) {
+  const m = /(\d+)\s*RPM\s*\/\s*([\d.]+)\s*inHg/i.exec(setting);
+  return m ? { rpm: Number(m[1]), mapInHg: Number(m[2]) } : null;
+}
+
+/**
+ * Legacy interpolateCruiseByEngineSetting: the exact table setting, else an inverse-square
+ * distance blend of the 4 nearest (RPM scaled by 250, MAP by 2 inHg).
+ */
+function pickManual(
+  entries: Entry[],
+  target: ManualSetting,
+): Entry | undefined {
+  const withSetting = entries.flatMap((e) => {
+    const s = rpmMap(e.setting);
+    return s ? [{ e, ...s }] : [];
+  });
+  const exact = withSetting.find(
+    (x) =>
+      Math.abs(x.rpm - target.rpm) < 0.01 &&
+      Math.abs(x.mapInHg - target.mapInHg) < 0.01,
+  );
+  if (exact) return exact.e;
+  const nearest = withSetting
+    .map((x) => ({
+      x,
+      d: Math.hypot(
+        (x.rpm - target.rpm) / 250,
+        (x.mapInHg - target.mapInHg) / 2,
+      ),
+    }))
+    .sort((a, b) => a.d - b.d)
+    .slice(0, 4);
+  if (!nearest.length) return undefined;
+  let w = 0;
+  const sum = { ktas: 0, fuelFlowLph: 0, powerPct: 0, powerW: 0 };
+  for (const { x, d } of nearest) {
+    const weight = 1 / Math.max(d * d, 0.0001);
+    w += weight;
+    sum.ktas += x.e.ktas * weight;
+    sum.fuelFlowLph += x.e.fuelFlowLph * weight;
+    if (x.e.powerPct !== null) {
+      sum.powerPct += x.e.powerPct * weight;
+      sum.powerW += weight;
+    }
+  }
+  return {
+    setting: `${target.rpm} RPM / ${target.mapInHg} inHg`,
+    ktas: sum.ktas / w,
+    fuelFlowLph: sum.fuelFlowLph / w,
+    powerPct: sum.powerW ? sum.powerPct / sum.powerW : null,
+  };
+}
 
 export type CruisePerformance = {
   setting: string;
@@ -68,7 +125,12 @@ function entriesAt(cruise: Cruise, altitudeFt: number, isaDeltaC: number) {
   return entries;
 }
 
-function pick(entries: Entry[], mode: CruiseMode, windKt: number) {
+function pick(
+  entries: Entry[],
+  mode: CruiseMode | ManualSetting,
+  windKt: number,
+) {
+  if (typeof mode === "object") return pickManual(entries, mode);
   if (mode === "eco-distance") {
     const range = (e: Entry) =>
       Math.max(0, e.ktas + windKt) / Math.max(e.fuelFlowLph, 0.001);
@@ -91,7 +153,7 @@ export function cruisePerformance(
   pressureAltitudeFt: number,
   oatC: number,
   windComponentKt: number,
-  mode: CruiseMode,
+  mode: CruiseMode | ManualSetting,
 ): CruisePerformance | null {
   const isaDeltaC = oatC - isaTemperatureC(pressureAltitudeFt);
   const alt = bracket(altitudes(cruise), pressureAltitudeFt);
@@ -177,4 +239,50 @@ export function fuelFlowAtPower(
   return lower === null || upper === null
     ? null
     : lerp(lower, upper, alt.ratio);
+}
+
+const nearest = (values: number[], target: number) =>
+  values.reduce((best, v) =>
+    Math.abs(v - target) < Math.abs(best - target) ? v : best,
+  );
+
+/**
+ * Legacy getCruiseTableReadForTable ("table data" / "for table"): the nearest tabulated altitude
+ * and ISA deviation, no interpolation.
+ */
+export function cruiseTableRead(
+  cruise: Cruise,
+  pressureAltitudeFt: number,
+  oatC: number,
+  windComponentKt: number,
+  mode: CruiseMode | ManualSetting,
+) {
+  if (!cruise.rows.length) return null;
+  const altitude = nearest(altitudes(cruise), pressureAltitudeFt);
+  const isaDeltaC = nearest(
+    [...new Set(cruise.rows.map((r) => r.isaDeltaC))],
+    oatC - isaTemperatureC(altitude),
+  );
+  const entry = pick(
+    cruise.rows
+      .filter(
+        (r) => r.pressureAltitudeFt === altitude && r.isaDeltaC === isaDeltaC,
+      )
+      .map((r) => ({
+        setting: r.setting,
+        ktas: r.ktas,
+        fuelFlowLph: r.fuelFlowLph,
+        powerPct: r.powerPct,
+      })),
+    mode,
+    windComponentKt,
+  );
+  return entry
+    ? {
+        ...entry,
+        groundSpeedKt: entry.ktas + windComponentKt,
+        pressureAltitudeFt: altitude,
+        isaDeltaC,
+      }
+    : null;
 }

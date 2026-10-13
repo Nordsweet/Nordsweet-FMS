@@ -10,7 +10,8 @@ import {
 import { Input } from "~/components/ui/input";
 import { type WxRow } from "~/domain/route-plan";
 import { formatHhMm } from "~/domain/fuel-planning";
-import { economySuggestions, rpmMap } from "~/domain/route-economy";
+import { rpmMap } from "~/domain/cruise-performance";
+import { economySuggestions } from "~/domain/route-economy";
 import {
   type RoutePlan,
   type AltitudeRestriction,

@@ -14,7 +14,8 @@ import { type FlightPhase } from "~/domain/flight-phase";
 import { settingLabel } from "~/features/plan/route-dialogs";
 import { usePlan } from "~/features/plan/use-plan";
 import { useT } from "~/i18n/use-t";
-import { useInFlight } from "~/stores/inflight";
+import { type MessageKey } from "~/i18n/messages";
+import { cruiseModeOf, useInFlight } from "~/stores/inflight";
 
 function ConfigSelect<V extends string>({
   label,
@@ -120,16 +121,56 @@ export function ConfigPanel({ phase }: { phase: FlightPhase }) {
       </div>
     );
   }
-  // Cruise. shortcut: no manual RPM/MAP picker yet (legacy also had one); ECO modes only.
+  // Cruise: ECO modes, or a manual RPM/MAP built from digit buttons (legacy renderCruiseEnginePanel).
+  const mode = cruiseModeOf(config);
   const setting = aircraft?.cruise
     ? cruisePerformance(
         aircraft.cruise,
         flight.cruiseAltitudeFt,
         flight.cruiseOatC,
         0,
-        config.cruiseMode,
+        mode,
       )?.setting
     : null;
+  const manual = config.cruiseMode === "manual";
+  const { rpm, mapInHg } = config.manual;
+  const digits = {
+    rpmThousands: Math.floor(rpm / 1000),
+    rpmHundreds: Math.floor((rpm % 1000) / 100),
+    rpmTens: Math.floor((rpm % 100) / 10),
+    mapTens: Math.floor(mapInHg / 10),
+    mapOnes: Math.floor(mapInHg % 10),
+    mapTenths: Math.round((mapInHg * 10) % 10),
+  };
+  const setDigit = (key: keyof typeof digits, value: number) => {
+    const d = { ...digits, [key]: value };
+    configure({
+      cruiseMode: "manual",
+      manual: {
+        rpm: d.rpmThousands * 1000 + d.rpmHundreds * 100 + d.rpmTens * 10,
+        mapInHg: d.mapTens * 10 + d.mapOnes + d.mapTenths / 10,
+      },
+    });
+  };
+  const rows: [keyof typeof digits, string, number[], (v: number) => string][] =
+    [
+      ["rpmThousands", "fly.config.rpmThousands", [1, 2], String],
+      ["rpmHundreds", "fly.config.rpmHundreds", [...Array(10).keys()], String],
+      [
+        "rpmTens",
+        "fly.config.rpmTens",
+        [...Array(10).keys()],
+        (v) => String(v * 10),
+      ],
+      ["mapTens", "fly.config.mapTens", [1, 2, 3], (v) => String(v * 10)],
+      ["mapOnes", "fly.config.mapOnes", [...Array(10).keys()], String],
+      [
+        "mapTenths",
+        "fly.config.mapTenths",
+        [...Array(10).keys()],
+        (v) => `.${v}`,
+      ],
+    ];
   return (
     <div className="grid gap-3">
       <p className="text-sm font-semibold">
@@ -138,21 +179,41 @@ export function ConfigPanel({ phase }: { phase: FlightPhase }) {
         })}
       </p>
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-muted-foreground text-xs uppercase">
+        <span className="text-muted-foreground w-28 text-xs uppercase">
           {t("fly.config.mode")}
         </span>
-        {(["eco-time", "eco-distance"] as const).map((mode) => (
+        {(["eco-time", "eco-distance"] as const).map((m) => (
           <Button
-            key={mode}
+            key={m}
             size="sm"
-            variant={config.cruiseMode === mode ? "default" : "outline"}
-            aria-pressed={config.cruiseMode === mode}
-            onClick={() => configure({ cruiseMode: mode })}
+            variant={config.cruiseMode === m ? "default" : "outline"}
+            aria-pressed={config.cruiseMode === m}
+            onClick={() => configure({ cruiseMode: m })}
           >
-            {t(`fly.config.${mode}`)}
+            {t(`fly.config.${m}`)}
           </Button>
         ))}
       </div>
+      {rows.map(([key, label, values, text]) => (
+        <div key={key} className="flex flex-wrap items-center gap-1">
+          <span className="text-muted-foreground w-28 text-xs uppercase">
+            {t(label as MessageKey)}
+          </span>
+          {values.map((v) => (
+            <Button
+              key={v}
+              size="sm"
+              className="min-w-10 px-2"
+              variant={manual && digits[key] === v ? "default" : "outline"}
+              aria-pressed={manual && digits[key] === v}
+              aria-label={`${t(label as MessageKey)} ${text(v)}`}
+              onClick={() => setDigit(key, v)}
+            >
+              {text(v)}
+            </Button>
+          ))}
+        </div>
+      ))}
     </div>
   );
 }

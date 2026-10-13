@@ -3,6 +3,7 @@ import { type Cruise } from "~/data/aircraft";
 import {
   type CruisePerformance,
   cruisePerformance,
+  rpmMap,
 } from "./cruise-performance";
 import {
   type RoutePlan,
@@ -90,12 +91,6 @@ type Cell = {
 const better = (fuel: number, hours: number, cell: Cell) =>
   fuel < cell.fuelL - 0.001 ||
   (Math.abs(fuel - cell.fuelL) <= 0.001 && hours < cell.hours);
-
-/** "2250 RPM / 28 inHg" → numbers, for the averaged setting. */
-export function rpmMap(setting: string) {
-  const m = /(\d+)\s*RPM\s*\/\s*([\d.]+)\s*inHg/i.exec(setting);
-  return m ? { rpm: Number(m[1]), mapInHg: Number(m[2]) } : null;
-}
 
 export function economySuggestions(
   plan: RoutePlan,

@@ -1,7 +1,10 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
-import { type CruiseMode } from "~/domain/cruise-performance";
+import {
+  type CruiseMode,
+  type ManualSetting,
+} from "~/domain/cruise-performance";
 import {
   type ClimbConfig,
   type FlightPhase,
@@ -34,14 +37,22 @@ export type FlightConfig = {
   /** Checklist flap callouts (legacy takeoffChecklistFlaps / landingChecklistFlaps). */
   takeoffFlaps: "takeoff" | "up";
   landingFlaps: "UP" | "APP" | "LDG";
-  cruiseMode: CruiseMode;
+  /** ECO TIME / ECO DISTANCE, or the manual RPM/MAP below (legacy CONFIG digit buttons). */
+  cruiseMode: CruiseMode | "manual";
+  manual: ManualSetting;
 };
+
+/** The cruise lookup mode for the CONFIG choice. */
+export const cruiseModeOf = (config: FlightConfig) =>
+  config.cruiseMode === "manual" ? config.manual : config.cruiseMode;
 
 const DEFAULT_CONFIG: FlightConfig = {
   climb: DEFAULT_CLIMB_CONFIG,
   takeoffFlaps: "takeoff",
   landingFlaps: "LDG",
   cruiseMode: "eco-time",
+  // Legacy defaults: RPM 1·9·0, MAP 2·0·.0.
+  manual: { rpm: 1900, mapInHg: 20 },
 };
 
 type InFlight = {

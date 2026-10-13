@@ -5,7 +5,10 @@ import {
   isaTemperatureC,
   pressureAltitudeFt,
 } from "~/domain/atmosphere";
-import { cruisePerformance } from "~/domain/cruise-performance";
+import {
+  cruisePerformance,
+  cruiseTableRead,
+} from "~/domain/cruise-performance";
 import {
   type FlightPhase,
   climbTableFor,
@@ -18,7 +21,7 @@ import { settingLabel } from "~/features/plan/route-dialogs";
 import { AirportTaxi } from "~/features/plan/taxi";
 import { usePlan } from "~/features/plan/use-plan";
 import { useT } from "~/i18n/use-t";
-import { useInFlight } from "~/stores/inflight";
+import { cruiseModeOf, useInFlight } from "~/stores/inflight";
 
 import { Group, Row } from "./emergency-panel";
 
@@ -293,9 +296,20 @@ export function InfoPanel({ phase }: { phase: FlightPhase }) {
             flight.cruiseAltitudeFt,
             flight.cruiseOatC,
             wind,
-            config.cruiseMode,
+            cruiseModeOf(config),
           )
         : null;
+      const read = aircraft?.cruise
+        ? cruiseTableRead(
+            aircraft.cruise,
+            flight.cruiseAltitudeFt,
+            flight.cruiseOatC,
+            wind,
+            cruiseModeOf(config),
+          )
+        : null;
+      const perfText = (p: NonNullable<typeof perf>) =>
+        `${p.powerPct === null ? "" : `${num(p.powerPct)}% PWR / `}${num(p.ktas)} KTAS / ${num(p.fuelFlowLph)} l/h total`;
       return (
         <>
           <Row
@@ -321,9 +335,17 @@ export function InfoPanel({ phase }: { phase: FlightPhase }) {
           />
           <Row
             label={t("fly.info.interpolatedData")}
+            value={perf ? perfText(perf) : "n/a"}
+          />
+          <Row
+            label={t("fly.info.tableData")}
+            value={read ? perfText(read) : "n/a"}
+          />
+          <Row
+            label={t("fly.emer.forTable")}
             value={
-              perf
-                ? `${perf.powerPct === null ? "" : `${num(perf.powerPct)}% PWR / `}${num(perf.ktas)} KTAS / ${num(perf.fuelFlowLph)} l/h total`
+              read
+                ? `${read.pressureAltitudeFt} ft / ${read.isaDeltaC === 0 ? "ISA" : `ISA ${signed(read.isaDeltaC)} C`} / ${settingLabel(read.setting)}`
                 : "n/a"
             }
           />
