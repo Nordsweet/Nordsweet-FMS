@@ -5,6 +5,15 @@ Reference: <https://nordsweet-performance-calculator.mrnordsweet.chatgpt.site/> 
 `5265bc5de9510aa3d83cc469860a730962b96c78`. Starting develop: `2f289ed6dc8d7b7c3186b100577c787c64df1de2`.
 Branch: `codex/preflight-parity-audit`.
 
+## CI follow-up (2026-10-13)
+
+GitHub Actions run 38449558745 failed because the map migration E2E still used
+the removed preparation-map Start navigation button and Fly header link.
+The test now enables GPS, opens the flight view, starts the mocked flight there,
+and verifies route sequencing and reload persistence before returning to the
+preparation map to check saved restrictions. It also asserts that preparation
+does not expose navigation start/end controls. Application behavior is unchanged.
+
 ## Acceptance inventory
 
 The legacy Home screen exposes Aircraft, Route, Fuel, W&B, Saved Flights and Settings before

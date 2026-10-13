@@ -187,21 +187,30 @@ test("map restrictions persist and navigation shares flight state across pages",
   await page.getByLabel("Speed (kt)", { exact: true }).fill("80");
   await page.getByLabel("Altitude (ft)", { exact: true }).fill("4000");
   await page.getByRole("button", { name: "Apply", exact: true }).click();
-  await page
-    .getByRole("button", { name: "Start navigation", exact: true })
-    .click();
+  await expect(
+    page.getByRole("button", { name: "Start navigation", exact: true }),
+  ).toHaveCount(0);
+  // Preparation only edits the route; navigation starts in the flight view.
+  await page.getByRole("button", { name: "GPS", exact: true }).click();
+  await page.goto("/fly");
+  await page.getByRole("button", { name: "Start flight", exact: true }).click();
   await expect(page.getByTestId("map-gps-status")).toContainText("5");
-  await page.getByRole("link", { name: "Fly", exact: true }).click();
   await page.getByRole("button", { name: "Info", exact: true }).click();
   await expect(page.getByTestId("fly-next")).toHaveText("B");
   await context.setGeolocation({ latitude: 50, longitude: 20.05, accuracy: 5 });
   await expect(page.getByTestId("fly-next")).toHaveText("C");
   // The flight view covers the app navigation, like the legacy flight modal.
+  await page.reload();
+  await page.getByRole("button", { name: "Info", exact: true }).click();
+  await expect(page.getByTestId("fly-next")).toHaveText("C");
+  await expect(
+    page.getByRole("button", { name: "Close flight" }),
+  ).toBeVisible();
   await page.goto("/map");
   await page.reload();
   await expect(
     page.getByRole("button", { name: "End navigation", exact: true }),
-  ).toBeVisible();
+  ).toHaveCount(0);
   await page.locator("[data-route-marker]").filter({ hasText: /^B$/ }).click();
   await page.getByRole("button", { name: "Restriction", exact: true }).click();
   await expect(page.getByLabel("Speed (kt)", { exact: true })).toHaveValue(
