@@ -7,6 +7,8 @@ import { del, get, set } from "idb-keyval";
 import { useEffect, useState, useSyncExternalStore } from "react";
 
 import { TooltipProvider } from "~/components/ui/tooltip";
+import { api } from "~/api";
+import { useFlight } from "~/stores/flight";
 import { useSettings } from "~/stores/settings";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -43,6 +45,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
   );
   const language = useSettings((s) => s.language);
 
+  useEffect(() => {
+    if (!useFlight.getState().legacyCheckNeeded) return;
+    void api.flights.legacyDraft
+      .call(undefined)
+      .then((flight) => useFlight.getState().finishLegacyMigration(flight))
+      .catch(() => useFlight.getState().finishLegacyMigration(null));
+  }, []);
   useEffect(() => {
     document.documentElement.lang = language;
   }, [language]);

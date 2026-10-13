@@ -24,7 +24,8 @@ test("settings migrate from the legacy planner and switch language", async ({
     "Unknown airport",
   );
 
-  await page.getByRole("button", { name: "PL" }).click();
+  await page.getByRole("combobox", { name: "Language", exact: true }).click();
+  await page.getByRole("option", { name: "Polski", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Ustawienia" })).toBeVisible();
   await page.reload();
   await expect(page.getByRole("heading", { name: "Ustawienia" })).toBeVisible();

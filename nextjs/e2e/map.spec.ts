@@ -54,7 +54,7 @@ test("map shows airspace and sets the departure from a tapped airport", async ({
   await card.getByRole("button", { name: "Departure" }).click();
   await expect(page.locator("[data-route-marker]")).toHaveText(["EPKK"]);
 
-  await page.getByRole("link", { name: "Flight plan" }).click();
+  await page.getByRole("link", { name: "Flight Planner" }).click();
   await page.getByRole("tab", { name: "Route", exact: true }).click();
   await expect(page.getByLabel("Departure", { exact: true })).toHaveValue(
     "EPKK",

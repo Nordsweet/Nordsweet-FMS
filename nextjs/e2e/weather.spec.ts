@@ -61,6 +61,7 @@ async function pickPoint(
   query: string,
   ident: string,
 ) {
+  await page.getByLabel(label, { exact: true }).fill("");
   await page.getByLabel(label, { exact: true }).fill(query);
   await page.getByRole("option").filter({ hasText: ident }).first().click();
 }

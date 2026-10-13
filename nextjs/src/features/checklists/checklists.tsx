@@ -2,6 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { checklistVoice } from "~/domain/checklist-voice";
+import { useFlight } from "~/stores/flight";
+import { useSettings } from "~/stores/settings";
 import { Button } from "~/components/ui/button";
 import { type Checklist, checklistPhases } from "~/data/aircraft";
 import { usePlan } from "~/features/plan/use-plan";
@@ -12,7 +15,21 @@ const itemKey = (section: number, item: number) => `${section}-${item}`;
 
 function ChecklistItems({ checklist }: { checklist: Checklist }) {
   const t = useT();
-  const [checked, setChecked] = useState<Set<string>>(new Set());
+  const settings = useSettings();
+  const flight = useFlight((s) => s.flight);
+  const update = useFlight((s) => s.update);
+  const progressKey = `${flight.aircraftId ?? ""}|${checklist.id}`;
+  const checked = useMemo(
+    () => new Set(flight.checklistChecked[progressKey] ?? []),
+    [flight.checklistChecked, progressKey],
+  );
+  const setChecked = (next: Set<string>) =>
+    update({
+      checklistChecked: {
+        ...flight.checklistChecked,
+        [progressKey]: [...next],
+      },
+    });
   const [speaking, setSpeaking] = useState(false);
   const list = useRef<HTMLDivElement>(null);
   const keys = useMemo(
@@ -26,24 +43,39 @@ function ChecklistItems({ checklist }: { checklist: Checklist }) {
 
   // Keep the next open item in view, so the list can be worked through without scrolling.
   useEffect(() => {
+    if (!settings.checklistAutoscroll) return;
     const next = keys.find((k) => !checked.has(k));
     if (next)
       list.current
         ?.querySelector(`[data-item="${next}"]`)
         ?.scrollIntoView?.({ block: "center", behavior: "smooth" });
-  }, [checked, keys]);
+  }, [checked, keys, settings.checklistAutoscroll]);
   useEffect(() => () => globalThis.speechSynthesis?.cancel(), []);
 
-  const toggle = (key: string) =>
-    setChecked((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
+  const toggle = (key: string) => {
+    const next = new Set(checked);
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    setChecked(next);
+  };
 
   const readAloud = () => {
     speechSynthesis.cancel();
+    const language = settings.language === "en" ? "en-US" : "pl-PL";
+    const voiceKey = `${settings.checklistVoiceGender}.${language.toLowerCase()}`;
+    const voice = checklistVoice(
+      speechSynthesis.getVoices(),
+      language,
+      settings.checklistVoiceGender,
+      settings.checklistVoiceUris[voiceKey],
+    );
+    if (voice)
+      settings.update({
+        checklistVoiceUris: {
+          ...settings.checklistVoiceUris,
+          [voiceKey]: voice.voiceURI,
+        },
+      });
     const open = checklist.sections.flatMap((s, si) =>
       s.items
         .filter((_, ii) => !checked.has(itemKey(si, ii)))
@@ -51,7 +83,9 @@ function ChecklistItems({ checklist }: { checklist: Checklist }) {
     );
     open.forEach((line, i) => {
       const utterance = new SpeechSynthesisUtterance(line);
-      utterance.lang = "en-GB"; // checklist texts are English
+      utterance.lang = language;
+      if (voice) utterance.voice = voice;
+      utterance.onerror = () => setSpeaking(false);
       if (i === open.length - 1) utterance.onend = () => setSpeaking(false);
       speechSynthesis.speak(utterance);
     });

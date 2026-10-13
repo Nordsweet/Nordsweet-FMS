@@ -65,7 +65,7 @@ export function AirportField({
           id={id}
           autoComplete="off"
           spellCheck={false}
-          maxLength={8}
+          maxLength={64}
           placeholder={placeholder}
           className="font-mono uppercase"
           value={text ?? value?.ident ?? ""}
