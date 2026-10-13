@@ -33,12 +33,14 @@ test('History arriving for an uppercase aircraft refreshes the map immediately',
 test('Selected traffic keeps all remote samples before session and appends new live positions',()=>{
   const source=fs.readFileSync('src/runtime/airspaces-map.js','utf8');
   const start=source.indexOf('      function selectedTrafficHistory(');
-  const scope={remoteTrafficHistories:new Map([['abcdef',{samples:[{sampledAt:1},{sampledAt:2}]}]]),
-    state:{traffic:{historyById:new Map([['abcdef',[{sampledAt:2},{sampledAt:3}]]])}},trafficHistoryKey:t=>t.hex};
+  const scope={remoteTrafficHistories:new Map([['abcdef',{samples:[{sampledAt:-2,callsign:'LOT1'},{sampledAt:0,callsign:'LOT2'},{sampledAt:1,callsign:'LOT1'},{sampledAt:2,callsign:'LOT1'}]}]]),
+    state:{traffic:{historyById:new Map([['abcdef',[{sampledAt:2,callsign:'LOT1'},{sampledAt:3,callsign:'LOT1'}]]])}},trafficHistoryKey:t=>t.hex,getTrafficCallsign:t=>t.callsign || ''};
   vm.createContext(scope);
   vm.runInContext(source.slice(start,source.indexOf('\n      function ',start+1)),scope);
-  const result=scope.selectedTrafficHistory({id:'abcdef',hex:'abcdef'});
+  const result=scope.selectedTrafficHistory({id:'abcdef',hex:'abcdef',callsign:' lot1 '});
   assert.equal(result.map(p=>p.sampledAt).join(','),'1,2,3');
+  assert.equal(scope.selectedTrafficHistory({id:'abcdef',hex:'abcdef',callsign:'LOT2'}).length,0);
+  assert.equal(scope.selectedTrafficHistory({id:'abcdef',hex:'abcdef'}).length,0);
 });
 test('COMMs replaces estimated change and duplicate Next row with a plain suggestion',()=>{
   const source=fs.readFileSync('src/runtime/index.js','utf8');

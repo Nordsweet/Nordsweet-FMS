@@ -2268,7 +2268,7 @@ await loadScript("./traffic-proxy-config.js");
           if (!Number.isFinite(lat) || !Number.isFinite(lon) || !Number.isFinite(sampledAt)) {
             return null;
           }
-          return { lat, lon, sampledAt };
+          return { lat, lon, sampledAt, callsign: String(sample.callsign || '').toUpperCase().replace(/\s+/g, '') };
         }).filter(Boolean);
       }
 
@@ -2523,9 +2523,9 @@ await loadScript("./traffic-proxy-config.js");
           .sort((a, b) => a.sampledAt - b.sampledAt);
         const compacted = [];
         ordered.forEach((sample) => {
-          const position = { lat: sample.lat, lon: sample.lon, sampledAt: sample.sampledAt };
+          const position = { lat: sample.lat, lon: sample.lon, sampledAt: sample.sampledAt, callsign: sample.callsign };
           const previous = compacted[compacted.length - 1];
-          if (!previous || T.haversineNm(previous, position) >= TRAFFIC_HISTORY_MIN_MOVEMENT_NM) {
+          if (!previous || previous.callsign !== position.callsign || T.haversineNm(previous, position) >= TRAFFIC_HISTORY_MIN_MOVEMENT_NM) {
             compacted.push(position);
             return;
           }
@@ -2546,7 +2546,7 @@ await loadScript("./traffic-proxy-config.js");
           activeIds.add(historyKey);
           const history = state.traffic.historyById.get(historyKey) || state.traffic.historyById.get(item.id) || [];
           const itemSampledAt = Number.isFinite(item.sampledAt) ? item.sampledAt : sampledAt;
-          const position = { lat: item.lat, lon: item.lon, sampledAt: itemSampledAt };
+          const position = { lat: item.lat, lon: item.lon, sampledAt: itemSampledAt, callsign: getTrafficCallsign(item).toUpperCase().replace(/\s+/g, '') };
           const serverHistory = normalizeTrafficHistorySamples(item.history);
 
           state.traffic.historyById.set(
@@ -2604,15 +2604,21 @@ await loadScript("./traffic-proxy-config.js");
         const local=state.traffic.historyById.get(trafficHistoryKey(traffic)) || state.traffic.historyById.get(traffic.id) || [];
         const remote=remoteTrafficHistories.get(String(traffic.hex || '').toLowerCase())?.samples || [];
         const last=remote.length?remote[remote.length-1].sampledAt:-Infinity;
-        return remote.concat(local.filter(sample=>sample.sampledAt>last));
+        const callsign=getTrafficCallsign(traffic).toUpperCase().replace(/\s+/g, '');
+        if(!callsign)return [];
+        const combined=remote.concat(local.filter(sample=>sample.sampledAt>last));
+        // Keep only the latest continuous callsign segment, never older flights of this airframe.
+        let start=combined.length;
+        while(start>0 && combined[start-1].callsign===callsign)start--;
+        return combined.slice(start);
       }
 
       function formatTrafficHistory(traffic) {
         const history = selectedTrafficHistory(traffic);
         const source=remoteTrafficHistories.get(String(traffic?.hex || '').toLowerCase())?.status || 'Session track';
-        if (history.length < 2) return source;
+        if (history.length < 2) return 'No confirmed history for current callsign';
         const spanMinutes = Math.max(0, Math.round((history[history.length - 1].sampledAt - history[0].sampledAt) / 60000));
-        return source + ' · ' + spanMinutes + ' min';
+        return source + ' · ' + getTrafficCallsign(traffic) + ' · ' + spanMinutes + ' min';
       }
 
       function trafficQueryForViewport() {
