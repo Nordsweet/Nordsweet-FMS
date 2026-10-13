@@ -21,11 +21,14 @@ export function AirportField({
   value,
   placeholder,
   onSelect,
+  children,
 }: {
   label: string;
   value: FlightPoint | null;
   placeholder: string;
   onSelect: (point: FlightPoint | null) => void;
+  /** Extra buttons after the search button (the schedule clock). */
+  children?: React.ReactNode;
 }) {
   const t = useT();
   const id = useId();
@@ -83,6 +86,7 @@ export function AirportField({
           type="button"
           variant="outline"
           size="icon"
+          className="size-12.5 shrink-0"
           aria-label={t("plan.point.search", { label })}
           onClick={() => {
             setText(text ?? value?.ident ?? "");
@@ -91,6 +95,7 @@ export function AirportField({
         >
           <SearchIcon />
         </Button>
+        {children}
       </div>
       {open && !!hits?.length && (
         <ul

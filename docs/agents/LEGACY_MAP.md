@@ -109,8 +109,9 @@ Record every one you find here (and assert it in a test).
   (450 ft/NM without one). Identical for P2006T; TOC moves for other types.
 - Route runway choice (and so AUTO SID/STAR): legacy uses the departure conditions wind for both
   airports; ours uses each airport's METAR. Without METARs both pick the longest runway.
-- Economy modal: legacy let every point go to sea level ("S.L." everywhere); airports now stay at or
-  above their elevation and en-route points 1000 ft above the higher airport. Legacy also always
+- Economy modal: legacy let every point go to sea level ("S.L." everywhere); airports are now pinned
+  to their elevation (lowest 500 ft step at or above it) and en-route points stay 1000 ft above the
+  higher airport. The leg-average model still lets interior points alternate (legacy too). Legacy also always
   showed "Waypoint WX" as wind source; ours says "Cruise tile" until waypoint WX is entered.
 - Route tab: no CALCULATE button (the route recalculates as you type, as legacy did on input).
   The pre-port nav log table, manual wind/fuel-flow inputs and Open-Meteo winds aloft were removed

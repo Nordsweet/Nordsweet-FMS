@@ -88,28 +88,22 @@ export function RouteSection() {
           : t("plan.route.status.select")}
       </p>
       <div className="grid gap-4 sm:grid-cols-3">
-        <div className="flex items-start gap-2">
-          <div className="flex-1">
-            <AirportField
-              label={t("plan.route.departure")}
-              value={flight.departure}
-              placeholder="ICAO"
-              onSelect={(departure) => update({ departure })}
-            />
-          </div>
+        <AirportField
+          label={t("plan.route.departure")}
+          value={flight.departure}
+          placeholder="ICAO"
+          onSelect={(departure) => update({ departure })}
+        >
           <ScheduleButton kind="departure" value={schedule.departure} />
-        </div>
-        <div className="flex items-start gap-2">
-          <div className="flex-1">
-            <AirportField
-              label={t("plan.route.arrival")}
-              value={flight.destination}
-              placeholder="ICAO"
-              onSelect={(destination) => update({ destination })}
-            />
-          </div>
+        </AirportField>
+        <AirportField
+          label={t("plan.route.arrival")}
+          value={flight.destination}
+          placeholder="ICAO"
+          onSelect={(destination) => update({ destination })}
+        >
           <ScheduleButton kind="destination" value={schedule.destination} />
-        </div>
+        </AirportField>
         <AirportField
           label={t("plan.route.alternateAirport")}
           value={flight.alternate}
@@ -184,7 +178,10 @@ export function RouteSection() {
       <RouteStatus plan={plan} loadStatus={loadStatus} />
       {plan && (
         <>
-          <div className="grid gap-2 sm:grid-cols-4" data-testid="route-tiles">
+          <div
+            className="grid grid-cols-2 gap-2 sm:grid-cols-4"
+            data-testid="route-tiles"
+          >
             {[
               [
                 t("plan.route.tile.aircraft"),
@@ -406,7 +403,7 @@ function ScheduleButton({
           variant="outline"
           size="icon"
           className={cn(
-            "mt-6.5 size-12.5 shrink-0",
+            "size-12.5 shrink-0",
             value && "border-primary text-primary",
           )}
           aria-label={title}
@@ -593,8 +590,8 @@ function LegCard({
         : null;
   const hasWx = waypointWindProfile(flight.waypointWx[key]).length > 0;
   return (
-    <li className="grid items-center gap-3 rounded-[14px] border border-[rgba(141,190,255,0.16)] bg-[rgba(16,30,52,0.6)] px-3.5 py-2.5 sm:grid-cols-[2fr_1fr_1fr_1fr]">
-      <div className="flex items-center justify-between gap-2">
+    <li className="grid grid-cols-2 items-center gap-3 rounded-[14px] border border-[rgba(141,190,255,0.16)] bg-[rgba(16,30,52,0.6)] px-3.5 py-2.5 sm:grid-cols-[2fr_1fr_1fr_1fr]">
+      <div className="col-span-2 flex items-center justify-between gap-2 sm:col-span-1">
         <div className="grid">
           <span className={tileLabel}>
             {String(leg.bearingDeg).padStart(3, "0")} deg /{" "}

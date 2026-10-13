@@ -176,7 +176,7 @@ export function FuelSection() {
       ) : (
         <>
           <div className="overflow-x-auto rounded-[14px] border">
-            <table className="w-full min-w-[36rem] text-sm tabular-nums">
+            <table className="w-full text-sm tabular-nums sm:min-w-[36rem]">
               <thead className="bg-[rgba(16,30,52,0.92)] text-xs tracking-[0.06em] uppercase">
                 <tr>
                   <th className="px-2 py-2">{t("plan.fuel.calculation")}</th>

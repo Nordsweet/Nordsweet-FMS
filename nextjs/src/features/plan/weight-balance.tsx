@@ -86,7 +86,7 @@ export function WeightBalanceSection() {
 
   return (
     <Section>
-      <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
         <Card label={t("plan.aircraft.title")}>
           {aircraftLabel(aircraft)}
           {registration && ` / ${registration}`}

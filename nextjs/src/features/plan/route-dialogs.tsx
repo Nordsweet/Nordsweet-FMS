@@ -67,7 +67,7 @@ function restrictionText(
 
 function Cards({ items }: { items: [string, string][] }) {
   return (
-    <div className="grid gap-2 sm:grid-cols-4">
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
       {items.map(([label, value]) => (
         <div key={label} className={card}>
           <span className={cardLabel}>{label}</span>

@@ -108,22 +108,22 @@ export function economySuggestions(
   const candidates = economyAltitudes(cruise);
   if (!candidates.length) return { error: "no-altitudes" as const };
   const winds = windContext(input, plan.points);
-  // Legacy let every point (airports included) go down to sea level, so it suggested "S.L."
-  // everywhere. Airports stay at or above their elevation, en-route points 1000 ft above the higher one.
+  // Legacy let every point go anywhere from sea level up, so it suggested "S.L." en route or
+  // airports at 10,000 ft. Airports sit on their elevation (the lowest candidate at or above it),
+  // en-route points stay 1000 ft above the higher airport.
   const lastPoint = plan.points.length - 1;
+  const lowestFrom = (ft: number) =>
+    candidates.find((c) => c >= ft) ?? candidates.at(-1)!;
   const highestAirportFt = Math.max(
     plan.departure.elevationFt,
     plan.destination.elevationFt,
   );
-  const allowed = (point: number, altitudeFt: number) => {
-    const minimum =
-      point === 0
-        ? plan.departure.elevationFt
-        : point === lastPoint
-          ? plan.destination.elevationFt
-          : highestAirportFt + EN_ROUTE_CLEARANCE_FT;
-    return altitudeFt >= Math.min(minimum, candidates.at(-1)!);
-  };
+  const allowed = (point: number, altitudeFt: number) =>
+    point === 0
+      ? altitudeFt === lowestFrom(plan.departure.elevationFt)
+      : point === lastPoint
+        ? altitudeFt === lowestFrom(plan.destination.elevationFt)
+        : altitudeFt >= lowestFrom(highestAirportFt + EN_ROUTE_CLEARANCE_FT);
   // Dynamic programme over (point, altitude): least fuel, then least time.
   const layers: Cell[][] = [
     candidates.map((ft) => ({

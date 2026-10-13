@@ -21,7 +21,7 @@ import { useT } from "~/i18n/use-t";
 
 /** The original "aircraft card" that holds the section tabs. */
 const setupPanel =
-  "grid gap-3 rounded-[20px] border border-[rgba(141,190,255,0.16)] bg-[radial-gradient(circle_at_top_left,rgba(70,137,213,0.2),transparent_34%),linear-gradient(135deg,rgba(10,26,45,0.92),rgba(6,16,29,0.96))] p-3.75 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]";
+  "grid gap-3 rounded-[20px] border border-[rgba(141,190,255,0.16)] bg-[radial-gradient(circle_at_top_left,rgba(70,137,213,0.2),transparent_34%),linear-gradient(135deg,rgba(10,26,45,0.92),rgba(6,16,29,0.96))] p-3.75 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] max-sm:p-2";
 // Inactive tabs stay mounted (hidden), so inputs such as OAT/QNH survive switching tabs.
 const content = "grid gap-4 data-[state=inactive]:hidden";
 
