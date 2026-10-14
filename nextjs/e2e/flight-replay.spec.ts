@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-// A short local flight from EPKK (792 ft), one sample per second: taxi, take-off roll, climb to
+// A short local flight from EPKK (792 ft): taxi, take-off roll, climb to
 // 3000 ft, cruise, descent, landing roll and stop. Altitudes are MSL.
 function flightGpx() {
   const start = Date.parse("2026-10-13T10:00:00Z");
@@ -27,10 +27,13 @@ function flightGpx() {
   go(20, 20, 70, 0); // landing roll
   go(20, 0, 70, 0); // stopped
   const trkpts = points
+    // Keep source time/distance/altitude, but avoid 432 React commits at 20x on a CPU-only CI map.
+    // Five-second GPS samples still cover every phase and the stopped/on-block dwell.
     .map(
       (p, i) =>
         `<trkpt lat="${p.lat.toFixed(6)}" lon="${p.lon.toFixed(6)}"><ele>${(p.ft * 0.3048).toFixed(1)}</ele><time>${new Date(start + i * 1000).toISOString()}</time></trkpt>`,
     )
+    .filter((_, i) => i % 5 === 0 || i === points.length - 1)
     .join("");
   return `<?xml version="1.0"?><gpx version="1.1" xmlns="http://www.topografix.com/GPX/1/1"><trk><trkseg>${trkpts}</trkseg></trk></gpx>`;
 }

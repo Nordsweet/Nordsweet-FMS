@@ -1268,6 +1268,7 @@ export function MapView({
     }
   }
 
+  const selectionTime = selectedAircraft ? now : 0;
   useEffect(() => {
     if (!ready || !mapRef.current) return;
     const source =
@@ -1282,7 +1283,7 @@ export function MapView({
               selectedAircraft.position_time,
               selectedAircraft.ground_speed_kt,
               selectedAircraft.track_deg,
-              now,
+              selectionTime,
             ) ?? selectedAircraft)
           : null;
     const data =
@@ -1301,7 +1302,7 @@ export function MapView({
             ]
           : [];
     void source.setData({ type: "FeatureCollection", features: data });
-  }, [ready, click, selectedAircraft, inspectionZones, now]);
+  }, [ready, click, selectedAircraft, inspectionZones, selectionTime]);
 
   return (
     <div className="legacy-map absolute inset-0">

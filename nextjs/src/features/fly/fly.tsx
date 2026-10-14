@@ -108,7 +108,8 @@ const deg = (v: number | null) =>
 const utc = (date: Date) => date.toISOString().slice(11, 16) + "Z";
 
 export function FlyPage() {
-  const mapSettings = useMapSettings();
+  const searchOpen = useMapSettings((state) => state.searchOpen);
+  const setSearchOpen = useMapSettings((state) => state.setSearchOpen);
   const t = useT();
   const { flight, route: planRoute } = usePlan();
   const inFlight = useInFlight();
@@ -371,7 +372,7 @@ export function FlyPage() {
                 r.id !== "emer" && "bg-card/90",
               )}
               onClick={() => {
-                mapSettings.setSearchOpen(false);
+                setSearchOpen(false);
                 setPanel(open === r.id ? null : r.id);
               }}
             >
@@ -381,12 +382,12 @@ export function FlyPage() {
           <Button
             aria-label={t("mapsearch.title")}
             title={t("mapsearch.title")}
-            aria-expanded={mapSettings.searchOpen}
+            aria-expanded={searchOpen}
             className="legacy-flight-tool bg-card/90 backdrop-blur"
-            variant={mapSettings.searchOpen ? "default" : "outline"}
+            variant={searchOpen ? "default" : "outline"}
             onClick={() => {
               setPanel(null);
-              mapSettings.setSearchOpen(!mapSettings.searchOpen);
+              setSearchOpen(!searchOpen);
             }}
           >
             <SearchIcon className="size-6 text-white" />
