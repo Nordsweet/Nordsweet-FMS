@@ -32,6 +32,8 @@ import { useInFlight } from "~/stores/inflight";
 
 import { ChartPanel } from "./chart-panel";
 import { CommsPanel } from "./comms-panel";
+import { CommsChangePopup } from "./comms-change-popup";
+import { useCommsPlan } from "./use-comms-plan";
 import { ConfigPanel } from "./config-panel";
 import { EmergencyPanel } from "./emergency-panel";
 import { EventToast } from "./event-toast";
@@ -113,6 +115,7 @@ export function FlyPage() {
   const [debrief, setDebrief] = useState(false);
   // shortcut: the phase is picked by hand; legacy also switched it automatically.
   const { phase, setPhase, config } = inFlight;
+  const comms = useCommsPlan(phase, fix, now, flying);
   const [panel, setPanel] = useState<Panel | null>(null);
 
   useEffect(() => {
@@ -255,7 +258,7 @@ export function FlyPage() {
     ),
     config: <ConfigPanel phase={phase} />,
     chart: <ChartPanel phase={phase} />,
-    comms: <CommsPanel phase={phase} fix={fix} now={now} />,
+    comms: <CommsPanel result={comms} />,
     wx: <BriefingSection />,
     rwy: <PerformanceSection />,
     checklist: (
@@ -295,6 +298,7 @@ export function FlyPage() {
     <div className="bg-background fixed inset-0 z-40">
       <MapWorkspace embedded />
       {flying && <EventToast />}
+      {flying && <CommsChangePopup phase={phase} estimate={comms.estimate} />}
       {flying && <FredaDialog fix={fix} now={now} />}
       {flying && inFlight.replayEnabled && <GpxReplayDock />}
       <div className="bg-card/90 absolute top-3 left-1/2 z-30 flex max-w-[calc(100%-1.5rem)] -translate-x-1/2 gap-2 overflow-x-auto rounded-3xl border p-2 backdrop-blur">
