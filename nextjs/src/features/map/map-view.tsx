@@ -47,6 +47,7 @@ import {
 } from "./symbols";
 import { TrafficCard } from "./traffic-card";
 import { useMapAnimation } from "./use-map-animation";
+import { planAirportFixes } from "~/domain/plan-airport-fixes";
 import { useChartLabels } from "./use-chart-labels";
 import { FloatingDetails } from "./floating-details";
 import { AirspaceDetails } from "./airspace-details";
@@ -181,6 +182,35 @@ export function MapView({
 
   const airports = useQuery(api.airports.list.queryOptions(undefined));
   const navpoints = useQuery(api.navpoints.list.queryOptions(undefined));
+  const procedures = useQuery(api.procedures.all.queryOptions(undefined));
+  const activeEndpoint = navigation.startedAt
+    ? navigation.route.at(-1)?.ident
+    : null;
+  const diversionAirport = navigation.startedAt
+    ? (navigation.divertAirport ??
+      (airports.data?.some((airport) => airport.ident === activeEndpoint)
+        ? activeEndpoint
+        : null))
+    : null;
+  const visibleNavpoints = useMemo(
+    () =>
+      planAirportFixes(
+        navpoints.data ?? [],
+        procedures.data ?? [],
+        (airports.data ?? [])
+          .filter((airport) => airport.isIcao)
+          .map((airport) => airport.ident),
+        [flight.departure?.ident, flight.destination?.ident, diversionAirport],
+      ),
+    [
+      navpoints.data,
+      procedures.data,
+      airports.data,
+      flight.departure?.ident,
+      flight.destination?.ident,
+      diversionAirport,
+    ],
+  );
   const airspace = useQuery(
     api.airspace.around.queryOptions({
       ...AIRSPACE_QUERY,
@@ -697,24 +727,24 @@ export function MapView({
   }, [ready, airports.data]);
 
   useEffect(() => {
-    if (!ready || !navpoints.data) return;
+    if (!ready) return;
     void source("vfr")?.setData(
       toFeatures(
-        navpoints.data
+        visibleNavpoints
           .filter((p) => p.kind === "vfr-reporting-point")
           .map((p) => ({ ...p, symbol: "reporting" })),
       ),
     );
     void source("ifr")?.setData(
       toFeatures(
-        navpoints.data.filter(
+        visibleNavpoints.filter(
           (p) => p.kind !== "vfr-reporting-point" && p.kind !== "navaid",
         ),
       ),
     );
     void source("navaids")?.setData(
       toFeatures(
-        navpoints.data
+        visibleNavpoints
           .filter((p) => p.kind === "navaid")
           .map((p) => ({
             ...p,
@@ -730,7 +760,7 @@ export function MapView({
           })),
       ),
     );
-  }, [ready, navpoints.data]);
+  }, [ready, visibleNavpoints]);
 
   useEffect(() => {
     if (!ready) return;
@@ -805,7 +835,7 @@ export function MapView({
 
   useChartLabels(mapRef, ready, {
     airports: airports.data ?? [],
-    points: navpoints.data ?? [],
+    points: visibleNavpoints,
     zones,
     aircraft: traffic.data?.aircraft ?? [],
     layers,

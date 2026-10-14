@@ -58,6 +58,8 @@ const DEFAULT_CONFIG: FlightConfig = {
 type InFlight = {
   /** null when no flight is in progress. */
   startedAt: string | null;
+  /** Airport selected with Divert, retained across direct-to fixes and reloads. */
+  divertAirport: string | null;
   route: NavPoint[];
   activeLeg: number;
   track: TrackPoint[];
@@ -94,6 +96,8 @@ type InFlight = {
   setActiveLeg: (leg: number) => void;
   goDirect: (targetIndex: number, position: LatLon) => void;
   goToPoint: (target: NavPoint, position: LatLon) => void;
+  /** Replace the remaining route with the diversion airport, retaining flight timers and track. */
+  divertTo: (airport: NavPoint, position: LatLon) => void;
   insertWaypoint: (index: number, point: NavPoint) => void;
   resumeRoute: (route: NavPoint[], position: LatLon) => void;
   record: (point: TrackPoint) => void;
@@ -104,6 +108,7 @@ export const useInFlight = create<InFlight>()(
   persist(
     (set, get) => ({
       startedAt: null,
+      divertAirport: null,
       route: [],
       activeLeg: 0,
       track: [],
@@ -222,6 +227,7 @@ export const useInFlight = create<InFlight>()(
         const now = new Date().toISOString();
         set({
           startedAt: now,
+          divertAirport: null,
           route,
           activeLeg: 0,
           track: [],
@@ -231,7 +237,7 @@ export const useInFlight = create<InFlight>()(
           timers: newTimers(),
         });
       },
-      end: () => set({ startedAt: null }),
+      end: () => set({ startedAt: null, divertAirport: null }),
       setActiveLeg: (activeLeg) => set({ activeLeg }),
       goDirect: (targetIndex, position) =>
         set((s) => ({
@@ -255,6 +261,12 @@ export const useInFlight = create<InFlight>()(
             activeLeg: 0,
           };
         }),
+      divertTo: (airport, position) =>
+        set({
+          route: directTo([airport], position, 0),
+          divertAirport: airport.ident,
+          activeLeg: 0,
+        }),
       insertWaypoint: (index, point) =>
         set((s) => ({
           route: [...s.route.slice(0, index), point, ...s.route.slice(index)],
@@ -263,6 +275,7 @@ export const useInFlight = create<InFlight>()(
       resumeRoute: (route, position) =>
         set({
           route,
+          divertAirport: null,
           activeLeg: computeProgress(route, position, 0)?.activeLeg ?? 0,
         }),
       record: (point) =>
@@ -292,6 +305,7 @@ export const useInFlight = create<InFlight>()(
       },
       partialize: ({
         startedAt,
+        divertAirport,
         route,
         activeLeg,
         track,
@@ -303,6 +317,7 @@ export const useInFlight = create<InFlight>()(
         timers,
       }) => ({
         startedAt,
+        divertAirport,
         route,
         activeLeg,
         track,
