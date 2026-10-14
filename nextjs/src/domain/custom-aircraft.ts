@@ -19,6 +19,17 @@ export const stationIds = [
 ] as const;
 export type StationId = (typeof stationIds)[number];
 
+/** Sections of a built-in aircraft edited as JSON (the form cannot represent their full shape). */
+export const rawSections = [
+  "takeoff",
+  "landing",
+  "climb",
+  "climbTables",
+  "cruise",
+  "checklists",
+] as const;
+export type RawSection = (typeof rawSections)[number];
+
 export type DistanceDraft = {
   /** Take-off or landing; empty rows = no data for this aircraft. */
   surface: "paved" | "grass" | "any";
@@ -34,6 +45,10 @@ export type DistanceDraft = {
 };
 
 export type AircraftDraft = {
+  /** Id of the built-in aircraft this overrides; null for an aircraft of your own. */
+  baseId: string | null;
+  /** JSON text per section of a built-in; a section missing here is kept as bundled. */
+  raw: Partial<Record<RawSection, string>>;
   type: string;
   displayName: string;
   icaoType: string;
@@ -78,6 +93,8 @@ const emptyDistance = (): DistanceDraft => ({
 });
 
 export const emptyDraft = (): AircraftDraft => ({
+  baseId: null,
+  raw: {},
   type: "",
   displayName: "",
   icaoType: "",
@@ -246,9 +263,11 @@ export function buildAircraft(
   draft: AircraftDraft,
   /** Types that already exist (other than the one being edited). */
   takenTypes: readonly string[],
+  /** The built-in aircraft a `baseId` draft overrides. */
+  base?: Aircraft,
 ): BuildResult {
   try {
-    const type = draft.type.trim().toUpperCase();
+    const type = base ? base.type : draft.type.trim().toUpperCase();
     if (!type) fail("required", "type");
     if (blank(draft.icaoType)) fail("required", "icaoType");
     if (
@@ -263,33 +282,31 @@ export function buildAircraft(
       (s) => !blank(s),
     );
     const envelope = filled(wb.envelope, "envelope") as number[][];
-    const climbRows = filled(draft.climb.rows, "climb") as number[][];
-    const cruiseRows = filled(draft.cruise.rows, "cruise", [2]);
     const crosswind = optional(draft.maxCrosswindKt, "windLimits");
     const tailwind = optional(draft.maxTailwindKt, "windLimits");
 
-    const candidate = {
-      id: customAircraftId(type),
-      type,
-      registration: null,
+    const parameters = {
       displayName: draft.displayName.trim() || type,
       icaoType: draft.icaoType.trim().toUpperCase(),
-      // After every legacy type; the type list sorts on this.
-      order: 1000,
       powerplant: draft.powerplant,
       engineCount: optional(draft.engineCount, "engineCount"),
       usableFuelL: optional(draft.usableFuelL, "usableFuelL"),
       fuelTankCapacityL: optional(draft.fuelTankCapacityL, "fuelTankCapacityL"),
       weightBalance: wbUsed
         ? {
+            // chartBounds and the source note stay with a built-in's data.
+            ...base?.weightBalance,
             mtowKg: need(wb.mtowKg, "weightBalance"),
             emptyWeightKg: need(wb.emptyWeightKg, "weightBalance"),
             emptyArmM: need(wb.emptyArmM, "weightBalance"),
-            stations: stationIds.map((id) => ({
-              id,
-              armM: need(wb.stations[id].armM, "weightBalance"),
-              defaultKg: need(wb.stations[id].defaultKg, "weightBalance"),
-            })),
+            // A station with no arm is not on this aircraft (the C152 has three).
+            stations: stationIds
+              .filter((id) => !blank(wb.stations[id].armM))
+              .map((id) => ({
+                id,
+                armM: need(wb.stations[id].armM, "weightBalance"),
+                defaultKg: need(wb.stations[id].defaultKg, "weightBalance"),
+              })),
             fuel: {
               armM: need(wb.fuel.armM, "weightBalance"),
               densityKgPerL: need(wb.fuel.densityKgPerL, "weightBalance"),
@@ -299,53 +316,42 @@ export function buildAircraft(
               weightKg: weightKg!,
               momentKgm: momentKgm!,
             })),
-            source: USER_SOURCE,
+            source: base?.weightBalance?.source ?? USER_SOURCE,
           }
         : null,
-      takeoff: distance(draft.takeoff, "takeoff"),
-      landing: distance(draft.landing, "landing"),
-      climb: climbRows.length
-        ? {
-            label: "Climb",
-            grid: nest(
-              climbRows,
-              ["pressureAltitudeFt", "temperatureC"],
-              ([rateFpm, iasKt]) => ({ rateFpm: rateFpm!, iasKt: iasKt! }),
-              "climb",
-            ),
-            fuelFlowLph: optional(draft.climb.fuelFlowLph, "climb"),
-            draft: true,
-            source: USER_SOURCE,
-          }
-        : null,
-      cruise: cruiseRows.length
-        ? {
-            source: USER_SOURCE,
-            draft: true,
-            rows: cruiseRows.map(
-              ([
-                pressureAltitudeFt,
-                isaDeltaC,
-                setting,
-                ktas,
-                fuelFlowLph,
-              ]) => ({
-                pressureAltitudeFt,
-                isaDeltaC,
-                setting,
-                powerPct: null,
-                ktas,
-                fuelFlowLph,
-              }),
-            ),
-          }
-        : null,
-      checklists: [],
       windLimits:
         crosswind === null && tailwind === null
           ? null
           : { maxCrosswindKt: crosswind, maxTailwindKt: tailwind },
     };
+
+    const edited = Object.fromEntries(
+      rawSections.flatMap((k) => {
+        const text = draft.raw[k];
+        if (text === undefined) return [];
+        try {
+          return [[k, JSON.parse(text) as unknown]];
+        } catch {
+          return fail("invalid", k);
+        }
+      }),
+    );
+
+    const candidate = base
+      ? { ...base, ...parameters, ...edited }
+      : {
+          id: customAircraftId(type),
+          type,
+          registration: null,
+          // After every legacy type; the type list sorts on this.
+          order: 1000,
+          ...parameters,
+          takeoff: distance(draft.takeoff, "takeoff"),
+          landing: distance(draft.landing, "landing"),
+          climb: climb(draft),
+          cruise: cruise(draft),
+          checklists: [],
+        };
     const parsed = aircraftSchema.safeParse(candidate);
     if (!parsed.success) {
       const issue = parsed.error.issues[0]!;
@@ -360,3 +366,110 @@ export function buildAircraft(
     throw error;
   }
 }
+
+function climb(draft: AircraftDraft) {
+  const rows = filled(draft.climb.rows, "climb") as number[][];
+  if (!rows.length) return null;
+  return {
+    label: "Climb",
+    grid: nest(
+      rows,
+      ["pressureAltitudeFt", "temperatureC"],
+      ([rateFpm, iasKt]) => ({ rateFpm: rateFpm!, iasKt: iasKt! }),
+      "climb",
+    ),
+    fuelFlowLph: optional(draft.climb.fuelFlowLph, "climb"),
+    draft: true,
+    source: USER_SOURCE,
+  };
+}
+
+function cruise(draft: AircraftDraft) {
+  const rows = filled(draft.cruise.rows, "cruise", [2]);
+  if (!rows.length) return null;
+  return {
+    source: USER_SOURCE,
+    draft: true,
+    rows: rows.map(
+      ([pressureAltitudeFt, isaDeltaC, setting, ktas, fuelFlowLph]) => ({
+        pressureAltitudeFt,
+        isaDeltaC,
+        setting,
+        powerPct: null,
+        ktas,
+        fuelFlowLph,
+      }),
+    ),
+  };
+}
+
+const text = (n: number | null) => (n === null ? "" : String(n));
+
+const rawText = (a: Aircraft, k: RawSection) => JSON.stringify(a[k], null, 2);
+export const rawFromAircraft = (a: Aircraft) =>
+  Object.fromEntries(rawSections.map((k) => [k, rawText(a, k)]));
+
+/** Drops sections still equal to the bundled data, so only real edits are stored. */
+export const withoutUnchangedRaw = (
+  draft: AircraftDraft,
+  base: Aircraft,
+): AircraftDraft => ({
+  ...draft,
+  raw: Object.fromEntries(
+    Object.entries(draft.raw).filter(
+      ([k, text]) => text !== rawText(base, k as RawSection),
+    ),
+  ),
+});
+
+/** The editable parameters of a built-in aircraft, as form text. */
+export function draftFromAircraft(a: Aircraft): AircraftDraft {
+  const draft = emptyDraft();
+  const wb = a.weightBalance;
+  return {
+    ...draft,
+    baseId: a.id,
+    raw: rawFromAircraft(a),
+    type: a.type,
+    displayName: a.displayName,
+    icaoType: a.icaoType,
+    powerplant: a.powerplant,
+    engineCount: text(a.engineCount),
+    usableFuelL: text(a.usableFuelL),
+    fuelTankCapacityL: text(a.fuelTankCapacityL),
+    maxCrosswindKt: text(a.windLimits?.maxCrosswindKt ?? null),
+    maxTailwindKt: text(a.windLimits?.maxTailwindKt ?? null),
+    weightBalance: wb
+      ? {
+          mtowKg: text(wb.mtowKg),
+          emptyWeightKg: text(wb.emptyWeightKg),
+          emptyArmM: text(wb.emptyArmM),
+          stations: Object.fromEntries(
+            stationIds.map((id) => {
+              const station = wb.stations.find((s) => s.id === id);
+              return [
+                id,
+                {
+                  armM: text(station?.armM ?? null),
+                  defaultKg: text(station?.defaultKg ?? 0),
+                },
+              ];
+            }),
+          ) as AircraftDraft["weightBalance"]["stations"],
+          fuel: {
+            armM: text(wb.fuel.armM),
+            densityKgPerL: text(wb.fuel.densityKgPerL),
+            defaultL: text(wb.fuel.defaultL),
+          },
+          envelope: wb.envelope.map((p) => [
+            text(p.weightKg),
+            text(p.momentKgm),
+          ]),
+        }
+      : draft.weightBalance,
+  };
+}
+
+/** Key a draft is stored and replaced by: the built-in's id, or the id derived from its type. */
+export const draftId = (d: Pick<AircraftDraft, "baseId" | "type">) =>
+  d.baseId ?? customAircraftId(d.type);

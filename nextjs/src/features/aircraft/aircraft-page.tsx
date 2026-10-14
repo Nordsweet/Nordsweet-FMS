@@ -22,7 +22,11 @@ import {
   type Row,
   type StationId,
   buildAircraft,
-  customAircraftId,
+  draftFromAircraft,
+  draftId,
+  rawSections,
+  rawFromAircraft,
+  withoutUnchangedRaw,
   emptyDraft,
   stationIds,
 } from "~/domain/custom-aircraft";
@@ -32,16 +36,20 @@ import { Section } from "~/features/plan/fields";
 
 type T = ReturnType<typeof useT>;
 
+const pick = (o: Record<string, string>, k: string) => ({ [k]: o[k] });
+
 function TextField({
   label,
   value,
   onChange,
   inputMode,
+  disabled,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   inputMode?: "decimal" | "text";
+  disabled?: boolean;
 }) {
   const id = useId();
   return (
@@ -52,6 +60,7 @@ function TextField({
         inputMode={inputMode ?? "decimal"}
         autoComplete="off"
         value={value}
+        disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
       />
     </div>
@@ -234,7 +243,8 @@ export function AircraftPage() {
   const t = useT();
   const client = useQueryClient();
   const drafts = useQuery(api.aircraft.customDrafts.queryOptions(undefined));
-  const bundled = useQuery(api.aircraft.list.queryOptions(undefined));
+  const all = useQuery(api.aircraft.list.queryOptions(undefined));
+  const builtIn = useQuery(api.aircraft.builtIn.queryOptions(undefined));
   const save = useMutation({
     ...api.aircraft.saveCustomDrafts.mutationOptions(),
     onSuccess: () => {
@@ -244,12 +254,19 @@ export function AircraftPage() {
   });
 
   const [draft, setDraft] = useState<AircraftDraft>(emptyDraft);
-  /** Type of the draft being edited, so saving replaces it instead of adding a copy. */
+  /** Id of the draft being edited, so saving replaces it instead of adding a copy. */
   const [editing, setEditing] = useState<string | null>(null);
   const [error, setError] = useState<BuildError | null>(null);
   const [saved, setSaved] = useState<string | null>(null);
 
-  const mine = drafts.data ?? [];
+  const stored = drafts.data ?? [];
+  const mine = stored.filter((d) => !d.baseId);
+  const overrides = new Map(
+    stored.flatMap((d) => (d.baseId ? [[d.baseId, d]] : [])),
+  );
+  const base = draft.baseId
+    ? builtIn.data?.find((a) => a.id === draft.baseId)
+    : undefined;
   const set = (patch: Partial<AircraftDraft>) =>
     setDraft((d) => ({ ...d, ...patch }));
   const setWb = (patch: Partial<AircraftDraft["weightBalance"]>) =>
@@ -263,15 +280,24 @@ export function AircraftPage() {
     setEditing(null);
     setError(null);
   };
+  const edit = (next: AircraftDraft) => {
+    setDraft(next);
+    setEditing(draftId(next));
+    setError(null);
+    setSaved(null);
+  };
 
   const submit = () => {
-    const taken = (bundled.data ?? [])
-      .filter((a) => customAircraftId(a.type) !== editing && a.id !== editing)
-      .map((a) => a.type);
-    const built = buildAircraft(draft, taken);
+    const taken = draft.baseId
+      ? []
+      : (all.data ?? []).filter((a) => a.id !== editing).map((a) => a.type);
+    const built = buildAircraft(draft, taken, base);
     if (!built.ok) return setError(built.error);
     save.mutate(
-      [...mine.filter((d) => customAircraftId(d.type) !== editing), draft],
+      [
+        ...stored.filter((d) => draftId(d) !== editing),
+        base ? withoutUnchangedRaw(draft, base) : draft,
+      ],
       {
         onSuccess: () => {
           setSaved(built.aircraft.type);
@@ -287,7 +313,61 @@ export function AircraftPage() {
       <h1 className="text-xl font-bold">{t("aircraft.title")}</h1>
       <Hint>{t("aircraft.intro")}</Hint>
 
-      <Section>
+      <Section title={t("aircraft.builtIn")}>
+        {(builtIn.data ?? []).map((a) => {
+          const override = overrides.get(a.id);
+          return (
+            <div
+              key={a.id}
+              className="flex flex-wrap items-center justify-between gap-2"
+            >
+              <strong>
+                {a.type}
+                {a.registration && ` / ${a.registration}`} ({a.icaoType})
+                {override && (
+                  <span className="text-accent-2 ml-2 text-xs font-normal">
+                    {t("aircraft.builtIn.modified")}
+                  </span>
+                )}
+              </strong>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    edit(
+                      override
+                        ? {
+                            ...override,
+                            raw: { ...rawFromAircraft(a), ...override.raw },
+                          }
+                        : draftFromAircraft(a),
+                    )
+                  }
+                >
+                  {t("aircraft.list.edit")}
+                </Button>
+                {override && (
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => {
+                      save.mutate(stored.filter((d) => d !== override));
+                      if (editing === a.id) reset();
+                    }}
+                  >
+                    {t("aircraft.builtIn.restore")}
+                  </Button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </Section>
+
+      <Section title={t("aircraft.mine")}>
         {mine.length === 0 && <Hint>{t("aircraft.list.empty")}</Hint>}
         {mine.map((d) => (
           <div
@@ -302,12 +382,7 @@ export function AircraftPage() {
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => {
-                  setDraft(d);
-                  setEditing(customAircraftId(d.type));
-                  setError(null);
-                  setSaved(null);
-                }}
+                onClick={() => edit(d)}
               >
                 {t("aircraft.list.edit")}
               </Button>
@@ -320,8 +395,8 @@ export function AircraftPage() {
                     !confirm(t("aircraft.list.confirmDelete", { type: d.type }))
                   )
                     return;
-                  save.mutate(mine.filter((m) => m !== d));
-                  if (editing === customAircraftId(d.type)) reset();
+                  save.mutate(stored.filter((m) => m !== d));
+                  if (editing === draftId(d)) reset();
                 }}
               >
                 {t("aircraft.list.delete")}
@@ -343,6 +418,7 @@ export function AircraftPage() {
             label={t("aircraft.general.type")}
             inputMode="text"
             value={draft.type}
+            disabled={draft.baseId !== null}
             onChange={(type) => set({ type })}
           />
           <TextField
@@ -492,54 +568,90 @@ export function AircraftPage() {
         />
       </Section>
 
-      <DistanceFields
-        title={t("aircraft.takeoff")}
-        value={draft.takeoff}
-        onChange={(takeoff) => set({ takeoff })}
-      />
-      <DistanceFields
-        title={t("aircraft.landing")}
-        value={draft.landing}
-        onChange={(landing) => set({ landing })}
-      />
-
-      <Section title={t("aircraft.climb")}>
-        <Hint>{t("aircraft.climb.hint")}</Hint>
-        <RowsTable
-          columns={[
-            { label: t("aircraft.col.altitudeFt") },
-            { label: t("aircraft.col.temperatureC") },
-            { label: t("aircraft.col.rateFpm") },
-            { label: t("aircraft.col.iasKt") },
-          ]}
-          rows={draft.climb.rows}
-          onChange={(rows) => set({ climb: { ...draft.climb, rows } })}
-        />
-        <Fields>
-          <TextField
-            label={t("aircraft.climb.fuelFlowLph")}
-            value={draft.climb.fuelFlowLph}
-            onChange={(fuelFlowLph) =>
-              set({ climb: { ...draft.climb, fuelFlowLph } })
-            }
+      {base ? (
+        <>
+          <Hint>{t("aircraft.builtIn.rawHint")}</Hint>
+          {rawSections.map((k) => (
+            <Section key={k} title={t(`aircraft.section.${k}`)}>
+              <textarea
+                aria-label={t(`aircraft.section.${k}`)}
+                spellCheck={false}
+                rows={12}
+                className="border-input w-full rounded-xl border bg-transparent p-3 font-mono text-xs"
+                value={draft.raw[k] ?? ""}
+                onChange={(e) =>
+                  set({ raw: { ...draft.raw, [k]: e.target.value } })
+                }
+              />
+              <div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    set({
+                      raw: { ...draft.raw, ...pick(rawFromAircraft(base), k) },
+                    })
+                  }
+                >
+                  {t("aircraft.builtIn.resetSection")}
+                </Button>
+              </div>
+            </Section>
+          ))}
+        </>
+      ) : (
+        <>
+          <DistanceFields
+            title={t("aircraft.takeoff")}
+            value={draft.takeoff}
+            onChange={(takeoff) => set({ takeoff })}
           />
-        </Fields>
-      </Section>
+          <DistanceFields
+            title={t("aircraft.landing")}
+            value={draft.landing}
+            onChange={(landing) => set({ landing })}
+          />
 
-      <Section title={t("aircraft.cruise")}>
-        <Hint>{t("aircraft.cruise.hint")}</Hint>
-        <RowsTable
-          columns={[
-            { label: t("aircraft.col.altitudeFt") },
-            { label: t("aircraft.col.isaDeltaC") },
-            { label: t("aircraft.col.setting"), text: true },
-            { label: t("aircraft.col.ktas") },
-            { label: t("aircraft.col.fuelFlowLph") },
-          ]}
-          rows={draft.cruise.rows}
-          onChange={(rows) => set({ cruise: { rows } })}
-        />
-      </Section>
+          <Section title={t("aircraft.climb")}>
+            <Hint>{t("aircraft.climb.hint")}</Hint>
+            <RowsTable
+              columns={[
+                { label: t("aircraft.col.altitudeFt") },
+                { label: t("aircraft.col.temperatureC") },
+                { label: t("aircraft.col.rateFpm") },
+                { label: t("aircraft.col.iasKt") },
+              ]}
+              rows={draft.climb.rows}
+              onChange={(rows) => set({ climb: { ...draft.climb, rows } })}
+            />
+            <Fields>
+              <TextField
+                label={t("aircraft.climb.fuelFlowLph")}
+                value={draft.climb.fuelFlowLph}
+                onChange={(fuelFlowLph) =>
+                  set({ climb: { ...draft.climb, fuelFlowLph } })
+                }
+              />
+            </Fields>
+          </Section>
+
+          <Section title={t("aircraft.cruise")}>
+            <Hint>{t("aircraft.cruise.hint")}</Hint>
+            <RowsTable
+              columns={[
+                { label: t("aircraft.col.altitudeFt") },
+                { label: t("aircraft.col.isaDeltaC") },
+                { label: t("aircraft.col.setting"), text: true },
+                { label: t("aircraft.col.ktas") },
+                { label: t("aircraft.col.fuelFlowLph") },
+              ]}
+              rows={draft.cruise.rows}
+              onChange={(rows) => set({ cruise: { rows } })}
+            />
+          </Section>
+        </>
+      )}
 
       {error && (
         <p role="alert" className="text-destructive text-sm">

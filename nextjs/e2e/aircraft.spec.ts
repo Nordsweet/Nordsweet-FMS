@@ -37,3 +37,40 @@ test("a half-filled table row is reported, nothing is saved", async ({
   await expect(page.locator("p[role=alert]")).toContainText("Cruise");
   await expect(page.getByText("No aircraft of your own yet.")).toBeVisible();
 });
+
+test("a built-in aircraft can be modified and restored", async ({ page }) => {
+  await page.goto("/aircraft");
+  const row = page.getByText("C152 (C152)", { exact: false }).first();
+  await row.locator("xpath=..").getByRole("button", { name: "Edit" }).click();
+  await expect(page.getByLabel("Type designation (e.g. C182)")).toBeDisabled();
+  await page.getByLabel("Default fuel (L)").fill("123");
+  await page.getByRole("button", { name: "Save aircraft" }).click();
+  await expect(page.getByText("modified")).toBeVisible();
+
+  await page.goto("/");
+  await page.getByRole("combobox", { name: "Aircraft type" }).click();
+  await page.getByRole("option", { name: "C152 (C152)" }).click();
+  await page.getByRole("tab", { name: "W&B", exact: true }).click();
+  await expect(page.getByLabel("Usable fuel [L]")).toHaveValue("123");
+
+  await page.goto("/aircraft");
+  await page.getByRole("button", { name: "Restore built-in" }).click();
+  await expect(page.getByText("modified")).toHaveCount(0);
+});
+
+test("built-in tables are edited as JSON and invalid JSON is rejected", async ({
+  page,
+}) => {
+  await page.goto("/aircraft");
+  const row = page.getByText("C152 (C152)", { exact: false }).first();
+  await row.locator("xpath=..").getByRole("button", { name: "Edit" }).click();
+  await page.getByLabel("Checklists", { exact: true }).fill("{ nope");
+  await page.getByRole("button", { name: "Save aircraft" }).click();
+  await expect(page.locator("p[role=alert]")).toContainText("Checklists");
+  await expect(page.getByText("modified")).toHaveCount(0);
+
+  await page.getByLabel("Checklists", { exact: true }).fill("[]");
+  await page.getByRole("button", { name: "Save aircraft" }).click();
+  await expect(page.getByText("modified")).toBeVisible();
+  await page.getByRole("button", { name: "Restore built-in" }).click();
+});

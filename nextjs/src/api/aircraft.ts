@@ -19,14 +19,20 @@ export function writeCustomDrafts(drafts: AircraftDraft[]) {
   localStorage.setItem(KEY, JSON.stringify(drafts));
 }
 
-export function readCustomAircraft(): Aircraft[] {
-  return readCustomDrafts().flatMap((draft) => {
-    const built = buildAircraft(draft, []);
-    return built.ok ? [built.aircraft] : [];
-  });
-}
-
-/** Bundled profiles plus the pilot's own: the one list every planner component reads. */
+/** Bundled profiles (with the pilot's edits applied by id) plus the pilot's own: the one list every planner component reads. */
 export async function loadAircraft(): Promise<Aircraft[]> {
-  return [...(await loadDataset("aircraft")), ...readCustomAircraft()];
+  const drafts = readCustomDrafts();
+  const overrides = new Map(
+    drafts.flatMap((d) => (d.baseId ? [[d.baseId, d] as const] : [])),
+  );
+  const builtIn = (await loadDataset("aircraft")).map((a) => {
+    const override = overrides.get(a.id);
+    const built = override && buildAircraft(override, [], a);
+    return built?.ok ? built.aircraft : a;
+  });
+  const own = drafts.flatMap((d) => {
+    const built = d.baseId ? null : buildAircraft(d, []);
+    return built?.ok ? [built.aircraft] : [];
+  });
+  return [...builtIn, ...own];
 }

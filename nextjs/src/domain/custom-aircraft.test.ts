@@ -1,6 +1,15 @@
+import { readFileSync } from "node:fs";
+
 import { describe, expect, it } from "vitest";
 
-import { buildAircraft, emptyDraft } from "./custom-aircraft";
+import { aircraftSchema } from "~/data/aircraft";
+
+import {
+  buildAircraft,
+  draftFromAircraft,
+  emptyDraft,
+  withoutUnchangedRaw,
+} from "./custom-aircraft";
 import { computeDistance } from "./performance";
 
 const minimal = () => ({
@@ -87,6 +96,69 @@ describe("buildAircraft", () => {
     expect(buildAircraft(draft, [])).toMatchObject({
       ok: false,
       error: { code: "incomplete", section: "weightBalance" },
+    });
+  });
+});
+
+describe("built-in aircraft overrides", () => {
+  const builtIn = aircraftSchema
+    .array()
+    .parse(JSON.parse(readFileSync("public/data/aircraft.json", "utf8")));
+
+  it("rebuilds every bundled aircraft unchanged from its own draft", () => {
+    for (const a of builtIn) {
+      const result = buildAircraft(draftFromAircraft(a), [], a);
+      expect(result.ok && result.aircraft, a.id).toEqual(a);
+    }
+  });
+
+  it("applies edited parameters and keeps the POH tables and checklists", () => {
+    const a = builtIn.find((x) => x.id === "R172K")!;
+    const draft = draftFromAircraft(a);
+    draft.usableFuelL = "200";
+    draft.weightBalance.emptyWeightKg = "700";
+    const result = buildAircraft(draft, [], a);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.aircraft.usableFuelL).toBe(200);
+    expect(result.aircraft.weightBalance?.emptyWeightKg).toBe(700);
+    expect(result.aircraft.weightBalance?.envelope).toEqual(
+      a.weightBalance?.envelope,
+    );
+    expect(result.aircraft.takeoff).toEqual(a.takeoff);
+    expect(result.aircraft.cruise).toEqual(a.cruise);
+    expect(result.aircraft.checklists).toEqual(a.checklists);
+  });
+
+  it("edits a built-in table as JSON and stores only the changed section", () => {
+    const a = builtIn.find((x) => x.id === "SD-4")!;
+    const draft = draftFromAircraft(a);
+    const cruise = JSON.parse(draft.raw.cruise!) as {
+      rows: { ktas: number }[];
+    };
+    cruise.rows[0]!.ktas = 99;
+    draft.raw.cruise = JSON.stringify(cruise);
+
+    const stored = withoutUnchangedRaw(draft, a);
+    expect(Object.keys(stored.raw)).toEqual(["cruise"]);
+    const result = buildAircraft(stored, [], a);
+    expect(result.ok && result.aircraft.cruise?.rows[0]?.ktas).toBe(99);
+    expect(result.ok && result.aircraft.takeoff).toEqual(a.takeoff);
+  });
+
+  it("rejects broken JSON and values that break the schema", () => {
+    const a = builtIn.find((x) => x.id === "SD-4")!;
+    const draft = draftFromAircraft(a);
+    draft.raw.landing = "{ nope";
+    expect(buildAircraft(draft, [], a)).toMatchObject({
+      ok: false,
+      error: { code: "invalid", section: "landing" },
+    });
+    draft.raw.landing = draftFromAircraft(a).raw.landing;
+    draft.raw.checklists = '[{"id": 1}]';
+    expect(buildAircraft(draft, [], a)).toMatchObject({
+      ok: false,
+      error: { code: "invalid", section: "checklists" },
     });
   });
 });

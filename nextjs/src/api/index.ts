@@ -105,6 +105,11 @@ export const api = {
   aircraft: {
     // Local and cheap: always re-read, so a just-saved custom aircraft shows up.
     list: query("aircraft.list", loadAircraft, { staleTime: 0 }),
+    builtIn: query(
+      "aircraft.builtIn",
+      () => loadDataset("aircraft"),
+      reference,
+    ),
     customDrafts: query(
       "aircraft.customDrafts",
       async () => readCustomDrafts(),
