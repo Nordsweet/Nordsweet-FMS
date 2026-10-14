@@ -83,6 +83,8 @@ merged to `develop`. One owner per row.
 | Saved flights library (rename, route-only import, GPX/KML route export)                                                                         | done                            |                   | Immediate snapshot/download, rename, per-flight .nord/GPX/KML export, return-to-route load; existing route-only import retained. PR #3 merged into develop.                                                                                                                                                                                                                                                                                                                                                              |
 | PFD, chart viewer, editors, company flights                                                                                                     | out of scope                    |                   | only if the owner asks                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 
+| Map/Fly square controls and EMER appearance | in progress | Codex 2026-10-14 | Match original rounded square tool controls; red EMER fill at 75% with white text. |
+
 ## 5. Known legacy bugs / intended differences
 
 Record every one you find here (and assert it in a test).
