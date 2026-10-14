@@ -55,3 +55,5 @@ a fixed zoom and screen size. Existing import, route editing, restrictions,
 traffic history, destination reveal, GPS, persistence and offline tests remain.
 
 Traffic, route waypoint and GPS vector labels retain their legacy independence from the Labels checkbox. Traffic labels use the strict longitude-span boundary below 8 degrees.
+
+Control shape follow-up (2026-10-14): tool rail and shared Map/Fly Layers button use 3.45rem squares with 13px corner radius, matching original flight tools. Owner requested Layers to be square too. EMER has white text and red rgba(255, 0, 0, 0.75) fill, including its expanded state.

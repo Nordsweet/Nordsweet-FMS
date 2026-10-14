@@ -18,6 +18,10 @@ does not expose navigation start/end controls. Application behavior is unchanged
 
 Restored the original two zoom stages: ICAO codes and point names at legacy zoom 9, full airport names, elevation and runway length at zoom 10. Airspace names remain visible at every zoom. Route/GPS labels ignore the Labels checkbox; traffic labels use the original view width below 8 degrees independently of that checkbox. Golden fixtures record the reference implementation around both thresholds.
 
+## Map/Fly control shape (2026-10-14)
+
+Tool rail buttons and the shared Layers control now use the original flight-tool dimensions: 3.45rem square and 13px rounded corners. EMER uses a 75% red fill and white text in both collapsed and expanded states. Phase tabs retain their original tab shape.
+
 ## Acceptance inventory
 
 Map appearance follow-up: restore the legacy map palette, local chart symbols,
