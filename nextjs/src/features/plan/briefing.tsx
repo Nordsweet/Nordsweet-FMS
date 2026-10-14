@@ -11,9 +11,11 @@ import { Label } from "~/components/ui/label";
 import { type FlightPoint } from "~/data/flight";
 import { useT } from "~/i18n/use-t";
 import { cn } from "~/lib/utils";
+import { useAtis } from "~/stores/atis";
 import { useSettings } from "~/stores/settings";
 import { useFlight } from "~/stores/flight";
 
+import { AtisPadDialog } from "./atis-pad";
 import { Section, fmt } from "./fields";
 import { useBriefing } from "./weather";
 
@@ -48,6 +50,8 @@ export function AirportBriefing({
     api.charts.byAirport.queryOptions({ airport: point.ident }),
   );
   const data = briefing.data;
+  const [atisOpen, setAtisOpen] = useState(false);
+  const openAtis = useAtis((s) => s.open);
   const notamSource =
     data?.sources.notamify === "ok" || data?.sources.notac === "ok"
       ? "ok"
@@ -69,6 +73,21 @@ export function AirportBriefing({
           </span>
         )}
       </h3>
+      <div>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => {
+            openAtis(point.ident);
+            setAtisOpen(true);
+          }}
+        >
+          {t("atis.insert")}
+        </Button>
+      </div>
+      {atisOpen && (
+        <AtisPadDialog point={point} open onOpenChange={setAtisOpen} />
+      )}
       {charts.data && charts.data.length > 0 && (
         <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm">
           <span className="font-medium">{t("plan.wx.charts")}:</span>
