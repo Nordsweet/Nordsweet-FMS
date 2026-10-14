@@ -177,7 +177,9 @@ export function useChartLabels(
                 ctx,
                 p.lat,
                 p.lon,
-                p.name || p.ident,
+                p.kind === "vfr-reporting-point"
+                  ? (p.aliases[0] ?? p.ident)
+                  : p.name || p.ident,
                 color,
                 "600 9px system-ui,sans-serif",
                 6,

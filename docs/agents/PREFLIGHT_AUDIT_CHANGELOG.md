@@ -34,6 +34,10 @@ Aircraft details now open beside the projected aircraft position and follow map 
 
 Hide airspace labels in the distant view. At the point-name zoom show only class/designator (R 11, P 23, TR 165). At the next zoom show the centered full name below it if both text lines fit entirely inside the projected polygon; holes and concave boundaries are respected. This intentionally replaces the original always-visible zone-name rule per the owner’s new request.
 
+## Compact reporting-point captions (2026-10-14)
+
+Map/Fly captions now use the existing compact VFR alias: EPNT ALFA → EPNTA, EPNT BRAVO → EPNTB, etc. The same format is used for reporting points drawn as route markers.
+
 ## Acceptance inventory
 
 Map appearance follow-up: restore the legacy map palette, local chart symbols,
