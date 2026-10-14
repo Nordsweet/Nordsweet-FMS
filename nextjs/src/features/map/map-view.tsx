@@ -983,7 +983,12 @@ export function MapView({
         const el = document.createElement("div");
         el.className = "legacy-route-marker";
         el.dataset.routeMarker = p.ident;
-        el.textContent = p.ident;
+        el.textContent =
+          navpoints.data?.find(
+            (point) =>
+              point.kind === "vfr-reporting-point" &&
+              (point.ident === p.ident || point.aliases.includes(p.ident)),
+          )?.aliases[0] ?? p.ident;
         el.style.cursor = "pointer";
         el.style.display = layers.route ? "" : "none";
         el.tabIndex = 0;
@@ -1026,6 +1031,7 @@ export function MapView({
     airports.data,
     plannedRoute,
     layers.route,
+    navpoints.data,
   ]);
 
   useEffect(() => {
