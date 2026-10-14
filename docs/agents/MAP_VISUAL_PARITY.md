@@ -57,3 +57,5 @@ traffic history, destination reveal, GPS, persistence and offline tests remain.
 Traffic, route waypoint and GPS vector labels retain their legacy independence from the Labels checkbox. Traffic labels use the strict longitude-span boundary below 8 degrees.
 
 Control shape follow-up (2026-10-14): tool rail and shared Map/Fly Layers button use 3.45rem squares with 13px corner radius, matching original flight tools. Owner requested Layers to be square too. EMER has white text and red rgba(255, 0, 0, 0.75) fill, including its expanded state.
+
+Airspace caption policy (2026-10-14, supersedes unconditional legacy zone labels by owner request): hide below legacy zoom 9 / MapLibre 8; show class/designator at that zoom; at legacy zoom 10 / MapLibre 9 show the descriptive name below it only when the entire centered text rectangle fits inside the projected polygon, excluding holes and concave cuts. Otherwise retain the short designator.
