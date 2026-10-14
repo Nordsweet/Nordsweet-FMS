@@ -2,7 +2,8 @@
 
 import "maplibre-gl/dist/maplibre-gl.css";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { SearchIcon } from "lucide-react";
 import type * as maplibregl from "maplibre-gl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -10,7 +11,16 @@ import { createPortal } from "react-dom";
 import { api } from "~/api";
 import { Button } from "~/components/ui/button";
 import { type AirspacePlan } from "~/api/aviation/client";
-import { type TrafficAircraft } from "~/api/aviation/schemas";
+import {
+  type TrafficAircraft,
+  type AirspaceFeature,
+} from "~/api/aviation/schemas";
+import {
+  findMapObjects,
+  mapSearchKey,
+  type MapSearchResult,
+} from "~/domain/map-search";
+import { MapSearch } from "./map-search";
 import {
   pointKey,
   formatRoutePoint,
@@ -58,6 +68,7 @@ import { useFlight } from "~/stores/flight";
 export type { Basemap, LayerId } from "~/stores/map";
 
 type Props = {
+  embedded?: boolean;
   basemap: Basemap;
   layers: Record<LayerId, boolean>;
   plan: AirspacePlan | "none";
@@ -98,18 +109,24 @@ const CLASS_FILL: maplibregl.ExpressionSpecification = [
 type Click =
   | {
       kind: "segment";
-      lngLat: maplibregl.LngLat;
+      lngLat: { lng: number; lat: number };
     }
   | {
       kind: "airspace";
-      lngLat: maplibregl.LngLat;
+      lngLat: { lng: number; lat: number };
+      zone?: AirspaceFeature;
     }
   | {
       kind: "point";
-      lngLat: maplibregl.LngLat;
+      lngLat: { lng: number; lat: number };
       point: FlightPoint & { name: string; kind: string };
     }
-  | { kind: "traffic"; lngLat: maplibregl.LngLat; hex: string };
+  | {
+      kind: "traffic";
+      lngLat: { lng: number; lat: number };
+      hex: string;
+      aircraft?: TrafficAircraft;
+    };
 
 const toFeatures = (
   rows: {
@@ -137,6 +154,7 @@ const toFeatures = (
 });
 
 export function MapView({
+  embedded = false,
   basemap,
   layers,
   plan,
@@ -144,6 +162,7 @@ export function MapView({
   toolsContainer,
 }: Props) {
   const t = useT();
+  const client = useQueryClient();
   const container = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markers = useRef<maplibregl.Marker[]>([]);
@@ -264,7 +283,11 @@ export function MapView({
   );
   const selectedAircraft =
     click?.kind === "traffic" && layers.traffic
-      ? (traffic.data?.aircraft.find((a) => a.hex === click.hex) ?? null)
+      ? (traffic.data?.aircraft.find((a) => a.hex === click.hex) ??
+        (click.aircraft &&
+        now - Date.parse(click.aircraft.position_time) < 60_000
+          ? click.aircraft
+          : null))
       : null;
   const selectedSegment =
     click?.kind === "segment"
@@ -273,15 +296,20 @@ export function MapView({
           lon: click.lngLat.lng,
         })
       : null;
-  const inspectionZones =
-    click?.kind === "airspace"
-      ? zones.filter((zone) =>
-          polygonContainsPoint(zone.geometry.coordinates, {
-            lat: click.lngLat.lat,
-            lon: click.lngLat.lng,
-          }),
-        )
-      : [];
+  const inspectionZones = useMemo(
+    () =>
+      click?.kind === "airspace"
+        ? click.zone
+          ? [click.zone]
+          : zones.filter((zone) =>
+              polygonContainsPoint(zone.geometry.coordinates, {
+                lat: click.lngLat.lat,
+                lon: click.lngLat.lng,
+              }),
+            )
+        : [],
+    [click, zones],
+  );
   const selectedHistory = useMemo(
     () =>
       selectedAircraft
@@ -680,6 +708,34 @@ export function MapView({
         camera();
         map.on("move", camera);
         mapRef.current = map;
+        map.addSource("search-selection", { type: "geojson", data: empty });
+        map.addLayer({
+          id: "search-selection-fill",
+          type: "fill",
+          source: "search-selection",
+          filter: ["==", ["geometry-type"], "Polygon"],
+          paint: { "fill-color": "#ffb000", "fill-opacity": 0.2 },
+        });
+        map.addLayer({
+          id: "search-selection-line",
+          type: "line",
+          source: "search-selection",
+          filter: ["==", ["geometry-type"], "Polygon"],
+          paint: { "line-color": "#ffb000", "line-width": 3 },
+        });
+        map.addLayer({
+          id: "search-selection-point",
+          type: "circle",
+          source: "search-selection",
+          filter: ["==", ["geometry-type"], "Point"],
+          paint: {
+            "circle-radius": 17,
+            "circle-color": "#ffb000",
+            "circle-opacity": 0.2,
+            "circle-stroke-color": "#ffb000",
+            "circle-stroke-width": 3,
+          },
+        });
         setReady(true);
       });
     });
@@ -1076,13 +1132,215 @@ export function MapView({
     setClick(null);
   };
 
+  async function searchObjects(text: string) {
+    const [fields, points, publishedProcedures] = await Promise.all([
+      client.ensureQueryData(api.airports.list.queryOptions(undefined)),
+      client.ensureQueryData(api.navpoints.list.queryOptions(undefined)),
+      client.ensureQueryData(api.procedures.all.queryOptions(undefined)),
+    ]);
+    const allZones = [
+      ...(airspace.data?.features ?? []),
+      ...(imported.data ?? []),
+    ];
+    const base = {
+      airports: fields,
+      points: planAirportFixes(
+        points,
+        publishedProcedures,
+        fields.map((a) => a.ident),
+        fields.map((a) => a.ident),
+      ),
+      zones: allZones,
+      aircraft: traffic.data?.aircraft ?? [],
+    };
+    const local = findMapObjects(text, base);
+    // A known static identifier needs no network, including when the device is offline.
+    if (local.length && local.every((result) => result.kind !== "traffic"))
+      return local;
+    if (!airspace.data) {
+      const loaded = await client
+        .ensureQueryData({
+          ...api.airspace.around.queryOptions({
+            ...AIRSPACE_QUERY,
+            plan: plan === "none" ? "current" : plan,
+          }),
+          retry: false,
+        })
+        .catch(() => null);
+      base.zones = [...(loaded?.features ?? []), ...(imported.data ?? [])];
+      const matches = findMapObjects(text, base);
+      if (
+        matches.length &&
+        matches.every((result) => result.kind !== "traffic")
+      )
+        return matches;
+    }
+    const center = mapRef.current?.getCenter();
+    const snapshot = await client
+      .fetchQuery({
+        ...api.traffic.around.queryOptions({
+          lat: center?.lat ?? view.lat,
+          lon: center?.lng ?? view.lon,
+          radiusNm: 250,
+        }),
+        retry: false,
+      })
+      .catch(() => null);
+    const aircraft = snapshot?.aircraft ?? base.aircraft;
+    let results = findMapObjects(text, { ...base, aircraft });
+    if (
+      !results.length &&
+      /^[A-Z0-9]{2}\d{1,4}[A-Z]?$/.test(mapSearchKey(text))
+    ) {
+      const aliases = await client.fetchQuery({
+        ...api.traffic.identifiers.queryOptions({
+          callsign: mapSearchKey(text),
+        }),
+        retry: false,
+      });
+      results = findMapObjects(text, { ...base, aircraft }, aliases);
+    }
+    if (!results.length && !snapshot) throw new Error("Traffic unavailable");
+    return results;
+  }
+
+  function selectSearchResult(result: MapSearchResult) {
+    const map = mapRef.current;
+    if (!map) return;
+    settings.follow(false);
+    settings.setSearchOpen(false);
+    if (result.kind === "airspace") {
+      const [west, south, east, north] = result.zone.bbox;
+      setClick({
+        kind: "airspace",
+        zone: result.zone,
+        lngLat: { lng: (west + east) / 2, lat: (south + north) / 2 },
+      });
+      map.fitBounds(
+        [
+          [west, south],
+          [east, north],
+        ],
+        { padding: 90, maxZoom: 11, duration: 700 },
+      );
+    } else {
+      const point =
+        result.kind === "point"
+          ? result.point
+          : (projectedPosition(
+              result.aircraft,
+              result.aircraft.position_time,
+              result.aircraft.ground_speed_kt,
+              result.aircraft.track_deg,
+              Date.now(),
+            ) ?? result.aircraft);
+      setClick(
+        result.kind === "point"
+          ? {
+              kind: "point",
+              point: result.point,
+              lngLat: { lng: point.lon, lat: point.lat },
+            }
+          : {
+              kind: "traffic",
+              hex: result.aircraft.hex,
+              aircraft: result.aircraft,
+              lngLat: { lng: point.lon, lat: point.lat },
+            },
+      );
+      const layer =
+        result.kind === "traffic"
+          ? "traffic"
+          : result.point.kind === "airport"
+            ? "airports"
+            : result.point.kind === "navaid"
+              ? "navaids"
+              : result.point.kind === "vfr-reporting-point" ||
+                  result.point.kind === "airfield"
+                ? "vfr"
+                : "ifr";
+      settings.update({ layers: { ...settings.layers, [layer]: true } });
+      map.flyTo({
+        center: [point.lon, point.lat],
+        zoom: Math.max(9, map.getZoom()),
+        duration: 700,
+      });
+    }
+  }
+
+  const selectionTime = selectedAircraft ? now : 0;
+  useEffect(() => {
+    if (!ready || !mapRef.current) return;
+    const source =
+      mapRef.current.getSource<maplibregl.GeoJSONSource>("search-selection");
+    if (!source) return;
+    const point =
+      click?.kind === "point"
+        ? click.point
+        : selectedAircraft
+          ? (projectedPosition(
+              selectedAircraft,
+              selectedAircraft.position_time,
+              selectedAircraft.ground_speed_kt,
+              selectedAircraft.track_deg,
+              selectionTime,
+            ) ?? selectedAircraft)
+          : null;
+    const data =
+      click?.kind === "airspace"
+        ? inspectionZones
+        : point
+          ? [
+              {
+                type: "Feature" as const,
+                properties: {},
+                geometry: {
+                  type: "Point" as const,
+                  coordinates: [point.lon, point.lat],
+                },
+              },
+            ]
+          : [];
+    void source.setData({ type: "FeatureCollection", features: data });
+  }, [ready, click, selectedAircraft, inspectionZones, selectionTime]);
+
   return (
     <div className="legacy-map absolute inset-0">
+      {!embedded && (
+        <Button
+          aria-label={t("mapsearch.title")}
+          title={t("mapsearch.title")}
+          aria-expanded={settings.searchOpen}
+          className="legacy-flight-tool bg-card/90 absolute top-3 right-3 z-30 backdrop-blur"
+          variant="outline"
+          disabled={!ready}
+          onClick={() => settings.setSearchOpen(!settings.searchOpen)}
+        >
+          <SearchIcon className="size-6 text-white" />
+        </Button>
+      )}
+      {settings.searchOpen && (
+        <MapSearch
+          search={searchObjects}
+          select={selectSearchResult}
+          close={() => settings.setSearchOpen(false)}
+        />
+      )}
       <div
         ref={container}
         className="h-full w-full"
         data-testid="map"
         data-map-ready={ready}
+        data-selected-kind={click?.kind}
+        data-selected-ident={
+          click?.kind === "point"
+            ? click.point.ident
+            : click?.kind === "traffic"
+              ? click.hex
+              : click?.kind === "airspace"
+                ? click.zone?.properties.name
+                : undefined
+        }
       />
       {toolsContainer &&
         createPortal(
