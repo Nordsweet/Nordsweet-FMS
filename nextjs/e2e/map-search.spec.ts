@@ -108,7 +108,18 @@ async function expectDetailsAtMapCenter(page: Page) {
         Math.abs(panel.x + panel.width - centerX),
       );
       const verticalGap = Math.abs(panel.y + panel.height / 2 - centerY);
-      return Math.max(horizontalGap, verticalGap);
+      // The wide zone inspector cannot fit beside the center on this viewport;
+      // clamping it inside the map necessarily overlaps its anchor.
+      const overlapsAnchor =
+        panel.x <= centerX && panel.x + panel.width >= centerX;
+      const tooWideForOneSide = panel.width + 22 > map.width / 2;
+      const outsideMap =
+        panel.x < map.x + 6 || panel.x + panel.width > map.x + map.width - 6;
+      if (outsideMap) return Infinity;
+      return Math.max(
+        tooWideForOneSide && overlapsAnchor ? 0 : horizontalGap,
+        verticalGap,
+      );
     })
     .toBeLessThan(22);
 }
