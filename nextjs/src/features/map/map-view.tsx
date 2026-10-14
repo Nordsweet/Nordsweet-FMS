@@ -2,7 +2,11 @@
 
 import "maplibre-gl/dist/maplibre-gl.css";
 
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { SearchIcon } from "lucide-react";
 import type * as maplibregl from "maplibre-gl";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -246,6 +250,8 @@ export function MapView({
     ...api.traffic.around.queryOptions(view),
     enabled: ready && layers.traffic,
     refetchInterval: 15_000,
+    // A new viewport is a new query key; keep the old aircraft on screen until it loads.
+    placeholderData: keepPreviousData,
   });
   const zones = useMemo(
     () =>
