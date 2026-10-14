@@ -9,6 +9,7 @@ import {
 import { useT } from "~/i18n/use-t";
 import { cn } from "~/lib/utils";
 import { useFlight } from "~/stores/flight";
+import { useInFlight } from "~/stores/inflight";
 
 import { OverrideCell, OverrideInput, Section, litres, num } from "./fields";
 import { usePlan } from "./use-plan";
@@ -22,6 +23,8 @@ export function WeightBalanceSection() {
   const t = useT();
   const { flight, aircraft, weightBalance: sheet } = usePlan();
   const update = useFlight((s) => s.update);
+  // Legacy shows the flight view's phase (taxi-out before a flight).
+  const phase = useInFlight((s) => s.phase);
   const wb = aircraft?.weightBalance;
 
   if (!aircraft || !wb || !sheet)
@@ -74,7 +77,7 @@ export function WeightBalanceSection() {
     testId: string,
   ) => (
     <tr
-      className="border-border border-t bg-[rgba(16,30,52,0.6)] font-semibold"
+      className="border-border border-t bg-[#e8e35a] font-semibold text-[#111827]"
       data-testid={testId}
     >
       <td className="px-2 py-2">{label}</td>
@@ -86,11 +89,12 @@ export function WeightBalanceSection() {
 
   return (
     <Section>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
         <Card label={t("plan.aircraft.title")}>
           {aircraftLabel(aircraft)}
           {registration && ` / ${registration}`}
         </Card>
+        <Card label={t("plan.wb.phase")}>{t(`fly.phase.${phase}`)}</Card>
         <Card label={t("plan.wb.loadedWeight")}>
           {num(sheet.takeoff.totalKg, 1)} kg
         </Card>
@@ -135,7 +139,7 @@ export function WeightBalanceSection() {
                 <tr className="border-border border-t">
                   <td
                     colSpan={4}
-                    className="text-accent-2 px-2 py-1.5 text-xs font-bold tracking-[0.08em] uppercase"
+                    className="bg-[linear-gradient(90deg,rgba(122,243,211,0.92),rgba(93,193,255,0.85))] px-2 py-1.5 text-center text-xs font-bold tracking-[0.08em] text-[#06101b] uppercase"
                   >
                     {t("plan.wb.usefulLoad")}
                   </td>

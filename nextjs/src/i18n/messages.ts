@@ -621,6 +621,8 @@ const pl = {
   "plan.saved.rename": "Zmień nazwę",
   "plan.saved.saveError": "Nie udało się zapisać lotu. Spróbuj ponownie.",
   "plan.saved.saved": "Lot zapisany",
+  "plan.saved.savedAt": "Zapisano {date}",
+  "plan.wb.phase": "Faza",
 
   "settings.unknownAirport": "Nieznane lotnisko",
   "plan.route.arrival": "Lotnisko docelowe",
@@ -1380,6 +1382,8 @@ const en: Record<MessageKey, string> = {
   "plan.saved.exportRoute": "Export {format}",
   "plan.saved.rename": "Rename",
   "plan.saved.saveError": "Unable to save this flight. Please try again.",
+  "plan.saved.savedAt": "Saved {date}",
+  "plan.wb.phase": "Phase",
   "plan.saved.saved": "Flight saved",
 
   "settings.unknownAirport": "Unknown airport",

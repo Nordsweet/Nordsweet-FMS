@@ -12,7 +12,7 @@ import { type Flight, newFlight } from "~/data/flight";
 import { useT } from "~/i18n/use-t";
 import { useFlight } from "~/stores/flight";
 
-import { Section } from "./fields";
+import { Section, num } from "./fields";
 import { usePlan } from "./use-plan";
 
 function download(fileName: string, text: string) {
@@ -33,7 +33,7 @@ export function SavedFlightsSection({ onLoaded }: { onLoaded?: () => void }) {
   const fileInput = useRef<HTMLInputElement>(null);
   const [error, setError] = useState("");
   const queryClient = useQueryClient();
-  const { flight, exportPoints } = usePlan();
+  const { flight, exportPoints, aircraftList } = usePlan();
   const [renaming, setRenaming] = useState<Flight | null>(null);
   const [renameText, setRenameText] = useState("");
   const update = useFlight((s) => s.update);
@@ -170,9 +170,15 @@ export function SavedFlightsSection({ onLoaded }: { onLoaded?: () => void }) {
             <span className="flex-1">
               {f.name ||
                 `${f.departure?.ident ?? "?"} → ${f.destination?.ident ?? "?"}`}
-              <span className="text-muted-foreground">
-                {" "}
-                · {new Date(f.savedAt).toLocaleString()}
+              <span className="text-muted-foreground block text-xs">
+                {[
+                  aircraftList.find((a) => a.id === f.aircraftId)?.type,
+                  t("plan.saved.savedAt", {
+                    date: new Date(f.savedAt).toLocaleString(),
+                  }),
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
               </span>
             </span>
             <Button
@@ -221,7 +227,7 @@ export function SavedFlightsSection({ onLoaded }: { onLoaded?: () => void }) {
 /** Legacy header action saves a fresh snapshot and downloads it without leaving the planner. */
 export function SaveFlightButton() {
   const t = useT();
-  const { flight, exportPoints } = usePlan();
+  const { flight, exportPoints, plan } = usePlan();
   const client = useQueryClient();
   const [message, setMessage] = useState("");
   const save = useMutation({
@@ -250,7 +256,13 @@ export function SaveFlightButton() {
         disabled={save.isPending || !flight.departure || !flight.destination}
         onClick={() => {
           setMessage("");
-          save.mutate(flight);
+          // Legacy names an unnamed snapshot after its route: "EPKK -> EPGD / 262.5 NM".
+          save.mutate({
+            ...flight,
+            name:
+              flight.name.trim() ||
+              `${flight.departure?.ident} -> ${flight.destination?.ident}${plan ? ` / ${num(plan.totalDistanceNm)} NM` : ""}`,
+          });
         }}
       >
         {t("plan.saveFlight")}
