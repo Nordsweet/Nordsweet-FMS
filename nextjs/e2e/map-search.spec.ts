@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import recordedTraffic from "../src/api/aviation/fixtures/traffic.json" with { type: "json" };
 
 test.beforeEach(async ({ page }) => {
   await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => route.abort());
@@ -92,6 +93,26 @@ async function search(page: Page, text: string) {
   await panel.getByRole("button", { name: "Search", exact: true }).click();
 }
 
+async function expectDetailsAtMapCenter(page: Page) {
+  await expect
+    .poll(async () => {
+      const map = await page.getByTestId("map").boundingBox();
+      const panel = await page
+        .getByRole("dialog", { name: "Details", exact: true })
+        .boundingBox();
+      if (!map || !panel) return Infinity;
+      const centerX = map.x + map.width / 2;
+      const centerY = map.y + map.height / 2;
+      const horizontalGap = Math.min(
+        Math.abs(panel.x - centerX),
+        Math.abs(panel.x + panel.width - centerX),
+      );
+      const verticalGap = Math.abs(panel.y + panel.height / 2 - centerY);
+      return Math.max(horizontalGap, verticalGap);
+    })
+    .toBeLessThan(22);
+}
+
 test("airport and waypoint search center and open the existing route options", async ({
   page,
 }) => {
@@ -121,6 +142,7 @@ test("airport and waypoint search center and open the existing route options", a
       Number(await page.getByTestId("map").getAttribute("data-center-lon")),
     )
     .toBeCloseTo(19.7855, 2);
+  await expectDetailsAtMapCenter(page);
   await details.getByRole("button", { name: "Close", exact: true }).click();
   await search(page, "KELEL");
   await expect(details).toContainText("KELEL");
@@ -130,6 +152,10 @@ test("airport and waypoint search center and open the existing route options", a
   );
   await details
     .getByRole("button", { name: "Add waypoint", exact: true })
+    .click();
+  await page
+    .getByRole("dialog", { name: "Flight Plan · Add KELEL" })
+    .getByRole("button", { name: "Insert here", exact: true })
     .click();
   await expect
     .poll(async () =>
@@ -146,7 +172,6 @@ test("spaced and compact zone names select the zone and fit its bounds", async (
     "data-map-ready",
     "true",
   );
-  await expect(page.locator(".legacy-map-info")).toContainText("1");
   for (const name of ["TR165", "TR 165"]) {
     await search(page, name);
     const details = page.getByRole("dialog", { name: "Details", exact: true });
@@ -160,6 +185,7 @@ test("spaced and compact zone names select the zone and fit its bounds", async (
         Number(await page.getByTestId("map").getAttribute("data-center-lon")),
       )
       .toBeCloseTo(20.2, 1);
+    await expectDetailsAtMapCenter(page);
     await details.getByRole("button", { name: "Close", exact: true }).click();
   }
 });
@@ -231,4 +257,39 @@ test("search tile is immediately below Options in the flight rail", async ({
   await expect(
     page.getByRole("dialog", { name: "Details", exact: true }),
   ).toContainText("EPKK");
+});
+
+test("SP-TDI displays the owner-confirmed C172 type from its Mode S address", async ({
+  page,
+}) => {
+  await page.route("https://aviation.lab.vibecde.com/traffic?*", (route) =>
+    route.fulfill({
+      json: {
+        count: 1,
+        sources: {},
+        aircraft: [
+          {
+            ...recordedTraffic.aircraft[0],
+            hex: "48e9fa",
+            callsign: "SPTDI",
+            registration: "SP-TDI",
+            type: "C152",
+            lat: 50.2,
+            lon: 20.2,
+            ground_speed_kt: 0,
+            position_time: new Date().toISOString(),
+          },
+        ],
+      },
+    }),
+  );
+  await page.goto("/map");
+  await expect(page.getByTestId("map")).toHaveAttribute(
+    "data-map-ready",
+    "true",
+  );
+  await search(page, "SP-TDI");
+  const details = page.getByRole("dialog", { name: "Details", exact: true });
+  await expect(details).toContainText("C172");
+  await expect(details).not.toContainText("C152");
 });

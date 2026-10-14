@@ -25,6 +25,8 @@ import {
   type MapSearchResult,
 } from "~/domain/map-search";
 import { MapSearch } from "./map-search";
+import { WaypointInsertionDialog } from "./waypoint-insertion-dialog";
+import { anchoredWaypoint } from "~/domain/waypoint-insertion";
 import {
   pointKey,
   formatRoutePoint,
@@ -177,6 +179,9 @@ export function MapView({
   } | null>(null);
   const [ready, setReady] = useState(false);
   const [click, setClick] = useState<Click | null>(null);
+  const [insertingPoint, setInsertingPoint] = useState<FlightPoint | null>(
+    null,
+  );
   const flight = useFlight((s) => s.flight);
   const update = useFlight((s) => s.update);
   const { route: plannedRoute, plan: routePlan, cruiseSpeedKt } = usePlan();
@@ -1127,7 +1132,7 @@ export function MapView({
     as: "departure" | "destination" | "waypoint",
   ) => {
     const p = { ident: point.ident, lat: point.lat, lon: point.lon };
-    if (as === "waypoint") update({ waypoints: [...flight.waypoints, p] });
+    if (as === "waypoint") setInsertingPoint(p);
     else
       update({
         [as]: p,
@@ -1312,6 +1317,35 @@ export function MapView({
 
   return (
     <div className="legacy-map absolute inset-0">
+      {insertingPoint && (
+        <WaypointInsertionDialog
+          key={
+            insertingPoint.ident +
+            route.map((p) => `${p.ident}|${p.lat}|${p.lon}`).join(";")
+          }
+          point={insertingPoint}
+          route={route}
+          altitudeFt={(point) => {
+            const planned = routePlan?.points.find(
+              (p) =>
+                Math.abs(p.lat - point.lat) < 0.00001 &&
+                Math.abs(p.lon - point.lon) < 0.00001,
+            );
+            return planned
+              ? (routePlan?.pointAltitudeByKey[pointKey(planned)] ??
+                  flight.cruiseAltitudeFt)
+              : (airports.data?.find((a) => a.ident === point.ident)
+                  ?.elevationFt ?? flight.cruiseAltitudeFt);
+          }}
+          close={() => setInsertingPoint(null)}
+          insert={(index) => {
+            const point = anchoredWaypoint(route, insertingPoint, index);
+            update({ waypoints: [...flight.waypoints, point] });
+            if (navigation.startedAt) navigation.insertWaypoint(index, point);
+            setInsertingPoint(null);
+          }}
+        />
+      )}
       {!embedded && (
         <Button
           aria-label={t("mapsearch.title")}
@@ -1499,7 +1533,9 @@ export function MapView({
                     selectedAircraft.track_deg,
                     now,
                   ) ?? selectedAircraft)
-                : { lat: click.lngLat.lat, lon: click.lngLat.lng }
+                : click.kind === "point"
+                  ? click.point
+                  : { lat: click.lngLat.lat, lon: click.lngLat.lng }
             }
           >
             {click.kind === "traffic" && selectedAircraft ? (

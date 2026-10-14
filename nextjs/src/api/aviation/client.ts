@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { env } from "~/env";
+import { correctTrafficMetadata } from "~/domain/traffic-metadata";
 
 import {
   activationsResponseSchema,
@@ -105,7 +106,14 @@ export const aviationApi = {
   notams: (icao: string) =>
     get(icaoPath(icao, "/notams"), notamsResponseSchema),
   traffic: ({ lat, lon, radiusNm }: Around) =>
-    get("/traffic", trafficResponseSchema, { lat, lon, radius_nm: radiusNm }),
+    get("/traffic", trafficResponseSchema, {
+      lat,
+      lon,
+      radius_nm: radiusNm,
+    }).then((response) => ({
+      ...response,
+      aircraft: response.aircraft.map(correctTrafficMetadata),
+    })),
   airspace: ({ lat, lon, radiusNm, plan }: Around & { plan?: AirspacePlan }) =>
     get("/airspace", airspaceResponseSchema, {
       lat,
