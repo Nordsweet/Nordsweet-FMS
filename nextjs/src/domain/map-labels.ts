@@ -1,18 +1,15 @@
 import { type Airport } from "~/data/schemas";
 
 /** Legacy zoom uses a 256px world; MapLibre's 512px world is one zoom level lower. */
-export function mapLabelVisibility(
-  mapLibreZoom: number,
-  enabled: boolean,
-  longitudeSpanDeg: number,
-) {
+export function mapLabelVisibility(mapLibreZoom: number, enabled: boolean) {
   const legacyZoom = mapLibreZoom + 1;
+  const pointNamesZoom = legacyZoom >= 9;
   return {
-    pointNames: enabled && legacyZoom >= 9,
+    pointNames: enabled && pointNamesZoom,
     airportDetails: enabled && legacyZoom >= 10,
     airspaceNames: enabled && legacyZoom >= 9,
     airspaceFullNames: enabled && legacyZoom >= 10,
-    trafficNames: longitudeSpanDeg < 8,
+    trafficNames: pointNamesZoom,
   };
 }
 

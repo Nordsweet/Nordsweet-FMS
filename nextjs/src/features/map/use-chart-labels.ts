@@ -59,11 +59,7 @@ export function useChartLabels(
         width = map.getContainer().clientWidth,
         height = map.getContainer().clientHeight;
       if (!width || !height) return;
-      const visibility = mapLabelVisibility(
-        map.getZoom(),
-        d.enabled,
-        map.getBounds().getEast() - map.getBounds().getWest(),
-      );
+      const visibility = mapLabelVisibility(map.getZoom(), d.enabled);
       const ratio = window.devicePixelRatio || 1;
       let resized = false;
       for (const { canvas, ctx } of surfaces) {

@@ -36,7 +36,7 @@ const fixture = z
 
 test("airport and point labels match legacy canvas output around both zoom thresholds", () => {
   for (const row of fixture.cases) {
-    const visibility = mapLabelVisibility(row.zoom - 1, row.enabled, 10);
+    const visibility = mapLabelVisibility(row.zoom - 1, row.enabled);
     expect(
       airportChartLabel(row.airport, visibility),
       JSON.stringify({
@@ -52,10 +52,11 @@ test("airport and point labels match legacy canvas output around both zoom thres
   }
 });
 
-test("traffic labels retain the legacy strict 8-degree span boundary", () => {
-  for (const row of fixture.traffic) {
-    expect(mapLabelVisibility(5, row.enabled, row.span).trafficNames).toBe(
-      row.shown,
-    );
+test("traffic labels use the point-name zoom threshold and keep their independent Labels preference", () => {
+  for (const zoom of [5, 7.999, 8, 8.001, 9]) {
+    const visible = mapLabelVisibility(zoom, true);
+    expect(visible.trafficNames).toBe(visible.pointNames);
+    expect(visible.trafficNames).toBe(zoom >= 8);
+    expect(mapLabelVisibility(zoom, false).trafficNames).toBe(zoom >= 8);
   }
 });
