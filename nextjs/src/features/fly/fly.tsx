@@ -22,7 +22,6 @@ import { magneticVariationDeg, trueToMagneticDeg } from "~/domain/magnetic";
 import { computeProgress } from "~/domain/progress";
 import { type TrackPoint, summarizeTrack, toGpx } from "~/domain/track";
 import { ChecklistsPage } from "~/features/checklists/checklists";
-import { BriefingSection } from "~/features/plan/briefing";
 import { fmt, fmtMinutes } from "~/features/plan/fields";
 import { PerformanceSection } from "~/features/plan/performance";
 import { AirportTaxi } from "~/features/plan/taxi";
@@ -43,6 +42,7 @@ import { FredaDialog } from "./freda-dialog";
 import { GpxReplayDock } from "./gpx-replay";
 import { InfoPanel } from "./info-panel";
 import { OptionsPanel } from "./options-panel";
+import { WxPanel } from "./wx-panel";
 import { useGps } from "./use-gps";
 
 const PHASES = FLIGHT_PHASES;
@@ -263,7 +263,7 @@ export function FlyPage() {
     config: <ConfigPanel phase={phase} />,
     chart: <ChartPanel phase={phase} />,
     comms: <CommsPanel result={comms} />,
-    wx: <BriefingSection />,
+    wx: <WxPanel phase={phase} />,
     rwy: <PerformanceSection />,
     checklist: (
       <ChecklistsPage
@@ -413,7 +413,14 @@ export function FlyPage() {
             <>
               {open !== "config" && open !== "rwy" && (
                 <div className="fly-popover-head">
-                  <h2>{panelLabel(open)}</h2>
+                  <div>
+                    <h2>{panelLabel(open)}</h2>
+                    {open === "wx" && (
+                      <p className="text-muted-foreground text-xs">
+                        {t("fly.wx.subtitle")}
+                      </p>
+                    )}
+                  </div>
                   <Button
                     variant="outline"
                     size="sm"

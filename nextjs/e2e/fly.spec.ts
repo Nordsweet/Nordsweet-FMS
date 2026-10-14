@@ -78,3 +78,30 @@ test("flies the route: sequencing, direct-to and debrief", async ({
   await page.getByRole("button", { name: "Close flight" }).click();
   await expect(page.getByTestId("debrief")).toContainText("track points");
 });
+
+test("WX conditions are editable and survive a reload", async ({ page }) => {
+  await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => route.abort());
+  await page.addInitScript((f) => {
+    if (!localStorage.getItem("nordsweet.flight.v2")) {
+      localStorage.setItem("nordsweet.language.v1", "en");
+      localStorage.setItem(
+        "nordsweet.flight.v2",
+        JSON.stringify({ state: { flight: f }, version: 1 }),
+      );
+    }
+  }, flight);
+
+  await page.goto("/fly");
+  await page.getByRole("button", { name: "Start flight" }).click();
+  await page.getByRole("button", { name: "WX", exact: true }).click();
+  const wx = page.getByRole("dialog", { name: "WX" });
+  await expect(wx.getByText("Weather and condition source")).toBeVisible();
+  await wx.getByLabel("QNH (hPa)").fill("1005");
+  await wx.getByLabel("QNH (hPa)").blur();
+
+  await page.reload();
+  await page.getByRole("button", { name: "WX", exact: true }).click();
+  await expect(
+    page.getByRole("dialog", { name: "WX" }).getByLabel("QNH (hPa)"),
+  ).toHaveValue("1005");
+});
