@@ -15,6 +15,7 @@ import {
   routeEconomy,
 } from "~/domain/fuel-planning";
 import { distanceNm } from "~/domain/geo";
+import { fallbackFlightRoute } from "~/domain/waypoint-insertion";
 import { type MetarValues, parseMetar } from "~/domain/metar";
 import {
   FALLBACK_CLIMB_GRADIENT_FT_PER_NM,
@@ -264,9 +265,7 @@ export function usePlan(snapshot?: Flight) {
           lat: p.lat,
           lon: p.lon,
         }))
-    : [flight.departure, ...flight.waypoints, flight.destination].filter(
-        (p) => p !== null,
-      );
+    : fallbackFlightRoute(flight);
 
   const exportPoints = plan
     ? plan.points.map((p) => ({

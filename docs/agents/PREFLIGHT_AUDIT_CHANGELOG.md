@@ -188,3 +188,15 @@ CI follow-up: the magnifier subscribes only to search state, and an empty select
 ## Traffic label zoom (2026-10-14)
 
 Owner-requested change: traffic labels now share the point-name zoom threshold (MapLibre 8 / legacy 9) in Map and Fly. The previous viewport-width condition (longitude span below 8 degrees) is removed, so screen size cannot change the threshold. Aircraft symbols and their details remain available while zoomed out. Traffic labels remain independent of the Labels checkbox. The label regression test covers just below/at/above the shared threshold.
+
+## Flight-plan waypoint insertion (2026-10-14)
+
+Add waypoint now opens a G1000-inspired FPL preview in the shared app dialog style, with DTK (magnetic), distance (NM), planned altitude (ft), a marked new point and Move up / Move down / Insert here tiles. The default minimizes additional great-circle distance between existing route legs. Clicking an FPL row places the pending point directly before it; manual slots also allow before-first/after-last. Only Insert here commits; closing/Escape leaves both routes unchanged. The selected row remains visible in a long plan.
+
+Fixed the flight-mode bug: Add waypoint previously updated only the draft, while Map/Fly drew the persisted active route. Confirmation now inserts into both, preserving flight timers, track, and the current flown leg. Explicit before/after anchors (including occurrence and coordinates) keep the selected order after planner recalculation/reload in both airport/procedure plans and coordinate/GPX fallback plans. Old anchors remain readable. Explicit insertion supports intentional repeated fixes. Splitting a procedure leg recalculates its geometry instead of reusing its published course/distance, while retaining altitude/speed limits. Reference procedure data stays immutable. PL/EN included. Regression coverage includes optimal/manual positions, cancellation, controls, reload, repeated fixes, schema compatibility, airport plans and the active flight.
+
+## Point and airspace popup anchors; SP-TDI type (2026-10-14)
+
+- Point/airport options now appear next to the selected point. Airspace details appear next to the clicked map position (or the zone center when selected through search). Both follow map movement and resize and remain within the map viewport, using the existing aircraft popup placement.
+- Owner-confirmed Mode S address `48e9fa` (SP-TDI) is corrected to aircraft type `C172` when collector traffic is loaded. Matching is case-insensitive by address and does not depend on callsign; unrelated aircraft metadata is preserved.
+- Added regression coverage for point/zone popup placement and exact-address traffic correction.

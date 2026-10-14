@@ -3,6 +3,7 @@ import { type FlightPoint } from "~/data/flight";
 
 import { toRad } from "./angles";
 import { distanceNm, initialBearingDeg } from "./geo";
+import { waypointInsertionIndex } from "./waypoint-insertion";
 
 /**
  * The legacy route planner (Route tab), ported rule for rule: free-text route tokens (DCT, airways,
@@ -132,7 +133,7 @@ export type RoutePlanInput = {
   selections: Record<ProcedureType, ProcedureSelection>;
   /** Variant picked for "SID NAVUR"-style requests, keyed by choice key. */
   inlineSelections: Record<string, string>;
-  /** Points added on the map, inserted into the nearest leg. */
+  /** Map points: saved explicit FPL order, or nearest-leg insertion for older points. */
   insertedWaypoints: FlightPoint[];
   pointRestrictions?: Record<
     string,
@@ -1618,58 +1619,43 @@ function insertUserWaypoints(
   const seen = new Set<string>();
   for (const w of inserted) {
     const id = clean(w.ident).toUpperCase();
-    if (!id || seen.has(id) || !finite(w.lat) || !finite(w.lon)) continue;
+    if (
+      !id ||
+      (!w.anchor?.placement && seen.has(id)) ||
+      !finite(w.lat) ||
+      !finite(w.lon)
+    )
+      continue;
     seen.add(id);
-    if (out.some((p) => pointKey(p) === id)) continue;
+    // Explicit FPL insertion permits intentional repeated fixes; preserve old deduplication otherwise.
+    if (!w.anchor?.placement && out.some((p) => pointKey(p) === id)) continue;
     const point: RoutePoint = {
       id,
       kind: "user-waypoint",
       lat: w.lat,
       lon: w.lon,
     };
-    const anchor = w.anchor;
-    const anchorFrom = anchor
-      ? out.findIndex(
-          (p) =>
-            formatRoutePoint(p) === anchor.from ||
-            (anchor.fromPosition &&
-              Math.abs(p.lat - anchor.fromPosition.lat) < 0.00001 &&
-              Math.abs(p.lon - anchor.fromPosition.lon) < 0.00001),
-        )
-      : -1;
-    const anchorTo = anchor
-      ? out.findIndex(
-          (p, index) =>
-            index > anchorFrom &&
-            (formatRoutePoint(p) === anchor.to ||
-              (anchor.toPosition &&
-                Math.abs(p.lat - anchor.toPosition.lat) < 0.00001 &&
-                Math.abs(p.lon - anchor.toPosition.lon) < 0.00001)),
-        )
-      : -1;
-    let at = Math.max(1, out.length - 1);
-    let best = Infinity;
-    for (let i = 0; i < out.length - 1; i++) {
-      const score = Math.max(
-        0,
-        distanceNm(out[i]!, point) +
-          distanceNm(point, out[i + 1]!) -
-          distanceNm(out[i]!, out[i + 1]!),
-      );
-      if (score < best) {
-        best = score;
-        at = i + 1;
-      }
-    }
-    out.splice(
-      anchorFrom >= 0 && anchorTo === anchorFrom + 1 ? anchorTo : at,
-      0,
-      point,
-    );
+    const route = out.map((p) => ({
+      ident: formatRoutePoint({ ...p, profileLabels: undefined }),
+      lat: p.lat,
+      lon: p.lon,
+    }));
+    const at = waypointInsertionIndex(route, w);
+    const next = out[at];
+    // A pilot insertion splits the published leg; keep its limits but recalculate its geometry.
+    if (next?.procedureLeg)
+      out[at] = {
+        ...next,
+        procedureLeg: {
+          ...next.procedureLeg,
+          distanceNm: null,
+          trackMagDeg: null,
+        },
+      };
+    out.splice(at, 0, point);
   }
   return out;
 }
-
 /** How legacy names a point in the route strip and leg cards. */
 export function formatRoutePoint(point: RoutePoint) {
   if (point.profileLabels?.length)
