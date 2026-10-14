@@ -62,6 +62,7 @@ merged to `develop`. One owner per row.
 
 | Area | Status | Owner | Notes |
 |---|---|---|---|
+| Map label zoom thresholds | in progress | Codex 2026-10-14 | Preserve original point/airport stages 9/10 and unconditional airspace labels. |
 | Map visual parity with legacy | done | | Legacy chart palette, symbols, labels, sizing and zoom restored; [inventory](MAP_VISUAL_PARITY.md). 29 E2E and 150 unit tests pass. |
 | CI map navigation regression | done | | PR #5: update E2E navigation to match preparation and flight views; 26 E2E and 135 unit tests pass. |
 | Preparation navigation and map flight planner | done | | Owner clarification: exactly Settings icon / Flight Planner / Map; graphical route automatically shared with the form.  PR #3 merged into develop. |
