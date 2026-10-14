@@ -50,6 +50,17 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
+/** Weather, runway performance and taxi live in the flight view, as in legacy: start, pick the
+ * phase, open the rail panel. */
+async function flightPanel(page: Page, phase: string, panel: string) {
+  if (!page.url().endsWith("/fly"))
+    await page.getByRole("link", { name: "Start a flight" }).click();
+  await page.getByRole("button", { name: phase, exact: true }).click();
+  const button = page.getByRole("button", { name: panel, exact: true });
+  if ((await button.getAttribute("aria-expanded")) !== "true")
+    await button.click();
+}
+
 /** The planner groups sections into tabs, like the original app. */
 async function tab(page: Page, name: string) {
   await page.getByRole("tab", { name, exact: true }).click();
@@ -76,13 +87,13 @@ test("briefs weather and fills landing conditions from the METAR", async ({
   await pickPoint(page, "Departure", "EPNT", "EPNT");
   await pickPoint(page, "Arrival", "EPKK", "EPKK");
 
-  await tab(page, "Weather");
+  await flightPanel(page, "Taxi-Out", "WX");
   const destination = page.getByTestId("wx-destination");
   await expect(destination).toContainText("EPKK 111130Z 27011KT");
   await expect(destination).toContainText("stale");
   await expect(page.getByTestId("wx-departure")).toContainText("none");
 
-  await tab(page, "Performance");
+  await flightPanel(page, "Landing", "RWY");
   const landing = page.getByTestId("perf-landing");
   await landing.getByRole("button", { name: "Fill from METAR" }).click();
   await expect(page.getByTestId("perf-landing-metar")).toContainText(
@@ -139,8 +150,9 @@ test("shows community ATIS as unverified and shares a report", async ({
   await page.goto("/");
   await tab(page, "Route");
   await pickPoint(page, "Departure", "EPKK", "EPKK");
+  await pickPoint(page, "Arrival", "EPNT", "EPNT");
 
-  await tab(page, "Weather");
+  await flightPanel(page, "Taxi-Out", "WX");
   const departure = page.getByTestId("wx-departure");
   await expect(departure).toContainText("pilot report — unverified");
 

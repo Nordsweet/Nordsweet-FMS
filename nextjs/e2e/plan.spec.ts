@@ -9,6 +9,17 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
+/** Weather, runway performance and taxi live in the flight view, as in legacy: start, pick the
+ * phase, open the rail panel. */
+async function flightPanel(page: Page, phase: string, panel: string) {
+  if (!page.url().endsWith("/fly"))
+    await page.getByRole("link", { name: "Start a flight" }).click();
+  await page.getByRole("button", { name: phase, exact: true }).click();
+  const button = page.getByRole("button", { name: panel, exact: true });
+  if ((await button.getAttribute("aria-expanded")) !== "true")
+    await button.click();
+}
+
 /** The planner groups sections into tabs, like the original app. */
 async function tab(page: Page, name: string) {
   await page.getByRole("tab", { name, exact: true }).click();
@@ -51,11 +62,6 @@ test("plans a flight end to end and keeps it across reloads", async ({
   await expect(page.getByTestId("fuel-margin")).toBeVisible();
   await tab(page, "W&B");
   await expect(page.getByTestId("wb-status")).toContainText("CG envelope");
-  await tab(page, "Performance");
-  await expect(page.getByTestId("perf-takeoff-ground-roll")).toHaveText(
-    /\d+ m/,
-  );
-  await expect(page.getByTestId("perf-landing-obstacle")).toHaveText(/\d+ m/);
 
   const download = page.waitForEvent("download");
   await page.getByRole("button", { name: "Save a flight" }).click();
@@ -78,6 +84,11 @@ test("plans a flight end to end and keeps it across reloads", async ({
   await expect(
     page.getByRole("list", { name: "Saved flights list" }),
   ).toContainText("Test flight");
+  await flightPanel(page, "Take-off", "RWY");
+  await expect(page.getByTestId("perf-takeoff-ground-roll")).toHaveText(
+    /\d+ m/,
+  );
+  await expect(page.getByTestId("perf-landing-obstacle")).toHaveText(/\d+ m/);
 });
 
 test("imports a legacy .nord flight", async ({ page }) => {
@@ -109,13 +120,14 @@ test("adds a SID, shows the taxi route and charts", async ({ page }) => {
     "EPKK THR07 → KK801",
   );
 
-  await tab(page, "Performance");
+  await flightPanel(page, "Taxi-Out", "Route");
   await expect(page.getByTestId("taxi-departure-route")).toHaveText(
     "Stand 1 → Taxiway G → Taxiway B4 → Taxiway C → HP07",
   );
+  await flightPanel(page, "Taxi-In", "Route");
   await expect(page.getByTestId("taxi-arrival")).toContainText("EPNT");
 
-  await tab(page, "Weather");
+  await flightPanel(page, "Taxi-Out", "WX");
   await expect(
     page.getByRole("link", { name: "EPKK · National AIP · AD2" }),
   ).toHaveAttribute("href", "/charts/Poland/EPKK/National%20AIP/AD2.pdf");

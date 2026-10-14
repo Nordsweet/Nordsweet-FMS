@@ -170,3 +170,7 @@ user input, which pins the profile to sea level (no TOC, one conflict) and chang
 Production (older) and develop do not have it; numeric comparisons were therefore taken from the
 earlier production parity runs. The NAVDATA status count differs only because legacy counts every
 routable point (waypoints, VFR points, airports); no navdata point is missing.
+
+Follow-up (2026-10-14): the Flight setup › Aircraft card now has exactly the legacy tabs — Aircraft,
+Route, Fuel, W&B. Weather (with Insert ATIS), runway performance and taxi are reached as in legacy
+from the flight view's WX, RWY and ROUTE panels; browser tests now open them there.

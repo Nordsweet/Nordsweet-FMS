@@ -67,13 +67,6 @@ test("keeps preparation conditions, taxi selections and legacy preferences acros
   await page
     .getByRole("option", { name: "P2006T (P06T)", exact: true })
     .click();
-  await page.getByRole("tab", { name: "Performance", exact: true }).click();
-  const takeoff = page.getByTestId("perf-takeoff");
-  await takeoff.getByLabel("QNH").fill("1025");
-  await takeoff.getByLabel("Wind speed").fill("12");
-  const taxi = page.getByTestId("taxi-departure");
-  await taxi.getByRole("combobox", { name: "To", exact: true }).click();
-  await page.getByRole("option", { name: "HP25", exact: true }).click();
   await page.getByRole("link", { name: "Settings", exact: true }).click();
   await expect(
     page.getByLabel("Checklist autoscroll", { exact: true }),
@@ -88,10 +81,35 @@ test("keeps preparation conditions, taxi selections and legacy preferences acros
   await expect(
     page.getByRole("tab", { name: "Aircraft", exact: true }),
   ).toBeVisible();
+
+  // Conditions and taxi choices are set in the flight view (RWY / ROUTE), as in legacy.
+  await page.getByRole("tab", { name: "Route", exact: true }).click();
+  await page.getByLabel("Departure", { exact: true }).fill("EPKK");
+  await page.keyboard.press("Escape");
+  await page.getByLabel("Arrival", { exact: true }).fill("EPGD");
+  await page.keyboard.press("Escape");
+  await page.getByRole("link", { name: "Start a flight" }).click();
+  const panel = async (phase: string, name: string) => {
+    await page.getByRole("button", { name: phase, exact: true }).click();
+    const button = page.getByRole("button", { name, exact: true });
+    if ((await button.getAttribute("aria-expanded")) !== "true")
+      await button.click();
+  };
+  await panel("Take-off", "RWY");
+  const takeoff = page.getByTestId("perf-takeoff");
+  await takeoff.getByLabel("QNH").fill("1025");
+  await takeoff.getByLabel("Wind speed").fill("12");
+  await takeoff.getByLabel("Wind speed").blur();
+  await panel("Taxi-Out", "Route");
+  const taxi = page.getByTestId("taxi-departure");
+  await taxi.getByRole("combobox", { name: "To", exact: true }).click();
+  await page.getByRole("option", { name: "HP25", exact: true }).click();
+
   await page.reload();
-  await page.getByRole("tab", { name: "Performance", exact: true }).click();
+  await panel("Take-off", "RWY");
   await expect(takeoff.getByLabel("QNH")).toHaveValue("1025");
   await expect(takeoff.getByLabel("Wind speed")).toHaveValue("12");
+  await panel("Taxi-Out", "Route");
   await expect(
     taxi.getByRole("combobox", { name: "To", exact: true }),
   ).toContainText("HP25");

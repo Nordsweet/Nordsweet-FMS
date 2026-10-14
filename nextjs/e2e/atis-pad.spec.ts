@@ -15,7 +15,11 @@ test("copies a spoken ATIS by tapping tiles (legacy ATIS pad)", async ({
   await page.getByRole("tab", { name: "Route", exact: true }).click();
   await page.getByLabel("Departure", { exact: true }).fill("EPKK");
   await page.keyboard.press("Escape");
-  await page.getByRole("tab", { name: "Weather", exact: true }).click();
+  await page.getByLabel("Arrival", { exact: true }).fill("EPGD");
+  await page.keyboard.press("Escape");
+  // WX with Insert ATIS is in the flight view, as in legacy.
+  await page.getByRole("link", { name: "Start a flight" }).click();
+  await page.getByRole("button", { name: "WX", exact: true }).click();
   await page.getByRole("button", { name: "Insert ATIS" }).first().click();
 
   const pad = page.getByRole("dialog", { name: "ATIS Pad" });
@@ -53,7 +57,7 @@ test("copies a spoken ATIS by tapping tiles (legacy ATIS pad)", async ({
     "true",
   );
   await page.reload();
-  await page.getByRole("tab", { name: "Weather", exact: true }).click();
+  await page.getByRole("button", { name: "WX", exact: true }).click();
   await page.getByRole("button", { name: "Insert ATIS" }).first().click();
   await expect(
     page

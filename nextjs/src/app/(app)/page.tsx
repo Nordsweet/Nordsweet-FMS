@@ -8,16 +8,13 @@ import { PAGE_ACTIONS_ID } from "~/components/shell/app-shell";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent } from "~/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
-import { BriefingSection } from "~/features/plan/briefing";
 import { FuelSection } from "~/features/plan/fuel";
-import { PerformanceSection } from "~/features/plan/performance";
 import { AircraftSection } from "~/features/plan/aircraft";
 import { RouteSection } from "~/features/plan/route";
 import {
   SaveFlightButton,
   SavedFlightsSection,
 } from "~/features/plan/saved-flights";
-import { TaxiSection } from "~/features/plan/taxi";
 import { usePlan } from "~/features/plan/use-plan";
 import { WeightBalanceSection } from "~/features/plan/weight-balance";
 import { type MessageKey } from "~/i18n/messages";
@@ -27,25 +24,15 @@ import { useInFlight } from "~/stores/inflight";
 /** The original "aircraft card" that holds the section tabs. */
 const setupPanel =
   "grid gap-3 rounded-[20px] border border-[rgba(141,190,255,0.16)] bg-[radial-gradient(circle_at_top_left,rgba(70,137,213,0.2),transparent_34%),linear-gradient(135deg,rgba(10,26,45,0.92),rgba(6,16,29,0.96))] p-3.75 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] max-sm:p-2";
-// Inactive tabs stay mounted (hidden), so inputs such as OAT/QNH survive switching tabs.
+// Legacy tabs: Aircraft, Route, Fuel, W&B (weather, runway performance and taxi are in the flight view).
+// Inactive tabs stay mounted (hidden), so typed inputs survive switching tabs.
 const content = "grid gap-4 data-[state=inactive]:hidden";
 
 const TABS: { id: string; label: MessageKey; sections: React.ReactNode }[] = [
   { id: "aircraft", label: "plan.tab.aircraft", sections: <AircraftSection /> },
   { id: "route", label: "plan.tab.route", sections: <RouteSection /> },
-  { id: "weather", label: "plan.tab.weather", sections: <BriefingSection /> },
   { id: "fuel", label: "plan.tab.fuel", sections: <FuelSection /> },
   { id: "wb", label: "plan.tab.wb", sections: <WeightBalanceSection /> },
-  {
-    id: "performance",
-    label: "plan.tab.performance",
-    sections: (
-      <>
-        <PerformanceSection />
-        <TaxiSection />
-      </>
-    ),
-  },
 ];
 
 const noSubscribe = () => () => undefined;
