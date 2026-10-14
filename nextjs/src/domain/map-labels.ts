@@ -10,7 +10,8 @@ export function mapLabelVisibility(
   return {
     pointNames: enabled && legacyZoom >= 9,
     airportDetails: enabled && legacyZoom >= 10,
-    airspaceNames: enabled,
+    airspaceNames: enabled && legacyZoom >= 9,
+    airspaceFullNames: enabled && legacyZoom >= 10,
     trafficNames: longitudeSpanDeg < 8,
   };
 }
