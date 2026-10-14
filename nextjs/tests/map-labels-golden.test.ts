@@ -47,7 +47,8 @@ test("airport and point labels match legacy canvas output around both zoom thres
       }),
     ).toEqual(row.expected);
     expect(visibility.pointNames).toBe(row.pointNames);
-    expect(visibility.airspaceNames).toBe(row.enabled);
+    expect(visibility.airspaceNames).toBe(row.enabled && row.zoom >= 9);
+    expect(visibility.airspaceFullNames).toBe(row.enabled && row.zoom >= 10);
   }
 });
 

@@ -30,6 +30,10 @@ Removed the Estimated change section and its timing/speed/ATC note block. The fl
 
 Aircraft details now open beside the projected aircraft position and follow map movement, with viewport clamping and manual dragging retained. Removed Registration and Destination tiles and the destination API query. Collector history accepts null/missing callsigns; unlabelled samples are retained within the current flight segment, server history is merged with newer local samples and refreshed every 15 seconds. Different confirmed callsigns and observation gaps still separate flights/segments.
 
+## Staged airspace captions (2026-10-14)
+
+Hide airspace labels in the distant view. At the point-name zoom show only class/designator (R 11, P 23, TR 165). At the next zoom show the centered full name below it if both text lines fit entirely inside the projected polygon; holes and concave boundaries are respected. This intentionally replaces the original always-visible zone-name rule per the owner’s new request.
+
 ## Acceptance inventory
 
 Map appearance follow-up: restore the legacy map palette, local chart symbols,

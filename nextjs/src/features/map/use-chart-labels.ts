@@ -11,6 +11,10 @@ import { airspaceKind, projectedPosition } from "~/domain/map-navigation";
 import { trafficCallsign } from "~/domain/traffic-history";
 import { destinationPoint } from "~/domain/geo";
 import { airspacePalette } from "./symbols";
+import {
+  airspaceCaption,
+  airspaceCaptionPlacement,
+} from "~/domain/airspace-labels";
 import { airportChartLabel, mapLabelVisibility } from "~/domain/map-labels";
 
 type Labels = {
@@ -182,28 +186,67 @@ export function useChartLabels(
             }
           if (d.layers.airspace && visibility.airspaceNames)
             for (const z of d.zones) {
-              const ring = z.geometry.coordinates[0];
-              if (!ring?.length) continue;
-              const lon = ring.reduce((sum, p) => sum + p[0], 0) / ring.length,
-                lat = ring.reduce((sum, p) => sum + p[1], 0) / ring.length;
+              const rings = z.geometry.coordinates.map((ring) =>
+                ring.map((p) => {
+                  const point = map.project([p[0], p[1]]);
+                  return [point.x, point.y];
+                }),
+              );
+              const ring = rings[0];
+              if (
+                !ring?.length ||
+                ring.every((p) => p[0]! < -250) ||
+                ring.every((p) => p[0]! > width + 250) ||
+                ring.every((p) => p[1]! < -30) ||
+                ring.every((p) => p[1]! > height + 30)
+              )
+                continue;
+              const caption = airspaceCaption(
+                z.properties.name,
+                z.properties.class,
+              );
               const active = z.properties.active_now;
               const color = active
                 ? "#b41532"
                 : (airspacePalette[
                     airspaceKind(z.properties.name, z.properties.class)
                   ] ?? airspacePalette.OTHER)!.stroke;
-              label(
-                ctx,
-                lat,
-                lon,
-                z.properties.name,
-                color,
-                active
-                  ? "700 11px system-ui,sans-serif"
-                  : "600 10px system-ui,sans-serif",
-                3,
-                -3,
+              ctx.font = active
+                ? "700 11px system-ui,sans-serif"
+                : "600 10px system-ui,sans-serif";
+              const titleWidth = ctx.measureText(caption.title).width;
+              ctx.font = "600 10px system-ui,sans-serif";
+              const nameWidth = ctx.measureText(caption.name).width;
+              const point = airspaceCaptionPlacement(
+                rings,
+                Math.max(titleWidth, nameWidth),
+                visibility.airspaceFullNames && !!caption.name,
               );
+              if (
+                !point ||
+                point.x < -250 ||
+                point.x > width + 30 ||
+                point.y < -30 ||
+                point.y > height + 30
+              )
+                continue;
+              ctx.save();
+              ctx.fillStyle = color;
+              ctx.textAlign = "center";
+              ctx.textBaseline = "middle";
+              ctx.font = active
+                ? "700 11px system-ui,sans-serif"
+                : "600 10px system-ui,sans-serif";
+              ctx.fillText(
+                caption.title,
+                point.x,
+                point.y + (point.fullName ? -7 : 0),
+              );
+              if (point.fullName) {
+                ctx.font = "600 10px system-ui,sans-serif";
+                ctx.fillText(caption.name, point.x, point.y + 7);
+              }
+              ctx.restore();
             }
         }
       }
