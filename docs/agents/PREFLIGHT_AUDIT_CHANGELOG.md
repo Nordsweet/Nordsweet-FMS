@@ -147,3 +147,26 @@ state across pages`, and `legacy URLs land on the new screens` (includes a PFD/F
   the owner removed its preparation navigation link.
 
 Verification of this correction: formatting, lint/type checks, 135 unit tests and static build pass. The 23 preparation browser tests passed; both map-planner regressions passed again after final empty-state fixes, including GPX coordinate planning, removal and reload persistence.
+
+## Control-by-control crawl (claude, 2026-10-14)
+
+Legacy main's static site (`git archive main`, served locally) and develop were crawled with the same
+setup (P2006T, EPKK → EPGD, alternate EPWA): every visible control per tab, every route dialog
+(Economy, Vertical profile, schedule, airport search, waypoint WX), Save a flight, the saved-flight
+row actions and Settings.
+
+| Area | Result |
+| --- | --- |
+| Aircraft | Same controls (type, registration incl. registration-specific profiles, FREDA indication, MTH, last state). |
+| Route | Same controls, SID/STAR/approach option labels identical. Legacy CALCULATE intentionally replaced by live recalculation. |
+| Route dialogs | Economy (with Apply), Vertical profile, schedule, airport search and waypoint WX match. |
+| Fuel | Same rows, inputs and notes. |
+| W&B | Added the legacy Phase tile and the yellow condition rows / gradient Useful load band. |
+| Save a flight / Saved flights | Same immediate save + .nord download. Unnamed snapshots are now named after the route ("EPKK -> EPGD / 262.5 NM") and rows show aircraft type and "Saved <date>"; develop adds GPX/KML/.nord per row. |
+| Settings | Same preferences; company login and API tokens remain out of scope / replaced by the collector. |
+
+Legacy main bug not replicated: every route point gets an "At 0 ft" altitude restriction without
+user input, which pins the profile to sea level (no TOC, one conflict) and changes trip time/fuel.
+Production (older) and develop do not have it; numeric comparisons were therefore taken from the
+earlier production parity runs. The NAVDATA status count differs only because legacy counts every
+routable point (waypoints, VFR points, airports); no navdata point is missing.
