@@ -78,7 +78,7 @@ export function GpxReplayDock() {
 
   return (
     <div
-      className="bg-card/95 absolute bottom-20 left-1/2 z-40 flex w-[min(52rem,calc(100%-1.5rem))] -translate-x-1/2 flex-wrap items-center gap-2 rounded-2xl border p-2 text-xs backdrop-blur"
+      className="bg-card/95 absolute bottom-20 left-1/2 z-[45] flex w-[min(45rem,calc(100%-10rem))] -translate-x-1/2 flex-wrap items-center gap-2 rounded-2xl border p-2 text-xs backdrop-blur"
       data-testid="gpx-replay"
     >
       <label className="cursor-pointer rounded-xl border px-3 py-2 font-semibold uppercase">

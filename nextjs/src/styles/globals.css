@@ -619,6 +619,175 @@
 .legacy-flight-tool[data-variant="destructive"][aria-expanded="true"] {
   outline: 2px solid rgba(255, 255, 255, 0.32);
 }
+.legacy-flight-tool[data-variant="outline"] {
+  color: #fff;
+  border-color: rgba(185, 196, 209, 0.34);
+  background: rgba(15, 29, 52, 0.96);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+}
+.legacy-flight-tool[data-variant="outline"][aria-expanded="true"] {
+  border-color: rgba(122, 243, 211, 0.72);
+  box-shadow:
+    0 16px 40px rgba(0, 0, 0, 0.28),
+    0 0 0 1px rgba(93, 193, 255, 0.18);
+}
+
+/* Flight view: dims the map while a tool panel is open (legacy .flight-map-scrim). */
+.fly-scrim {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 25;
+  opacity: 0;
+  transition: opacity 160ms ease;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(4, 10, 18, 0.62),
+      rgba(4, 10, 18, 0.16) 42%,
+      rgba(4, 10, 18, 0.54)
+    ),
+    linear-gradient(
+      180deg,
+      rgba(4, 10, 18, 0.78),
+      transparent 22%,
+      rgba(4, 10, 18, 0.16) 70%,
+      rgba(4, 10, 18, 0.52)
+    ),
+    rgba(0, 0, 0, 0.28);
+}
+.fly-scrim[data-open="true"] {
+  opacity: 1;
+}
+
+/* Flight view tool popovers: the legacy .flight-modal popover family, one placement per tool. */
+.fly-popover {
+  --pad: 0.85rem;
+  --head: #fff;
+  position: absolute;
+  z-index: 40;
+  display: grid;
+  align-content: start;
+  gap: 0.7rem;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: var(--pad);
+  border: 1px solid rgba(141, 190, 255, 0.28);
+  border-radius: 16px;
+  background: rgba(8, 18, 32, 0.99);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.35);
+}
+.fly-popover-head {
+  position: sticky;
+  top: calc(var(--pad) * -1);
+  z-index: 2;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.8rem;
+  margin: calc(var(--pad) * -1) calc(var(--pad) * -1) 0;
+  padding: var(--pad);
+  border-bottom: 1px solid rgba(141, 190, 255, 0.16);
+  background: inherit;
+}
+.fly-popover-head h2 {
+  color: var(--head);
+  font-size: 0.86rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+/* Beside the tool's own rail button (set --top inline). */
+.fly-popover[data-panel="emer"],
+.fly-popover[data-panel="config"],
+.fly-popover[data-panel="rwy"] {
+  top: var(--top);
+  right: 4.85rem;
+  max-height: calc(100dvh - var(--top) - 1rem);
+}
+.fly-popover[data-panel="emer"] {
+  --head: #fff;
+  width: min(380px, calc(100vw - 2rem));
+  max-height: min(560px, calc(100dvh - var(--top) - 1rem));
+  border-color: rgba(255, 117, 143, 0.35);
+  background: rgba(10, 18, 30, 0.99);
+}
+.fly-popover[data-panel="config"] {
+  width: min(560px, calc(100vw - 2rem));
+}
+.fly-popover[data-panel="rwy"] {
+  width: min(360px, calc(100vw - 2rem));
+}
+/* Left column. */
+.fly-popover[data-panel="route"],
+.fly-popover[data-panel="chart"],
+.fly-popover[data-panel="comms"],
+.fly-popover[data-panel="info"],
+.fly-popover[data-panel="options"],
+.fly-popover[data-panel="none"] {
+  top: 5.35rem;
+  left: 1rem;
+  max-height: calc(100dvh - 6.35rem);
+}
+.fly-popover[data-panel="route"],
+.fly-popover[data-panel="chart"],
+.fly-popover[data-panel="none"] {
+  width: min(560px, calc(100vw - 2rem));
+  max-height: min(620px, calc(100dvh - 7rem));
+}
+.fly-popover[data-panel="comms"] {
+  --pad: 0.9rem;
+  --head: #7af3d3;
+  width: min(1040px, calc(100vw - 7rem));
+}
+.fly-popover[data-panel="options"] {
+  --pad: 0.9rem;
+  --head: #7af3d3;
+  width: min(430px, calc(100vw - 7rem));
+}
+.fly-popover[data-panel="info"] {
+  --pad: 1rem;
+  --head: #7af3d3;
+  top: 5.35rem;
+  bottom: 1rem;
+  width: min(520px, calc(100vw - 7rem));
+  max-height: none;
+  border-color: rgba(141, 190, 255, 0.18);
+  border-radius: 20px;
+  background: rgba(10, 20, 36, 0.78);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.34);
+}
+/* Top right, beside the rail. */
+.fly-popover[data-panel="wx"] {
+  --head: #5dc1ff;
+  top: clamp(4.2rem, 8vh, 5.6rem);
+  right: max(1rem, calc((100vw - 1180px) / 2));
+  width: min(820px, calc(100vw - 2rem));
+  max-height: min(720px, calc(100dvh - 7rem));
+  border-color: rgba(141, 190, 255, 0.24);
+  border-radius: 22px;
+  background: rgba(7, 17, 31, 0.98);
+}
+.fly-popover[data-panel="checklist"] {
+  --head: #5dc1ff;
+  top: clamp(4rem, 8vh, 5.5rem);
+  right: max(1rem, calc((100vw - min(1180px, 100vw - 2rem)) / 2));
+  width: min(430px, calc(100vw - 2rem));
+  max-height: min(620px, calc(100dvh - 7rem));
+  border-color: rgba(118, 242, 164, 0.26);
+  background: rgba(10, 18, 30, 0.99);
+}
+@media (max-width: 860px) {
+  .fly-popover[data-panel="comms"],
+  .fly-popover[data-panel="options"] {
+    left: 0.7rem;
+    width: calc(100vw - 1.4rem);
+  }
+  .fly-popover[data-panel="info"] {
+    width: calc(100vw - 5.5rem);
+  }
+}
 
 /* Legacy map sidebar (airspaces-map .side): metrics, tabs and cards. */
 .legacy-map-side {

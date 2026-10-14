@@ -301,6 +301,7 @@ export function FlyPage() {
   return (
     <div className="bg-background fixed inset-0 z-40">
       <MapWorkspace embedded />
+      <div className="fly-scrim" aria-hidden="true" data-open={open !== null} />
       {flying && <EventToast />}
       {flying && <CommsChangePopup phase={phase} estimate={comms.estimate} />}
       {flying && <FredaDialog fix={fix} now={now} />}
@@ -354,29 +355,30 @@ export function FlyPage() {
       {flying && (
         <nav
           aria-label={t("fly.title")}
-          className="absolute top-30 right-3 z-30 grid max-h-[calc(100%-12rem)] gap-2 overflow-y-auto"
+          className="absolute top-[5.15rem] right-3 z-30 grid max-h-[calc(100%-6.15rem)] gap-[0.48rem] overflow-y-auto"
         >
           {rail.map((r) => (
             <Button
               key={r.id}
-              variant={
-                r.id === "emer"
-                  ? "destructive"
-                  : open === r.id
-                    ? "default"
-                    : "outline"
-              }
+              variant={r.id === "emer" ? "destructive" : "outline"}
               aria-expanded={open === r.id}
-              className={cn(
-                "legacy-flight-tool backdrop-blur",
-                r.id !== "emer" && "bg-card/90",
-              )}
+              aria-label={panelLabel(r.id)}
+              className="legacy-flight-tool backdrop-blur"
               onClick={() => {
                 setSearchOpen(false);
                 setPanel(open === r.id ? null : r.id);
               }}
             >
-              {panelLabel(r.id)}
+              {/* Legacy wraps the long label onto two lines: CHECK / LIST. */}
+              {r.id === "checklist" ? (
+                <span>
+                  {panelLabel(r.id).slice(0, 5)}
+                  <br />
+                  {panelLabel(r.id).slice(5)}
+                </span>
+              ) : (
+                panelLabel(r.id)
+              )}
             </Button>
           ))}
           <Button
@@ -384,7 +386,7 @@ export function FlyPage() {
             title={t("mapsearch.title")}
             aria-expanded={searchOpen}
             className="legacy-flight-tool bg-card/90 backdrop-blur"
-            variant={searchOpen ? "default" : "outline"}
+            variant="outline"
             onClick={() => {
               setPanel(null);
               setSearchOpen(!searchOpen);
@@ -399,22 +401,28 @@ export function FlyPage() {
         <section
           role="dialog"
           aria-label={open ? panelLabel(open) : t("fly.title")}
-          className="bg-card/95 absolute top-20 right-3 left-3 z-40 grid max-h-[calc(100%-9rem)] content-start gap-4 overflow-y-auto rounded-3xl border p-4 backdrop-blur sm:right-26 sm:left-auto sm:w-[min(32rem,calc(100%-8rem))]"
+          className="fly-popover"
+          data-panel={open ?? "none"}
+          style={
+            {
+              "--top": `calc(5.15rem + ${rail.findIndex((r) => r.id === open)} * 3.93rem)`,
+            } as React.CSSProperties
+          }
         >
           {open ? (
             <>
-              <div className="flex items-center justify-between gap-2">
-                <h2 className="text-primary font-semibold tracking-[0.08em] uppercase">
-                  {panelLabel(open)}
-                </h2>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPanel(null)}
-                >
-                  {t("map.close")}
-                </Button>
-              </div>
+              {open !== "config" && open !== "rwy" && (
+                <div className="fly-popover-head">
+                  <h2>{panelLabel(open)}</h2>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPanel(null)}
+                  >
+                    {t("map.close")}
+                  </Button>
+                </div>
+              )}
               {content[open]}
             </>
           ) : debrief ? (
