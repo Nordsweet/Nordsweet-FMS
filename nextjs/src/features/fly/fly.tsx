@@ -360,7 +360,7 @@ export function FlyPage() {
               }
               aria-expanded={open === r.id}
               className={cn(
-                "h-13 w-20 px-1 text-[0.7rem] backdrop-blur",
+                "legacy-flight-tool backdrop-blur",
                 r.id !== "emer" && "bg-card/90",
               )}
               onClick={() => setPanel(open === r.id ? null : r.id)}
