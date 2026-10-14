@@ -11,6 +11,7 @@ import { airspaceKind, projectedPosition } from "~/domain/map-navigation";
 import { trafficCallsign } from "~/domain/traffic-history";
 import { destinationPoint } from "~/domain/geo";
 import { airspacePalette } from "./symbols";
+import { airportChartLabel, mapLabelVisibility } from "~/domain/map-labels";
 
 type Labels = {
   airports: Airport[];
@@ -57,6 +58,11 @@ export function useChartLabels(
         width = map.getContainer().clientWidth,
         height = map.getContainer().clientHeight;
       if (!width || !height) return;
+      const visibility = mapLabelVisibility(
+        map.getZoom(),
+        d.enabled,
+        map.getBounds().getEast() - map.getBounds().getWest(),
+      );
       const ratio = window.devicePixelRatio || 1;
       let resized = false;
       for (const { canvas, ctx } of surfaces) {
@@ -121,45 +127,26 @@ export function useChartLabels(
         const ctx = stationary.ctx;
         ctx.clearRect(0, 0, width, height);
         if (d.enabled) {
-          // MapLibre uses a 512px world; the legacy canvas uses 256px (its zoom is one higher).
-          const zoom = map.getZoom() + 1;
-          if (zoom >= 9 && d.layers.airports)
+          if (d.layers.airports)
             for (const p of d.airports) {
-              if (zoom < 10 && !p.isIcao) continue;
-              const title =
-                zoom < 10
-                  ? p.ident
-                  : p.isIcao && p.name !== p.ident
-                    ? `${p.name} / ${p.ident}`
-                    : p.name;
+              const text = airportChartLabel(p, visibility);
+              if (!text) continue;
               label(
                 ctx,
                 p.lat,
                 p.lon,
-                title,
+                text.title,
                 "#126cac",
                 "700 10px system-ui,sans-serif",
                 10,
                 -4,
               );
-              if (zoom >= 10) {
-                const length = Math.round(
-                  Math.max(
-                    0,
-                    ...p.runways.flatMap((r) => [
-                      r.lengthM ?? 0,
-                      r.toraM ?? 0,
-                      r.todaM ?? 0,
-                      r.asdaM ?? 0,
-                      r.ldaM ?? 0,
-                    ]),
-                  ),
-                );
+              if (text.details) {
                 label(
                   ctx,
                   p.lat,
                   p.lon,
-                  `AD ${Math.round(p.elevationFt)} ft AMSL${length ? ` / RWY ${length} m` : ""}`,
+                  text.details,
                   "#2479ae",
                   "600 8px system-ui,sans-serif",
                   10,
@@ -167,7 +154,7 @@ export function useChartLabels(
                 );
               }
             }
-          if (zoom >= 9)
+          if (visibility.pointNames)
             for (const p of d.points) {
               const layer =
                 p.kind === "vfr-reporting-point"
@@ -193,7 +180,7 @@ export function useChartLabels(
                 -5,
               );
             }
-          if (d.layers.airspace)
+          if (d.layers.airspace && visibility.airspaceNames)
             for (const z of d.zones) {
               const ring = z.geometry.coordinates[0];
               if (!ring?.length) continue;
@@ -222,12 +209,8 @@ export function useChartLabels(
       }
       const ctx = moving.ctx;
       ctx.clearRect(0, 0, width, height);
-      if (!d.enabled) return;
       const time = Date.now();
-      if (
-        d.layers.traffic &&
-        map.getBounds().getEast() - map.getBounds().getWest() < 8
-      )
+      if (d.layers.traffic && visibility.trafficNames)
         for (const a of d.aircraft) {
           const p = projectedPosition(
             a,

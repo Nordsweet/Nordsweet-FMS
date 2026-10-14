@@ -14,6 +14,10 @@ and verifies route sequencing and reload persistence before returning to the
 preparation map to check saved restrictions. It also asserts that preparation
 does not expose navigation start/end controls. Application behavior is unchanged.
 
+## Map label follow-up (2026-10-14)
+
+Restored the original two zoom stages: ICAO codes and point names at legacy zoom 9, full airport names, elevation and runway length at zoom 10. Airspace names remain visible at every zoom. Route/GPS labels ignore the Labels checkbox; traffic labels use the original view width below 8 degrees independently of that checkbox. Golden fixtures record the reference implementation around both thresholds.
+
 ## Acceptance inventory
 
 Map appearance follow-up: restore the legacy map palette, local chart symbols,

@@ -982,7 +982,7 @@ export function MapView({
         const el = document.createElement("div");
         el.className = "legacy-route-marker";
         el.dataset.routeMarker = p.ident;
-        el.textContent = settings.labels ? p.ident : "●";
+        el.textContent = p.ident;
         el.style.cursor = "pointer";
         el.style.display = layers.route ? "" : "none";
         el.tabIndex = 0;
@@ -1022,7 +1022,6 @@ export function MapView({
     route,
     flight.destination,
     flight.alternate,
-    settings.labels,
     airports.data,
     plannedRoute,
     layers.route,
