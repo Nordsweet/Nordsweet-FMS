@@ -51,13 +51,10 @@ export function useChartLabels(
     });
     const stationary = surfaces[0]!,
       moving = surfaces[1]!;
-    let lastFrame = 0,
-      camera = "",
+    let camera = "",
       cached: Labels | null = null;
+    // Draw on every map frame: skipping one leaves labels behind the map once it goes idle.
     const draw = () => {
-      const now = performance.now();
-      if (now - lastFrame < 1000 / 24) return;
-      lastFrame = now;
       const d = current.current,
         width = map.getContainer().clientWidth,
         height = map.getContainer().clientHeight;
