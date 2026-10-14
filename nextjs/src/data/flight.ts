@@ -14,6 +14,9 @@ const point = z.object({
     .object({
       from: z.string(),
       to: z.string(),
+      /** Explicit map insertion order; absent on legacy nearest-leg anchors. */
+      placement: z.enum(["before", "after"]).optional(),
+      occurrence: z.number().int().nonnegative().optional(),
       fromPosition: z
         .object({
           lat: z.number().min(-90).max(90),
@@ -40,7 +43,7 @@ export const flightSchema = z.object({
   departure: point.nullable(),
   destination: point.nullable(),
   alternate: point.nullable(),
-  /** Points added on the map; the route planner inserts each into its nearest leg. */
+  /** Map points: explicit before/after anchors, or nearest leg for older saved points. */
   waypoints: z.array(point),
   pointRestrictions: z.record(z.string(), pointRestrictionSchema).default({}),
   /** Legacy route text: DCT, airways, procedures ("SID NAVUR"), coordinates. */

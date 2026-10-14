@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { anchoredWaypoint } from "./waypoint-insertion";
 
 import { type Cruise } from "~/data/aircraft";
-import { type Airport } from "~/data/schemas";
+import { type Airport, type Procedure } from "~/data/schemas";
 
 import { economySuggestions } from "./route-economy";
 import {
@@ -221,4 +222,106 @@ it("keeps anchored map points on the requested leg and applies pilot restriction
     maxFt: null,
     type: "atOrAbove",
   });
+});
+
+it("keeps an explicit insertion before the selected fix even when another leg is shorter", () => {
+  const route = [
+    { ident: "DEPA", lat: 50, lon: 19 },
+    ...Object.entries(points).map(([ident, p]) => ({ ident, ...p })),
+    { ident: "DEST", lat: 51, lon: 19 },
+  ];
+  const inserted = anchoredWaypoint(
+    route,
+    { ident: "NEW", lat: 50.79, lon: 19.01 },
+    1,
+  );
+  const plan = buildRoutePlan(
+    data,
+    input({ routeText: "P1 P2 P3", insertedWaypoints: [inserted] }),
+  )!;
+  expect(plan.points.filter((p) => !p.isProfilePoint).map((p) => p.id)).toEqual(
+    ["DEPA", "NEW", "P1", "P2", "P3", "DEST"],
+  );
+});
+
+it("supports repeated FPL fixes and manual positions before/after endpoints", () => {
+  const route = [
+    { ident: "DEPA", lat: 50, lon: 19 },
+    { ident: "P1", ...points.P1! },
+    { ident: "DEST", lat: 51, lon: 19 },
+  ];
+  const inserted = [
+    anchoredWaypoint(route, { ident: "FIRST", lat: 49.9, lon: 19 }, 0),
+    anchoredWaypoint(route, { ident: "P1", ...points.P1! }, 1),
+    anchoredWaypoint(route, { ident: "LAST", lat: 51.1, lon: 19 }, 3),
+  ];
+  const plan = buildRoutePlan(
+    data,
+    input({ routeText: "P1", insertedWaypoints: inserted }),
+  )!;
+  expect(plan.points.filter((p) => !p.isProfilePoint).map((p) => p.id)).toEqual(
+    ["FIRST", "DEPA", "P1", "P1", "DEST", "LAST"],
+  );
+});
+
+it("recalculates split procedure legs while preserving published altitude and speed limits", () => {
+  const procedure: Procedure = {
+    airport: "DEST",
+    type: "STAR",
+    id: "ARR1A",
+    designator: "ARR1A",
+    runways: [],
+    source: "test",
+    legs: [
+      {
+        ident: "P1",
+        ...points.P1!,
+        altitude: null,
+        speedKt: null,
+        trackMagDeg: null,
+        distanceNm: null,
+      },
+      {
+        ident: "P2",
+        ...points.P2!,
+        altitude: { raw: "FL40", type: "atOrAbove" },
+        speedKt: 80,
+        trackMagDeg: 123,
+        distanceNm: 999,
+      },
+    ],
+  };
+  const routeData = {
+    ...data,
+    point: (key: string) =>
+      key === "ARR" ? { lat: 50.1, lon: 19 } : data.point(key),
+    procedures: (airport: string, type: string) =>
+      airport === "DEST" && type === "STAR" ? [procedure] : [],
+  };
+  const base = input({
+    selections: { SID: null, STAR: "ARR1A", APPROACH: null },
+  });
+  const original = buildRoutePlan(routeData, base)!;
+  const route = original.points
+    .filter((p) => !p.isProfilePoint)
+    .map((p) => ({ ident: p.id, lat: p.lat, lon: p.lon }));
+  const inserted = anchoredWaypoint(
+    route,
+    { ident: "NEW", lat: 50.4, lon: 19.1 },
+    route.findIndex((p) => p.ident === "P2"),
+  );
+  const updated = buildRoutePlan(routeData, {
+    ...base,
+    insertedWaypoints: [inserted],
+  })!;
+  expect(updated.totalDistanceNm).toBeLessThan(original.totalDistanceNm);
+  expect(updated.points.find((p) => p.id === "P2")?.procedureLeg).toMatchObject(
+    {
+      distanceNm: null,
+      trackMagDeg: null,
+      speedKt: 80,
+      altitude: { raw: "FL40", type: "atOrAbove" },
+    },
+  );
+  expect(procedure.legs[1]!.distanceNm).toBe(999);
 });
