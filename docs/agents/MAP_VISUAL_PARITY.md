@@ -38,8 +38,20 @@ the legacy data bundle and the Collector, independently of chart styling.
 
 ## Verification
 
+Label policy follow-up (2026-10-14): preserve the original staged display.
+At legacy zoom 9 (MapLibre 8), show valid ICAO codes and point names. At legacy
+zoom 10 (MapLibre 9), show full airport names, non-ICAO landing-site names,
+elevation and runway length. Airspace names remain visible at every zoom when
+Labels is enabled, as explicitly confirmed by the owner. Traffic names retain
+the original strict longitude-span threshold of less than 8 degrees.
+`record-map-labels.cjs` records the original canvas output at both boundaries;
+golden tests cover enabled/disabled labels, ICAO validity, name normalization
+and the traffic boundary.
+
 Browser comparison of the live reference and local render, desktop and narrow
 layouts; regression coverage for palette, zoom ratio and displayed layer names.
 Map interaction tests now project using the rendered camera rather than assuming
 a fixed zoom and screen size. Existing import, route editing, restrictions,
 traffic history, destination reveal, GPS, persistence and offline tests remain.
+
+Traffic, route waypoint and GPS vector labels retain their legacy independence from the Labels checkbox. Traffic labels use the strict longitude-span boundary below 8 degrees.
