@@ -38,6 +38,10 @@ Hide airspace labels in the distant view. At the point-name zoom show only class
 
 Map/Fly captions now use the existing compact VFR alias: EPNT ALFA → EPNTA, EPNT BRAVO → EPNTB, etc. The same format is used for reporting points drawn as route markers.
 
+## Plan airport fix visibility (2026-10-14)
+
+Map/Fly runway thresholds and terminal SID/STAR fixes are shown only for planned departure/arrival airports and the active navigation destination after diversion. Ordinary reporting points and shared airway fixes remain global. Symbols and captions share the filtered list. Published SID/STAR leg coordinates supplement the map only for selected airports. Added a Divert action in airport details: navigate directly to that airport while retaining timers/track; the diversion airport persists across reloads and direct-to fixes; resuming the original route or ending the flight removes it from the map filter.
+
 ## Acceptance inventory
 
 Map appearance follow-up: restore the legacy map palette, local chart symbols,
@@ -155,15 +159,15 @@ setup (P2006T, EPKK → EPGD, alternate EPWA): every visible control per tab, ev
 (Economy, Vertical profile, schedule, airport search, waypoint WX), Save a flight, the saved-flight
 row actions and Settings.
 
-| Area | Result |
-| --- | --- |
-| Aircraft | Same controls (type, registration incl. registration-specific profiles, FREDA indication, MTH, last state). |
-| Route | Same controls, SID/STAR/approach option labels identical. Legacy CALCULATE intentionally replaced by live recalculation. |
-| Route dialogs | Economy (with Apply), Vertical profile, schedule, airport search and waypoint WX match. |
-| Fuel | Same rows, inputs and notes. |
-| W&B | Added the legacy Phase tile and the yellow condition rows / gradient Useful load band. |
+| Area                          | Result                                                                                                                                                                                                |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Aircraft                      | Same controls (type, registration incl. registration-specific profiles, FREDA indication, MTH, last state).                                                                                           |
+| Route                         | Same controls, SID/STAR/approach option labels identical. Legacy CALCULATE intentionally replaced by live recalculation.                                                                              |
+| Route dialogs                 | Economy (with Apply), Vertical profile, schedule, airport search and waypoint WX match.                                                                                                               |
+| Fuel                          | Same rows, inputs and notes.                                                                                                                                                                          |
+| W&B                           | Added the legacy Phase tile and the yellow condition rows / gradient Useful load band.                                                                                                                |
 | Save a flight / Saved flights | Same immediate save + .nord download. Unnamed snapshots are now named after the route ("EPKK -> EPGD / 262.5 NM") and rows show aircraft type and "Saved <date>"; develop adds GPX/KML/.nord per row. |
-| Settings | Same preferences; company login and API tokens remain out of scope / replaced by the collector. |
+| Settings                      | Same preferences; company login and API tokens remain out of scope / replaced by the collector.                                                                                                       |
 
 Legacy main bug not replicated: every route point gets an "At 0 ft" altitude restriction without
 user input, which pins the profile to sea level (no TOC, one conflict) and changes trip time/fuel.

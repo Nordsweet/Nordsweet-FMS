@@ -85,6 +85,18 @@ export function PointDetails({
             {t("fly.directTo")}
           </Button>
         )}
+        {navigation.startedAt && point.kind === "airport" && (
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={!fix || !!error || now - Date.parse(fix.time) > 20000}
+            onClick={() => {
+              if (fix) navigation.divertTo(point, fix);
+            }}
+          >
+            {t("fly.divert")}
+          </Button>
+        )}
         {point.kind === "airport" && (
           <>
             <Button
