@@ -1188,7 +1188,10 @@ export function MapView({
       .catch(() => null);
     const aircraft = snapshot?.aircraft ?? base.aircraft;
     let results = findMapObjects(text, { ...base, aircraft });
-    if (!results.length && /^[A-Z0-9]{2}\d{1,4}[A-Z]?$/.test(mapSearchKey(text))) {
+    if (
+      !results.length &&
+      /^[A-Z0-9]{2}\d{1,4}[A-Z]?$/.test(mapSearchKey(text))
+    ) {
       const aliases = await client.fetchQuery({
         ...api.traffic.identifiers.queryOptions({
           callsign: mapSearchKey(text),
