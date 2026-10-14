@@ -6,6 +6,7 @@ import { type Flight, flightSchema, newFlight } from "~/data/flight";
 import { parseNordFile, toNordFile, legacyAircraftId } from "~/data/nord";
 
 import { findAirport } from "./search";
+import { loadAircraft } from "./aircraft";
 import { loadDataset } from "./datasets";
 
 // shortcut: one IndexedDB store on this device; replace with a sync queue once the backend exists.
@@ -19,7 +20,7 @@ const MIGRATED_KEY = "legacy-saved-routes-imported";
 async function migrateLegacy() {
   if (await get(MIGRATED_KEY, store)) return;
   const [profiles, airports] = await Promise.all([
-    loadDataset("aircraft"),
+    loadAircraft(),
     loadDataset("airports"),
   ]);
   const known = profiles.map((a) => a.id);
@@ -103,7 +104,7 @@ export async function importFlight({
   fileName: string;
 }) {
   const [aircraft, airports] = await Promise.all([
-    loadDataset("aircraft"),
+    loadAircraft(),
     loadDataset("airports"),
   ]);
   const { flight, alternateCode } = parseNordFile(
@@ -135,7 +136,7 @@ export async function exportFlight(
   points?: Parameters<typeof toNordFile>[2],
 ) {
   const validated = flightSchema.parse(flight);
-  const aircraft = (await loadDataset("aircraft")).find(
+  const aircraft = (await loadAircraft()).find(
     (a) => a.id === validated.aircraftId,
   );
   const date = new Date(validated.savedAt);
@@ -172,7 +173,7 @@ export async function legacyDraft(): Promise<Flight | null> {
   if (!keys.some((key) => localStorage.getItem(`nordsweet.${key}.v1`)))
     return null;
   const [aircraft, airports] = await Promise.all([
-    loadDataset("aircraft"),
+    loadAircraft(),
     loadDataset("airports"),
   ]);
   const read = (key: string) =>

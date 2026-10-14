@@ -13,7 +13,48 @@ import { distanceNm } from "~/domain/geo";
 import { useT } from "~/i18n/use-t";
 import { usePlan } from "~/features/plan/use-plan";
 
-/** Map route/radio/zone inventory shares the planner and API reference data. */
+/** Legacy serviceShortLabel for each frequency service. */
+const SERVICE_TAG: Record<string, string> = {
+  atis: "ATIS",
+  delivery: "DEL",
+  ground: "GND",
+  tower: "TWR",
+  radio: "RDO",
+  zblizanie: "APP",
+  radar: "RAD",
+  informacja: "INFO",
+  fiss: "FIS",
+};
+
+type Row = {
+  frequencyMhz: string;
+  callsign: string;
+  sector: string | null;
+  service?: string;
+  serviceId?: string;
+  zone?: string;
+};
+
+/** Legacy phaseServiceTitle: TWR/RDO and FIR/FIS titles name only the services present. */
+function phaseTitle(title: string, rows: Row[]) {
+  const tags = new Set(rows.map((r) => r.zone ?? tag(r)));
+  if (title.endsWith("TWR/RDO")) {
+    const prefix = title.slice(0, 3);
+    if (tags.has("TWR") && tags.has("RDO")) return title;
+    if (tags.has("TWR")) return `${prefix} TWR`;
+    if (tags.has("RDO")) return `${prefix} RDO`;
+  }
+  if (title === "ENR FIR/FIS") {
+    if (tags.has("FIR") && tags.has("FIS")) return title;
+    if (tags.has("FIR")) return "ENR FIR";
+    if (tags.has("FIS")) return "ENR FIS";
+  }
+  return title;
+}
+const tag = (r: Row) =>
+  SERVICE_TAG[r.service ?? r.serviceId ?? ""] ?? r.zone ?? "";
+
+/** Legacy map sidebar: zone/route/crossed counts and the Route / Radio / Zones tabs. */
 export function MapSummary({
   route,
   zones,
@@ -69,111 +110,156 @@ export function MapSummary({
     )
     .filter((z) => routeCrossesPolygon(route, z.geometry.coordinates))
     .sort((a, b) => progress(a) - progress(b));
-  const phases = [
-    ["DEP ATIS", departure, dep.data?.filter((f) => f.service === "atis")],
-    ["DEP DEL", departure, dep.data?.filter((f) => f.service === "delivery")],
-    ["DEP GND", departure, dep.data?.filter((f) => f.service === "ground")],
-    [
-      "DEP TWR/RDO",
-      departure,
-      dep.data?.filter((f) => f.service === "tower" || f.service === "radio"),
-    ],
-    [
-      "DEP APP",
-      departure,
-      dep.data?.filter(
-        (f) => f.service === "zblizanie" || f.service === "radar",
-      ),
-    ],
+  const at = (data: Row[] | undefined, services: string[]) =>
+    data?.filter((f) => f.service && services.includes(f.service)) ?? [];
+  const phases: [string, string, Row[]][] = [
+    ["DEP ATIS", departure, at(dep.data, ["atis"])],
+    ["DEP DEL", departure, at(dep.data, ["delivery"])],
+    ["DEP GND", departure, at(dep.data, ["ground"])],
+    ["DEP TWR/RDO", departure, at(dep.data, ["tower", "radio"])],
+    ["DEP APP", departure, at(dep.data, ["zblizanie", "radar"])],
     [
       "ENR FIR/FIS",
-      "",
+      t("maptools.route").toUpperCase(),
       enroute.flatMap((z) =>
         zoneRadioRows(z.properties).map((f) => ({
           ...f,
           sector: f.sector ?? z.properties.name,
+          zone: /\bFIR\b/i.test(z.properties.name)
+            ? "FIR"
+            : airspaceKind(z.properties.name, z.properties.class),
         })),
       ),
     ],
-    ["ARR ATIS", arrival, arr.data?.filter((f) => f.service === "atis")],
-    [
-      "ARR APP",
-      arrival,
-      arr.data?.filter(
-        (f) => f.service === "zblizanie" || f.service === "radar",
-      ),
-    ],
-    [
-      "ARR TWR/RDO",
-      arrival,
-      arr.data?.filter((f) => f.service === "tower" || f.service === "radio"),
-    ],
-    ["ARR GND", arrival, arr.data?.filter((f) => f.service === "ground")],
-  ] as const;
+    ["ARR ATIS", arrival, at(arr.data, ["atis"])],
+    ["ARR APP", arrival, at(arr.data, ["zblizanie", "radar"])],
+    ["ARR TWR/RDO", arrival, at(arr.data, ["tower", "radio"])],
+    ["ARR GND", arrival, at(arr.data, ["ground"])],
+  ];
+  const radio = phases.filter((p) => p[2].length);
+  const empty = (text: string) => (
+    <div className="legacy-card">
+      <div className="legacy-muted">{text}</div>
+    </div>
+  );
   return (
-    <details>
-      <summary>{t("maptools.summary")}</summary>
-      <Tabs defaultValue="route" className="max-h-72 overflow-auto">
+    <div className="legacy-map-side">
+      <div className="legacy-metrics">
+        {(
+          [
+            [zones.length, "maptools.metric.zones"],
+            [route.length, "maptools.metric.points"],
+            [crossed.length, "maptools.metric.crossed"],
+          ] as const
+        ).map(([value, key]) => (
+          <div key={key} className="legacy-metric">
+            <strong>{value}</strong>
+            <span>{t(key)}</span>
+          </div>
+        ))}
+      </div>
+      <Tabs defaultValue="route">
         <TabsList>
           <TabsTrigger value="route">{t("maptools.route")}</TabsTrigger>
           <TabsTrigger value="radio">{t("maptools.radio")}</TabsTrigger>
           <TabsTrigger value="zones">{t("map.layer.airspace")}</TabsTrigger>
         </TabsList>
         <TabsContent value="route">
-          {route.map((p, i) => (
-            <div key={i}>
-              {i + 1}. {p.ident} · {p.lat.toFixed(4)}, {p.lon.toFixed(4)}
+          <div className="legacy-card">
+            <div className="legacy-card-title">
+              {t("mapplanner.points")}
+              <span className="legacy-tag">{route.length}</span>
             </div>
-          ))}
-          {routePlan?.warnings.map((w, i) => (
-            <div key={i} className="text-destructive">
-              {t("maptools.unresolved")}: {"token" in w ? w.token : w.code}
+            {route.length ? (
+              route.map((p, i) => (
+                <div key={i} className="legacy-line">
+                  <span className="legacy-tag">{i + 1}</span>
+                  <span>{p.ident}</span>
+                  <span className="legacy-muted">
+                    {p.lat.toFixed(4)}, {p.lon.toFixed(4)}
+                  </span>
+                </div>
+              ))
+            ) : (
+              <div className="legacy-muted">{t("maptools.noRoute")}</div>
+            )}
+          </div>
+          {!!routePlan?.warnings.length && (
+            <div className="legacy-card">
+              <div className="legacy-card-title">
+                {t("maptools.unresolved")}
+              </div>
+              <div className="legacy-muted">
+                {routePlan.warnings
+                  .map((w) => ("token" in w ? w.token : w.code))
+                  .join(", ")}
+              </div>
             </div>
-          ))}
+          )}
         </TabsContent>
         <TabsContent value="radio">
-          {phases
-            .filter((p) => p[2]?.length)
-            .map(([title, airport, rows]) => (
-              <section key={title}>
-                <strong>
-                  {title} {airport}
-                </strong>
-                {rows?.map((f, i) => (
-                  <div key={i}>
-                    {[f.callsign, f.sector].filter(Boolean).join(" / ")} ·{" "}
-                    {f.frequencyMhz}
+          {!route.length
+            ? empty(t("maptools.buildFirst"))
+            : !radio.length
+              ? empty(t("maptools.noFrequencies"))
+              : radio.map(([title, context, rows]) => (
+                  <div key={title} className="legacy-card">
+                    <div className="legacy-card-title">
+                      <span>
+                        {[phaseTitle(title, rows), context]
+                          .filter(Boolean)
+                          .join(" - ")}
+                      </span>
+                      <span className="legacy-tag">{rows.length}</span>
+                    </div>
+                    {rows.map((f, i) => (
+                      <div key={i} className="legacy-line">
+                        <span className="legacy-tag">{tag(f)}</span>
+                        <span>
+                          {[f.callsign, f.sector].filter(Boolean).join(" / ")}
+                        </span>
+                        <strong>{f.frequencyMhz}</strong>
+                      </div>
+                    ))}
                   </div>
                 ))}
-              </section>
-            ))}
-          {!phases.some((p) => p[2]?.length) && t("maptools.noData")}
         </TabsContent>
         <TabsContent value="zones">
-          {crossed.map((z, i) => (
-            <div
-              key={i}
-              className={z.properties.active_now ? "text-destructive" : ""}
-            >
-              {airspaceKind(z.properties.name, z.properties.class)} ·{" "}
-              {z.properties.name} · {z.properties.lower}–{z.properties.upper}
+          <div className="legacy-card">
+            <div className="legacy-card-title">
+              {t("maptools.crossed")}
+              <span className="legacy-tag">{crossed.length}</span>
             </div>
-          ))}
-          <div>
-            AUP:{" "}
-            {plan === "none"
-              ? t("maptools.none")
-              : t(plan === "next" ? "map.planNext" : "map.planCurrent")}
+            {crossed.length ? (
+              crossed.map((z, i) => (
+                <div key={i} className="legacy-line">
+                  <span
+                    className={
+                      z.properties.active_now ? "legacy-tag hot" : "legacy-tag"
+                    }
+                  >
+                    {airspaceKind(z.properties.name, z.properties.class)}
+                  </span>
+                  <span>{z.properties.name}</span>
+                  <span className="legacy-muted">
+                    {z.properties.lower}-{z.properties.upper}
+                  </span>
+                </div>
+              ))
+            ) : (
+              <div className="legacy-muted">{t("maptools.noCrossed")}</div>
+            )}
           </div>
-          {crossed
-            .flatMap((z) => z.properties.activations)
-            .map((a, i) => (
-              <div key={i}>
-                {a.starts_at} · {a.ends_at}
-              </div>
-            ))}
+          <div className="legacy-card">
+            <div className="legacy-card-title">AUP</div>
+            <div className="legacy-muted">
+              {plan === "none"
+                ? t("maptools.none")
+                : t(plan === "next" ? "map.planNext" : "map.planCurrent")}
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
-    </details>
+    </div>
   );
 }

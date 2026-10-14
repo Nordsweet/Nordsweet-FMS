@@ -1,18 +1,12 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "~/api";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "~/components/ui/select";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { type FlightPoint } from "~/data/flight";
 import { formatRoutePoint, pointKey } from "~/domain/route-plan";
+import { type MessageKey } from "~/i18n/messages";
 import { useT } from "~/i18n/use-t";
 import { useFlight } from "~/stores/flight";
 import { useInFlight } from "~/stores/inflight";
@@ -20,6 +14,14 @@ import { useGps } from "~/features/fly/use-gps";
 import { AirportBriefing } from "~/features/plan/briefing";
 import { WaypointWxDialog } from "~/features/plan/route-dialogs";
 import { usePlan } from "~/features/plan/use-plan";
+
+const KIND_LABEL: Record<string, MessageKey> = {
+  airport: "maptools.kind.airport",
+  airfield: "maptools.kind.airport",
+  navaid: "maptools.kind.navaid",
+  "ifr-waypoint": "maptools.kind.ifr",
+  "vfr-reporting-point": "maptools.kind.vfr",
+};
 
 export function PointDetails({
   point,
@@ -51,6 +53,9 @@ export function PointDetails({
     : point.ident.trim().toUpperCase();
   const restriction = flight.pointRestrictions[key];
   const [wxOpen, setWxOpen] = useState(false);
+  const [altitudeMode, setAltitudeMode] = useState(
+    restriction?.altitudeMode ?? "at",
+  );
   const [mode, setMode] = useState<
     "restriction" | "weather" | "notams" | "charts" | null
   >(null);
@@ -68,8 +73,9 @@ export function PointDetails({
         onClose={() => setWxOpen(false)}
       />
       <strong>{point.ident}</strong>
-      <span>{point.name}</span>
-      <span className="text-muted-foreground text-xs">
+      {point.name !== point.ident && <span>{point.name}</span>}
+      <span className="text-muted-foreground text-xs font-bold">
+        {t(KIND_LABEL[point.kind] ?? "maptools.kind.point")} |{" "}
         {point.lat.toFixed(5)}, {point.lon.toFixed(5)}
       </span>
       <div className="flex flex-wrap gap-2">
@@ -115,10 +121,8 @@ export function PointDetails({
             </Button>
           </>
         )}
-        <Button size="sm" onClick={() => addPoint(point, "waypoint")}>
-          {t("plan.route.addWaypoint")}
-        </Button>
-        {flight.waypoints.some((p) => p.ident === point.ident) && (
+        {/* Legacy "Add To Route" turns into "Remove From Route" once the point is on it. */}
+        {flight.waypoints.some((p) => p.ident === point.ident) ? (
           <Button
             size="sm"
             variant="outline"
@@ -132,10 +136,14 @@ export function PointDetails({
           >
             {t("maptools.removePoint")}
           </Button>
+        ) : (
+          <Button size="sm" onClick={() => addPoint(point, "waypoint")}>
+            {t("plan.route.addWaypoint")}
+          </Button>
         )}
         {onRoute && (
           <Button size="sm" variant="outline" onClick={() => setWxOpen(true)}>
-            {t("plan.route.wx.title", { point: point.ident })}
+            WX
           </Button>
         )}
         {onRoute && (
@@ -170,8 +178,7 @@ export function PointDetails({
             e.preventDefault();
             const data = new FormData(e.currentTarget),
               speed = data.get("speed") as string,
-              altitude = data.get("altitude") as string,
-              altitudeMode = data.get("mode") as string;
+              altitude = data.get("altitude") as string;
             const next = {
               speedKt:
                 speed && Number.isFinite(Number(speed)) && Number(speed) > 0
@@ -183,55 +190,57 @@ export function PointDetails({
                 Number(altitude) >= 0
                   ? Math.round(Number(altitude))
                   : null,
-              altitudeMode:
-                altitudeMode === "above"
-                  ? ("above" as const)
-                  : altitudeMode === "below"
-                    ? ("below" as const)
-                    : ("at" as const),
+              altitudeMode,
             };
             update({
               pointRestrictions: { ...flight.pointRestrictions, [key]: next },
             });
           }}
         >
-          <Label>
-            {t("maptools.speed")}
-            <Input
-              type="number"
-              name="speed"
-              min={1}
-              defaultValue={restriction?.speedKt ?? ""}
-            />
-          </Label>
-          <Label>
-            {t("maptools.altitude")}
-            <Input
-              type="number"
-              name="altitude"
-              min={0}
-              step={100}
-              defaultValue={restriction?.altitudeFt ?? ""}
-            />
-          </Label>
-          <Label>
-            {t("maptools.restriction")}
-            <Select
-              name="mode"
-              defaultValue={restriction?.altitudeMode ?? "at"}
-            >
-              <SelectTrigger aria-label={t("maptools.restriction")}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {(["below", "at", "above"] as const).map((value) => (
-                  <SelectItem key={value} value={value}>
-                    {t(`maptools.${value}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Label>
+          <div className="grid grid-cols-2 gap-2">
+            <Label>
+              {t("maptools.speed")}
+              <Input
+                type="number"
+                name="speed"
+                min={1}
+                defaultValue={restriction?.speedKt ?? ""}
+              />
+            </Label>
+            <Label>
+              {t("maptools.altitude")}
+              <Input
+                type="number"
+                name="altitude"
+                min={0}
+                step={100}
+                defaultValue={restriction?.altitudeFt ?? ""}
+              />
+            </Label>
+          </div>
+          <div
+            role="group"
+            aria-label={t("maptools.altitudeRestriction")}
+            className="grid gap-1"
+          >
+            <span className="text-muted-foreground text-[10px] font-bold uppercase">
+              {t("maptools.altitudeRestriction")}
+            </span>
+            <div className="grid grid-cols-3 gap-1">
+              {(["below", "at", "above"] as const).map((value) => (
+                <Button
+                  key={value}
+                  size="sm"
+                  type="button"
+                  variant="outline"
+                  aria-pressed={altitudeMode === value}
+                  onClick={() => setAltitudeMode(value)}
+                >
+                  {t(`maptools.${value}`)}
+                </Button>
+              ))}
+            </div>
+          </div>
           <div className="flex gap-2">
             <Button size="sm" type="submit">
               {t("maptools.apply")}
@@ -241,6 +250,7 @@ export function PointDetails({
               type="button"
               variant="outline"
               onClick={() => {
+                setAltitudeMode("at");
                 const entries = { ...flight.pointRestrictions };
                 delete entries[key];
                 update({ pointRestrictions: entries });

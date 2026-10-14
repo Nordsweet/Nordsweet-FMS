@@ -1317,7 +1317,7 @@ export function MapView({
           aria-label={t("mapsearch.title")}
           title={t("mapsearch.title")}
           aria-expanded={settings.searchOpen}
-          className="legacy-flight-tool bg-card/90 absolute top-3 right-3 z-30 backdrop-blur"
+          className="legacy-flight-tool bg-card/90 absolute top-3 left-3 z-30 backdrop-blur"
           variant="outline"
           disabled={!ready}
           onClick={() => settings.setSearchOpen(!settings.searchOpen)}
@@ -1365,13 +1365,6 @@ export function MapView({
               (layers.traffic && traffic.isFetching)) && (
               <span>{t("maptools.loading")}</span>
             )}
-            <span>
-              {t("maptools.counts", {
-                zones: zones.length,
-                points: route.length,
-                traffic: traffic.data?.aircraft.length ?? 0,
-              })}
-            </span>
             <details open>
               <summary>{t("maptools.filter")}</summary>
               <div className="flex flex-wrap gap-1">
@@ -1456,9 +1449,6 @@ export function MapView({
               crossed={crossed}
               plan={plan}
             />
-            <span>
-              {t("maptools.crossed")}: {crossed.length}
-            </span>
           </div>,
           toolsContainer,
         )}
@@ -1509,7 +1499,7 @@ export function MapView({
                     selectedAircraft.track_deg,
                     now,
                   ) ?? selectedAircraft)
-                : undefined
+                : { lat: click.lngLat.lat, lon: click.lngLat.lng }
             }
           >
             {click.kind === "traffic" && selectedAircraft ? (
@@ -1559,6 +1549,7 @@ export function MapView({
               </div>
             ) : click.kind === "airspace" ? (
               <AirspaceDetails
+                point={{ lat: click.lngLat.lat, lon: click.lngLat.lng }}
                 zones={inspectionZones.map((zone) => zone.properties)}
                 plannedFtByZone={inspectionZones.map((zone) =>
                   plannedAltitudeForZone(

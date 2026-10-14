@@ -1,6 +1,7 @@
 import { mutationOptions, queryOptions } from "@tanstack/react-query";
 
 import { type Flight } from "~/data/flight";
+import { type AircraftDraft } from "~/domain/custom-aircraft";
 
 import {
   type AirspacePlan,
@@ -8,6 +9,7 @@ import {
   type CommunityAtisReport,
   aviationApi,
 } from "./aviation/client";
+import { loadAircraft, readCustomDrafts, writeCustomDrafts } from "./aircraft";
 import { loadDataset } from "./datasets";
 import {
   listFlights,
@@ -101,7 +103,19 @@ export const api = {
     ),
   },
   aircraft: {
-    list: query("aircraft.list", () => loadDataset("aircraft"), reference),
+    // Local and cheap: always re-read, so a just-saved custom aircraft shows up.
+    list: query("aircraft.list", loadAircraft, { staleTime: 0 }),
+    customDrafts: query(
+      "aircraft.customDrafts",
+      async () => readCustomDrafts(),
+      {
+        staleTime: 0,
+      },
+    ),
+    saveCustomDrafts: mutation(
+      "aircraft.saveCustomDrafts",
+      async (drafts: AircraftDraft[]) => writeCustomDrafts(drafts),
+    ),
   },
   flights: {
     legacyDraft: query("flights.legacyDraft", legacyDraft, reference),

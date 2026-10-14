@@ -30,7 +30,7 @@ export function MapSearch({
     <section
       role="dialog"
       aria-label={t("mapsearch.title")}
-      className="bg-card/95 text-card-foreground absolute top-20 right-20 left-3 z-40 grid max-h-[65%] gap-3 overflow-auto rounded-2xl border p-4 shadow-xl backdrop-blur sm:left-auto sm:w-80"
+      className="bg-card/95 text-card-foreground absolute top-20 right-3 left-3 z-40 grid max-h-[65%] gap-3 overflow-auto rounded-2xl border p-4 shadow-xl backdrop-blur sm:right-auto sm:w-80"
     >
       <div className="flex items-center justify-between gap-2">
         <strong>{t("mapsearch.title")}</strong>

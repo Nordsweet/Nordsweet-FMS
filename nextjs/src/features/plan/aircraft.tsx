@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { api } from "~/api";
+import Link from "next/link";
 import { useState } from "react";
 
 import { Input } from "~/components/ui/input";
@@ -172,6 +173,12 @@ export function AircraftSection() {
           </div>
         )}
       </div>
+      <Link
+        href="/aircraft"
+        className="text-accent-2 w-fit text-[0.82rem] underline-offset-4 hover:underline"
+      >
+        {t("aircraft.manage")}
+      </Link>
       {aircraft && (
         <>
           <p className="text-muted-foreground text-[0.82rem] leading-snug">

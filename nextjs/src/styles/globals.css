@@ -260,7 +260,8 @@
 .legacy-map-tools [data-slot="button"],
 .legacy-map-tools [data-slot="input"],
 .legacy-map-tools [data-slot="select-trigger"],
-.legacy-map-details [data-slot="button"] {
+.legacy-map-details [data-slot="button"],
+.legacy-map-details [data-slot="input"] {
   color: #182230;
   background: #fff;
   border: 1px solid #bdc6d0;
@@ -272,6 +273,28 @@
     sans-serif;
   padding: 7px 10px;
   box-shadow: none;
+}
+.legacy-map-details [data-slot="button"] {
+  text-transform: none;
+  letter-spacing: 0;
+}
+.legacy-map-details [data-slot="button"][data-variant="default"] {
+  color: white;
+  background: #244f86;
+  border-color: #244f86;
+}
+.legacy-map-details [aria-pressed="true"] {
+  background: #e3f7f4;
+  border-color: #7fc7bd;
+}
+.legacy-map-details label {
+  display: grid;
+  gap: 4px;
+  color: #65758a;
+  font:
+    700 10px system-ui,
+    sans-serif;
+  text-transform: uppercase;
 }
 .legacy-map-tools [aria-pressed="true"] {
   background: #244f86;
@@ -404,12 +427,6 @@
 }
 .legacy-map-info .text-muted-foreground {
   color: #65758a;
-}
-.legacy-map-info [data-slot="tabs-list"] {
-  background: #fbfaf6;
-}
-.legacy-map-info [data-slot="tabs-trigger"] {
-  color: #182230;
 }
 
 .legacy-map-tools-title {
@@ -601,4 +618,180 @@
 }
 .legacy-flight-tool[data-variant="destructive"][aria-expanded="true"] {
   outline: 2px solid rgba(255, 255, 255, 0.32);
+}
+
+/* Legacy map sidebar (airspaces-map .side): metrics, tabs and cards. */
+.legacy-map-side {
+  display: grid;
+  gap: 9px;
+  color: #182230;
+}
+.legacy-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.legacy-metric {
+  display: grid;
+  gap: 3px;
+  padding: 9px;
+  border: 1px solid #d7dee7;
+  border-radius: 8px;
+  background: #fbfdff;
+}
+.legacy-metric strong {
+  font-size: 18px;
+}
+.legacy-metric span {
+  color: #657181;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.legacy-map-side [data-slot="tabs-list"] {
+  display: grid;
+  width: 100%;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+  padding: 0;
+  border-bottom: 1px solid #d6d0c2;
+  background: #fbfaf6;
+}
+.legacy-map-side [data-slot="tabs-trigger"] {
+  min-height: 40px;
+  min-width: 0;
+  border: 0;
+  border-right: 1px solid #d6d0c2;
+  border-radius: 0;
+  background: #fbfaf6;
+  color: #182230;
+  font:
+    800 13px system-ui,
+    sans-serif;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.legacy-map-side [data-slot="tabs-trigger"]:last-child {
+  border-right: 0;
+}
+.legacy-map-side [data-slot="tabs-trigger"][data-state="active"] {
+  background: #fff;
+  color: #244f86;
+  box-shadow: inset 0 -3px 0 #244f86;
+}
+.legacy-map-side [data-slot="tabs-content"] {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  padding-top: 10px;
+}
+.legacy-card {
+  display: grid;
+  gap: 7px;
+  padding: 10px;
+  border: 1px solid #d7dee7;
+  border-radius: 8px;
+  background: #fff;
+}
+.legacy-card-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-weight: 800;
+}
+.legacy-muted {
+  color: #657181;
+  font-size: 12px;
+}
+.legacy-line {
+  display: grid;
+  grid-template-columns: 72px 1fr auto;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 0;
+  border-top: 1px solid #edf0f4;
+  font-size: 12px;
+}
+.legacy-card-title + .legacy-line {
+  border-top: 0;
+}
+.legacy-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 20px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #eef3f8;
+  color: #344154;
+  font-size: 11px;
+  font-weight: 800;
+}
+.legacy-tag.hot {
+  background: #ffe8ec;
+  color: #a81731;
+}
+
+/* Legacy airspace inspector: profile beside the zone/service list. */
+.legacy-map-details:has(.legacy-inspector) {
+  width: min(600px, calc(100% - 16px));
+}
+.legacy-inspector-body {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px;
+  align-items: start;
+}
+.legacy-inspector-card {
+  display: grid;
+  gap: 6px;
+  padding: 9px;
+  border: 1px solid #d7dee7;
+  border-radius: 8px;
+  background: #fff;
+}
+.legacy-inspector-heading {
+  color: #43536a;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.legacy-inspector-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  color: #43536a;
+  font-size: 10px;
+  font-weight: 800;
+}
+.legacy-inspector-legend i {
+  display: inline-block;
+  width: 16px;
+  height: 0;
+  margin-right: 3px;
+  vertical-align: middle;
+  border-top: 2.5px dashed #0f7898;
+}
+.legacy-inspector-legend i.current {
+  border-top: 2.2px solid #c4334d;
+}
+.legacy-inspector-zone {
+  display: grid;
+  grid-template-columns: 6px 1fr;
+  gap: 8px;
+  padding: 7px 0;
+  border-top: 1px solid #edf0f4;
+}
+.legacy-inspector-heading + .legacy-inspector-zone {
+  border-top: 0;
+}
+.legacy-inspector-zone > span {
+  border-radius: 3px;
+}
+.legacy-inspector-service {
+  display: grid;
+  grid-template-columns: 42px 1fr auto;
+  gap: 6px;
+  font-size: 11px;
 }

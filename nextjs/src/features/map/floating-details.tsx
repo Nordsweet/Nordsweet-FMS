@@ -69,7 +69,7 @@ export function FloatingDetails({
   return (
     <div
       ref={panelRef}
-      className={`legacy-map-details absolute z-20 max-h-[65%] overflow-y-auto ${anchor ? "" : "right-2 bottom-8 left-2 sm:left-auto"}`}
+      className={`legacy-map-details absolute z-20 max-h-[65%] overflow-y-auto ${anchor ? "" : "right-2 bottom-[4.75rem] left-2 sm:left-auto"}`}
       role="dialog"
       aria-label={t("map.details")}
       style={{

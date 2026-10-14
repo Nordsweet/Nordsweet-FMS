@@ -59,3 +59,14 @@ Traffic, route waypoint and GPS vector labels retain their legacy independence f
 Control shape follow-up (2026-10-14): tool rail and shared Map/Fly Layers button use 3.45rem squares with 13px corner radius, matching original flight tools. Owner requested Layers to be square too. EMER has white text and red rgba(255, 0, 0, 0.75) fill, including its expanded state.
 
 Airspace caption policy (2026-10-14, supersedes unconditional legacy zone labels by owner request): hide below legacy zoom 9 / MapLibre 8; show class/designator at that zoom; at legacy zoom 10 / MapLibre 9 show the descriptive name below it only when the entire centered text rectangle fits inside the projected polygon, excluding holes and concave cuts. Otherwise retain the short designator.
+
+Button-by-button audit (2026-10-14, against main `airspaces-map`): the Route / Radio / Zones
+inventory now uses the legacy sidebar layout (stref / punktów trasy / przecięte tiles, underlined
+tabs, cards with service tags, legacy TWR/RDO and FIR/FIS titles, hot tags for active zones).
+Point, segment and airspace popups open beside the click like the legacy menus. The point popup
+has the legacy kind | coordinates line, Add/Remove toggle, `WX` and Below / At / Above restriction
+buttons; the airspace inspector has the legacy title, meta line, feet grid, type-coloured bars,
+dashed planned line, GPS line, legend and zone/service list. The map search button moved to the
+map's top-left so it no longer covers Build route or the popups. Kept on purpose: Departure /
+Destination / Weather popup actions (map flight planner), no SafeSky/direct-source loaders
+(Collector is the single source).

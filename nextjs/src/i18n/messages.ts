@@ -1,8 +1,10 @@
 import { type Language } from "~/stores/settings";
+import { aircraftEditorEn, aircraftEditorPl } from "./aircraft-editor";
 import { mapToolsEn, mapToolsPl } from "./map-tools";
 
 const pl = {
   ...mapToolsPl,
+  ...aircraftEditorPl,
   "maplegacy.airspace": "Strefy",
   "maplegacy.traffic": "Live traffic",
   "maplegacy.black": "Black",
@@ -245,8 +247,6 @@ const pl = {
   "mapsearch.error": "Nie udało się pobrać danych. Spróbuj ponownie.",
   "mapsearch.results": "Wyniki wyszukiwania",
   "map.close": "Zamknij",
-  "map.class": "Klasa",
-  "map.notBooked": "Brak rezerwacji w planie (strefa stała lub nieaktywna).",
   "map.activeNow": "Aktywna teraz",
   "nav.fly": "Lot",
   "fly.phase.taxiout": "Kołowanie (odlot)",
@@ -774,6 +774,7 @@ export type MessageKey = keyof typeof pl;
 
 const en: Record<MessageKey, string> = {
   ...mapToolsEn,
+  ...aircraftEditorEn,
   "maplegacy.airspace": "Airspaces",
   "maplegacy.traffic": "Live traffic",
   "maplegacy.black": "Black",
@@ -1015,8 +1016,6 @@ const en: Record<MessageKey, string> = {
   "mapsearch.error": "Could not load data. Try again.",
   "mapsearch.results": "Search results",
   "map.close": "Close",
-  "map.class": "Class",
-  "map.notBooked": "Not booked in the plan (permanent or inactive zone).",
   "map.activeNow": "Active now",
   "nav.fly": "Fly",
   "fly.phase.taxiout": "Taxi-Out",
