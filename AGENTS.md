@@ -12,3 +12,7 @@ Before changing anything, read:
 
 Gates (from `nextjs/`): `pnpm format:write && pnpm check && pnpm build && pnpm test:e2e`.
 Never commit to `main`; never force-push `develop`.
+
+Finish every piece of work by pushing it to `develop` (run the gates first; merge `origin/develop`
+before pushing). Stage only your own files: other agents may have uncommitted work in the same
+checkout, so push from a clean `git worktree` if the merge would touch their files.
