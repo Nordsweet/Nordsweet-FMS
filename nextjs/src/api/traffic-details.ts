@@ -36,7 +36,10 @@ const sampleSchema = z.object({
   lat: z.number().min(-90).max(90),
   lon: z.number().min(-180).max(180),
   sampledAt: z.number().finite(),
-  callsign: z.string().default(""),
+  callsign: z
+    .string()
+    .nullish()
+    .transform((value) => value ?? ""),
 });
 const historySchema = z.object({
   hex: z.string(),
