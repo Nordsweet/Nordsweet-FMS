@@ -1,4 +1,5 @@
 export const aircraftEditorEn = {
+  "nav.aircraft": "Aircraft",
   "aircraft.manage": "Add or edit your own aircraft",
   "aircraft.title": "My aircraft",
   "aircraft.intro":
@@ -99,6 +100,7 @@ export const aircraftEditorEn = {
 };
 
 export const aircraftEditorPl: Record<keyof typeof aircraftEditorEn, string> = {
+  "nav.aircraft": "Samoloty",
   "aircraft.manage": "Dodaj lub edytuj własne samoloty",
   "aircraft.title": "Moje samoloty",
   "aircraft.intro":

@@ -4,6 +4,7 @@ import {
   ClipboardList,
   type LucideIcon,
   Map as MapIcon,
+  Plane,
   Settings,
 } from "lucide-react";
 import Link from "next/link";
@@ -17,6 +18,7 @@ import { type MessageKey } from "~/i18n/messages";
 const nav: { href: string; label: MessageKey; icon: LucideIcon }[] = [
   { href: "/", label: "nav.planner", icon: ClipboardList },
   { href: "/map", label: "nav.graphicalPlan", icon: MapIcon },
+  { href: "/aircraft", label: "nav.aircraft", icon: Plane },
 ];
 
 /** Pages render their own top-right actions here (see usePageActions). */
