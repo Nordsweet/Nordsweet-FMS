@@ -66,7 +66,7 @@ test("GPX and imported airspace survive reload; invalid GPX keeps the route", as
   await expect(page.locator("[data-route-marker]")).toHaveText(["A", "B"]);
 });
 
-test("selected traffic uses generic source, callsign history, destination reveal and draggable details", async ({
+test("selected traffic anchors details at aircraft and restores server history", async ({
   page,
 }) => {
   test.setTimeout(60000);
@@ -95,31 +95,20 @@ test("selected traffic uses generic source, callsign history, destination reveal
             {
               lat: 50,
               lon: 18,
-              sampledAt: now - 20000,
+              sampledAt: now - 60000,
               callsign: "OLD",
             },
             {
               lat: 50.1,
               lon: 18.2,
-              sampledAt: now - 10000,
+              sampledAt: now - 30000,
               callsign: "RYR8GK",
             },
+            { lat: 50.12, lon: 18.22, sampledAt: now - 20000, callsign: null },
+            { lat: 50.14, lon: 18.24, sampledAt: now - 10000, callsign: null },
           ],
         }),
       }),
-  );
-  await page.route("https://api.adsbdb.com/v0/callsign/RYR8GK", (route) =>
-    route.fulfill({
-      contentType: "application/json",
-      body: JSON.stringify({
-        response: {
-          flightroute: {
-            callsign: "RYR8GK",
-            destination: { icao_code: "EGSS", name: "London Stansted Airport" },
-          },
-        },
-      }),
-    }),
   );
   await page.goto("/map");
   await expect(page.locator(".maplibregl-canvas")).toBeVisible();
@@ -153,24 +142,37 @@ test("selected traffic uses generic source, callsign history, destination reveal
   );
   const card = page.getByTestId("traffic-card");
   await expect(card).toContainText("RYR8GK");
-  await expect(card).toContainText("EGSS");
-  await expect(card).not.toContainText(/adsb\.lol|adsb\.fi|Position/);
-  await expect(card).toContainText("Confirmed history");
-  await page.clock.pauseAt(
-    new Date(await page.evaluate(() => Date.now() + 1000)),
+  await expect(card).not.toContainText(
+    /adsb\.lol|adsb\.fi|Position|Registration|Destination/,
   );
-  await card.getByRole("button", { name: "Show airport name" }).click();
-  await expect(card).toContainText("London Stansted Airport");
-  await page.clock.fastForward(2999);
-  await expect(card).toContainText("London Stansted Airport");
-  await page.clock.fastForward(1);
-  await expect(card).toContainText("EGSS");
-  await expect(card).not.toContainText("London Stansted Airport");
-  await page.clock.resume();
+  await expect(card).toContainText("Confirmed history");
+  await expect
+    .poll(async () =>
+      Number(/Confirmed history: (\d+)/.exec(await card.innerText())?.[1] ?? 0),
+    )
+    .toBeGreaterThanOrEqual(4);
   const panel = page.getByRole("dialog", { name: "Details" });
   await panel.getByText("Details", { exact: true }).scrollIntoViewIfNeeded();
   const before = (await panel.boundingBox())!,
     handle = (await panel.getByText("Details", { exact: true }).boundingBox())!;
+  const aircraftX =
+    box.x +
+    box.width / 2 +
+    ((18.248217 -
+      Number(await page.getByTestId("map").getAttribute("data-center-lon"))) /
+      360) *
+      world;
+  expect(Math.abs(before.x - aircraftX)).toBeLessThan(270);
+  const aircraftY =
+    box.y +
+    box.height / 2 +
+    ((merc(
+      Number(await page.getByTestId("map").getAttribute("data-center-lat")),
+    ) -
+      merc(50.174142)) /
+      (2 * Math.PI)) *
+      world;
+  expect(Math.abs(before.y + before.height / 2 - aircraftY)).toBeLessThan(40);
   await page.mouse.move(handle.x + 20, handle.y + 10);
   await page.mouse.down();
   await page.mouse.move(handle.x - 60, handle.y - 25, { steps: 5 });

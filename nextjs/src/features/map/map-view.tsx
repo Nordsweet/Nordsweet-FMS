@@ -176,6 +176,7 @@ export function MapView({
     ...api.traffic.history.queryOptions({ hex: selectedHex }),
     enabled: !!selectedHex,
     retry: false,
+    refetchInterval: selectedHex ? 15000 : false,
   });
 
   const airports = useQuery(api.airports.list.queryOptions(undefined));
@@ -1305,6 +1306,18 @@ export function MapView({
             }
             onClose={() => setClick(null)}
             draggable={click.kind === "traffic"}
+            mapRef={mapRef}
+            anchor={
+              selectedAircraft
+                ? (projectedPosition(
+                    selectedAircraft,
+                    selectedAircraft.position_time,
+                    selectedAircraft.ground_speed_kt,
+                    selectedAircraft.track_deg,
+                    now,
+                  ) ?? selectedAircraft)
+                : undefined
+            }
           >
             {click.kind === "traffic" && selectedAircraft ? (
               <TrafficCard

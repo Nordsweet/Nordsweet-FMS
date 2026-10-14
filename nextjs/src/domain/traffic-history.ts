@@ -12,15 +12,27 @@ export function currentCallsignHistory(
   local: TrafficSample[],
   callsign: string | null,
 ) {
-  const key = callsign?.trim().toUpperCase().replace(/\s+/g, "");
-  if (!key) return [];
+  const normalize = (value: string) =>
+    value.trim().toUpperCase().replace(/\s+/g, "");
+  const key =
+    normalize(callsign ?? "") ||
+    normalize(
+      [...remote, ...local].reverse().find((p) => p.callsign.trim())
+        ?.callsign ?? "",
+    );
   const last = remote.at(-1)?.sampledAt ?? -Infinity;
   const merged = [
     ...remote,
     ...local.filter((sample) => sample.sampledAt > last),
   ].sort((a, b) => a.sampledAt - b.sampledAt);
   let start = merged.length;
-  while (start > 0 && merged[start - 1]!.callsign === key) start--;
+  while (start > 0) {
+    const sampleKey = merged[start - 1]!.callsign.trim()
+      .toUpperCase()
+      .replace(/\s+/g, "");
+    if (key && sampleKey && sampleKey !== key) break;
+    start--;
+  }
   return merged.slice(start);
 }
 

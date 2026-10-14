@@ -26,6 +26,10 @@ Tool rail buttons and the shared Layers control now use the original flight-tool
 
 Removed the Estimated change section and its timing/speed/ATC note block. The flight view now shows a dismissible Suggested Frequency Change popup during the last 120 seconds before the predicted next sector boundary, independent of the COMMs panel. Frequency and callsign come from the existing radio estimate; FIS services include (FIS). A dismissed transition is not repeated. No suggestion without a fresh GPS fix, predicted boundary or next channel. COMMs and the popup share one estimate; PL/EN messages are included.
 
+## Traffic details and track follow-up (2026-10-14)
+
+Aircraft details now open beside the projected aircraft position and follow map movement, with viewport clamping and manual dragging retained. Removed Registration and Destination tiles and the destination API query. Collector history accepts null/missing callsigns; unlabelled samples are retained within the current flight segment, server history is merged with newer local samples and refreshed every 15 seconds. Different confirmed callsigns and observation gaps still separate flights/segments.
+
 ## Acceptance inventory
 
 Map appearance follow-up: restore the legacy map palette, local chart symbols,

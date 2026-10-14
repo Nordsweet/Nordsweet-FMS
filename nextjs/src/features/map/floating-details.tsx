@@ -1,4 +1,12 @@
-import { useRef, useState, type ReactNode, type PointerEvent } from "react";
+import {
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+  type RefObject,
+  type PointerEvent,
+} from "react";
+import { type Map as MapLibreMap } from "maplibre-gl";
 import { Button } from "~/components/ui/button";
 import { useT } from "~/i18n/use-t";
 
@@ -6,16 +14,48 @@ export function FloatingDetails({
   children,
   onClose,
   draggable,
+  anchor,
+  mapRef,
 }: {
   children: ReactNode;
   onClose: () => void;
   draggable: boolean;
+  anchor?: { lat: number; lon: number };
+  mapRef?: RefObject<MapLibreMap | null>;
 }) {
   const t = useT(),
     [position, setPosition] = useState({ x: 0, y: 0 }),
     start = useRef<{ x: number; y: number; left: number; top: number } | null>(
       null,
     );
+  const panelRef = useRef<HTMLDivElement>(null);
+  const lat = anchor?.lat,
+    lon = anchor?.lon;
+  useLayoutEffect(() => {
+    const panel = panelRef.current;
+    const map = mapRef?.current;
+    if (!panel || !map || lat === undefined || lon === undefined) return;
+    const update = () => {
+      const point = map.project([lon, lat]);
+      const parent = panel.parentElement;
+      if (!parent) return;
+      const width = panel.offsetWidth,
+        height = panel.offsetHeight;
+      const right = point.x + 14;
+      panel.style.left = `${Math.max(8, Math.min(parent.clientWidth - width - 8, right + width <= parent.clientWidth - 8 ? right : point.x - width - 14))}px`;
+      panel.style.top = `${Math.max(8, Math.min(parent.clientHeight - height - 8, point.y - height / 2))}px`;
+    };
+    update();
+    map.on("move", update);
+    map.on("resize", update);
+    const observer = new ResizeObserver(update);
+    observer.observe(panel);
+    return () => {
+      map.off("move", update);
+      map.off("resize", update);
+      observer.disconnect();
+    };
+  }, [mapRef, lat, lon]);
   function begin(event: PointerEvent<HTMLDivElement>) {
     if (event.button !== 0) return;
     start.current = {
@@ -28,10 +68,16 @@ export function FloatingDetails({
   }
   return (
     <div
-      className="legacy-map-details absolute right-2 bottom-8 left-2 z-20 max-h-[65%] overflow-y-auto sm:left-auto"
+      ref={panelRef}
+      className={`legacy-map-details absolute z-20 max-h-[65%] overflow-y-auto ${anchor ? "" : "right-2 bottom-8 left-2 sm:left-auto"}`}
       role="dialog"
       aria-label={t("map.details")}
-      style={{ transform: `translate(${position.x}px,${position.y}px)` }}
+      style={{
+        ...(anchor
+          ? { right: "auto", bottom: "auto", maxWidth: "calc(100% - 16px)" }
+          : {}),
+        transform: `translate(${position.x}px,${position.y}px)`,
+      }}
     >
       <div className="mb-2 flex items-center justify-between">
         <div

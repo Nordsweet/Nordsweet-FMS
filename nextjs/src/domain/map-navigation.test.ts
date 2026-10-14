@@ -104,7 +104,10 @@ test("no previous callsign flight is joined to a newly selected airframe", () =>
   expect(
     currentCallsignHistory(remote, local, "new").map((p) => p.sampledAt),
   ).toEqual([4, 5]);
-  expect(currentCallsignHistory(remote, local, null)).toEqual([]);
+  // A temporarily missing live callsign falls back to the last confirmed flight.
+  expect(
+    currentCallsignHistory(remote, local, null).map((p) => p.sampledAt),
+  ).toEqual([4, 5]);
   expect(appendTrafficSample(local, sample(4, "NEW"))).toEqual(local);
 });
 
