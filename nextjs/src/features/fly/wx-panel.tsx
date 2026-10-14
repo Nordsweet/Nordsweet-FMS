@@ -250,7 +250,7 @@ export function WxPanel({ phase }: { phase: FlightPhase }) {
       ) : (
         <AirportWx side={DESTINATION.includes(phase) ? "landing" : "takeoff"} />
       )}
-      <details>
+      <details open={!enroute}>
         <summary className="cursor-pointer text-sm font-medium">
           {t("fly.wx.full")}
         </summary>
