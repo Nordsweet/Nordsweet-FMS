@@ -33,7 +33,17 @@ export function useMapAnimation({
     const map = mapRef.current;
     if (!ready || !map) return;
     let request = 0,
-      lastFrame = 0;
+      lastFrame = 0,
+      lastTraffic = -Infinity,
+      lastCamera = "";
+    // setData re-tiles the source in the worker and forces a repaint, so skip unchanged data.
+    const sent = new globalThis.Map<string, string>();
+    const set = (id: string, data: Parameters<GeoJSONSource["setData"]>[0]) => {
+      const json = JSON.stringify(data);
+      if (sent.get(id) === json) return;
+      sent.set(id, json);
+      void map.getSource<GeoJSONSource>(id)?.setData(data);
+    };
     const draw = (frame: number) => {
       if (frame - lastFrame < 1000 / 24) {
         request = requestAnimationFrame(draw);
@@ -44,114 +54,122 @@ export function useMapAnimation({
       const own = fix
         ? projectedPosition(fix, fix.time, fix.groundSpeedKt, fix.trackDeg, now)
         : null;
+      // Traffic moves well under a pixel per 24 FPS frame; 8 Hz keeps it smooth at a third of the cost.
+      const trafficDue = frame - lastTraffic >= 1000 / 8;
+      if (trafficDue) lastTraffic = frame;
       const estimates: number[][][] = [];
-      const traffic = trafficEnabled
-        ? (aircraft ?? []).flatMap((a) => {
-            const position = projectedPosition(
-              a,
-              a.position_time,
-              a.ground_speed_kt,
-              a.track_deg,
-              now,
-            );
-            if (!position) return [];
-            labels.current.get(a.hex)?.setLngLat([position.lon, position.lat]);
-            estimates.push([
-              [a.lon, a.lat],
-              [position.lon, position.lat],
-            ]);
-            return [
-              {
-                type: "Feature" as const,
-                geometry: {
-                  type: "Point" as const,
-                  coordinates: [position.lon, position.lat],
+      const traffic =
+        trafficEnabled && trafficDue
+          ? (aircraft ?? []).flatMap((a) => {
+              const position = projectedPosition(
+                a,
+                a.position_time,
+                a.ground_speed_kt,
+                a.track_deg,
+                now,
+              );
+              if (!position) return [];
+              labels.current
+                .get(a.hex)
+                ?.setLngLat([position.lon, position.lat]);
+              estimates.push([
+                [a.lon, a.lat],
+                [position.lon, position.lat],
+              ]);
+              return [
+                {
+                  type: "Feature" as const,
+                  geometry: {
+                    type: "Point" as const,
+                    coordinates: [position.lon, position.lat],
+                  },
+                  properties: {
+                    alert: trafficAlertLevel(
+                      own && fix
+                        ? {
+                            ...own,
+                            altitudeFt: fix.altitudeFt,
+                            speedKt: fix.groundSpeedKt,
+                            trackDeg: fix.trackDeg,
+                          }
+                        : null,
+                      {
+                        ...position,
+                        altitudeFt: a.altitude_ft,
+                        speedKt: a.ground_speed_kt,
+                        trackDeg: a.track_deg,
+                      },
+                    ),
+                    hex: a.hex,
+                    onGround: a.on_ground,
+                    alpha: position.alpha,
+                    track: a.track_deg ?? 0,
+                    flarm: a.sources.some((source) =>
+                      /flarm|ogn/i.test(source),
+                    ),
+                  },
                 },
-                properties: {
-                  alert: trafficAlertLevel(
-                    own && fix
-                      ? {
-                          ...own,
-                          altitudeFt: fix.altitudeFt,
-                          speedKt: fix.groundSpeedKt,
-                          trackDeg: fix.trackDeg,
-                        }
-                      : null,
-                    {
-                      ...position,
-                      altitudeFt: a.altitude_ft,
-                      speedKt: a.ground_speed_kt,
-                      trackDeg: a.track_deg,
-                    },
-                  ),
-                  hex: a.hex,
-                  onGround: a.on_ground,
-                  alpha: position.alpha,
-                  track: a.track_deg ?? 0,
-                  flarm: a.sources.some((source) => /flarm|ogn/i.test(source)),
-                },
-              },
-            ];
-          })
-        : [];
-      void map
-        .getSource<GeoJSONSource>("traffic")
-        ?.setData({ type: "FeatureCollection", features: traffic });
-      void map.getSource<GeoJSONSource>("traffic-estimate")?.setData({
-        type: "FeatureCollection",
-        features: estimates.length
-          ? [
-              {
-                type: "Feature",
-                properties: {},
-                geometry: { type: "MultiLineString", coordinates: estimates },
-              },
-            ]
-          : [],
-      });
-      const selected = trafficEnabled
-        ? aircraft?.find((a) => a.hex === selectedHex)
-        : null;
-      const target = selected
-        ? projectedPosition(
-            selected,
-            selected.position_time,
-            selected.ground_speed_kt,
-            selected.track_deg,
-            now,
-          )
-        : null;
-      const end =
-        target && selected?.track_deg != null
-          ? destinationPoint(
-              target,
-              selected.track_deg,
-              ((selected.ground_speed_kt ?? 0) * 2) / 60,
-            )
-          : null;
-      void map.getSource<GeoJSONSource>("traffic-vector")?.setData({
-        type: "FeatureCollection",
-        features:
-          target && end
+              ];
+            })
+          : [];
+      if (trafficDue) {
+        set("traffic", { type: "FeatureCollection", features: traffic });
+        set("traffic-estimate", {
+          type: "FeatureCollection",
+          features: estimates.length
             ? [
                 {
                   type: "Feature",
                   properties: {},
-                  geometry: {
-                    type: "LineString",
-                    coordinates: [
-                      [target.lon, target.lat],
-                      [end.lon, end.lat],
-                    ],
-                  },
+                  geometry: { type: "MultiLineString", coordinates: estimates },
                 },
               ]
             : [],
-      });
+        });
+        const selected = trafficEnabled
+          ? aircraft?.find((a) => a.hex === selectedHex)
+          : null;
+        const target = selected
+          ? projectedPosition(
+              selected,
+              selected.position_time,
+              selected.ground_speed_kt,
+              selected.track_deg,
+              now,
+            )
+          : null;
+        const end =
+          target && selected?.track_deg != null
+            ? destinationPoint(
+                target,
+                selected.track_deg,
+                ((selected.ground_speed_kt ?? 0) * 2) / 60,
+              )
+            : null;
+        set("traffic-vector", {
+          type: "FeatureCollection",
+          features:
+            target && end
+              ? [
+                  {
+                    type: "Feature",
+                    properties: {},
+                    geometry: {
+                      type: "LineString",
+                      coordinates: [
+                        [target.lon, target.lat],
+                        [end.lon, end.lat],
+                      ],
+                    },
+                  },
+                ]
+              : [],
+        });
+      }
       const position = fix
         ? projectedPosition(fix, fix.time, fix.groundSpeedKt, fix.trackDeg, now)
         : null;
-      void map.getSource<GeoJSONSource>("ownship")?.setData({
+      set("ownship", {
         type: "FeatureCollection",
         features: position
           ? [
@@ -180,7 +198,7 @@ export function useMapAnimation({
               return [edge.lon, edge.lat];
             })
           : [];
-      void map.getSource<GeoJSONSource>("gps-accuracy")?.setData({
+      set("gps-accuracy", {
         type: "FeatureCollection",
         features: accuracy.length
           ? [
@@ -192,7 +210,7 @@ export function useMapAnimation({
             ]
           : [],
       });
-      void map.getSource<GeoJSONSource>("direct-to")?.setData({
+      set("direct-to", {
         type: "FeatureCollection",
         features:
           position && directRoute?.[1]
@@ -219,7 +237,7 @@ export function useMapAnimation({
               ((fix.groundSpeedKt ?? 0) * 5) / 60,
             )
           : null;
-      void map.getSource<GeoJSONSource>("gps-vector")?.setData({
+      set("gps-vector", {
         type: "FeatureCollection",
         features:
           position && gpsEnd
@@ -263,7 +281,7 @@ export function useMapAnimation({
           ]);
         }
       }
-      void map.getSource<GeoJSONSource>("gps-ticks")?.setData({
+      set("gps-ticks", {
         type: "FeatureCollection",
         features: ticks.length
           ? [
@@ -275,18 +293,20 @@ export function useMapAnimation({
             ]
           : [],
       });
-      if (position && following)
+      const bearing = trackUp ? (fix?.trackDeg ?? map.getBearing()) : 0,
+        top = map.getCanvas().clientHeight * 0.5,
+        camera = `${position?.lon},${position?.lat},${bearing},${top}`;
+      // jumpTo always fires move + repaint, so only move the camera when the target changed.
+      if (position && following && camera !== lastCamera) {
+        lastCamera = camera;
         map.jumpTo({
           center: [position.lon, position.lat],
-          bearing: trackUp ? (fix?.trackDeg ?? map.getBearing()) : 0,
-          padding: {
-            top: map.getCanvas().clientHeight * 0.5,
-            bottom: 0,
-            left: 0,
-            right: 0,
-          },
+          bearing,
+          padding: { top, bottom: 0, left: 0, right: 0 },
         });
-      if (position || traffic.length) request = requestAnimationFrame(draw);
+      }
+      if (position || (trafficEnabled && aircraft?.length))
+        request = requestAnimationFrame(draw);
     };
     request = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(request);

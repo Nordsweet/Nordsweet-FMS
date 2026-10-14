@@ -17,7 +17,7 @@ import {
   speedRestrictionKt,
 } from "~/domain/route-plan";
 import { type FlightPoint } from "~/data/flight";
-import { distanceNm, initialBearingDeg, destinationPoint } from "~/domain/geo";
+import { distanceNm, initialBearingDeg } from "~/domain/geo";
 import {
   airspaceKind,
   plannedAltitudeForZone,
@@ -225,8 +225,12 @@ export function MapView({
   useEffect(() => {
     zonesRef.current = zones;
   }, [zones]);
-  const crossed = zones.filter((zone) =>
-    routeCrossesPolygon(route, zone.geometry.coordinates),
+  const crossed = useMemo(
+    () =>
+      zones.filter((zone) =>
+        routeCrossesPolygon(route, zone.geometry.coordinates),
+      ),
+    [zones, route],
   );
   const selectedAircraft =
     click?.kind === "traffic" && layers.traffic
@@ -732,60 +736,6 @@ export function MapView({
     if (!ready) return;
     const aircraft = layers.traffic ? (traffic.data?.aircraft ?? []) : [];
     trafficByHex.current = new Map(aircraft.map((a) => [a.hex, a]));
-    const animated = aircraft.flatMap((a) => {
-      const position = projectedPosition(
-        a,
-        a.position_time,
-        a.ground_speed_kt,
-        a.track_deg,
-        now,
-      );
-      return position ? [{ a, position }] : [];
-    });
-    void source("traffic")?.setData({
-      type: "FeatureCollection",
-      features: animated.map(({ a, position }) => ({
-        type: "Feature",
-        geometry: { type: "Point", coordinates: [position.lon, position.lat] },
-        properties: {
-          hex: a.hex,
-          onGround: a.on_ground,
-          alpha: position.alpha,
-          track: a.track_deg ?? 0,
-          flarm: a.sources.some((value) => /flarm|ogn/i.test(value)),
-        },
-      })),
-    });
-    void source("traffic-vector")?.setData({
-      type: "FeatureCollection",
-      features:
-        selectedAircraft && layers.traffic
-          ? [
-              {
-                type: "Feature",
-                properties: {},
-                geometry: {
-                  type: "LineString",
-                  coordinates: [
-                    [selectedAircraft.lon, selectedAircraft.lat],
-                    [
-                      destinationPoint(
-                        selectedAircraft,
-                        selectedAircraft.track_deg ?? 0,
-                        ((selectedAircraft.ground_speed_kt ?? 0) * 2) / 60,
-                      ).lon,
-                      destinationPoint(
-                        selectedAircraft,
-                        selectedAircraft.track_deg ?? 0,
-                        ((selectedAircraft.ground_speed_kt ?? 0) * 2) / 60,
-                      ).lat,
-                    ],
-                  ],
-                },
-              },
-            ]
-          : [],
-    });
     void source("traffic-trail")?.setData({
       type: "FeatureCollection",
       features:
@@ -802,16 +752,7 @@ export function MapView({
             ]
           : [],
     });
-  }, [
-    ready,
-    layers.traffic,
-    traffic.data,
-    now,
-    selectedHex,
-    selectedHistoryQuery.data,
-    selectedAircraft,
-    selectedHistory,
-  ]);
+  }, [ready, layers.traffic, traffic.data, selectedHistory]);
 
   useEffect(() => {
     observe(traffic.data?.aircraft ?? []);
@@ -819,24 +760,6 @@ export function MapView({
 
   useEffect(() => {
     if (!ready) return;
-    const position = fix
-      ? projectedPosition(fix, fix.time, fix.groundSpeedKt, fix.trackDeg, now)
-      : null;
-    void source("ownship")?.setData({
-      type: "FeatureCollection",
-      features: position
-        ? [
-            {
-              type: "Feature",
-              properties: { alpha: position.alpha, track: fix?.trackDeg ?? 0 },
-              geometry: {
-                type: "Point",
-                coordinates: [position.lon, position.lat],
-              },
-            },
-          ]
-        : [],
-    });
     void source("gps-trail")?.setData({
       type: "FeatureCollection",
       features:
@@ -853,37 +776,7 @@ export function MapView({
             ]
           : [],
     });
-    if (fix) {
-      const end = destinationPoint(
-        fix,
-        fix.trackDeg ?? 0,
-        ((fix.groundSpeedKt ?? 0) * 5) / 60,
-      );
-      void source("gps-vector")?.setData({
-        type: "FeatureCollection",
-        features: position
-          ? [
-              {
-                type: "Feature",
-                properties: {},
-                geometry: {
-                  type: "LineString",
-                  coordinates: [
-                    [position.lon, position.lat],
-                    [end.lon, end.lat],
-                  ],
-                },
-              },
-            ]
-          : [],
-      });
-    }
-    if (!fix)
-      void source("gps-vector")?.setData({
-        type: "FeatureCollection",
-        features: [],
-      });
-  }, [ready, fix, now, settings.gpsTrack, settings.gpsEnabled]);
+  }, [ready, settings.gpsTrack, settings.gpsEnabled]);
 
   useEffect(() => {
     const map = mapRef.current;
