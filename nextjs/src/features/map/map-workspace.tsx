@@ -353,6 +353,7 @@ export function MapWorkspace({ embedded = false }: { embedded?: boolean }) {
           }
         >
           <MapView
+            embedded={embedded}
             basemap={settings.basemap}
             layers={settings.layers}
             plan={settings.plan}

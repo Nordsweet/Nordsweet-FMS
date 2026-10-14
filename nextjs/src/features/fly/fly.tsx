@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { SearchIcon } from "lucide-react";
+import { useMapSettings } from "~/stores/map";
 import { useEffect, useState } from "react";
 
 import { Button } from "~/components/ui/button";
@@ -106,6 +108,7 @@ const deg = (v: number | null) =>
 const utc = (date: Date) => date.toISOString().slice(11, 16) + "Z";
 
 export function FlyPage() {
+  const mapSettings = useMapSettings();
   const t = useT();
   const { flight, route: planRoute } = usePlan();
   const inFlight = useInFlight();
@@ -367,11 +370,27 @@ export function FlyPage() {
                 "legacy-flight-tool backdrop-blur",
                 r.id !== "emer" && "bg-card/90",
               )}
-              onClick={() => setPanel(open === r.id ? null : r.id)}
+              onClick={() => {
+                mapSettings.setSearchOpen(false);
+                setPanel(open === r.id ? null : r.id);
+              }}
             >
               {panelLabel(r.id)}
             </Button>
           ))}
+          <Button
+            aria-label={t("mapsearch.title")}
+            title={t("mapsearch.title")}
+            aria-expanded={mapSettings.searchOpen}
+            className="legacy-flight-tool bg-card/90 backdrop-blur"
+            variant={mapSettings.searchOpen ? "default" : "outline"}
+            onClick={() => {
+              setPanel(null);
+              mapSettings.setSearchOpen(!mapSettings.searchOpen);
+            }}
+          >
+            <SearchIcon className="size-6 text-white" />
+          </Button>
         </nav>
       )}
 

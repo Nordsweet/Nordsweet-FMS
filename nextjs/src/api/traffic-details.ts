@@ -15,7 +15,7 @@ const routeSchema = z.object({
     }),
   }),
 });
-export async function trafficDestination({ callsign }: { callsign: string }) {
+async function trafficRoute(callsign: string) {
   if (!/^[A-Z0-9]{2,10}$/.test(callsign)) return null;
   const response = await fetch(
     `https://api.adsbdb.com/v0/callsign/${encodeURIComponent(callsign)}`,
@@ -30,7 +30,23 @@ export async function trafficDestination({ callsign }: { callsign: string }) {
     )
   )
     throw new Error("Callsign mismatch");
-  return { icao: route.destination.icao_code, name: route.destination.name };
+  return route;
+}
+export async function trafficDestination({ callsign }: { callsign: string }) {
+  const route = await trafficRoute(callsign);
+  return route
+    ? { icao: route.destination.icao_code, name: route.destination.name }
+    : null;
+}
+
+/** Translate a flight number to the provider's published ICAO/IATA callsign aliases. */
+export async function trafficIdentifiers({ callsign }: { callsign: string }) {
+  const route = await trafficRoute(callsign);
+  if (!route) return [];
+  const aliases = [route.callsign, route.callsign_icao, route.callsign_iata]
+    .filter((value): value is string => !!value)
+    .map((value) => value.toUpperCase());
+  return aliases;
 }
 const sampleSchema = z.object({
   lat: z.number().min(-90).max(90),

@@ -29,7 +29,11 @@ import {
   parseGpx,
   parseMapAirspace,
 } from "./map-files";
-import { trafficDestination, trafficHistory } from "./traffic-details";
+import {
+  trafficDestination,
+  trafficHistory,
+  trafficIdentifiers,
+} from "./traffic-details";
 
 /**
  * The app's single data boundary ("dummy backend"). Procedures mirror the planned tRPC
@@ -235,6 +239,7 @@ export const api = {
     ),
   },
   traffic: {
+    identifiers: query("traffic.identifiers", trafficIdentifiers, live(HOUR)),
     destination: query("traffic.destination", trafficDestination, live(HOUR)),
     history: query("traffic.history", trafficHistory, live(MINUTE)),
     around: query(

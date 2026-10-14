@@ -44,6 +44,8 @@ export const mapPreferencesSchema = z.object({
 });
 type Preferences = z.infer<typeof mapPreferencesSchema>;
 type MapState = Preferences & {
+  searchOpen: boolean;
+  setSearchOpen: (open: boolean) => void;
   gpsTrack: TrackPoint[];
   observeGps: (point: TrackPoint) => void;
   gpsEnabled: boolean;
@@ -72,6 +74,8 @@ export const useMapSettings = create<MapState>()(
       ...mapPreferencesSchema.parse({}),
       gpsEnabled: false,
       following: false,
+      searchOpen: false,
+      setSearchOpen: (searchOpen) => set({ searchOpen }),
       command: null,
       gpsTrack: [],
       observeGps: (point) =>
