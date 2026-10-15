@@ -215,3 +215,9 @@ Fixed the flight-mode bug: Add waypoint previously updated only the draft, while
 - Single-device community ATIS is hidden from weather and cannot fill flight conditions. Insert ATIS shows it as an explicitly labelled suggestion with selectable structured field hints. Reading or applying hints sends no confirmation.
 - The ATIS pad offers explicit hearing confirmation for an existing broadcast, or submission of a newly copied pad with information letter, UTC time, wind and QNH. The collector counts distinct persistent anonymous browser/device identifiers; repeated votes on the same broadcast count once, conflicting broadcasts do not combine, and identifiers are not exposed in the feed. Owner selected device/browser consensus rather than pilot accounts.
 - Community ATIS is used as weather only when the server confirms at least two devices and the report is not stale. Provider ATIS remains available with its existing age/QNH indicators. PL/EN labels and regressions cover the new behavior.
+
+## Map/Fly status readout deduplication (2026-10-15)
+
+- The embedded map no longer renders its own Route/coordinates/GPS row beneath the Fly status row. Fly keeps its route, next-waypoint distance and GPS status.
+- The standalone preparation map retains its Route/coordinates/GPS readout.
+- Regression coverage checks a single route row before and during a simulated flight, and preserves the standalone map readout.
