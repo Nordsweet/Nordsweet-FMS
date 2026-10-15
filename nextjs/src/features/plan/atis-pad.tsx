@@ -40,6 +40,7 @@ import { useAtis } from "~/stores/atis";
 import { useSettings } from "~/stores/settings";
 
 import { useBriefing } from "./weather";
+import { AtisCommunity } from "./atis-community";
 
 const DIGITS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 type WindDigit = Exclude<keyof AtisPad["wind"], "mode" | "gust" | "varying">;
@@ -888,6 +889,12 @@ export function AtisPadDialog({
       <DialogContent className="max-h-[92dvh] w-[min(64rem,calc(100vw-1rem))] overflow-y-auto">
         <DialogTitle>{t("atis.title")}</DialogTitle>
         <DialogDescription>{t("atis.subtitle")}</DialogDescription>
+        <AtisCommunity
+          icao={icao}
+          reports={briefing.data?.atis ?? []}
+          pad={pad}
+          dispatch={dispatch}
+        />
         <section className="grid gap-2" aria-label={t("atis.board")}>
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h3 className="text-primary text-xs font-semibold tracking-[0.08em] uppercase">

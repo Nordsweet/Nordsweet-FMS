@@ -207,3 +207,11 @@ Fixed the flight-mode bug: Add waypoint previously updated only the draft, while
 - Include the selected aircraft's latest reported fix immediately, so its confirmed trail joins the live-position projection even before the session observer processes that update.
 - Preserve confirmed solid track sections across coverage gaps; join intervals longer than five minutes with dashed amber links instead of leaving empty breaks. These links connect observed endpoints and do not claim intermediate positions were received. Different callsign flights remain separated.
 - Added regressions for sparse/interleaved history, duplicate timestamps, missing callsigns, latest live fixes, coverage gaps and flight changes.
+
+## Weather-only panels and community ATIS consensus (2026-10-15)
+
+- Airport Weather now opens only METAR, TAF and trusted ATIS/D-ATIS. Weather and ATIS are fetched in parallel through dedicated collector endpoints whenever the weather panel mounts; no aggregate airport/NOTAM or chart request is made. Partial weather or ATIS failures retain the other source.
+- NOTAM and Charts remain separate airport actions. Removed the inline Share the ATIS you heard form while preserving Insert ATIS buttons and the existing ATIS pad/METAR chips.
+- Single-device community ATIS is hidden from weather and cannot fill flight conditions. Insert ATIS shows it as an explicitly labelled suggestion with selectable structured field hints. Reading or applying hints sends no confirmation.
+- The ATIS pad offers explicit hearing confirmation for an existing broadcast, or submission of a newly copied pad with information letter, UTC time, wind and QNH. The collector counts distinct persistent anonymous browser/device identifiers; repeated votes on the same broadcast count once, conflicting broadcasts do not combine, and identifiers are not exposed in the feed. Owner selected device/browser consensus rather than pilot accounts.
+- Community ATIS is used as weather only when the server confirms at least two devices and the report is not stale. Provider ATIS remains available with its existing age/QNH indicators. PL/EN labels and regressions cover the new behavior.

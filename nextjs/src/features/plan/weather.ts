@@ -31,7 +31,8 @@ export function useWeatherStation(point: FlightPoint | null) {
 export function useBriefing(point: FlightPoint | null) {
   const station = useWeatherStation(point);
   const briefing = useQuery({
-    ...api.airports.briefing.queryOptions({ icao: station?.icao ?? "" }),
+    ...api.weather.briefing.queryOptions({ icao: station?.icao ?? "" }),
+    refetchOnMount: "always",
     enabled: !!station,
   });
   return { station, briefing };

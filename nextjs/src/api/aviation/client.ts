@@ -86,7 +86,7 @@ const icaoPath = (icao: string, suffix = "") =>
 export type Around = { lat: number; lon: number; radiusNm?: number };
 export type AirspacePlan = "current" | "next";
 
-/** Pilot-reported ATIS (collector POST /community/atis). The server marks it unverified. */
+/** Pilot-reported ATIS; independent device confirmations are counted by the collector. */
 export type CommunityAtisReport = {
   id: string;
   airportIcao: string;
@@ -94,11 +94,46 @@ export type CommunityAtisReport = {
   atisObservedAt: string;
   datisText: string;
   fields: Record<string, string | string[]>;
+  reporterId: string;
 };
 
 export const aviationApi = {
   submitAtis: (report: CommunityAtisReport) =>
     post("/community/atis", z.object({ id: z.string() }).loose(), report),
+  confirmAtis: ({ id, reporterId }: { id: string; reporterId: string }) =>
+    post(
+      `/community/atis/${encodeURIComponent(id)}/confirm`,
+      z.object({
+        id: z.string(),
+        confirmation_count: z.number(),
+        verified: z.boolean(),
+      }),
+      { reporterId },
+    ),
+  briefing: async (icao: string) => {
+    const [weather, atis] = await Promise.allSettled([
+      get(icaoPath(icao, "/weather"), weatherResponseSchema),
+      get(icaoPath(icao, "/atis"), atisResponseSchema),
+    ]);
+    if (weather.status === "rejected" && atis.status === "rejected")
+      throw weather.reason instanceof Error
+        ? weather.reason
+        : new Error("Weather unavailable");
+    return {
+      icao,
+      metar: weather.status === "fulfilled" ? weather.value.metar : null,
+      taf: weather.status === "fulfilled" ? weather.value.taf : null,
+      atis: atis.status === "fulfilled" ? atis.value.atis : [],
+      sources: {
+        ...(weather.status === "fulfilled"
+          ? weather.value.sources
+          : { weather: "error" }),
+        ...(atis.status === "fulfilled"
+          ? atis.value.sources
+          : { atis: "error" }),
+      },
+    };
+  },
   airport: (icao: string) => get(icaoPath(icao), airportResponseSchema),
   weather: (icao: string) =>
     get(icaoPath(icao, "/weather"), weatherResponseSchema),

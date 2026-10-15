@@ -233,12 +233,22 @@ export const api = {
     ),
   },
   community: {
+    confirmAtis: mutation(
+      "community.confirmAtis",
+      (input: { id: string; reporterId: string }) =>
+        aviationApi.confirmAtis(input),
+    ),
     submitAtis: mutation(
       "community.submitAtis",
       (report: CommunityAtisReport) => aviationApi.submitAtis(report),
     ),
   },
   weather: {
+    briefing: query(
+      "weather.briefing",
+      ({ icao }: Icao) => aviationApi.briefing(icao),
+      live(2 * MINUTE),
+    ),
     metarTaf: query(
       "weather.metarTaf",
       ({ icao }: Icao) => aviationApi.weather(icao),
