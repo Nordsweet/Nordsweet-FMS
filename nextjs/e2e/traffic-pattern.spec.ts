@@ -1,0 +1,370 @@
+import fs from "node:fs";
+import { test, expect, type Page } from "@playwright/test";
+import { airportSchema } from "../src/data/schemas";
+import { newFlight } from "../src/data/flight";
+import {
+  trafficPatternGeometry,
+  patternRunwayGeometry,
+} from "../src/domain/traffic-pattern";
+import { type TrafficPattern } from "../src/data/traffic-pattern";
+const raw = JSON.parse(
+  fs.readFileSync("public/data/airports.json", "utf8"),
+) as { ident: string }[];
+const airport = airportSchema.parse(raw.find((a) => a.ident === "EPNT"));
+const departure = airportSchema.parse(raw.find((a) => a.ident === "EPKK"));
+const runway = airport.runways.find((r) => r.designator === "30")!;
+const geometry = patternRunwayGeometry(airport, runway)!;
+const pattern: TrafficPattern = {
+  id: "e2e-pattern",
+  airport,
+  runway: {
+    ...runway,
+    threshold: geometry.threshold,
+    departureEnd: geometry.departureEnd,
+  },
+  direction: "left",
+  join: "downwind",
+  altitudeAalFt: 1000,
+  finalDistanceNm: 2,
+};
+async function mocks(page: Page, atis = true) {
+  await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => route.abort());
+  await page.route("https://aviation.lab.vibecde.com/**", (route) => {
+    const path = new URL(route.request().url()).pathname;
+    if (path.endsWith("/weather"))
+      return route.fulfill({
+        json: {
+          icao: "EPNT",
+          metar: {
+            raw: "EPNT 151200Z 12010KT 9999 SKC 15/10 Q1013",
+            observed_at: new Date().toISOString(),
+            age_minutes: 0,
+            stale: false,
+            status: "confirmed",
+            sources: [],
+            disagreeing: {},
+          },
+          taf: null,
+          sources: {},
+        },
+      });
+    if (path.endsWith("/atis"))
+      return route.fulfill({
+        json: {
+          icao: "EPNT",
+          atis: atis
+            ? [
+                {
+                  kind: "arrival",
+                  letter: "A",
+                  received_at: new Date().toISOString(),
+                  age_minutes: 0,
+                  stale: false,
+                  qnh_hpa: 1013,
+                  qnh_matches_metar: true,
+                  text: "LANDING RUNWAY 30",
+                  fields: { runway: "30" },
+                  source: "atis.guru",
+                },
+              ]
+            : [],
+          sources: {},
+        },
+      });
+    return route.fulfill({ json: { places: [], sources: {} } });
+  });
+  await page.addInitScript(
+    (flight) => {
+      localStorage.setItem("nordsweet.language.v1", "en");
+      if (!localStorage.getItem("nordsweet.flight.v2"))
+        localStorage.setItem(
+          "nordsweet.flight.v2",
+          JSON.stringify({ version: 1, state: { flight } }),
+        );
+    },
+    { ...newFlight(), departure, destination: airport },
+  );
+}
+async function open(page: Page) {
+  await page.getByRole("button", { name: "Search", exact: true }).click();
+  const search = page.getByRole("dialog", { name: "Search", exact: true });
+  await search.getByRole("textbox").fill("EPNT");
+  await search.getByRole("button", { name: "Search", exact: true }).click();
+  const details = page.getByRole("dialog", { name: "Details", exact: true });
+  await details
+    .getByRole("button", { name: "Traffic Pattern", exact: true })
+    .click();
+  return details.getByRole("region", { name: "Traffic Pattern", exact: true });
+}
+async function choose(page: Page, label: string, option: string) {
+  await page.getByRole("combobox", { name: label, exact: true }).click();
+  await page.getByRole("option", { name: option, exact: true }).click();
+}
+const savedPattern = (page: Page) =>
+  page.evaluate(
+    () =>
+      (
+        JSON.parse(localStorage.getItem("nordsweet.flight.v2")!) as {
+          state: { flight: { trafficPattern: TrafficPattern | null } };
+        }
+      ).state.flight.trafficPattern,
+  );
+
+test("previews defaults without editing the FPL; ATIS wins over wind, Custom Final persists after acceptance", async ({
+  page,
+}, testInfo) => {
+  await mocks(page);
+  await page.goto("/map");
+  const panel = await open(page);
+  await expect(
+    panel.getByRole("combobox", { name: "Runway", exact: true }),
+  ).toContainText("30 · ATIS");
+  await expect(
+    panel.getByRole("combobox", { name: "Pattern direction", exact: true }),
+  ).toContainText("Left");
+  await expect(
+    panel.getByRole("combobox", { name: "Join position", exact: true }),
+  ).toContainText("Downwind");
+  await expect(
+    panel.getByLabel("Pattern altitude (ft above airfield)", { exact: true }),
+  ).toHaveValue("1000");
+  await expect(page.locator(".legacy-map")).toHaveAttribute(
+    "data-pattern-preview",
+    "true",
+  );
+  expect(await savedPattern(page)).toBeNull();
+  await panel.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(page.locator(".legacy-map")).toHaveAttribute(
+    "data-pattern-preview",
+    "false",
+  );
+  expect(await savedPattern(page)).toBeNull();
+  await page
+    .getByRole("dialog", { name: "Details", exact: true })
+    .getByRole("button", { name: "Traffic Pattern", exact: true })
+    .click();
+  await choose(page, "Pattern direction", "Right");
+  await choose(page, "Join position", "Final");
+  await expect(
+    panel.getByRole("combobox", { name: "Final distance", exact: true }),
+  ).toContainText("Final (4 NM)");
+  await choose(page, "Final distance", "Custom Final");
+  await panel
+    .getByLabel("Distance from threshold (NM)", { exact: true })
+    .fill("0");
+  await expect(
+    panel.getByRole("button", { name: "Accept traffic pattern", exact: true }),
+  ).toBeDisabled();
+  await panel
+    .getByLabel("Distance from threshold (NM)", { exact: true })
+    .fill("5.5");
+  await panel
+    .getByLabel("Pattern altitude (ft above airfield)", { exact: true })
+    .fill("1200");
+  await page.screenshot({ path: testInfo.outputPath("pattern-preview.png") });
+  await panel
+    .getByRole("button", { name: "Accept traffic pattern", exact: true })
+    .click();
+  await expect(page.locator(".legacy-map")).toHaveAttribute(
+    "data-pattern-preview",
+    "false",
+  );
+  expect(await savedPattern(page)).toMatchObject({
+    join: "final",
+    direction: "right",
+    finalDistanceNm: 5.5,
+    altitudeAalFt: 1200,
+    runway: { designator: "30" },
+  });
+  await expect(page.locator("[data-route-marker]")).toHaveCount(1);
+  await expect(page.getByTestId("map-planner-points")).toContainText(
+    "TP1/EPNT",
+  );
+  await page.reload();
+  await expect(page.getByTestId("map-planner-points")).toContainText(
+    "TP1/EPNT",
+  );
+  const reopened = await open(page);
+  await reopened
+    .getByRole("button", { name: "Remove traffic pattern", exact: true })
+    .click();
+  expect(await savedPattern(page)).toBeNull();
+  await expect(page.getByTestId("map-planner-points")).not.toContainText(
+    "TP1/EPNT",
+  );
+});
+
+test("falls back to wind and offers all entry positions and Final presets", async ({
+  page,
+}) => {
+  await mocks(page, false);
+  await page.goto("/map");
+  const panel = await open(page);
+  await expect(
+    panel.getByRole("combobox", { name: "Runway", exact: true }),
+  ).toContainText("12 · Wind");
+  for (const name of ["Overhead", "Crosswind", "Downwind", "Base", "Final"]) {
+    await choose(page, "Join position", name);
+    await expect(page.locator(".legacy-map")).toHaveAttribute(
+      "data-pattern-preview",
+      "true",
+    );
+  }
+  for (const name of [
+    "Long Final (8 NM)",
+    "Final (4 NM)",
+    "Short Final (2 NM)",
+  ])
+    await choose(page, "Final distance", name);
+  await panel
+    .getByRole("button", { name: "Accept traffic pattern", exact: true })
+    .click();
+  expect(await savedPattern(page)).toMatchObject({
+    join: "final",
+    finalDistanceNm: 2,
+    runway: { designator: "12" },
+  });
+});
+
+test("accepted pattern reports downwind once at its midpoint and Short Final at final start; survives reload", async ({
+  page,
+  context,
+}) => {
+  await mocks(page);
+  const g = trafficPatternGeometry(pattern);
+  await context.grantPermissions(["geolocation"]);
+  await context.setGeolocation({
+    latitude: g.positions.downwind.lat,
+    longitude: g.positions.downwind.lon,
+    accuracy: 5,
+  });
+  await page.addInitScript(
+    ({ pattern, route }) => {
+      if (!localStorage.getItem("nordsweet.inflight.v1"))
+        localStorage.setItem(
+          "nordsweet.inflight.v1",
+          JSON.stringify({
+            version: 1,
+            state: {
+              startedAt: "2026-10-15T12:00:00Z",
+              route,
+              activeLeg: 1,
+              phase: "cruise",
+              trafficPattern: pattern,
+              patternReports: [],
+            },
+          }),
+        );
+    },
+    { pattern, route: [{ ident: "DCT", lat: 49, lon: 20 }, ...g.points] },
+  );
+  await page.goto("/fly");
+  const midpoint = {
+    latitude: (g.positions.downwind.lat + g.positions.base.lat) / 2,
+    longitude: (g.positions.downwind.lon + g.positions.base.lon) / 2,
+    accuracy: 5,
+  };
+  await context.setGeolocation(midpoint);
+  await expect(page.getByTestId("pattern-report")).toHaveText(
+    /Report downwind/,
+  );
+  await page
+    .getByRole("button", { name: "Dismiss report reminder", exact: true })
+    .click();
+  await page.reload();
+  await expect(page.getByTestId("pattern-report")).toHaveCount(0);
+  await context.setGeolocation({
+    latitude: g.positions.base.lat,
+    longitude: g.positions.base.lon,
+    accuracy: 5,
+  });
+  await expect(page.getByTestId("pattern-report")).toHaveCount(0);
+  await context.setGeolocation({
+    latitude: g.positions.final.lat,
+    longitude: g.positions.final.lon,
+    accuracy: 5,
+  });
+  await expect(page.getByTestId("pattern-report")).toHaveText(
+    /Report Short Final/,
+  );
+});
+
+test("accepting a Base join during flight preserves the flight and reports halfway along Base", async ({
+  page,
+  context,
+}) => {
+  await mocks(page);
+  await context.grantPermissions(["geolocation"]);
+  await context.setGeolocation({
+    latitude: 49.5,
+    longitude: 20.2,
+    accuracy: 5,
+  });
+  await page.addInitScript(
+    ({ departure, airport }) => {
+      if (!localStorage.getItem("nordsweet.inflight.v1"))
+        localStorage.setItem(
+          "nordsweet.inflight.v1",
+          JSON.stringify({
+            version: 1,
+            state: {
+              startedAt: "2026-10-15T12:00:00Z",
+              route: [departure, airport],
+              activeLeg: 0,
+              phase: "cruise",
+              trafficPattern: null,
+              patternReports: [],
+            },
+          }),
+        );
+    },
+    { departure, airport },
+  );
+  await page.goto("/fly");
+  const panel = await open(page);
+  await choose(page, "Join position", "Base");
+  await panel
+    .getByRole("button", { name: "Accept traffic pattern", exact: true })
+    .click();
+  const active = await page.evaluate(
+    () =>
+      (
+        JSON.parse(localStorage.getItem("nordsweet.inflight.v1")!) as {
+          state: {
+            startedAt: string;
+            phase: string;
+            route: { ident: string }[];
+            trafficPattern: TrafficPattern;
+          };
+        }
+      ).state,
+  );
+  expect(active.startedAt).toBe("2026-10-15T12:00:00Z");
+  expect(active.phase).toBe("cruise");
+  expect(active.route[0]?.ident).toBe("DCT");
+  expect(active.trafficPattern.join).toBe("base");
+  const g = trafficPatternGeometry(active.trafficPattern);
+  await context.setGeolocation({
+    latitude: g.positions.base.lat,
+    longitude: g.positions.base.lon,
+    accuracy: 5,
+  });
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          (
+            JSON.parse(localStorage.getItem("nordsweet.inflight.v1")!) as {
+              state: { activeLeg: number };
+            }
+          ).state.activeLeg,
+      ),
+    )
+    .toBe(1);
+  await context.setGeolocation({
+    latitude: (g.positions.base.lat + g.positions.final.lat) / 2,
+    longitude: (g.positions.base.lon + g.positions.final.lon) / 2,
+    accuracy: 5,
+  });
+  await expect(page.getByTestId("pattern-report")).toHaveText(/Report Base/);
+});

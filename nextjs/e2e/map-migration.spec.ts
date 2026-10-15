@@ -27,6 +27,8 @@ test("GPX and imported airspace survive reload; invalid GPX keeps the route", as
 }) => {
   await mocks(page);
   await page.goto("/map");
+  await expect(page.getByText(/^Route:/)).toHaveCount(1);
+  await expect(page.getByTestId("map-gps-status")).toBeVisible();
   await expect(page.locator(".maplibregl-canvas")).toBeVisible();
   await expect(page.getByTestId("map")).toHaveAttribute(
     "data-map-ready",
@@ -208,7 +210,7 @@ test("map restrictions persist and navigation shares flight state across pages",
   await page.getByRole("button", { name: "GPS", exact: true }).click();
   await page.goto("/fly");
   await page.getByRole("button", { name: "Start flight", exact: true }).click();
-  await expect(page.getByTestId("map-gps-status")).toContainText("5");
+  await expect(page.getByTestId("gps-status")).toContainText("5");
   await page.getByRole("button", { name: "Info", exact: true }).click();
   await expect(page.getByTestId("fly-next")).toHaveText("B");
   await context.setGeolocation({ latitude: 50, longitude: 20.05, accuracy: 5 });

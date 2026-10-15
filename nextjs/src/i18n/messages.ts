@@ -1,8 +1,12 @@
+import { trafficPatternEn, trafficPatternPl } from "./traffic-pattern";
 import { type Language } from "~/stores/settings";
+import { atisConsensusEn, atisConsensusPl } from "./atis-consensus";
 import { aircraftEditorEn, aircraftEditorPl } from "./aircraft-editor";
 import { mapToolsEn, mapToolsPl } from "./map-tools";
 
 const pl = {
+  ...trafficPatternPl,
+  ...atisConsensusPl,
   ...mapToolsPl,
   ...aircraftEditorPl,
   "maplegacy.airspace": "Strefy",
@@ -202,7 +206,7 @@ const pl = {
   "plan.saved.load": "Wczytaj",
   "plan.saved.delete": "Usuń",
   "plan.saved.none": "Brak zapisanych lotów.",
-  "plan.wx.title": "Pogoda i NOTAM",
+  "plan.wx.title": "Pogoda",
   "plan.wx.age": "{minutes} min temu",
   "plan.wx.ageUnknown": "wiek nieznany",
   "plan.wx.stale": "nieaktualne",
@@ -808,6 +812,8 @@ const pl = {
 export type MessageKey = keyof typeof pl;
 
 const en: Record<MessageKey, string> = {
+  ...trafficPatternEn,
+  ...atisConsensusEn,
   ...mapToolsEn,
   ...aircraftEditorEn,
   "maplegacy.airspace": "Airspaces",
@@ -1007,7 +1013,7 @@ const en: Record<MessageKey, string> = {
   "plan.saved.load": "Load",
   "plan.saved.delete": "Delete",
   "plan.saved.none": "No saved flights.",
-  "plan.wx.title": "Weather and NOTAMs",
+  "plan.wx.title": "Weather",
   "plan.wx.age": "{minutes} min ago",
   "plan.wx.ageUnknown": "age unknown",
   "plan.wx.stale": "stale",

@@ -1,3 +1,5 @@
+import { type TrafficPattern } from "~/data/traffic-pattern";
+import { TrafficPatternPanel } from "./traffic-pattern-panel";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "~/api";
@@ -6,12 +8,13 @@ import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { type FlightPoint } from "~/data/flight";
 import { formatRoutePoint, pointKey } from "~/domain/route-plan";
+import { sameFlightPoint } from "~/domain/waypoint-insertion";
 import { type MessageKey } from "~/i18n/messages";
 import { useT } from "~/i18n/use-t";
 import { useFlight } from "~/stores/flight";
 import { useInFlight } from "~/stores/inflight";
 import { useGps } from "~/features/fly/use-gps";
-import { AirportBriefing } from "~/features/plan/briefing";
+import { AirportBriefing, AirportNotams } from "~/features/plan/briefing";
 import { WaypointWxDialog } from "~/features/plan/route-dialogs";
 import { usePlan } from "~/features/plan/use-plan";
 
@@ -27,9 +30,15 @@ export function PointDetails({
   point,
   addPoint,
   now,
+  previewPattern,
+  acceptPattern,
+  removePattern,
 }: {
   point: FlightPoint & { name: string; kind: string };
   now: number;
+  previewPattern: (pattern: TrafficPattern | null) => void;
+  acceptPattern: (pattern: TrafficPattern) => void;
+  removePattern: () => void;
   addPoint: (
     point: FlightPoint,
     as: "departure" | "destination" | "waypoint",
@@ -41,10 +50,17 @@ export function PointDetails({
     navigation = useInFlight();
   const { fix, error } = useGps(navigation.startedAt !== null);
   const { plan, route } = usePlan();
-  const onRoute = route.some(
-    (p) =>
-      p.ident === point.ident && p.lat === point.lat && p.lon === point.lon,
+  const displayedRoute = navigation.startedAt ? navigation.route : route;
+  const waypointIndex = flight.waypoints.findIndex((p) =>
+    sameFlightPoint(p, point),
   );
+  const activeIndex = navigation.startedAt
+    ? navigation.route.findIndex((p) => sameFlightPoint(p, point))
+    : -1;
+  const removable =
+    waypointIndex >= 0 ||
+    (activeIndex > 0 && activeIndex < navigation.route.length - 1);
+  const onRoute = displayedRoute.some((p) => sameFlightPoint(p, point));
   const routePoint = plan?.points.find(
     (p) => formatRoutePoint(p) === point.ident || p.id === point.ident,
   );
@@ -57,11 +73,17 @@ export function PointDetails({
     restriction?.altitudeMode ?? "at",
   );
   const [mode, setMode] = useState<
-    "restriction" | "weather" | "notams" | "charts" | null
+    "restriction" | "weather" | "notams" | "charts" | "pattern" | null
   >(null);
   const airportCode =
     routePoint?.airportIcao ?? (point.kind === "airport" ? point.ident : "");
   const airport = /^[A-Z]{4}$/.test(airportCode);
+  const airportRecord = useQuery({
+    ...api.airports.get.queryOptions({
+      code: point.kind === "airport" ? point.ident : "",
+    }),
+    enabled: point.kind === "airport",
+  }).data;
   const charts = useQuery({
     ...api.charts.byAirport.queryOptions({ airport: airportCode }),
     enabled: airport && mode === "charts",
@@ -121,18 +143,30 @@ export function PointDetails({
             </Button>
           </>
         )}
-        {/* Legacy "Add To Route" turns into "Remove From Route" once the point is on it. */}
-        {flight.waypoints.some((p) => p.ident === point.ident) ? (
+        {point.kind === "airport" && (
           <Button
             size="sm"
             variant="outline"
-            onClick={() =>
-              update({
-                waypoints: flight.waypoints.filter(
-                  (p) => p.ident !== point.ident,
-                ),
-              })
-            }
+            aria-expanded={mode === "pattern"}
+            onClick={() => setMode(mode === "pattern" ? null : "pattern")}
+          >
+            {t("pattern.title")}
+          </Button>
+        )}
+        {/* Legacy "Add To Route" turns into "Remove From Route" once the point is on it. */}
+        {removable ? (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              if (waypointIndex >= 0)
+                update({
+                  waypoints: flight.waypoints.filter(
+                    (_, i) => i !== waypointIndex,
+                  ),
+                });
+              if (activeIndex >= 0) navigation.removeWaypoint(activeIndex);
+            }}
           >
             {t("maptools.removePoint")}
           </Button>
@@ -169,6 +203,16 @@ export function PointDetails({
             </Button>
           ))}
       </div>
+      {mode === "pattern" && airportRecord && (
+        <TrafficPatternPanel
+          airport={airportRecord}
+          now={now}
+          preview={previewPattern}
+          accept={acceptPattern}
+          cancel={() => setMode(null)}
+          remove={removePattern}
+        />
+      )}
       {mode === "restriction" && (
         <form
           key={key + JSON.stringify(restriction)}
@@ -261,12 +305,13 @@ export function PointDetails({
           </div>
         </form>
       )}
-      {(mode === "weather" || mode === "notams") && (
+      {mode === "weather" && (
         <AirportBriefing
           point={{ ...point, ident: airportCode }}
           role="selected"
         />
       )}
+      {mode === "notams" && <AirportNotams icao={airportCode} />}
       {mode === "charts" &&
         (charts.data?.length ? (
           charts.data.map((chart) => (

@@ -200,3 +200,49 @@ Fixed the flight-mode bug: Add waypoint previously updated only the draft, while
 - Point/airport options now appear next to the selected point. Airspace details appear next to the clicked map position (or the zone center when selected through search). Both follow map movement and resize and remain within the map viewport, using the existing aircraft popup placement.
 - Owner-confirmed Mode S address `48e9fa` (SP-TDI) is corrected to aircraft type `C172` when collector traffic is loaded. Matching is case-insensitive by address and does not depend on callsign; unrelated aircraft metadata is preserved.
 - Added regression coverage for point/zone popup placement and exact-address traffic correction.
+
+## Traffic track continuity (2026-10-15)
+
+- Fixed history merging: local observations between server samples are retained and sorted, rather than discarded whenever the server has a later sample. Duplicate timestamps use the latest local coordinates while retaining a known callsign when a live update omits it.
+- Include the selected aircraft's latest reported fix immediately, so its confirmed trail joins the live-position projection even before the session observer processes that update.
+- Preserve confirmed solid track sections across coverage gaps; join intervals longer than five minutes with dashed amber links instead of leaving empty breaks. These links connect observed endpoints and do not claim intermediate positions were received. Different callsign flights remain separated.
+- Added regressions for sparse/interleaved history, duplicate timestamps, missing callsigns, latest live fixes, coverage gaps and flight changes.
+
+## Weather-only panels and community ATIS consensus (2026-10-15)
+
+- Airport Weather now opens only METAR, TAF and trusted ATIS/D-ATIS. Weather and ATIS are fetched in parallel through dedicated collector endpoints whenever the weather panel mounts; no aggregate airport/NOTAM or chart request is made. Partial weather or ATIS failures retain the other source.
+- NOTAM and Charts remain separate airport actions. Removed the inline Share the ATIS you heard form while preserving Insert ATIS buttons and the existing ATIS pad/METAR chips.
+- Single-device community ATIS is hidden from weather and cannot fill flight conditions. Insert ATIS shows it as an explicitly labelled suggestion with selectable structured field hints. Reading or applying hints sends no confirmation.
+- The ATIS pad offers explicit hearing confirmation for an existing broadcast, or submission of a newly copied pad with information letter, UTC time, wind and QNH. The collector counts distinct persistent anonymous browser/device identifiers; repeated votes on the same broadcast count once, conflicting broadcasts do not combine, and identifiers are not exposed in the feed. Owner selected device/browser consensus rather than pilot accounts.
+- Community ATIS is used as weather only when the server confirms at least two devices and the report is not stale. Provider ATIS remains available with its existing age/QNH indicators. PL/EN labels and regressions cover the new behavior.
+
+## Map/Fly status readout deduplication (2026-10-15)
+
+- The embedded map no longer renders its own Route/coordinates/GPS row beneath the Fly status row. Fly keeps its route, next-waypoint distance and GPS status.
+- The standalone preparation map retains its Route/coordinates/GPS readout.
+- Regression coverage checks a single route row before and during a simulated flight, and preserves the standalone map readout.
+
+## Remove waypoint from active flights (2026-10-15)
+
+- Point details now remove a waypoint from both the planning draft and an active flight. Active-only intermediate fixes also expose Remove from route.
+- Removal matches identifier and coordinates so unrelated points with the same identifier stay intact. Navigation retains a valid active leg, flight start, timers and track; changes survive reload.
+- Regression coverage includes airport-based plans, active/draft synchronization and active-only fixes.
+
+## Airspace colors and PJE symbols (2026-10-15)
+
+- ATZ stays blue, CTR/TMA orange and P/R red, including during AUP/UUP activation. Boundaries, captions and the zone inspector use the same class colors.
+- Confirmed inactive ATZ/CTR/TMA has half the usual fill; missing activation data keeps normal fill. Other zone types retain their existing appearance.
+- ATZ with PJE in activation remarks displays an offline vector parachute on the map and in its details. The icon remains visible when captions are hidden; existing text zoom thresholds are preserved.
+
+## Traffic pattern planning (2026-10-15)
+
+- Airport details expose Traffic Pattern: automatic runway (ATIS before wind), manual runway override, left/right direction (left default), Overhead/Crosswind/Downwind/Base/Final (Downwind default), and altitude above airfield (published value when available, otherwise 1000 ft).
+- Fixed geometry uses 1 km lateral spacing and extensions 2 NM beyond each runway threshold. Overhead crosses the airport then joins the start of Crosswind at the selected pattern altitude. Every join starts at the beginning of its leg. Final offers 8/4/2 NM and a validated custom threshold distance.
+- Changes are previewed as a dashed route and committed only on acceptance. Accepted geometry participates in FPL distance, time, altitude and exports, is drawn solid without position labels, and survives reload/offline use. During flight, acceptance creates a direct join from the current GPS position while preserving timers/track.
+- Ten-second, dismissible report prompts appear once at mid-downwind, mid-base only for a direct Base join, and the start of Final with Long/Final/Short wording. Reports are remembered across reloads. Short pattern legs sequence with a smaller proximity tolerance than en-route legs.
+- Missing threshold coordinates are estimated only when runway length is available and identified in the form. Published pattern altitude is supported as airport metadata; existing records without it use the requested 1000-ft default.
+
+## Traffic pattern lateral spacing (2026-10-15)
+
+- Increase the side offset from 1 km to 0.75 NM from the runway axis. Both left/right patterns keep the 2 NM threshold extensions and existing Final distances.
+- Refresh derived pattern vertices when restoring an active flight, keeping route geometry and report locations consistent with the new width without resetting flight progress.

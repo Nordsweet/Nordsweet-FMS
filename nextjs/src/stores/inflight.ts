@@ -26,6 +26,12 @@ import {
 } from "~/domain/flight-timers";
 import { type LatLon, distanceNm } from "~/domain/geo";
 import { type NavPoint, directTo, computeProgress } from "~/domain/progress";
+import { type TrafficPattern } from "~/data/traffic-pattern";
+import {
+  trafficPatternGeometry,
+  trafficPatternReport,
+  type PatternReport,
+} from "~/domain/traffic-pattern";
 import { type TrackPoint } from "~/domain/track";
 
 /** Record a track point at most this often (5 s) unless the aircraft has not moved. */
@@ -61,6 +67,14 @@ type InFlight = {
   /** Airport selected with Divert, retained across direct-to fixes and reloads. */
   divertAirport: string | null;
   route: NavPoint[];
+  trafficPattern: TrafficPattern | null;
+  patternReports: PatternReport[];
+  patternNotice: { report: PatternReport; expiresAt: number } | null;
+  patternPreviousFix: (LatLon & { time: string }) | null;
+  joinTrafficPattern: (pattern: TrafficPattern, position: LatLon) => void;
+  clearTrafficPattern: () => void;
+  observePattern: (position: LatLon & { time: string }) => void;
+  dismissPatternNotice: () => void;
   activeLeg: number;
   track: TrackPoint[];
   /** Next FREDA check (legacy: 30 min after take-off, then every 30 min); null before take-off. */
@@ -91,7 +105,7 @@ type InFlight = {
   toggleTimer: (key: TimerKey) => void;
   addEvent: (name: string) => void;
   configure: (patch: Partial<FlightConfig>) => void;
-  start: (route: NavPoint[]) => void;
+  start: (route: NavPoint[], pattern?: TrafficPattern | null) => void;
   end: () => void;
   setActiveLeg: (leg: number) => void;
   goDirect: (targetIndex: number, position: LatLon) => void;
@@ -99,6 +113,8 @@ type InFlight = {
   /** Replace the remaining route with the diversion airport, retaining flight timers and track. */
   divertTo: (airport: NavPoint, position: LatLon) => void;
   insertWaypoint: (index: number, point: NavPoint) => void;
+  /** Remove one fix and keep the current navigation leg valid without resetting flight state. */
+  removeWaypoint: (index: number) => void;
   resumeRoute: (route: NavPoint[], position: LatLon) => void;
   record: (point: TrackPoint) => void;
 };
@@ -110,6 +126,64 @@ export const useInFlight = create<InFlight>()(
       startedAt: null,
       divertAirport: null,
       route: [],
+      trafficPattern: null,
+      patternReports: [],
+      patternNotice: null,
+      patternPreviousFix: null,
+      joinTrafficPattern: (trafficPattern, position) =>
+        set({
+          trafficPattern,
+          route: [
+            { ident: "DCT", ...position },
+            ...trafficPatternGeometry(trafficPattern).points,
+          ],
+          activeLeg: 0,
+          divertAirport: trafficPattern.airport.ident,
+          patternReports: [],
+          patternNotice: null,
+          patternPreviousFix: null,
+        }),
+      clearTrafficPattern: () =>
+        set((s) => {
+          const route = s.route.filter((p) => !p.patternId);
+          if (s.trafficPattern) route.push({ ...s.trafficPattern.airport });
+          return {
+            route,
+            activeLeg: Math.max(0, Math.min(s.activeLeg, route.length - 2)),
+            trafficPattern: null,
+            patternReports: [],
+            patternNotice: null,
+            patternPreviousFix: null,
+          };
+        }),
+      dismissPatternNotice: () => set({ patternNotice: null }),
+      observePattern: (position) =>
+        set((s) => {
+          if (!s.startedAt || !s.trafficPattern) return s;
+          if (s.patternPreviousFix?.time === position.time) return s;
+          const elapsed = s.patternPreviousFix
+            ? Date.parse(position.time) - Date.parse(s.patternPreviousFix.time)
+            : Infinity;
+          const previous =
+            elapsed > 0 && elapsed <= 30000 ? s.patternPreviousFix : null;
+          const report = trafficPatternReport(
+            s.trafficPattern,
+            s.route,
+            s.activeLeg,
+            position,
+            previous,
+            s.patternReports,
+          );
+          return {
+            patternPreviousFix: position,
+            ...(report
+              ? {
+                  patternReports: [...s.patternReports, report],
+                  patternNotice: { report, expiresAt: Date.now() + 10000 },
+                }
+              : {}),
+          };
+        }),
       activeLeg: 0,
       track: [],
       fredaDueAt: null,
@@ -223,10 +297,14 @@ export const useInFlight = create<InFlight>()(
       addEvent: (name) =>
         set((s) => ({ timers: addEvent(s.timers, name, Date.now()) })),
       configure: (patch) => set((s) => ({ config: { ...s.config, ...patch } })),
-      start: (route) => {
+      start: (route, trafficPattern = null) => {
         const now = new Date().toISOString();
         set({
           startedAt: now,
+          trafficPattern,
+          patternReports: [],
+          patternNotice: null,
+          patternPreviousFix: null,
           divertAirport: null,
           route,
           activeLeg: 0,
@@ -237,7 +315,14 @@ export const useInFlight = create<InFlight>()(
           timers: newTimers(),
         });
       },
-      end: () => set({ startedAt: null, divertAirport: null }),
+      end: () =>
+        set({
+          startedAt: null,
+          divertAirport: null,
+          trafficPattern: null,
+          patternNotice: null,
+          patternPreviousFix: null,
+        }),
       setActiveLeg: (activeLeg) => set({ activeLeg }),
       goDirect: (targetIndex, position) =>
         set((s) => ({
@@ -265,6 +350,10 @@ export const useInFlight = create<InFlight>()(
         set({
           route: directTo([airport], position, 0),
           divertAirport: airport.ident,
+          trafficPattern: null,
+          patternNotice: null,
+          patternReports: [],
+          patternPreviousFix: null,
           activeLeg: 0,
         }),
       insertWaypoint: (index, point) =>
@@ -272,6 +361,22 @@ export const useInFlight = create<InFlight>()(
           route: [...s.route.slice(0, index), point, ...s.route.slice(index)],
           activeLeg: index <= s.activeLeg ? s.activeLeg + 1 : s.activeLeg,
         })),
+      removeWaypoint: (index) =>
+        set((s) => {
+          if (!Number.isInteger(index) || index < 0 || index >= s.route.length)
+            return s;
+          const route = s.route.filter((_, i) => i !== index);
+          return {
+            route,
+            activeLeg: Math.max(
+              0,
+              Math.min(
+                route.length - 2,
+                s.activeLeg - (index <= s.activeLeg ? 1 : 0),
+              ),
+            ),
+          };
+        }),
       resumeRoute: (route, position) =>
         set({
           route,
@@ -296,15 +401,33 @@ export const useInFlight = create<InFlight>()(
       // Flights saved by an older release lack newer timer and CONFIG fields.
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<InFlight>;
+        const patternPoints = new Map(
+          p.trafficPattern
+            ? trafficPatternGeometry(p.trafficPattern).points.map((point) => [
+                point.ident,
+                point,
+              ])
+            : [],
+        );
         return {
           ...current,
           ...p,
+          // Regenerate derived vertices when fixed pattern dimensions change between releases.
+          route:
+            p.route?.map((point) =>
+              point.patternId === p.trafficPattern?.id &&
+              patternPoints.has(point.ident)
+                ? { ...point, ...patternPoints.get(point.ident)! }
+                : point,
+            ) ?? current.route,
           config: { ...current.config, ...p.config },
           timers: { ...current.timers, ...p.timers },
         };
       },
       partialize: ({
         startedAt,
+        trafficPattern,
+        patternReports,
         divertAirport,
         route,
         activeLeg,
@@ -317,6 +440,8 @@ export const useInFlight = create<InFlight>()(
         timers,
       }) => ({
         startedAt,
+        trafficPattern,
+        patternReports,
         divertAirport,
         route,
         activeLeg,

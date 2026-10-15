@@ -25,7 +25,15 @@ export const useFlight = create<FlightStore>()(
       update: (patch) =>
         set((s) => ({
           legacyCheckNeeded: false,
-          flight: { ...s.flight, ...patch },
+          flight: {
+            ...s.flight,
+            ...patch,
+            ...(patch.destination !== undefined &&
+            patch.destination?.ident !== s.flight.destination?.ident &&
+            patch.trafficPattern === undefined
+              ? { trafficPattern: null }
+              : {}),
+          },
         })),
       load: (flight) => set({ flight, legacyCheckNeeded: false }),
       reset: () => set({ flight: newFlight(), legacyCheckNeeded: false }),

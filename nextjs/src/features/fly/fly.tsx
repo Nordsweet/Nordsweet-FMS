@@ -341,7 +341,7 @@ export function FlyPage() {
               className="shrink-0"
               disabled={planRoute.length < 2}
               onClick={() => {
-                inFlight.start(planRoute);
+                inFlight.start(planRoute, flight.trafficPattern);
                 setPhase("taxiout");
                 setDebrief(false);
               }}

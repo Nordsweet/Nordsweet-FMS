@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { trafficPatternSchema } from "./traffic-pattern";
 
 export const pointRestrictionSchema = z.object({
   speedKt: z.number().positive().nullable().default(null),
@@ -45,6 +46,7 @@ export const flightSchema = z.object({
   alternate: point.nullable(),
   /** Map points: explicit before/after anchors, or nearest leg for older saved points. */
   waypoints: z.array(point),
+  trafficPattern: trafficPatternSchema.nullable().default(null),
   pointRestrictions: z.record(z.string(), pointRestrictionSchema).default({}),
   /** Legacy route text: DCT, airways, procedures ("SID NAVUR"), coordinates. */
   routeText: z.string().default(""),
@@ -133,6 +135,7 @@ export function newFlight(): Flight {
     destination: null,
     alternate: null,
     waypoints: [],
+    trafficPattern: null,
     pointRestrictions: {},
     routeText: "",
     sid: null,

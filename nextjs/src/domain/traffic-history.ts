@@ -1,4 +1,5 @@
 import { distanceNm } from "./geo";
+const MAX_OBSERVATION_GAP_MS = 5 * 60_000;
 export type TrafficSample = {
   lat: number;
   lon: number;
@@ -14,17 +15,27 @@ export function currentCallsignHistory(
 ) {
   const normalize = (value: string) =>
     value.trim().toUpperCase().replace(/\s+/g, "");
+  // Collector history can be sparser than local polling, including between its
+  // first and last samples. Keep those observations instead of discarding them.
+  const observations = new Map<number, TrafficSample>();
+  for (const sample of [...remote, ...local]) {
+    const existing = observations.get(sample.sampledAt);
+    observations.set(sample.sampledAt, {
+      ...sample,
+      callsign: sample.callsign.trim()
+        ? sample.callsign
+        : (existing?.callsign ?? ""),
+    });
+  }
+  const merged = [...observations.values()].sort(
+    (a, b) => a.sampledAt - b.sampledAt,
+  );
   const key =
     normalize(callsign ?? "") ||
     normalize(
-      [...remote, ...local].reverse().find((p) => p.callsign.trim())
+      [...merged].reverse().find((sample) => sample.callsign.trim())
         ?.callsign ?? "",
     );
-  const last = remote.at(-1)?.sampledAt ?? -Infinity;
-  const merged = [
-    ...remote,
-    ...local.filter((sample) => sample.sampledAt > last),
-  ].sort((a, b) => a.sampledAt - b.sampledAt);
   let start = merged.length;
   while (start > 0) {
     const sampleKey = merged[start - 1]!.callsign.trim()
@@ -62,9 +73,28 @@ export function trafficCallsign(value: string | null | undefined) {
 export function trafficTrailSegments(samples: TrafficSample[]) {
   const groups: number[][][] = [];
   samples.forEach((point, index) => {
-    if (!index || point.sampledAt - samples[index - 1]!.sampledAt > 300000)
+    if (
+      !index ||
+      point.sampledAt - samples[index - 1]!.sampledAt > MAX_OBSERVATION_GAP_MS
+    )
       groups.push([]);
     groups.at(-1)!.push([point.lon, point.lat]);
   });
   return groups.filter((group) => group.length >= 2);
+}
+
+/** Link coverage gaps visually without presenting the missing interval as a confirmed track. */
+export function trafficTrailGaps(samples: TrafficSample[]) {
+  return samples.flatMap((point, index) => {
+    const previous = samples[index - 1];
+    return previous &&
+      point.sampledAt - previous.sampledAt > MAX_OBSERVATION_GAP_MS
+      ? [
+          [
+            [previous.lon, previous.lat],
+            [point.lon, point.lat],
+          ],
+        ]
+      : [];
+  });
 }
