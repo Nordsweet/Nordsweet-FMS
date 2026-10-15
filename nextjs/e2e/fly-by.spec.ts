@@ -5,7 +5,7 @@ import { flyByRoute } from "../src/domain/fly-by";
 
 test("normal route sequences at fly-by entry and guides along the curved turn", async ({
   page,
-}, testInfo) => {
+}) => {
   const b = { ident: "BBBB", lat: 50, lon: 20 };
   const a = { ident: "AAAA", ...destinationPoint(b, 270, 10) };
   const c = { ident: "CCCC", ...destinationPoint(b, 180, 10) };
@@ -92,6 +92,4 @@ test("normal route sequences at fly-by entry and guides along the curved turn", 
   await expect(page.getByTestId("fly-next")).toHaveText("CCCC");
   await expect(page.getByTestId("fly-xte")).toHaveText(/^0\.0 [LR]$/);
   await expect(page.getByTestId("turn-constraint")).toHaveCount(0);
-  await page.getByRole("button", { name: "Info", exact: true }).click();
-  await page.screenshot({ path: testInfo.outputPath("fly-by-route.png") });
 });
