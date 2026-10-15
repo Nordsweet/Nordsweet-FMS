@@ -206,6 +206,15 @@ export const checklistSchema = z.object({
   ),
 });
 
+/** The IAS range in which one flap setting may be flown. */
+const flapSpeedSchema = z
+  .object({
+    setting: z.string().min(1),
+    minKias: z.number().positive(),
+    maxKias: z.number().positive(),
+  })
+  .refine((f) => f.minKias <= f.maxKias);
+
 export const aircraftSchema = z.object({
   id: z.string(),
   type: z.string(),
@@ -220,6 +229,14 @@ export const aircraftSchema = z.object({
   fuelTankCapacityL: z.number().positive().nullable(),
   /** Indicated airspeed flown in the traffic pattern. */
   patternSpeedKt: z.number().positive().nullable().default(null),
+  retractableGear: z.boolean().default(false),
+  /** `gearDown` is the only set of a fixed-gear aircraft; `gearUp` is empty unless retractable. */
+  flapSpeeds: z
+    .object({
+      gearDown: z.array(flapSpeedSchema),
+      gearUp: z.array(flapSpeedSchema),
+    })
+    .default({ gearDown: [], gearUp: [] }),
   weightBalance: weightBalanceSchema.nullable(),
   takeoff: distancePerformanceSchema.nullable(),
   landing: distancePerformanceSchema.nullable(),

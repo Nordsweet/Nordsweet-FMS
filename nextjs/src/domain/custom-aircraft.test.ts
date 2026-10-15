@@ -36,6 +36,34 @@ describe("buildAircraft", () => {
     });
   });
 
+  it("keeps a gear-up flap set only for retractable gear and rejects a bad range", () => {
+    const draft = minimal();
+    draft.flapSpeeds = {
+      gearDown: [
+        ["10", "60", "110"],
+        ["30", "60", "85"],
+      ],
+      gearUp: [["10", "70", "120"]],
+    };
+    const fixed = buildAircraft(draft, []);
+    expect(fixed.ok && fixed.aircraft.flapSpeeds).toEqual({
+      gearDown: [
+        { setting: "10", minKias: 60, maxKias: 110 },
+        { setting: "30", minKias: 60, maxKias: 85 },
+      ],
+      gearUp: [],
+    });
+    const retractable = buildAircraft({ ...draft, retractableGear: true }, []);
+    expect(retractable.ok && retractable.aircraft.flapSpeeds.gearUp).toEqual([
+      { setting: "10", minKias: 70, maxKias: 120 },
+    ]);
+    draft.flapSpeeds.gearDown = [["10", "120", "60"]];
+    expect(buildAircraft(draft, [])).toMatchObject({
+      ok: false,
+      error: { section: "flapSpeeds" },
+    });
+  });
+
   it("nests table rows into grids the performance code can read", () => {
     const draft = minimal();
     draft.takeoff = {

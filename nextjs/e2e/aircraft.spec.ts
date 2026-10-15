@@ -74,3 +74,25 @@ test("built-in tables are edited as JSON and invalid JSON is rejected", async ({
   await expect(page.getByText("modified")).toBeVisible();
   await page.getByRole("button", { name: "Restore built-in" }).click();
 });
+
+test("flap speeds grow row by row and gear-up speeds need retractable gear", async ({
+  page,
+}) => {
+  await page.goto("/aircraft");
+  await expect(page.getByLabel("Flap setting 1")).toBeVisible();
+  await expect(page.getByText("Gear up", { exact: true })).toBeHidden();
+  await page.getByRole("button", { name: "Add row" }).first().click();
+  await expect(page.getByLabel("Flap setting 2")).toBeVisible();
+
+  await page.getByLabel("Type designation (e.g. C182)").fill("TST3");
+  await page.getByLabel("ICAO type code").fill("TST3");
+  await page.getByLabel("Pattern speed (KIAS)").fill("80");
+  await page.getByLabel("Flap setting 1").fill("10");
+  await page.getByLabel("Min IAS (kt) 1").fill("60");
+  await page.getByLabel("Max IAS (kt) 1").fill("110");
+  await page.getByRole("combobox", { name: "Landing gear" }).click();
+  await page.getByRole("option", { name: "Retractable" }).click();
+  await expect(page.getByText("Gear up", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Save aircraft" }).click();
+  await expect(page.getByRole("status")).toContainText("TST3");
+});

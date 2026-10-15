@@ -59,6 +59,9 @@ export type AircraftDraft = {
   maxCrosswindKt: string;
   maxTailwindKt: string;
   patternSpeedKt: string;
+  retractableGear: boolean;
+  /** Columns: flap setting, min IAS kt, max IAS kt. */
+  flapSpeeds: { gearDown: Row[]; gearUp: Row[] };
   weightBalance: {
     mtowKg: string;
     emptyWeightKg: string;
@@ -106,6 +109,8 @@ export const emptyDraft = (): AircraftDraft => ({
   maxCrosswindKt: "",
   maxTailwindKt: "",
   patternSpeedKt: "",
+  retractableGear: false,
+  flapSpeeds: { gearDown: [["", "", ""]], gearUp: [["", "", ""]] },
   weightBalance: {
     mtowKg: "",
     emptyWeightKg: "",
@@ -295,6 +300,13 @@ export function buildAircraft(
       usableFuelL: optional(draft.usableFuelL, "usableFuelL"),
       fuelTankCapacityL: optional(draft.fuelTankCapacityL, "fuelTankCapacityL"),
       patternSpeedKt: optional(draft.patternSpeedKt, "patternSpeedKt"),
+      retractableGear: draft.retractableGear,
+      flapSpeeds: {
+        gearDown: flapSpeeds(draft.flapSpeeds.gearDown),
+        gearUp: draft.retractableGear
+          ? flapSpeeds(draft.flapSpeeds.gearUp)
+          : [],
+      },
       weightBalance: wbUsed
         ? {
             // chartBounds and the source note stay with a built-in's data.
@@ -370,6 +382,12 @@ export function buildAircraft(
   }
 }
 
+function flapSpeeds(rows: Row[]) {
+  return (filled(rows, "flapSpeeds", [0]) as [string, number, number][]).map(
+    ([setting, minKias, maxKias]) => ({ setting, minKias, maxKias }),
+  );
+}
+
 function climb(draft: AircraftDraft) {
   const rows = filled(draft.climb.rows, "climb") as number[][];
   if (!rows.length) return null;
@@ -425,6 +443,11 @@ export const withoutUnchangedRaw = (
   ),
 });
 
+const flapSpeedRows = (list: Aircraft["flapSpeeds"]["gearDown"]): Row[] =>
+  list.length
+    ? list.map((f) => [f.setting, text(f.minKias), text(f.maxKias)])
+    : [["", "", ""]];
+
 /** The editable parameters of a built-in aircraft, as form text. */
 export function draftFromAircraft(a: Aircraft): AircraftDraft {
   const draft = emptyDraft();
@@ -443,6 +466,11 @@ export function draftFromAircraft(a: Aircraft): AircraftDraft {
     maxCrosswindKt: text(a.windLimits?.maxCrosswindKt ?? null),
     maxTailwindKt: text(a.windLimits?.maxTailwindKt ?? null),
     patternSpeedKt: text(a.patternSpeedKt),
+    retractableGear: a.retractableGear,
+    flapSpeeds: {
+      gearDown: flapSpeedRows(a.flapSpeeds.gearDown),
+      gearUp: flapSpeedRows(a.flapSpeeds.gearUp),
+    },
     weightBalance: wb
       ? {
           mtowKg: text(wb.mtowKg),
