@@ -38,6 +38,7 @@ export function FlightRuntime() {
     if (!fix || error || Date.now() - Date.parse(fix.time) > 20000) return;
     observeGps(fix);
     if (!flight.startedAt) return;
+    flight.observePattern(fix);
     const progress = computeProgress(flight.route, fix, flight.activeLeg);
     if (progress && progress.activeLeg !== flight.activeLeg)
       setActiveLeg(progress.activeLeg);

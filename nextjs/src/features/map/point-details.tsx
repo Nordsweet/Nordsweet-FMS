@@ -1,3 +1,5 @@
+import { type TrafficPattern } from "~/data/traffic-pattern";
+import { TrafficPatternPanel } from "./traffic-pattern-panel";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "~/api";
@@ -28,9 +30,15 @@ export function PointDetails({
   point,
   addPoint,
   now,
+  previewPattern,
+  acceptPattern,
+  removePattern,
 }: {
   point: FlightPoint & { name: string; kind: string };
   now: number;
+  previewPattern: (pattern: TrafficPattern | null) => void;
+  acceptPattern: (pattern: TrafficPattern) => void;
+  removePattern: () => void;
   addPoint: (
     point: FlightPoint,
     as: "departure" | "destination" | "waypoint",
@@ -65,11 +73,17 @@ export function PointDetails({
     restriction?.altitudeMode ?? "at",
   );
   const [mode, setMode] = useState<
-    "restriction" | "weather" | "notams" | "charts" | null
+    "restriction" | "weather" | "notams" | "charts" | "pattern" | null
   >(null);
   const airportCode =
     routePoint?.airportIcao ?? (point.kind === "airport" ? point.ident : "");
   const airport = /^[A-Z]{4}$/.test(airportCode);
+  const airportRecord = useQuery({
+    ...api.airports.get.queryOptions({
+      code: point.kind === "airport" ? point.ident : "",
+    }),
+    enabled: point.kind === "airport",
+  }).data;
   const charts = useQuery({
     ...api.charts.byAirport.queryOptions({ airport: airportCode }),
     enabled: airport && mode === "charts",
@@ -129,6 +143,16 @@ export function PointDetails({
             </Button>
           </>
         )}
+        {point.kind === "airport" && (
+          <Button
+            size="sm"
+            variant="outline"
+            aria-expanded={mode === "pattern"}
+            onClick={() => setMode(mode === "pattern" ? null : "pattern")}
+          >
+            {t("pattern.title")}
+          </Button>
+        )}
         {/* Legacy "Add To Route" turns into "Remove From Route" once the point is on it. */}
         {removable ? (
           <Button
@@ -179,6 +203,16 @@ export function PointDetails({
             </Button>
           ))}
       </div>
+      {mode === "pattern" && airportRecord && (
+        <TrafficPatternPanel
+          airport={airportRecord}
+          now={now}
+          preview={previewPattern}
+          accept={acceptPattern}
+          cancel={() => setMode(null)}
+          remove={removePattern}
+        />
+      )}
       {mode === "restriction" && (
         <form
           key={key + JSON.stringify(restriction)}

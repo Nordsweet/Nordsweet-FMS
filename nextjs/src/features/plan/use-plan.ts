@@ -15,6 +15,8 @@ import {
   routeEconomy,
 } from "~/domain/fuel-planning";
 import { distanceNm } from "~/domain/geo";
+import { type NavPoint } from "~/domain/progress";
+import { routeWithTrafficPattern } from "~/domain/traffic-pattern";
 import { fallbackFlightRoute } from "~/domain/waypoint-insertion";
 import { type MetarValues, parseMetar } from "~/domain/metar";
 import {
@@ -179,6 +181,7 @@ export function usePlan(snapshot?: Flight) {
           },
           inlineSelections: flight.inlineProcedureSelections,
           insertedWaypoints: flight.waypoints,
+          trafficPattern: flight.trafficPattern,
           pointRestrictions: flight.pointRestrictions,
           waypointAltitudes: flight.waypointAltitudes,
           waypointWx: flight.waypointWx,
@@ -257,15 +260,24 @@ export function usePlan(snapshot?: Flight) {
   const schedule = scheduleTimes(flight.schedule, eteMinutes);
 
   // Map, fly mode and export: the route's fixes (TOC/TOD are profile events, not points to fly to).
-  const route = plan
+  const baseRoute: NavPoint[] = plan
     ? plan.points
         .filter((p) => !p.isProfilePoint)
         .map((p) => ({
           ident: formatRoutePoint({ ...p, profileLabels: undefined }),
           lat: p.lat,
           lon: p.lon,
+          ...(p.patternId
+            ? { patternId: p.patternId, altitudeFt: p.patternAltitudeFt }
+            : {}),
         }))
     : fallbackFlightRoute(flight);
+  const route =
+    !plan &&
+    flight.trafficPattern &&
+    flight.trafficPattern.airport.ident === flight.destination?.ident
+      ? routeWithTrafficPattern(baseRoute, flight.trafficPattern)
+      : baseRoute;
 
   const exportPoints = plan
     ? plan.points.map((p) => ({
@@ -275,7 +287,10 @@ export function usePlan(snapshot?: Flight) {
         altitudeFt:
           plan.pointAltitudeByKey[pointKey(p)] ?? flight.cruiseAltitudeFt,
       }))
-    : route.map((p) => ({ ...p, altitudeFt: flight.cruiseAltitudeFt }));
+    : route.map((p) => ({
+        ...p,
+        altitudeFt: p.altitudeFt ?? flight.cruiseAltitudeFt,
+      }));
 
   const fuelInput: Omit<FuelPlanningInput, "landingWeightKg"> | null =
     aircraft && plan && departureAirport && destinationAirport

@@ -233,3 +233,11 @@ Fixed the flight-mode bug: Add waypoint previously updated only the draft, while
 - ATZ stays blue, CTR/TMA orange and P/R red, including during AUP/UUP activation. Boundaries, captions and the zone inspector use the same class colors.
 - Confirmed inactive ATZ/CTR/TMA has half the usual fill; missing activation data keeps normal fill. Other zone types retain their existing appearance.
 - ATZ with PJE in activation remarks displays an offline vector parachute on the map and in its details. The icon remains visible when captions are hidden; existing text zoom thresholds are preserved.
+
+## Traffic pattern planning (2026-10-15)
+
+- Airport details expose Traffic Pattern: automatic runway (ATIS before wind), manual runway override, left/right direction (left default), Overhead/Crosswind/Downwind/Base/Final (Downwind default), and altitude above airfield (published value when available, otherwise 1000 ft).
+- Fixed geometry uses 1 km lateral spacing and extensions 2 NM beyond each runway threshold. Overhead crosses the airport then joins the start of Crosswind at the selected pattern altitude. Every join starts at the beginning of its leg. Final offers 8/4/2 NM and a validated custom threshold distance.
+- Changes are previewed as a dashed route and committed only on acceptance. Accepted geometry participates in FPL distance, time, altitude and exports, is drawn solid without position labels, and survives reload/offline use. During flight, acceptance creates a direct join from the current GPS position while preserving timers/track.
+- Ten-second, dismissible report prompts appear once at mid-downwind, mid-base only for a direct Base join, and the start of Final with Long/Final/Short wording. Reports are remembered across reloads. Short pattern legs sequence with a smaller proximity tolerance than en-route legs.
+- Missing threshold coordinates are estimated only when runway length is available and identified in the form. Published pattern altitude is supported as airport metadata; existing records without it use the requested 1000-ft default.

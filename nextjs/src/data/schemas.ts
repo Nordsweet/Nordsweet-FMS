@@ -44,6 +44,7 @@ export const airportSchema = z.object({
   lat: latitude,
   lon: longitude,
   elevationFt: z.number(),
+  trafficPatternAltitudeAalFt: z.number().positive().nullable().optional(),
   runways: z.array(runwaySchema),
   /** Station to use for METAR/TAF when the field has none. */
   weatherStation: z.string().nullable(),

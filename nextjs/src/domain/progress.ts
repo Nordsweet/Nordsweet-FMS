@@ -1,6 +1,10 @@
 import { type LatLon, distanceNm, initialBearingDeg, trackOffset } from "./geo";
 
-export type NavPoint = LatLon & { ident: string };
+export type NavPoint = LatLon & {
+  ident: string;
+  patternId?: string;
+  altitudeFt?: number;
+};
 
 /** Within this distance of the next waypoint it counts as passed even if not yet abeam. */
 const PASSED_NM = 0.3;
@@ -34,7 +38,10 @@ export function computeProgress(
     const from = route[leg]!;
     const to = route[leg + 1]!;
     const passed =
-      distanceNm(position, to) < PASSED_NM ||
+      distanceNm(position, to) <
+        (to.patternId
+          ? Math.min(0.05, distanceNm(from, to) * 0.2)
+          : PASSED_NM) ||
       trackOffset(from, to, position).alongTrackNm >= distanceNm(from, to);
     if (!passed) break;
     leg++;
