@@ -89,12 +89,12 @@ test("flap speeds grow row by row and gear-up speeds need retractable gear", asy
   await page.getByLabel("Flap setting 1").fill("10");
   await page.getByLabel("Min IAS (kt) 1").fill("60");
   await page.getByLabel("Max IAS (kt) 1").fill("110");
-  await expect(page.getByLabel("Min IAS gear up (kt) 1")).toBeHidden();
+  await expect(page.getByLabel("Gear up Min IAS (kt) 1")).toBeHidden();
   await page.getByRole("button", { name: "Retractable" }).click();
-  await page.getByLabel("Min IAS gear down (kt) 1").fill("60");
-  await page.getByLabel("Max IAS gear down (kt) 1").fill("110");
-  await page.getByLabel("Min IAS gear up (kt) 1").fill("70");
-  await page.getByLabel("Max IAS gear up (kt) 1").fill("120");
+  await page.getByLabel("Gear down Min IAS (kt) 1").fill("60");
+  await page.getByLabel("Gear down Max IAS (kt) 1").fill("110");
+  await page.getByLabel("Gear up Min IAS (kt) 1").fill("70");
+  await page.getByLabel("Gear up Max IAS (kt) 1").fill("120");
   await page.getByRole("button", { name: "Save aircraft" }).click();
   await expect(page.getByRole("status")).toContainText("TST3");
 });
