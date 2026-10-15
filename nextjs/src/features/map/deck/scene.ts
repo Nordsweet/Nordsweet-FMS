@@ -3,8 +3,10 @@ import {
   type PathStyleExtensionProps,
 } from "@deck.gl/extensions";
 import { TileLayer } from "@deck.gl/geo-layers";
+import { MVTLoader } from "@loaders.gl/mvt";
 import {
   BitmapLayer,
+  GeoJsonLayer,
   IconLayer,
   PathLayer,
   PolygonLayer,
@@ -19,6 +21,19 @@ import { iconAtlas, type IconName } from "./atlas";
 import { type Rgba } from "./color";
 import { palettes, type Theme } from "./theme";
 import { type DeckMap } from "./deck-map";
+import {
+  FJORD_MAX_TILE_ZOOM,
+  FJORD_TILES,
+  fjordRules,
+  declutter,
+  fjordRulesByLayer,
+  type Label,
+  placeLabels,
+  ruleColor,
+  ruleMatches,
+  stopsAt,
+  type Feature,
+} from "./fjord";
 
 type Pos = [number, number];
 export type Path = { path: Pos[] };
@@ -56,6 +71,8 @@ export type ParachuteDatum = { position: Pos; offset: Pos };
 export type Scene = {
   basemap: Basemap;
   theme: Theme;
+  /** The view zoom in quarter steps: what the vector basemap's widths and zoom ranges follow. */
+  zoom: number;
   visible: Record<LayerId, boolean>;
   zones: ZoneDatum[];
   airports: PointDatum[];
@@ -93,6 +110,7 @@ export type Scene = {
 export const emptyScene = (): Scene => ({
   basemap: "osm",
   theme: "light",
+  zoom: 0,
   visible: {
     airspace: true,
     airports: true,
@@ -288,13 +306,171 @@ function basemap(dark: boolean) {
   });
 }
 
+/** One Fjord fill or line rule's share of a tile, as a deck layer. */
+function fjordLayer(id: string, i: number, features: Feature[], zoom: number) {
+  const rule = fjordRules[i]!;
+  const color = ruleColor(rule, zoom);
+  if (rule.kind === "text")
+    throw new Error("place labels are drawn by fjordLabels");
+  const shared = {
+    id,
+    data: features as never,
+    pickable: false,
+    lineWidthUnits: "pixels",
+  } as const;
+  if (rule.kind === "fill")
+    return new GeoJsonLayer({
+      ...shared,
+      filled: true,
+      stroked: false,
+      getFillColor: color,
+    });
+  return new GeoJsonLayer<Feature, PathStyleExtensionProps<Feature>>({
+    ...shared,
+    filled: false,
+    stroked: true,
+    getLineColor: color,
+    getLineWidth: stopsAt(rule.width ?? 1, zoom),
+    ...(rule.dash
+      ? { extensions: dashed, getDashArray: rule.dash, dashJustified: false }
+      : {}),
+  });
+}
+
+/**
+ * The Fjord map: OpenMapTiles vector tiles drawn with the Fjord style's rules. Each tile's features
+ * are sorted into the style's layers (bottom to top), re-sorted when the zoom moves a quarter step.
+ */
+/** Place features of the tiles on screen; labels are chosen across all of them, not per tile. */
+const places = {
+  features: [] as Feature[],
+  version: 0,
+  cached: "",
+  layers: [] as Layer[],
+};
+function fjordLabels(zoom: number) {
+  const key = `${places.version}|${zoom}`;
+  if (places.cached === key) return places.layers;
+  const byRule = new Map<number, Label[]>();
+  for (const label of declutter(placeLabels(places.features, zoom), zoom))
+    (
+      byRule.get(label.rule) ?? byRule.set(label.rule, []).get(label.rule)!
+    ).push(label);
+  places.cached = key;
+  places.layers = [...byRule].map(([i, labels]) => {
+    const rule = fjordRules[i]!;
+    if (rule.kind !== "text") throw new Error("not a label rule");
+    return new TextLayer<Label>({
+      id: `fjord-places-${i}`,
+      data: labels,
+      getPosition: (l) => l.position,
+      getText: (l) => l.text,
+      getColor: ruleColor(rule, zoom),
+      getSize: stopsAt(rule.size, zoom),
+      sizeUnits: "pixels",
+      fontFamily: FONT,
+      characterSet: "auto",
+      fontSettings: { sdf: true },
+      outlineWidth: 2,
+      outlineColor: rule.halo,
+      getTextAnchor: "middle",
+      getAlignmentBaseline: "center",
+    });
+  });
+  return places.layers;
+}
+
+/** The current `{z}/{x}/{y}` tile URL, from the TileJSON (it names the planet build, which changes weekly). */
+const tilejson = {
+  template: null as string | null,
+  loading: false,
+  retryAt: 0,
+};
+function fjordTemplate(refresh: () => void) {
+  if (
+    !tilejson.template &&
+    !tilejson.loading &&
+    Date.now() >= tilejson.retryAt
+  ) {
+    tilejson.loading = true;
+    void fetch(FJORD_TILES)
+      .then((response) => response.json() as Promise<{ tiles: string[] }>)
+      .then((json) => {
+        tilejson.template = json.tiles[0] ?? null;
+        refresh();
+      })
+      // Offline with nothing cached: look again in a while, not on every redraw.
+      .catch(() => (tilejson.retryAt = Date.now() + 10_000))
+      .finally(() => (tilejson.loading = false));
+  }
+  return tilejson.template;
+}
+
+function fjordBasemap(zoom: number, template: string, refresh: () => void) {
+  // `null` while a tile is still loading.
+  return new TileLayer<Feature[] | null>({
+    id: "fjord",
+    data: template,
+    maxZoom: FJORD_MAX_TILE_ZOOM,
+    // Parsed here, on the main thread: the stock MVT layer fetches a worker script from a CDN.
+    getTileData: async ({ url, index, signal }) => {
+      if (!url) return [];
+      const response = await fetch(url, { signal });
+      if (!response.ok) throw new Error(`Tile ${response.status}`);
+      return (await MVTLoader.parse(await response.arrayBuffer(), {
+        mvt: {
+          coordinates: "wgs84",
+          tileIndex: index,
+          shape: "geojson",
+          layerProperty: "layerName",
+        },
+      })) as unknown as Feature[];
+    },
+    onTileError: () => {
+      // Offline or blocked tiles simply stay blank.
+    },
+    onViewportLoad: (tiles) => {
+      // The newest zoom only: older levels stay on screen while their replacements load.
+      const z = Math.max(...tiles.map((tile) => tile.index.z));
+      places.features = tiles
+        .filter((tile) => tile.index.z === z)
+        .flatMap((tile) => tile.content ?? []);
+      places.version++;
+      refresh();
+    },
+    updateTriggers: { renderSubLayers: [zoom] },
+    renderSubLayers: ({ id, data }) => {
+      const byRule = new Map<number, Feature[]>();
+      for (const feature of data ?? [])
+        for (const i of fjordRulesByLayer.get(
+          String(feature.properties.layerName),
+        ) ?? [])
+          if (
+            fjordRules[i]!.kind !== "text" &&
+            ruleMatches(fjordRules[i]!, feature, zoom)
+          )
+            (byRule.get(i) ?? byRule.set(i, []).get(i)!).push(feature);
+      return [...byRule]
+        .sort(([a], [b]) => a - b)
+        .map(([i, features]) => fjordLayer(`${id}-${i}`, i, features, zoom));
+    },
+  });
+}
+
 /** One flat stack, bottom to top, in the order the chart has always been drawn. */
-export function buildLayers(s: Scene): Layer[] {
+export function buildLayers(s: Scene, refresh: () => void): Layer[] {
   const { airspace, airports, vfr, ifr, navaids, route, traffic } = s.visible;
+  const fjord = s.basemap === "fjord" ? fjordTemplate(refresh) : null;
   const atlas = iconAtlas(s.theme),
     { halo, ownship, trailHalo } = palettes[s.theme];
   return [
-    ...(s.basemap === "dark" ? [] : [basemap(s.basemap === "night")]),
+    ...(s.basemap === "dark"
+      ? []
+      : s.basemap === "fjord"
+        ? fjord
+          ? [fjordBasemap(s.zoom, fjord, refresh), ...fjordLabels(s.zoom)]
+          : []
+        : [basemap(s.basemap === "night")]),
     new PolygonLayer<ZoneDatum>({
       id: "airspace",
       data: s.zones,
@@ -501,7 +677,8 @@ export class DeckScene {
     this.queued = true;
     queueMicrotask(() => {
       this.queued = false;
-      if (!this.destroyed) this.map.setLayers(buildLayers(this.state));
+      if (!this.destroyed)
+        this.map.setLayers(buildLayers(this.state, () => this.set({})));
     });
   }
 

@@ -72,6 +72,7 @@ import { AirspaceCaptions } from "./deck/captions";
 import { coordinatePaths, toPaths, toPoints, zoneDatum } from "./deck/data";
 import { airportLabels, minuteLabels, pointNameLabels } from "./deck/labels";
 import { MarkerLayer } from "./deck/markers";
+import { FJORD_BACKGROUND } from "./deck/fjord";
 import { palettes, themeOf } from "./deck/theme";
 import { mapLabelVisibility } from "~/domain/map-labels";
 import { MapScale } from "./map-scale";
@@ -419,6 +420,12 @@ export function MapView({
       const scene = new DeckScene(map);
       mapRef.current = map;
       sceneRef.current = scene;
+      const syncZoom = () => {
+        const zoom = Math.round(map.getZoom() * 4) / 4;
+        if (zoom !== scene.state.zoom) scene.set({ zoom });
+      };
+      syncZoom();
+      map.on("move", syncZoom);
       markers.current = new MarkerLayer(map, root);
       map.on("dragstart", () => useMapSettings.getState().follow(false));
       let lastCursorUpdate = 0;
@@ -1120,7 +1127,10 @@ export function MapView({
       <div
         ref={container}
         className="relative h-full w-full overflow-hidden"
-        style={{ backgroundColor: palettes[theme].background }}
+        style={{
+          backgroundColor:
+            basemap === "fjord" ? FJORD_BACKGROUND : palettes[theme].background,
+        }}
         data-testid="map"
         data-map-ready={ready}
         data-selected-kind={click?.kind}
@@ -1142,7 +1152,9 @@ export function MapView({
           target="_blank"
           rel="noreferrer"
         >
-          © OpenStreetMap contributors
+          {basemap === "fjord"
+            ? "© OpenMapTiles © OpenStreetMap contributors · OpenFreeMap"
+            : "© OpenStreetMap contributors"}
         </a>
       )}
       {toolsContainer &&

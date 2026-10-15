@@ -88,3 +88,24 @@ test("the dark map darkens the basemap and its overlays and is remembered", asyn
   await expect(page.locator(".legacy-map--dark")).toHaveCount(1);
   await expect(page.getByText("© OpenStreetMap contributors")).toHaveCount(0);
 });
+
+test("the Fjord map has its own background and credits its tile sources", async ({
+  page,
+}) => {
+  await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => route.abort());
+  await page.addInitScript(() =>
+    localStorage.setItem("nordsweet.language.v1", "en"),
+  );
+  await page.goto("/map");
+  const map = page.getByTestId("map");
+  await expect(map).toHaveAttribute("data-map-ready", "true", {
+    timeout: 20000,
+  });
+  await page.getByRole("combobox", { name: "Base map" }).click();
+  await page.getByRole("option", { name: "Fjord" }).click();
+  await expect(map).toHaveCSS("background-color", "rgb(69, 81, 110)");
+  await expect(page.locator(".legacy-map--dark")).toHaveCount(1);
+  await expect(page.getByText("© OpenMapTiles")).toBeVisible();
+  // Tiles are blocked here: the map must stay usable, not crash.
+  await expect(map).toHaveAttribute("data-map-ready", "true");
+});

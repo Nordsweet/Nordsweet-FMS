@@ -7,8 +7,13 @@ self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=
 self.addEventListener('fetch',event=>{
  if(event.request.method!=='GET')return;
  const url=new URL(event.request.url);
- if(url.hostname==='tile.openstreetmap.org'){
+ if(url.hostname==='tile.openstreetmap.org'||url.hostname==='tiles.openfreemap.org'){
    event.respondWith(caches.open('map-osm-tiles-v1').then(async cache=>{
+     // The vector basemap's TileJSON names the current planet build: take it fresh, keep the last for offline.
+     if(url.hostname==='tiles.openfreemap.org'&&!url.pathname.endsWith('.pbf')){
+       try{const fresh=await fetch(event.request);if(fresh.ok)await cache.put(event.request,fresh.clone());return fresh;}
+       catch{return (await cache.match(event.request))||Response.error();}
+     }
      const cached=await cache.match(event.request);if(cached)return cached;
      const response=await fetch(event.request);
      if(response.ok){try{await cache.put(event.request,response.clone());const keys=await cache.keys();if(keys.length>600)await cache.delete(keys[0]);}catch{/* A full offline cache must not discard a successful network tile. */}}

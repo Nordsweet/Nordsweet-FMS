@@ -24,6 +24,7 @@
     "@deck.gl/geo-layers": "~9.4.0",
     "@deck.gl/layers": "~9.4.0",
     "@deck.gl/mapbox": "~9.4.0",
+    "@loaders.gl/mvt": "4.5.4",
     "@luma.gl/core": "~9.4.2",
     "@luma.gl/engine": "~9.4.2",
     "@luma.gl/webgl": "~9.4.2",

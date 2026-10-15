@@ -97,6 +97,13 @@ GPU layers (no GeoJSON re-tiling in a worker, no 2D-canvas label pass on every f
 - Dark map: new `night` basemap ("Dark map") = the same OSM tiles with their lightness flipped in a
   shader (no second tile provider); `dark` ("Black") is unchanged. Both use the dark overlay palette
   (`theme.ts`: lighter symbols, labels, airspace outlines, own-ship blue).
+- Fjord map (`fjord` basemap): [openmaptiles/fiord-color-gl-style](https://github.com/openmaptiles/fiord-color-gl-style)
+  ported rule by rule to deck.gl (`deck/fjord.ts`: colours, widths, zoom ranges, filters; a `TileLayer` with
+  our own tile loader). Its MapTiler source needs a key, so tiles come from OpenFreeMap (same OpenMapTiles
+  schema, no key; credit shown). `public/sw.js` caches its tiles for offline and takes the TileJSON network-first.
+  Not ported: road/water name labels (text along a line) and sprites. Place labels are decluttered on the CPU
+  (`declutter`), not with deck's GPU collision filter, which needs depth testing and could not be verified.
+  Tiles are parsed on the main thread (`@loaders.gl/mvt`): the stock MVT layer loads a worker from unpkg.com.
 - Intended differences: the zoom/scale/attribution controls are ours (`map-scale.tsx`, a text attribution);
   a click on stacked symbols prefers the aircraft, then the airport, within 2 px; an aircraft's "flarm" and
   "ground" icons were always identical to the default icon and are no longer separate sprites.
