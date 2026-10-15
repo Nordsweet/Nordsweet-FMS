@@ -45,12 +45,12 @@ export function patternRunwayGeometry(airport: Airport, runway: Runway) {
     : null;
 }
 
-/** Fixed owner-specified rectangle: 1 km beside the runway, 2 NM beyond both thresholds. */
+/** Fixed owner-specified rectangle: 0.75 NM beside the runway, 2 NM beyond both thresholds. */
 export function trafficPatternGeometry(pattern: TrafficPattern) {
   const h = pattern.runway.trueHeadingDeg;
   const side = h + (pattern.direction === "left" ? -90 : 90);
   const crosswind = destinationPoint(pattern.runway.departureEnd, h, 2);
-  const downwind = destinationPoint(crosswind, side, 1000 / 1852);
+  const downwind = destinationPoint(crosswind, side, 0.75);
   const finalDistance = pattern.join === "final" ? pattern.finalDistanceNm : 2;
   const final = destinationPoint(
     pattern.runway.threshold,
@@ -60,7 +60,7 @@ export function trafficPatternGeometry(pattern: TrafficPattern) {
   const base = destinationPoint(
     destinationPoint(pattern.runway.threshold, h + 180, 2),
     side,
-    1000 / 1852,
+    0.75,
   );
   const positions = {
     overhead: pattern.airport,

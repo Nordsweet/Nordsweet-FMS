@@ -86,17 +86,18 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-test("left and right patterns use exactly 1 km lateral spacing and 2 NM threshold extensions", () => {
+test("left and right patterns use exactly 0.75 NM lateral spacing and 2 NM threshold extensions", () => {
   for (const direction of ["left", "right"] as const) {
     const g = trafficPatternGeometry({ ...pattern, direction });
     expect(distanceNm(end, g.positions.crosswind)).toBeCloseTo(2, 8);
-    expect(
-      distanceNm(g.positions.crosswind, g.positions.downwind) * 1852,
-    ).toBeCloseTo(1000, 6);
+    expect(distanceNm(g.positions.crosswind, g.positions.downwind)).toBeCloseTo(
+      0.75,
+      8,
+    );
     expect(distanceNm(threshold, g.positions.final)).toBeCloseTo(2, 8);
-    expect(distanceNm(g.positions.final, g.positions.base) * 1852).toBeCloseTo(
-      1000,
-      6,
+    expect(distanceNm(g.positions.final, g.positions.base)).toBeCloseTo(
+      0.75,
+      8,
     );
     expect(g.positions.downwind.lat > g.positions.crosswind.lat).toBe(
       direction === "left",
@@ -318,4 +319,42 @@ test("joining an active flight retains timers/track and remembers reports withou
     "DCT",
     "EPAA",
   ]);
+});
+
+test("rehydration refreshes saved pattern geometry without resetting flight progress", async () => {
+  const g = trafficPatternGeometry(pattern);
+  const oldSide = destinationPoint(
+    g.positions.crosswind,
+    pattern.runway.trueHeadingDeg - 90,
+    1000 / 1852,
+  );
+  const savedRoute = [
+    { ident: "DCT", lat: 49, lon: 20 },
+    ...g.points.map((p, i) => (i === 0 ? { ...p, ...oldSide } : p)),
+  ];
+  const startedAt = "2026-10-15T12:00:00Z";
+  vi.stubGlobal("localStorage", {
+    getItem: () =>
+      JSON.stringify({
+        version: 1,
+        state: {
+          startedAt,
+          route: savedRoute,
+          trafficPattern: pattern,
+          patternReports: ["downwind"],
+          activeLeg: 1,
+          phase: "cruise",
+        },
+      }),
+    setItem: vi.fn(),
+    removeItem: vi.fn(),
+  });
+  vi.resetModules();
+  const { useInFlight: reloaded } = await import("~/stores/inflight");
+  const state = reloaded.getState();
+  expect(state.route).toEqual([savedRoute[0], ...g.points]);
+  expect(state.startedAt).toBe(startedAt);
+  expect(state.activeLeg).toBe(1);
+  expect(state.phase).toBe("cruise");
+  expect(state.patternReports).toEqual(["downwind"]);
 });
