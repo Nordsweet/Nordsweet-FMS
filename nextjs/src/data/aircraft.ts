@@ -206,14 +206,16 @@ export const checklistSchema = z.object({
   ),
 });
 
-/** The IAS range in which one flap setting may be flown. */
-const flapSpeedSchema = z
-  .object({
-    setting: z.string().min(1),
-    minKias: z.number().positive(),
-    maxKias: z.number().positive(),
-  })
-  .refine((f) => f.minKias <= f.maxKias);
+const iasRange = z
+  .object({ minKias: z.number().positive(), maxKias: z.number().positive() })
+  .refine((r) => r.minKias <= r.maxKias);
+
+/** The IAS ranges in which one flap setting may be flown; `gearUp` only on retractable gear. */
+const flapSpeedSchema = z.object({
+  setting: z.string().min(1),
+  gearDown: iasRange,
+  gearUp: iasRange.nullable(),
+});
 
 export const aircraftSchema = z.object({
   id: z.string(),
@@ -230,13 +232,7 @@ export const aircraftSchema = z.object({
   /** Indicated airspeed flown in the traffic pattern. */
   patternSpeedKt: z.number().positive().nullable().default(null),
   retractableGear: z.boolean().default(false),
-  /** `gearDown` is the only set of a fixed-gear aircraft; `gearUp` is empty unless retractable. */
-  flapSpeeds: z
-    .object({
-      gearDown: z.array(flapSpeedSchema),
-      gearUp: z.array(flapSpeedSchema),
-    })
-    .default({ gearDown: [], gearUp: [] }),
+  flapSpeeds: z.array(flapSpeedSchema).default([]),
   weightBalance: weightBalanceSchema.nullable(),
   takeoff: distancePerformanceSchema.nullable(),
   landing: distancePerformanceSchema.nullable(),

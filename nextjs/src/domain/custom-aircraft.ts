@@ -60,8 +60,8 @@ export type AircraftDraft = {
   maxTailwindKt: string;
   patternSpeedKt: string;
   retractableGear: boolean;
-  /** Columns: flap setting, min IAS kt, max IAS kt. */
-  flapSpeeds: { gearDown: Row[]; gearUp: Row[] };
+  /** Columns: flap setting, then min and max IAS kt with gear down, then with gear up. */
+  flapSpeeds: Row[];
   weightBalance: {
     mtowKg: string;
     emptyWeightKg: string;
@@ -110,7 +110,7 @@ export const emptyDraft = (): AircraftDraft => ({
   maxTailwindKt: "",
   patternSpeedKt: "",
   retractableGear: false,
-  flapSpeeds: { gearDown: [["", "", ""]], gearUp: [["", "", ""]] },
+  flapSpeeds: [["", "", "", "", ""]],
   weightBalance: {
     mtowKg: "",
     emptyWeightKg: "",
@@ -301,12 +301,7 @@ export function buildAircraft(
       fuelTankCapacityL: optional(draft.fuelTankCapacityL, "fuelTankCapacityL"),
       patternSpeedKt: optional(draft.patternSpeedKt, "patternSpeedKt"),
       retractableGear: draft.retractableGear,
-      flapSpeeds: {
-        gearDown: flapSpeeds(draft.flapSpeeds.gearDown),
-        gearUp: draft.retractableGear
-          ? flapSpeeds(draft.flapSpeeds.gearUp)
-          : [],
-      },
+      flapSpeeds: flapSpeeds(draft.flapSpeeds, draft.retractableGear),
       weightBalance: wbUsed
         ? {
             // chartBounds and the source note stay with a built-in's data.
@@ -382,10 +377,18 @@ export function buildAircraft(
   }
 }
 
-function flapSpeeds(rows: Row[]) {
-  return (filled(rows, "flapSpeeds", [0]) as [string, number, number][]).map(
-    ([setting, minKias, maxKias]) => ({ setting, minKias, maxKias }),
-  );
+function flapSpeeds(rows: Row[], retractable: boolean) {
+  // The gear-up columns are hidden on fixed gear, so they are not checked.
+  const used = filled(
+    rows.map((r) => r.slice(0, retractable ? 5 : 3)),
+    "flapSpeeds",
+    [0],
+  ) as [string, ...number[]][];
+  return used.map(([setting, downMin, downMax, upMin, upMax]) => ({
+    setting,
+    gearDown: { minKias: downMin!, maxKias: downMax! },
+    gearUp: retractable ? { minKias: upMin!, maxKias: upMax! } : null,
+  }));
 }
 
 function climb(draft: AircraftDraft) {
@@ -443,10 +446,16 @@ export const withoutUnchangedRaw = (
   ),
 });
 
-const flapSpeedRows = (list: Aircraft["flapSpeeds"]["gearDown"]): Row[] =>
+const flapSpeedRows = (list: Aircraft["flapSpeeds"]): Row[] =>
   list.length
-    ? list.map((f) => [f.setting, text(f.minKias), text(f.maxKias)])
-    : [["", "", ""]];
+    ? list.map((f) => [
+        f.setting,
+        text(f.gearDown.minKias),
+        text(f.gearDown.maxKias),
+        text(f.gearUp?.minKias ?? null),
+        text(f.gearUp?.maxKias ?? null),
+      ])
+    : [["", "", "", "", ""]];
 
 /** The editable parameters of a built-in aircraft, as form text. */
 export function draftFromAircraft(a: Aircraft): AircraftDraft {
@@ -467,10 +476,7 @@ export function draftFromAircraft(a: Aircraft): AircraftDraft {
     maxTailwindKt: text(a.windLimits?.maxTailwindKt ?? null),
     patternSpeedKt: text(a.patternSpeedKt),
     retractableGear: a.retractableGear,
-    flapSpeeds: {
-      gearDown: flapSpeedRows(a.flapSpeeds.gearDown),
-      gearUp: flapSpeedRows(a.flapSpeeds.gearUp),
-    },
+    flapSpeeds: flapSpeedRows(a.flapSpeeds),
     weightBalance: wb
       ? {
           mtowKg: text(wb.mtowKg),

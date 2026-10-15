@@ -490,48 +490,61 @@ export function AircraftPage() {
 
       <Section title={t("aircraft.flaps")}>
         <Hint>{t("aircraft.flaps.hint")}</Hint>
-        <div className="grid max-w-xs gap-1.5">
-          <Label htmlFor="aircraft-gear">{t("aircraft.flaps.gear")}</Label>
-          <Select
-            value={draft.retractableGear ? "retractable" : "fixed"}
-            onValueChange={(gear) =>
-              set({ retractableGear: gear === "retractable" })
-            }
-          >
-            <SelectTrigger id="aircraft-gear" className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="fixed">{t("aircraft.flaps.fixed")}</SelectItem>
-              <SelectItem value="retractable">
-                {t("aircraft.flaps.retractable")}
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        {(draft.retractableGear
-          ? (["gearDown", "gearUp"] as const)
-          : (["gearDown"] as const)
-        ).map((gearSet) => (
-          <div key={gearSet} className="grid gap-2">
-            {draft.retractableGear && (
-              <strong className="text-sm">
-                {t(`aircraft.flaps.${gearSet}`)}
-              </strong>
-            )}
-            <RowsTable
-              columns={[
-                { label: t("aircraft.col.flap"), text: true },
-                { label: t("aircraft.col.minKias") },
-                { label: t("aircraft.col.maxKias") },
-              ]}
-              rows={draft.flapSpeeds[gearSet]}
-              onChange={(rows) =>
-                set({ flapSpeeds: { ...draft.flapSpeeds, [gearSet]: rows } })
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-sm">{t("aircraft.flaps.gear")}</span>
+          {([false, true] as const).map((retractable) => (
+            <Button
+              key={String(retractable)}
+              type="button"
+              size="sm"
+              variant={
+                draft.retractableGear === retractable ? "default" : "outline"
               }
-            />
-          </div>
-        ))}
+              aria-pressed={draft.retractableGear === retractable}
+              onClick={() => set({ retractableGear: retractable })}
+            >
+              {t(
+                retractable
+                  ? "aircraft.flaps.retractable"
+                  : "aircraft.flaps.fixed",
+              )}
+            </Button>
+          ))}
+        </div>
+        <RowsTable
+          columns={[
+            { label: t("aircraft.col.flap"), text: true },
+            {
+              label: t(
+                draft.retractableGear
+                  ? "aircraft.col.minDown"
+                  : "aircraft.col.minKias",
+              ),
+            },
+            {
+              label: t(
+                draft.retractableGear
+                  ? "aircraft.col.maxDown"
+                  : "aircraft.col.maxKias",
+              ),
+            },
+            ...(draft.retractableGear
+              ? [
+                  { label: t("aircraft.col.minUp") },
+                  { label: t("aircraft.col.maxUp") },
+                ]
+              : []),
+          ]}
+          rows={draft.flapSpeeds}
+          // Rows always carry the gear-up cells, so switching gear type loses nothing.
+          onChange={(rows) =>
+            set({
+              flapSpeeds: rows.map((r) =>
+                Array.from({ length: 5 }, (_, i) => r[i] ?? ""),
+              ),
+            })
+          }
+        />
       </Section>
 
       <Section title={t("aircraft.wb")}>

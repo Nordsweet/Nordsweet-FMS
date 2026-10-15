@@ -15,7 +15,14 @@ export function readCustomDrafts(): AircraftDraft[] {
     const value: unknown = JSON.parse(localStorage.getItem(KEY) ?? "[]");
     // Drafts saved before a field existed get its empty default.
     return Array.isArray(value)
-      ? (value as AircraftDraft[]).map((d) => ({ ...emptyDraft(), ...d }))
+      ? (value as AircraftDraft[]).map((d) => ({
+          ...emptyDraft(),
+          ...d,
+          // The first flap-speed layout was an object of two tables.
+          ...(Array.isArray(d.flapSpeeds)
+            ? {}
+            : { flapSpeeds: emptyDraft().flapSpeeds }),
+        }))
       : [];
   } catch {
     return [];

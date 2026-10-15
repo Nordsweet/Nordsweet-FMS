@@ -36,28 +36,33 @@ describe("buildAircraft", () => {
     });
   });
 
-  it("keeps a gear-up flap set only for retractable gear and rejects a bad range", () => {
+  it("keeps gear-up flap speeds only for retractable gear and rejects a bad range", () => {
     const draft = minimal();
-    draft.flapSpeeds = {
-      gearDown: [
-        ["10", "60", "110"],
-        ["30", "60", "85"],
-      ],
-      gearUp: [["10", "70", "120"]],
-    };
+    draft.flapSpeeds = [
+      ["10", "60", "110", "70", "120"],
+      ["30", "60", "85", "", ""],
+    ];
     const fixed = buildAircraft(draft, []);
-    expect(fixed.ok && fixed.aircraft.flapSpeeds).toEqual({
-      gearDown: [
-        { setting: "10", minKias: 60, maxKias: 110 },
-        { setting: "30", minKias: 60, maxKias: 85 },
-      ],
-      gearUp: [],
-    });
-    const retractable = buildAircraft({ ...draft, retractableGear: true }, []);
-    expect(retractable.ok && retractable.aircraft.flapSpeeds.gearUp).toEqual([
-      { setting: "10", minKias: 70, maxKias: 120 },
+    expect(fixed.ok && fixed.aircraft.flapSpeeds).toEqual([
+      {
+        setting: "10",
+        gearDown: { minKias: 60, maxKias: 110 },
+        gearUp: null,
+      },
+      { setting: "30", gearDown: { minKias: 60, maxKias: 85 }, gearUp: null },
     ]);
-    draft.flapSpeeds.gearDown = [["10", "120", "60"]];
+    const retractable = buildAircraft({ ...draft, retractableGear: true }, []);
+    expect(retractable).toMatchObject({
+      ok: false,
+      error: { code: "incomplete", section: "flapSpeeds" },
+    });
+    draft.flapSpeeds[1] = ["30", "60", "85", "65", "100"];
+    const both = buildAircraft({ ...draft, retractableGear: true }, []);
+    expect(both.ok && both.aircraft.flapSpeeds[1]?.gearUp).toEqual({
+      minKias: 65,
+      maxKias: 100,
+    });
+    draft.flapSpeeds[0] = ["10", "120", "60", "", ""];
     expect(buildAircraft(draft, [])).toMatchObject({
       ok: false,
       error: { section: "flapSpeeds" },
