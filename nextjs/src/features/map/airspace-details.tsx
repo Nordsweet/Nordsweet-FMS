@@ -1,8 +1,9 @@
 import { type AirspaceFeature } from "~/api/aviation/schemas";
 import { zoneRadioRows } from "~/domain/map-radio";
-import { airspaceAltitudeFt, airspaceKind } from "~/domain/map-navigation";
+import { airspaceAltitudeFt } from "~/domain/map-navigation";
 import { useT } from "~/i18n/use-t";
-import { airspacePalette } from "./symbols";
+import { PARACHUTE_PATH } from "./symbols";
+import { airspaceStyle } from "~/domain/airspace-style";
 
 const SERVICE_CODE: Record<string, string> = {
   tower: "TWR",
@@ -40,10 +41,8 @@ export function AirspaceDetails({
       lower: lowerFt(zone),
       upper: airspaceAltitudeFt(zone.upper) ?? 18000,
       plannedFt: plannedFtByZone?.[i] ?? plannedFt,
-      color: (
-        airspacePalette[airspaceKind(zone.name, zone.class)] ??
-        airspacePalette.OTHER!
-      ).stroke,
+      style: airspaceStyle(zone),
+      color: airspaceStyle(zone).stroke,
     }))
     .sort(
       (a, b) => a.lower - b.lower || a.zone.name.localeCompare(b.zone.name),
@@ -138,7 +137,7 @@ export function AirspaceDetails({
                       height={Math.max(2, y(r.lower) - y(upper))}
                       rx={3}
                       fill={r.color}
-                      fillOpacity={0.38}
+                      fillOpacity={0.38 * r.style.fillOpacity}
                       stroke={r.color}
                       strokeWidth={1.4}
                     />
@@ -206,6 +205,22 @@ export function AirspaceDetails({
                 <div className="grid gap-1">
                   <strong>
                     {i + 1}. {r.zone.name}
+                    {r.style.parachuting && (
+                      <svg
+                        role="img"
+                        aria-label={t("maptools.parachuting")}
+                        viewBox="0 0 24 24"
+                        className="ml-2 inline-block size-5 align-middle"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={1.7}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <title>{t("maptools.parachuting")}</title>
+                        <path d={PARACHUTE_PATH} />
+                      </svg>
+                    )}
                   </strong>
                   <span className="text-muted-foreground font-bold">
                     {r.zone.lower} - {r.zone.upper} | {t("maptools.plan")}{" "}

@@ -1,4 +1,5 @@
 export const mapToolsEn = {
+  "maptools.parachuting": "Parachuting (PJE)",
   "maptools.trafficUnavailable": "Traffic unavailable",
   "maptools.loading": "Loading map data…",
   "maptools.metric.zones": "airspaces",
@@ -80,6 +81,7 @@ export const mapToolsEn = {
   "maptools.plan": "plan",
 } as const;
 export const mapToolsPl: Record<keyof typeof mapToolsEn, string> = {
+  "maptools.parachuting": "Skoki spadochronowe (PJE)",
   "maptools.trafficUnavailable": "Ruch niedostępny",
   "maptools.loading": "Wczytywanie danych mapy…",
   "maptools.metric.zones": "stref",
