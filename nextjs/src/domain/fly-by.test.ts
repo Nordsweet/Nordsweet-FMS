@@ -8,6 +8,21 @@ const corner = { ident: "B", lat: 50, lon: 20 };
 const from = { ident: "A", ...destinationPoint(corner, 270, 10) };
 const right = { ident: "C", ...destinationPoint(corner, 180, 10) };
 
+test("adjacent rate-one turns may touch to form a continuous 180 degree turn", () => {
+  const next = {
+    ident: "C",
+    ...destinationPoint(corner, 180, (2 * 100) / (60 * Math.PI)),
+  };
+  const end = { ident: "D", ...destinationPoint(next, 270, 10) };
+  const path = flyByRoute([from, corner, next, end], { tasKt: 100 });
+  expect(path.issues).toEqual([]);
+  expect(path.turns.size).toBe(2);
+  const a = path.turns.get(1)!;
+  const b = path.turns.get(2)!;
+  expect(a.durationSeconds + b.durationSeconds).toBeCloseTo(60, 1);
+  expect(distanceNm(a.points.at(-1)!, b.points[0]!)).toBeLessThan(0.0005);
+});
+
 test.each([80, 100, 120, 140, 160])(
   "%s kt: rate-one radius, tangent distances and duration agree with the reference equations",
   (tasKt) => {

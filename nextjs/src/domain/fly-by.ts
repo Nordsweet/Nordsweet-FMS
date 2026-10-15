@@ -19,6 +19,8 @@ const unit = (heading: number): Vec => ({
   n: Math.cos(heading),
 });
 const OMEGA = Math.PI / 60;
+/** Treat sub-metre projection/rounding gaps as a shared tangent, never as an extra straight leg. */
+export const TURN_JOIN_TOLERANCE_NM = 0.0005;
 
 export type FlyByTurn = {
   index: number;
@@ -35,18 +37,23 @@ export type TurnIssue = {
 
 /** Constant-air-relative 3°/s turns in a geodesic local frame; never shrink a radius to fit. */
 export function flyByRoute(
-  route: readonly (LatLon & { flyOver?: boolean })[],
+  route: readonly (LatLon & {
+    flyOver?: boolean;
+    turnPerformance?: TurnPerformance;
+  })[],
   performance: TurnPerformance,
 ) {
   const turns = new Map<number, FlyByTurn>();
+  const candidates = new Map<number, FlyByTurn>();
   const issues: TurnIssue[] = [];
-  const v = performance.tasKt / 3600;
-  const w = unit(toRad(performance.windDirectionDeg ?? 0));
-  w.e *= -(performance.windSpeedKt ?? 0) / 3600;
-  w.n *= -(performance.windSpeedKt ?? 0) / 3600;
   for (let i = 1; i < route.length - 1; i++) {
     if (route[i]!.flyOver) continue;
     const p = route[i]!;
+    const setting = p.turnPerformance ?? performance;
+    const v = setting.tasKt / 3600;
+    const w = unit(toRad(setting.windDirectionDeg ?? 0));
+    w.e *= -(setting.windSpeedKt ?? 0) / 3600;
+    w.n *= -(setting.windSpeedKt ?? 0) / 3600;
     const incoming = toRad(initialBearingDeg(p, route[i - 1]!) + 180);
     const outgoing = toRad(initialBearingDeg(p, route[i + 1]!));
     const delta = toRad(angleDiffDeg(toDeg(incoming), toDeg(outgoing)));
@@ -95,11 +102,7 @@ export function flyByRoute(
       det = cross(u, z);
     const entryNm = cross(d, z) / det,
       exitNm = cross(u, d) / det;
-    if (
-      !(entryNm > 0 && exitNm > 0) ||
-      entryNm >= distanceNm(route[i - 1]!, p) ||
-      exitNm >= distanceNm(p, route[i + 1]!)
-    ) {
+    if (!(entryNm > 0 && exitNm > 0)) {
       issue("space");
       continue;
     }
@@ -110,21 +113,33 @@ export function flyByRoute(
         n = -entryNm * u.n + d.n;
       return destinationPoint(p, toDeg(Math.atan2(e, n)), Math.hypot(e, n));
     });
-    turns.set(i, {
+    const candidate = {
       index: i,
       entryNm,
       exitNm,
       radiusNm: v / OMEGA,
       durationSeconds: duration,
       points,
-    });
+    };
+    candidates.set(i, candidate);
+    if (
+      entryNm > distanceNm(route[i - 1]!, p) + TURN_JOIN_TOLERANCE_NM ||
+      exitNm > distanceNm(p, route[i + 1]!) + TURN_JOIN_TOLERANCE_NM
+    ) {
+      issue("space");
+    } else turns.set(i, candidate);
   }
   // Mark both conflicting turns before removing either, so results do not depend on traversal order.
   const blocked = new Set<number>();
   for (let i = 1; i < route.length - 2; i++) {
     const a = turns.get(i),
       b = turns.get(i + 1);
-    if (a && b && a.exitNm + b.entryNm > distanceNm(route[i]!, route[i + 1]!)) {
+    if (
+      a &&
+      b &&
+      a.exitNm + b.entryNm >
+        distanceNm(route[i]!, route[i + 1]!) + TURN_JOIN_TOLERANCE_NM
+    ) {
       blocked.add(i);
       blocked.add(i + 1);
     }
@@ -141,10 +156,20 @@ export function flyByRoute(
   };
   route.forEach((p, i) => {
     const turn = turns.get(i);
-    if (turn) turn.points.forEach((p, j) => append(p, j === 0 ? i - 1 : i));
+    if (turn)
+      turn.points.forEach((p, j) => {
+        if (
+          j === 0 &&
+          turns.has(i - 1) &&
+          points.length &&
+          distanceNm(points.at(-1)!, p) <= TURN_JOIN_TOLERANCE_NM
+        )
+          return;
+        append(p, j === 0 ? i - 1 : i);
+      });
     else append(p, Math.max(0, i - 1));
   });
-  return { points, legs, turns, issues };
+  return { points, legs, turns, candidates, issues };
 }
 
 /** Live TAS is inferred from the measured ground vector minus the supplied planning wind. */

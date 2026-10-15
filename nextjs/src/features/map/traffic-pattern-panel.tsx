@@ -6,7 +6,11 @@ import {
   trafficPatternSchema,
   type TrafficPattern,
 } from "~/data/traffic-pattern";
-import { patternRunwayGeometry } from "~/domain/traffic-pattern";
+import {
+  patternRunwayGeometry,
+  trafficPatternGeometry,
+} from "~/domain/traffic-pattern";
+import { patternPlanningPerformance } from "~/domain/pattern-performance";
 import { patternRunwaySuggestion } from "~/domain/traffic-pattern-runway";
 import { atisValue } from "~/domain/atis-pad";
 import { useAtis } from "~/stores/atis";
@@ -32,7 +36,12 @@ export function TrafficPatternPanel({
   remove: () => void;
 }) {
   const t = useT();
-  const existing = useFlight((s) => s.flight.trafficPattern);
+  const flight = useFlight((s) => s.flight);
+  const existing = flight.trafficPattern;
+  const aircraft = useQuery(
+    api.aircraft.list.queryOptions(undefined),
+  ).data?.find((a) => a.id === flight.aircraftId);
+  const speedKias = aircraft?.patternSpeedKt ?? existing?.speedKias ?? 100;
   const saved = existing?.airport.ident === airport.ident ? existing : null;
   const [id] = useState(() => crypto.randomUUID());
   const [runwayId, setRunway] = useState(saved?.runway.designator ?? "auto");
@@ -83,6 +92,13 @@ export function TrafficPatternPanel({
       direction,
       join,
       altitudeAalFt: Number(altitude),
+      speedKias,
+      turnPerformance: patternPlanningPerformance(
+        speedKias,
+        airport.elevationFt,
+        Number(altitude),
+        data?.metar?.stale ? null : (data?.metar?.raw ?? null),
+      ),
       finalDistanceNm:
         join === "final"
           ? Number(finalType === "custom" ? custom : finalType)
@@ -185,6 +201,16 @@ export function TrafficPatternPanel({
         <small>
           {t("pattern.amsl", {
             altitude: pattern.airport.elevationFt + pattern.altitudeAalFt,
+          })}
+        </small>
+      )}
+      {pattern && (
+        <small data-testid="pattern-dimensions">
+          {t("pattern.speed", { speed: speedKias })}
+          {" · "}
+          {t("pattern.offset", {
+            distance:
+              trafficPatternGeometry(pattern).lateralOffsetNm.toFixed(2),
           })}
         </small>
       )}

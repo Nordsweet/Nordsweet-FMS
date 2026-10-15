@@ -4,6 +4,7 @@ import { type NavPoint } from "./progress";
 import { destinationPoint, distanceNm, trackOffset, type LatLon } from "./geo";
 import { angleDiffDeg } from "./angles";
 import { flyByRoute, type TurnPerformance } from "./fly-by";
+import { patternPlanningPerformance } from "./pattern-performance";
 
 /** Use published thresholds where available; otherwise estimate from runway length and ARP. */
 export function patternRunwayGeometry(airport: Airport, runway: Runway) {
@@ -46,12 +47,42 @@ export function patternRunwayGeometry(airport: Airport, runway: Runway) {
     : null;
 }
 
-/** Fixed owner-specified rectangle: 0.75 NM beside the runway, 2 NM beyond both thresholds. */
+/** Keep a minimum 0.75 NM lateral offset and widen until adjacent rate-one arcs fit. */
 export function trafficPatternGeometry(pattern: TrafficPattern) {
+  const turnPerformance =
+    pattern.turnPerformance ??
+    patternPlanningPerformance(
+      pattern.speedKias ?? 100,
+      pattern.airport.elevationFt,
+      pattern.altitudeAalFt,
+      null,
+    );
   const h = pattern.runway.trueHeadingDeg;
   const side = h + (pattern.direction === "left" ? -90 : 90);
   const crosswind = destinationPoint(pattern.runway.departureEnd, h, 2);
-  const downwind = destinationPoint(crosswind, side, 0.75);
+  const standardFinal = destinationPoint(pattern.runway.threshold, h + 180, 2);
+  let lateralOffsetNm = 0.75;
+  // Solve using the actual tangent budgets, including wind and geodesic course convergence.
+  // Equality is allowed: two 90° arcs can share one tangent and form a continuous 180° turn.
+  for (let iteration = 0; iteration < 12; iteration++) {
+    const canonical = [
+      pattern.runway.threshold,
+      crosswind,
+      destinationPoint(crosswind, side, lateralOffsetNm),
+      destinationPoint(standardFinal, side, lateralOffsetNm),
+      standardFinal,
+      pattern.runway.threshold,
+    ];
+    const { candidates } = flyByRoute(canonical, turnPerformance);
+    const required = Math.max(
+      0.75,
+      (candidates.get(1)?.exitNm ?? 0) + (candidates.get(2)?.entryNm ?? 0),
+      (candidates.get(3)?.exitNm ?? 0) + (candidates.get(4)?.entryNm ?? 0),
+    );
+    if (required <= lateralOffsetNm + 1e-8) break;
+    lateralOffsetNm = required;
+  }
+  const downwind = destinationPoint(crosswind, side, lateralOffsetNm);
   const finalDistance = pattern.join === "final" ? pattern.finalDistanceNm : 2;
   const final = destinationPoint(
     pattern.runway.threshold,
@@ -61,7 +92,7 @@ export function trafficPatternGeometry(pattern: TrafficPattern) {
   const base = destinationPoint(
     destinationPoint(pattern.runway.threshold, h + 180, 2),
     side,
-    0.75,
+    lateralOffsetNm,
   );
   const positions = {
     overhead: pattern.airport,
@@ -77,14 +108,16 @@ export function trafficPatternGeometry(pattern: TrafficPattern) {
     ident: `TP${i + 1}/${pattern.airport.ident}`,
     patternId: pattern.id,
     altitudeFt: pattern.airport.elevationFt + pattern.altitudeAalFt,
+    turnPerformance,
   }));
   points.push({
     ...pattern.runway.threshold,
     ident: pattern.airport.ident,
     patternId: pattern.id,
     altitudeFt: pattern.runway.threshold.elevationFt,
+    turnPerformance,
   });
-  return { points, positions, finalDistance };
+  return { points, positions, finalDistance, lateralOffsetNm, turnPerformance };
 }
 
 /** Replace the destination arrival with the selected pattern, retaining the preceding route. */

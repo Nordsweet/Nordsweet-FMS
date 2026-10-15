@@ -16,5 +16,13 @@ export const trafficPatternSchema = z.object({
   join: z.enum(["overhead", "crosswind", "downwind", "base", "final"]),
   altitudeAalFt: z.number().positive().max(10000),
   finalDistanceNm: z.number().positive().max(100),
+  speedKias: z.number().positive().max(600).optional(),
+  turnPerformance: z
+    .object({
+      tasKt: z.number().positive(),
+      windDirectionDeg: z.number().optional(),
+      windSpeedKt: z.number().nonnegative().optional(),
+    })
+    .optional(),
 });
 export type TrafficPattern = z.infer<typeof trafficPatternSchema>;

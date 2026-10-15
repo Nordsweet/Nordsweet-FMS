@@ -5,6 +5,19 @@ Reference: <https://nordsweet-performance-calculator.mrnordsweet.chatgpt.site/> 
 `5265bc5de9510aa3d83cc469860a730962b96c78`. Starting develop: `2f289ed6dc8d7b7c3186b100577c787c64df1de2`.
 Branch: `codex/preflight-parity-audit`.
 
+## Adaptive circuit fly-by turns (2026-10-16)
+
+- Circuit lateral offset starts at 0.75 NM and expands automatically to fit rate-one turns,
+  including wind. Adjacent 90-degree arcs may share their tangent to make a smooth 180-degree turn.
+- The same rounded geometry drives the dashed preview, accepted route and navigation; no extra
+  flight-plan fixes or labels are added. Existing inbound fixes and GPS-free acceptance remain intact.
+- P2006T circuit speed is 100 KIAS. Aircraft circuit speed is converted to TAS at circuit altitude
+  with available METAR conditions (ISA/calm fallback), independently of en-route cruise speed.
+- This replaces the earlier decision to retain a fixed 0.75 NM circuit and warn about cramped
+  corners. Genuine unsupported entry/reversal/wind constraints still display their warning.
+- Coverage: left/right circuits, four wind directions, touching arcs, aircraft defaults, IAS/TAS,
+  navigation sequencing and accepted circuit persistence in the map UI.
+
 ## CI follow-up (2026-10-13)
 
 GitHub Actions run 38449558745 failed because the map migration E2E still used

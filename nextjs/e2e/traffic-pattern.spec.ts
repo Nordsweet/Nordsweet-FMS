@@ -8,6 +8,7 @@ import {
 } from "../src/domain/traffic-pattern";
 import { type TrafficPattern } from "../src/data/traffic-pattern";
 import { destinationPoint } from "../src/domain/geo";
+import { flyByRoute } from "../src/domain/fly-by";
 const raw = JSON.parse(
   fs.readFileSync("public/data/airports.json", "utf8"),
 ) as { ident: string }[];
@@ -83,7 +84,7 @@ async function mocks(page: Page, atis = true) {
           JSON.stringify({ version: 1, state: { flight } }),
         );
     },
-    { ...newFlight(), departure, destination: airport },
+    { ...newFlight(), aircraftId: "P2006T", departure, destination: airport },
   );
 }
 async function open(page: Page) {
@@ -281,8 +282,12 @@ test("accepted pattern reports downwind once at its midpoint and Short Final at 
   });
   await expect(page.getByTestId("pattern-report")).toHaveCount(0);
   await context.setGeolocation({
-    latitude: g.positions.final.lat,
-    longitude: g.positions.final.lon,
+    latitude: flyByRoute(g.points, { tasKt: 100 })
+      .turns.get(g.points.length - 2)!
+      .points.at(-1)!.lat,
+    longitude: flyByRoute(g.points, { tasKt: 100 })
+      .turns.get(g.points.length - 2)!
+      .points.at(-1)!.lon,
     accuracy: 5,
   });
   await expect(page.getByTestId("pattern-report")).toHaveText(
@@ -370,7 +375,7 @@ test("accepting a Base join during flight preserves the flight and reports halfw
   await expect(page.getByTestId("pattern-report")).toHaveText(/Report Base/);
 });
 
-test("joining a pattern keeps the remaining arrival fix and warns when rate-one turns cannot fit", async ({
+test("joining widens the circuit for touching fly-by arcs and keeps the remaining arrival fix", async ({
   page,
   context,
 }) => {
@@ -404,7 +409,9 @@ test("joining a pattern keeps the remaining arrival fix and warns when rate-one 
   );
   await page.goto("/fly");
   const panel = await open(page);
-  await expect(page.getByTestId("turn-constraint")).toContainText("Rate-one");
+  await expect(panel.getByTestId("pattern-dimensions")).toContainText(
+    "100 KIAS",
+  );
   await panel
     .getByRole("button", { name: "Accept traffic pattern", exact: true })
     .click();
@@ -430,12 +437,18 @@ test("joining a pattern keeps the remaining arrival fix and warns when rate-one 
   expect(accepted.route[2]?.patternId).toBe(accepted.trafficPattern.id);
   expect(accepted.activeLeg).toBe(0);
   expect(accepted.startedAt).toBe("2026-10-15T12:00:00Z");
+  const circuit = trafficPatternGeometry(accepted.trafficPattern);
+  expect(circuit.lateralOffsetNm).toBeGreaterThan(1.06);
+  expect(accepted.trafficPattern.speedKias).toBe(100);
+  const curved = flyByRoute(circuit.points, { tasKt: 180 });
+  expect(curved.issues).toEqual([]);
+  expect(curved.turns.size).toBe(2);
   await page.reload();
   expect((await active()).route.slice(0, 2).map((p) => p.ident)).toEqual([
     "EPKK",
     "EPNTD",
   ]);
-  await expect(page.getByTestId("turn-constraint")).toBeVisible();
+  expect((await active()).trafficPattern).toEqual(accepted.trafficPattern);
 });
 
 for (const gps of ["denied", "unavailable", "stale"] as const) {

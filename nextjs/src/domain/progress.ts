@@ -6,6 +6,7 @@ export type NavPoint = LatLon & {
   patternId?: string;
   altitudeFt?: number;
   flyOver?: boolean;
+  turnPerformance?: TurnPerformance;
 };
 
 /** Within this distance of the next waypoint it counts as passed even if not yet abeam. */
