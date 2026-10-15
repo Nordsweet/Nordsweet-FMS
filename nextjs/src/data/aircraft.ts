@@ -206,16 +206,14 @@ export const checklistSchema = z.object({
   ),
 });
 
-const iasRange = z
-  .object({ minKias: z.number().positive(), maxKias: z.number().positive() })
-  .refine((r) => r.minKias <= r.maxKias);
-
-/** The IAS ranges in which one flap setting may be flown; `gearUp` only on retractable gear. */
-const flapSpeedSchema = z.object({
-  setting: z.string().min(1),
-  gearDown: iasRange,
-  gearUp: iasRange.nullable(),
-});
+/** The IAS range in which one flap setting may be flown. */
+const flapSpeedSchema = z
+  .object({
+    setting: z.string().min(1),
+    minKias: z.number().positive(),
+    maxKias: z.number().positive(),
+  })
+  .refine((f) => f.minKias <= f.maxKias);
 
 export const aircraftSchema = z.object({
   id: z.string(),
@@ -233,6 +231,9 @@ export const aircraftSchema = z.object({
   patternSpeedKt: z.number().positive().nullable().default(null),
   retractableGear: z.boolean().default(false),
   flapSpeeds: z.array(flapSpeedSchema).default([]),
+  /** Retractable gear only: max IAS with the gear extended and while it is in transit. */
+  maxGearExtendedKias: z.number().positive().nullable().default(null),
+  maxGearTransitKias: z.number().positive().nullable().default(null),
   weightBalance: weightBalanceSchema.nullable(),
   takeoff: distancePerformanceSchema.nullable(),
   landing: distancePerformanceSchema.nullable(),

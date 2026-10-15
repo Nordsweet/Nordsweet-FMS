@@ -83,8 +83,7 @@ function RowsTable({
   rows,
   onChange,
 }: {
-  /** `cell` is the column's index in a row (default: its position); `group` heads adjacent columns. */
-  columns: { label: string; text?: boolean; cell?: number; group?: string }[];
+  columns: { label: string; text?: boolean }[];
   rows: Row[];
   onChange: (rows: Row[]) => void;
 }) {
@@ -95,58 +94,32 @@ function RowsTable({
         i === r ? row.map((cell, j) => (j === c ? value : cell)) : row,
       ),
     );
-  const template = `repeat(${columns.length}, minmax(0, 1fr)) 2rem`;
   return (
     <div className="grid gap-2">
-      {columns.some((column) => column.group) && (
-        <div
-          className="grid gap-2 text-center text-sm font-semibold"
-          style={{ gridTemplateColumns: template }}
-        >
-          {columns.map((column, c) =>
-            c > 0 && column.group === columns[c - 1]?.group ? null : (
-              <span
-                key={c}
-                style={{
-                  gridColumn: `span ${columns.filter((x) => x.group === column.group).length}`,
-                }}
-              >
-                {column.group}
-              </span>
-            ),
-          )}
-        </div>
-      )}
       {rows.map((row, r) => (
         <div
           key={r}
           className="grid items-end gap-2"
-          style={{ gridTemplateColumns: template }}
+          style={{
+            gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr)) auto`,
+          }}
         >
-          {columns.map((column, i) => {
-            const c = column.cell ?? i;
-            return (
-              <div
-                key={`${column.group}${column.label}`}
-                className="grid gap-1"
-              >
-                {r === 0 && (
-                  <span className="text-muted-foreground text-[0.72rem]">
-                    {column.label}
-                  </span>
-                )}
-                <Input
-                  aria-label={[column.group, column.label, r + 1]
-                    .join(" ")
-                    .trim()}
-                  inputMode={column.text ? "text" : "decimal"}
-                  autoComplete="off"
-                  value={row[c]}
-                  onChange={(e) => setCell(r, c, e.target.value)}
-                />
-              </div>
-            );
-          })}
+          {columns.map((column, c) => (
+            <div key={column.label} className="grid gap-1">
+              {r === 0 && (
+                <span className="text-muted-foreground text-[0.72rem]">
+                  {column.label}
+                </span>
+              )}
+              <Input
+                aria-label={`${column.label} ${r + 1}`}
+                inputMode={column.text ? "text" : "decimal"}
+                autoComplete="off"
+                value={row[c]}
+                onChange={(e) => setCell(r, c, e.target.value)}
+              />
+            </div>
+          ))}
           <Button
             type="button"
             variant="outline"
@@ -541,33 +514,26 @@ export function AircraftPage() {
         <RowsTable
           columns={[
             { label: t("aircraft.col.flap"), text: true },
-            ...(draft.retractableGear
-              ? [
-                  { group: t("aircraft.col.gearUp"), cell: 3 },
-                  { group: t("aircraft.col.gearUp"), cell: 4 },
-                  { group: t("aircraft.col.gearDown"), cell: 1 },
-                  { group: t("aircraft.col.gearDown"), cell: 2 },
-                ].map((c, i) => ({
-                  ...c,
-                  label: t(
-                    i % 2 ? "aircraft.col.maxKias" : "aircraft.col.minKias",
-                  ),
-                }))
-              : [
-                  { label: t("aircraft.col.minKias") },
-                  { label: t("aircraft.col.maxKias") },
-                ]),
+            { label: t("aircraft.col.minKias") },
+            { label: t("aircraft.col.maxKias") },
           ]}
           rows={draft.flapSpeeds}
-          // Rows always carry the gear-up cells, so switching gear type loses nothing.
-          onChange={(rows) =>
-            set({
-              flapSpeeds: rows.map((r) =>
-                Array.from({ length: 5 }, (_, i) => r[i] ?? ""),
-              ),
-            })
-          }
+          onChange={(flapSpeeds) => set({ flapSpeeds })}
         />
+        {draft.retractableGear && (
+          <Fields>
+            <TextField
+              label={t("aircraft.flaps.maxGearExtendedKias")}
+              value={draft.maxGearExtendedKias}
+              onChange={(maxGearExtendedKias) => set({ maxGearExtendedKias })}
+            />
+            <TextField
+              label={t("aircraft.flaps.maxGearTransitKias")}
+              value={draft.maxGearTransitKias}
+              onChange={(maxGearTransitKias) => set({ maxGearTransitKias })}
+            />
+          </Fields>
+        )}
       </Section>
 
       <Section title={t("aircraft.wb")}>
