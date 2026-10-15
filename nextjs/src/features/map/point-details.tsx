@@ -6,6 +6,7 @@ import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { type FlightPoint } from "~/data/flight";
 import { formatRoutePoint, pointKey } from "~/domain/route-plan";
+import { sameFlightPoint } from "~/domain/waypoint-insertion";
 import { type MessageKey } from "~/i18n/messages";
 import { useT } from "~/i18n/use-t";
 import { useFlight } from "~/stores/flight";
@@ -41,10 +42,17 @@ export function PointDetails({
     navigation = useInFlight();
   const { fix, error } = useGps(navigation.startedAt !== null);
   const { plan, route } = usePlan();
-  const onRoute = route.some(
-    (p) =>
-      p.ident === point.ident && p.lat === point.lat && p.lon === point.lon,
+  const displayedRoute = navigation.startedAt ? navigation.route : route;
+  const waypointIndex = flight.waypoints.findIndex((p) =>
+    sameFlightPoint(p, point),
   );
+  const activeIndex = navigation.startedAt
+    ? navigation.route.findIndex((p) => sameFlightPoint(p, point))
+    : -1;
+  const removable =
+    waypointIndex >= 0 ||
+    (activeIndex > 0 && activeIndex < navigation.route.length - 1);
+  const onRoute = displayedRoute.some((p) => sameFlightPoint(p, point));
   const routePoint = plan?.points.find(
     (p) => formatRoutePoint(p) === point.ident || p.id === point.ident,
   );
@@ -122,17 +130,19 @@ export function PointDetails({
           </>
         )}
         {/* Legacy "Add To Route" turns into "Remove From Route" once the point is on it. */}
-        {flight.waypoints.some((p) => p.ident === point.ident) ? (
+        {removable ? (
           <Button
             size="sm"
             variant="outline"
-            onClick={() =>
-              update({
-                waypoints: flight.waypoints.filter(
-                  (p) => p.ident !== point.ident,
-                ),
-              })
-            }
+            onClick={() => {
+              if (waypointIndex >= 0)
+                update({
+                  waypoints: flight.waypoints.filter(
+                    (_, i) => i !== waypointIndex,
+                  ),
+                });
+              if (activeIndex >= 0) navigation.removeWaypoint(activeIndex);
+            }}
           >
             {t("maptools.removePoint")}
           </Button>
