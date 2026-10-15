@@ -29,7 +29,7 @@ test("GPX and imported airspace survive reload; invalid GPX keeps the route", as
   await page.goto("/map");
   await expect(page.getByText(/^Route:/)).toHaveCount(1);
   await expect(page.getByTestId("map-gps-status")).toBeVisible();
-  await expect(page.locator(".maplibregl-canvas")).toBeVisible();
+  await expect(page.locator("[data-testid=map] canvas")).toBeVisible();
   await expect(page.getByTestId("map")).toHaveAttribute(
     "data-map-ready",
     "true",
@@ -113,7 +113,7 @@ test("selected traffic anchors details at aircraft and restores server history",
       }),
   );
   await page.goto("/map");
-  await expect(page.locator(".maplibregl-canvas")).toBeVisible();
+  await expect(page.locator("[data-testid=map] canvas")).toBeVisible();
   await expect(page.getByTestId("map")).toHaveAttribute(
     "data-map-ready",
     "true",

@@ -15,6 +15,16 @@ test("legacy Black basemap migrates, obsolete secret-bearing providers do not", 
   expect(mapPreferencesSchema.parse({}).labels).toBe(true);
 });
 
+test("the dark map is a stored basemap choice; unknown ones fall back to the default", () => {
+  expect(mapPreferencesSchema.parse({ basemap: "night" }).basemap).toBe(
+    "night",
+  );
+  expect(mapPreferencesSchema.safeParse({ basemap: "satellite" }).success).toBe(
+    false,
+  );
+  expect(mapPreferencesSchema.parse({}).basemap).toBe("osm");
+});
+
 test("old flights gain defaults; map restrictions and anchors survive nord export/import", () => {
   const original = newFlight();
   original.departure = { ident: "EPKK", lat: 50, lon: 19 };

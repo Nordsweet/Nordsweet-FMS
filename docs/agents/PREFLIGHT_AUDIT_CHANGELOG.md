@@ -187,7 +187,7 @@ CI follow-up: the magnifier subscribes only to search state, and an empty select
 
 ## Traffic label zoom (2026-10-14)
 
-Owner-requested change: traffic labels now share the point-name zoom threshold (MapLibre 8 / legacy 9) in Map and Fly. The previous viewport-width condition (longitude span below 8 degrees) is removed, so screen size cannot change the threshold. Aircraft symbols and their details remain available while zoomed out. Traffic labels remain independent of the Labels checkbox. The label regression test covers just below/at/above the shared threshold.
+Owner-requested change: traffic labels now share the point-name zoom threshold (map zoom 8 / legacy 9) in Map and Fly. The previous viewport-width condition (longitude span below 8 degrees) is removed, so screen size cannot change the threshold. Aircraft symbols and their details remain available while zoomed out. Traffic labels remain independent of the Labels checkbox. The label regression test covers just below/at/above the shared threshold.
 
 ## Flight-plan waypoint insertion (2026-10-14)
 

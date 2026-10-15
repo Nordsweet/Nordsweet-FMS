@@ -209,6 +209,7 @@ export function MapWorkspace({ embedded = false }: { embedded?: boolean }) {
             value={settings.basemap}
             options={[
               { value: "osm", label: "OpenStreetMap" },
+              { value: "night", label: t("map.basemapNight") },
               { value: "dark", label: t("maplegacy.black") },
             ]}
             onChange={(basemap) => settings.update({ basemap })}

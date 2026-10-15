@@ -168,14 +168,6 @@
   letter-spacing: 0.07em;
 }
 
-/* MapLibre's zoom/compass buttons are 29 px: give them a finger-sized target on touch screens. */
-@media (pointer: coarse) {
-  .maplibregl-map .maplibregl-ctrl-group button {
-    width: 40px;
-    height: 40px;
-  }
-}
-
 /* Chart controls deliberately preserve the original light map theme within the dark FMS. */
 .legacy-map {
   font-family: system-ui, sans-serif;
@@ -380,19 +372,54 @@
   color: var(--accent-2);
   margin-top: 3px;
 }
-.legacy-map .maplibregl-ctrl-scale {
+.legacy-map-scale {
+  position: absolute;
+  right: 90px;
+  bottom: 10px;
+  z-index: 5;
+  box-sizing: border-box;
+  min-width: 20px;
+  padding: 0 5px;
+  border: 2px solid #333;
+  border-top: 0;
   background: rgba(255, 255, 255, 0.9);
   color: #334154;
   font:
     11px system-ui,
     sans-serif;
+  line-height: 1.4;
+  white-space: nowrap;
+  pointer-events: none;
 }
-.legacy-map .maplibregl-ctrl-attrib {
+.legacy-map-attribution {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 5;
+  padding: 0 5px;
   background: rgba(255, 255, 255, 0.82);
   color: #344154;
   font:
     11px system-ui,
     sans-serif;
+}
+
+/* The dark map (night tiles or black): lighten what is drawn directly on it. */
+.legacy-map--dark .legacy-route-marker {
+  color: #ff9cff;
+  text-shadow: 0 0 3px #080c12;
+}
+.legacy-map--dark .legacy-route-marker::before {
+  background: #080c12;
+}
+.legacy-map--dark .legacy-map-scale {
+  border-color: #cbd5e1;
+  background: rgba(8, 12, 18, 0.85);
+  color: #cbd5e1;
+}
+.legacy-map--dark .legacy-map-attribution {
+  background: rgba(8, 12, 18, 0.8);
+  color: #aab6c6;
 }
 
 .legacy-map-inventory {
@@ -540,14 +567,6 @@
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-}
-.legacy-map .maplibregl-ctrl-bottom-right {
-  top: 0;
-  bottom: auto;
-}
-.legacy-map .maplibregl-ctrl-bottom-left {
-  left: auto;
-  right: 90px;
 }
 .legacy-map-info small {
   color: var(--muted-foreground);

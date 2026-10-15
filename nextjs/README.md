@@ -1,7 +1,7 @@
 # Nordsweet FMS — aplikacja
 
 Next.js 16 (App Router, statyczny eksport) + React 19 + TypeScript + Tailwind CSS 4 + shadcn/ui +
-zod + TanStack Query + Zustand + MapLibre GL. Układ [create-t3-app](https://create.t3.gg), na razie
+zod + TanStack Query + Zustand + deck.gl. Układ [create-t3-app](https://create.t3.gg), na razie
 bez własnego backendu. Działa offline (service worker, IndexedDB).
 
 ## Uruchamianie
@@ -19,7 +19,7 @@ pnpm test:e2e       # Playwright na zbudowanym eksporcie
 ```
 
 `NEXT_PUBLIC_AVIATION_API_URL` (domyślnie `https://aviation.lab.vibecde.com`) — adres API, patrz
-`.env.example`. `dev` i `build` kopiują worker MapLibre do `public/` (plik w `.gitignore`).
+`.env.example`.
 
 ## Ekrany
 

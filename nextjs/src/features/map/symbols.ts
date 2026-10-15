@@ -80,9 +80,25 @@ export const pointSymbols = [
   "ndb",
   "navaid",
 ] as const;
+/** Symbol colours: dark ink for the light chart, lighter inks for the dark map. */
+export type PointInk = {
+  airport: string;
+  ink: string;
+  navaid: string;
+  vfr: string;
+  ifr: string;
+};
+export const lightInk: PointInk = {
+  airport: "#126cac",
+  ink: "#111827",
+  navaid: "#7b2cbf",
+  vfr: "#1d8b57",
+  ifr: "#2563a7",
+};
 export function pointSymbol(
   symbol: (typeof pointSymbols)[number],
   heading: number | null = 0,
+  colors: PointInk = lightInk,
 ) {
   const kind = ["airport", "controlled", "runway"].includes(symbol)
     ? "airport"
@@ -103,7 +119,7 @@ export function pointSymbol(
     ctx.save();
     if (kind === "airport") {
       if (controlledAirport) {
-        ctx.strokeStyle = "#126cac";
+        ctx.strokeStyle = colors.airport;
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.arc(0, 0, 6, 0, Math.PI * 2);
@@ -116,7 +132,7 @@ export function pointSymbol(
         ctx.lineTo(0, 0 + 9);
         ctx.stroke();
       } else if (uncontrolledIcaoAirport) {
-        ctx.strokeStyle = "#126cac";
+        ctx.strokeStyle = colors.airport;
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.arc(0, 0, 6, 0, Math.PI * 2);
@@ -132,7 +148,7 @@ export function pointSymbol(
           ctx.stroke();
         }
       } else {
-        ctx.strokeStyle = "#126cac";
+        ctx.strokeStyle = colors.airport;
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.arc(0, 0, 6, 0, Math.PI * 2);
@@ -140,7 +156,7 @@ export function pointSymbol(
       }
     } else if (kind === "navaid") {
       if (vorNavaid) {
-        ctx.strokeStyle = "#111827";
+        ctx.strokeStyle = colors.ink;
         ctx.lineWidth = 1.45;
         if (vorDmeNavaid) {
           ctx.beginPath();
@@ -158,20 +174,20 @@ export function pointSymbol(
         }
         ctx.closePath();
         ctx.stroke();
-        ctx.fillStyle = "#111827";
+        ctx.fillStyle = colors.ink;
         ctx.beginPath();
         ctx.arc(0, 0, vorDmeNavaid ? 1.2 : 1.7, 0, Math.PI * 2);
         ctx.fill();
       } else if (dmeNavaid) {
-        ctx.strokeStyle = "#111827";
+        ctx.strokeStyle = colors.ink;
         ctx.lineWidth = 1.45;
         ctx.beginPath();
         ctx.rect(0 - 5.5, 0 - 5.5, 11, 11);
         ctx.stroke();
-        ctx.fillStyle = "#111827";
+        ctx.fillStyle = colors.ink;
         ctx.fillRect(0 - 1.25, 0 - 1.25, 2.5, 2.5);
       } else if (ndbNavaid) {
-        ctx.strokeStyle = "#111827";
+        ctx.strokeStyle = colors.ink;
         ctx.lineWidth = 1;
         ctx.setLineDash([1, 1.6]);
         ctx.beginPath();
@@ -182,12 +198,12 @@ export function pointSymbol(
         ctx.beginPath();
         ctx.arc(0, 0, 4.5, 0, Math.PI * 2);
         ctx.stroke();
-        ctx.fillStyle = "#111827";
+        ctx.fillStyle = colors.ink;
         ctx.beginPath();
         ctx.arc(0, 0, 2.2, 0, Math.PI * 2);
         ctx.fill();
       } else {
-        ctx.fillStyle = "#7b2cbf";
+        ctx.fillStyle = colors.navaid;
         ctx.strokeStyle = "#ffffff";
         ctx.lineWidth = 1.4;
         ctx.beginPath();
@@ -201,7 +217,7 @@ export function pointSymbol(
       }
     } else {
       if (reportingPoint) {
-        ctx.fillStyle = "#111827";
+        ctx.fillStyle = colors.ink;
         ctx.beginPath();
         ctx.moveTo(0, 0 - 5);
         ctx.lineTo(0 + 5, 0 + 4);
@@ -209,7 +225,7 @@ export function pointSymbol(
         ctx.closePath();
         ctx.fill();
       } else if (ordinaryVfrPoint) {
-        ctx.strokeStyle = "#111827";
+        ctx.strokeStyle = colors.ink;
         ctx.lineWidth = 1.4;
         ctx.beginPath();
         ctx.moveTo(0, 0 - 5);
@@ -218,7 +234,7 @@ export function pointSymbol(
         ctx.closePath();
         ctx.stroke();
       } else {
-        ctx.fillStyle = kind === "vfr" ? "#1d8b57" : "#2563a7";
+        ctx.fillStyle = kind === "vfr" ? colors.vfr : colors.ifr;
         ctx.beginPath();
         ctx.arc(0, 0, kind === "ifr" ? 2.2 : 2.8, 0, Math.PI * 2);
         ctx.fill();

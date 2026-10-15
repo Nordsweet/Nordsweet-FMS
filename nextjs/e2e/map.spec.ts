@@ -30,7 +30,7 @@ test("map shows airspace and sets the departure from a tapped airport", async ({
   );
 
   await page.goto("/map");
-  await expect(page.locator(".maplibregl-canvas")).toBeVisible();
+  await expect(page.locator("[data-testid=map] canvas")).toBeVisible();
   await expect(page.getByTestId("map")).toHaveAttribute(
     "data-map-ready",
     "true",
@@ -102,7 +102,7 @@ test("shows live traffic and its details", async ({ page }) => {
     localStorage.setItem("nordsweet.language.v1", "en"),
   );
   await page.goto("/map");
-  await expect(page.locator(".maplibregl-canvas")).toBeVisible();
+  await expect(page.locator("[data-testid=map] canvas")).toBeVisible();
   await expect(page.getByTestId("map")).toHaveAttribute(
     "data-map-ready",
     "true",
