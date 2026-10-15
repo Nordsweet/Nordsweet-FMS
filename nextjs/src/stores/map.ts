@@ -14,10 +14,10 @@ export const mapLayers = [
   "traffic",
 ] as const;
 export type LayerId = (typeof mapLayers)[number];
-export type Basemap = "osm" | "dark";
+export type Basemap = "osm" | "dark" | "night";
 export const mapPreferencesSchema = z.object({
   gpsEnabled: z.boolean().default(false),
-  basemap: z.enum(["osm", "dark"]).default("osm"),
+  basemap: z.enum(["osm", "dark", "night"]).default("osm"),
   plan: z.enum(["current", "next", "none"]).default("current"),
   layers: z
     .object({

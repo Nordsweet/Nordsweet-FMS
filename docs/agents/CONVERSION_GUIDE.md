@@ -188,7 +188,14 @@ git -c user.name="Jakub Kosciukiewicz" -c user.email="jakub.kosciukiewicz@vibecd
   local IndexedDB queries use `staleTime: 0`.
 - Lint: no `setState` inside `useEffect` (use `key` remount or `useSyncExternalStore`);
   `expect.closeTo` is `any` (use `toBeCloseTo`); prefer `??` over `||`.
-- MapLibre's worker is copied to `public/` and served as JS (both dev server and nginx).
+- The map is deck.gl (`features/map/deck/`): camera, OSM raster tiles and every overlay are deck layers,
+  with no MapLibre. Keep `@deck.gl/*` out of the server render: only `features/map/deck/deck-map.ts`,
+  `scene.ts` and `atlas.ts` import it, and `map-view.tsx` loads them with a dynamic `import("./deck")`
+  (use `import type` elsewhere: `verbatimModuleSyntax` keeps `import { type X }` as a real import).
+- Map clicks come from the DOM `click` event, not deck's `onClick`: deck's tap gesture must finish
+  within 250 ms of the press and the press runs a synchronous GPU pick whose first run compiles shaders.
+- `prettier-plugin-tailwindcss` trims the space in a `className={`a ${x ? " b" : ""}`}` template literal and
+  merges the class names; build conditional classes with `cn(...)`.
 - The legacy runtime's numbers depend on hidden defaults (`state.cruiseOatTens = "1"`,
   `cruiseOatOnes = "5"` → cruise OAT 15 °C; performance temp input defaults 15; QNH 1013). Find
   them before concluding a number differs.

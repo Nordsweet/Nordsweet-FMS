@@ -6,7 +6,7 @@ import {
   type RefObject,
   type PointerEvent,
 } from "react";
-import { type Map as MapLibreMap } from "maplibre-gl";
+import type { DeckMap } from "./deck";
 import { Button } from "~/components/ui/button";
 import { useT } from "~/i18n/use-t";
 
@@ -21,7 +21,7 @@ export function FloatingDetails({
   onClose: () => void;
   draggable: boolean;
   anchor?: { lat: number; lon: number };
-  mapRef?: RefObject<MapLibreMap | null>;
+  mapRef?: RefObject<DeckMap | null>;
 }) {
   const t = useT(),
     [position, setPosition] = useState({ x: 0, y: 0 }),

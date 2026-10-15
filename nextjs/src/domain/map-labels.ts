@@ -1,6 +1,6 @@
 import { type Airport } from "~/data/schemas";
 
-/** Legacy zoom uses a 256px world; MapLibre's 512px world is one zoom level lower. */
+/** Legacy zoom uses a 256px world; the map's 512px world is one zoom level lower. */
 export function mapLabelVisibility(mapLibreZoom: number, enabled: boolean) {
   const legacyZoom = mapLibreZoom + 1;
   const pointNamesZoom = legacyZoom >= 9;

@@ -4,7 +4,7 @@ Owner request: reproduce the original map's colors, icons, labels, sizes and
 scaling in the typed application. Reference: live Sites `/airspaces-map` and
 `/airspaces-map?embed=1`, and legacy main `5265bc5`.
 
-The map remains a MapLibre React feature. Offline sprites render the original
+The map is a deck.gl feature (`features/map/deck`); it was MapLibre until 2026-10-15. Offline sprites render the original
 canvas paths at a pixel ratio of two; no legacy runtime or globals are loaded.
 Chart labels use two local canvas surfaces (cached static chart and moving
 traffic/GPS labels), preserving the original system fonts without thousands of
@@ -39,8 +39,8 @@ the legacy data bundle and the Collector, independently of chart styling.
 ## Verification
 
 Label policy follow-up (2026-10-14): preserve the original staged display.
-At legacy zoom 9 (MapLibre 8), show valid ICAO codes and point names. At legacy
-zoom 10 (MapLibre 9), show full airport names, non-ICAO landing-site names,
+At legacy zoom 9 (map zoom 8), show valid ICAO codes and point names. At legacy
+zoom 10 (map zoom 9), show full airport names, non-ICAO landing-site names,
 elevation and runway length. Airspace names remain visible at every zoom when
 Labels is enabled, as explicitly confirmed by the owner. Traffic names retain
 the original strict longitude-span threshold of less than 8 degrees.
@@ -58,7 +58,7 @@ Traffic, route waypoint and GPS vector labels retain their legacy independence f
 
 Control shape follow-up (2026-10-14): tool rail and shared Map/Fly Layers button use 3.45rem squares with 13px corner radius, matching original flight tools. Owner requested Layers to be square too. EMER has white text and red rgba(255, 0, 0, 0.75) fill, including its expanded state.
 
-Airspace caption policy (2026-10-14, supersedes unconditional legacy zone labels by owner request): hide below legacy zoom 9 / MapLibre 8; show class/designator at that zoom; at legacy zoom 10 / MapLibre 9 show the descriptive name below it only when the entire centered text rectangle fits inside the projected polygon, excluding holes and concave cuts. Otherwise retain the short designator.
+Airspace caption policy (2026-10-14, supersedes unconditional legacy zone labels by owner request): hide below legacy zoom 9 / map zoom 8; show class/designator at that zoom; at legacy zoom 10 / MapLibre 9 show the descriptive name below it only when the entire centered text rectangle fits inside the projected polygon, excluding holes and concave cuts. Otherwise retain the short designator.
 
 Button-by-button audit (2026-10-14, against main `airspaces-map`): the Route / Radio / Zones
 inventory now uses the legacy sidebar layout (stref / punktów trasy / przecięte tiles, underlined

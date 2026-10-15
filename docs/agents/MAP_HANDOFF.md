@@ -8,7 +8,7 @@ Read `AGENTS.md`, `CONVERSION_GUIDE.md` and the work board before implementation
 ## Architecture
 
 `/map` is a thin route into `MapWorkspace`. Typed React panels replace legacy HTML popups;
-MapLibre is only the rendering adapter. Domain modules handle geometry, projection, fade,
+deck.gl (camera, OSM tiles, overlay layers) is only the rendering adapter. Domain modules handle geometry, projection, fade,
 route snapping, vertical limits, radio normalization and confirmed traffic history.
 Map preferences use Zustand persist; local airspace imports use IndexedDB via `api.map`.
 Flight restrictions/anchors use the existing flight schema, planner derivation and `.nord` boundary.
@@ -32,7 +32,7 @@ be compared numerically to deterministic fixtures; external feeds are mocked in 
 
 | Legacy operation                                                       | New implementation / evidence                                                                                                |
 | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Route input/build, fit, reset Poland, zoom/pan                         | MapWorkspace + native MapLibre controls, shared planner                                                                      |
+| Route input/build, fit, reset Poland, zoom/pan                         | MapWorkspace + deck.gl `MapController` (pan, zoom, rotate) and app buttons, shared planner                                                                      |
 | OpenStreetMap / Black                                                  | Persisted basemap preference; legacy Black key migrates                                                                      |
 | Current / next / no AUP; refresh                                       | Typed collector plan query, annotation removal for no AUP, explicit API refresh                                              |
 | Legacy direct JSON/OpenAir/CUP feed loading                            | Collector-backed queries/refresh; local JSON/OpenAir import remains available                                                |
@@ -82,3 +82,23 @@ full Playwright suite were run from `nextjs/`: 124 Vitest tests in 25 files and 
 The pnpm launcher tried to reinstall the shared dependency junction and refused its external target;
 the same installed tool entry points were run directly in the repository's prescribed order.
 Worker copy and Playwright export-server startup scripts now work on Windows as well as POSIX.
+
+## Map engine: deck.gl (2026-10-15)
+
+The map moved from MapLibre GL to deck.gl so the overlays scale: moving traffic, trails and labels are
+GPU layers (no GeoJSON re-tiling in a worker, no 2D-canvas label pass on every frame).
+
+- `features/map/deck/` — `deck-map.ts` (`Deck` + `MapView`: camera, `project`/`unproject`, fit, follow,
+  picking), `scene.ts` (the layer stack, bottom to top, and `DeckScene.set(patch)`, which rebuilds it
+  once per tick), `data.ts` / `labels.ts` / `captions.ts` (pure data builders), `atlas.ts` (one icon
+  texture per theme, cut from `symbols.ts`), `markers.ts` (DOM waypoint buttons), `theme.ts`.
+- Basemap: OSM `TileLayer` (`tile.openstreetmap.org`, still cached by `public/sw.js`). Own-ship in the lower
+  half while following uses a camera offset instead of MapLibre's view padding (padding fights panning).
+- Dark map: new `night` basemap ("Dark map") = the same OSM tiles with their lightness flipped in a
+  shader (no second tile provider); `dark` ("Black") is unchanged. Both use the dark overlay palette
+  (`theme.ts`: lighter symbols, labels, airspace outlines, own-ship blue).
+- Intended differences: the zoom/scale/attribution controls are ours (`map-scale.tsx`, a text attribution);
+  a click on stacked symbols prefers the aircraft, then the airport, within 2 px; an aircraft's "flarm" and
+  "ground" icons were always identical to the default icon and are no longer separate sprites.
+- Not changed: DOM waypoint markers and popups (React), label zoom stages, AUP/airspace logic, offline cache.
+
