@@ -44,6 +44,7 @@ import { InfoPanel } from "./info-panel";
 import { OptionsPanel } from "./options-panel";
 import { WxPanel } from "./wx-panel";
 import { useGps } from "./use-gps";
+import { useTurnPerformance } from "./use-turn-performance";
 
 const PHASES = FLIGHT_PHASES;
 type Phase = FlightPhase;
@@ -115,6 +116,7 @@ export function FlyPage() {
   const inFlight = useInFlight();
   const flying = inFlight.startedAt !== null;
   const { fix, error } = useGps(true);
+  const turns = useTurnPerformance(flying ? fix : null);
   const [now, setNow] = useState(() => Date.now());
   const [debrief, setDebrief] = useState(false);
   // shortcut: the phase is picked by hand; legacy also switched it automatically.
@@ -129,7 +131,7 @@ export function FlyPage() {
 
   const progress =
     flying && fix
-      ? computeProgress(inFlight.route, fix, inFlight.activeLeg)
+      ? computeProgress(inFlight.route, fix, inFlight.activeLeg, turns)
       : null;
   const variation = fix ? magneticVariationDeg(fix) : 0;
   const mag = (trueDeg: number | null) =>

@@ -3,6 +3,7 @@ import { type Airport, type Runway } from "~/data/schemas";
 import { type NavPoint } from "./progress";
 import { destinationPoint, distanceNm, trackOffset, type LatLon } from "./geo";
 import { angleDiffDeg } from "./angles";
+import { flyByRoute, type TurnPerformance } from "./fly-by";
 
 /** Use published thresholds where available; otherwise estimate from runway length and ARP. */
 export function patternRunwayGeometry(airport: Airport, runway: Runway) {
@@ -106,6 +107,30 @@ export function routeWithTrafficPattern(
   ];
 }
 
+/** Retain remaining en-route fixes; only an airport/pattern direct becomes a new direct to entry. */
+export function activeRouteWithTrafficPattern(
+  route: NavPoint[],
+  activeLeg: number,
+  pattern: TrafficPattern,
+  position: LatLon,
+): { route: NavPoint[]; activeLeg: number } {
+  const next = route[activeLeg + 1];
+  const direct =
+    !next ||
+    !!next.patternId ||
+    next.ident === pattern.airport.ident ||
+    next.ident.startsWith(pattern.airport.ident + " THR");
+  return direct
+    ? {
+        route: [
+          { ident: "DCT", lat: position.lat, lon: position.lon },
+          ...trafficPatternGeometry(pattern).points,
+        ],
+        activeLeg: 0,
+      }
+    : { route: routeWithTrafficPattern(route, pattern), activeLeg };
+}
+
 export type PatternReport =
   "downwind" | "base" | "longFinal" | "final" | "shortFinal";
 /** Report at the specified point only on the accepted route, including GPS samples crossing it. */
@@ -116,6 +141,7 @@ export function trafficPatternReport(
   position: LatLon,
   previous: LatLon | null,
   reported: readonly PatternReport[],
+  performance?: TurnPerformance,
 ) {
   const geometry = trafficPatternGeometry(pattern);
   const midpoint = (a: LatLon, b: LatLon) => ({
@@ -157,10 +183,26 @@ export function trafficPatternReport(
     to: pattern.runway.threshold,
     fraction: 0,
   });
+  // A fly-by reaches the Final track at tangent exit, without overflying its virtual corner.
+  if (performance) {
+    const finalIndex = route.findIndex(
+      (p) =>
+        p.patternId === pattern.id &&
+        distanceNm(p, geometry.positions.final) < 0.001,
+    );
+    const turn = flyByRoute(route, performance).turns.get(finalIndex);
+    if (turn) {
+      targets[targets.length - 1]!.target = turn.points.at(-1)!;
+      targets[targets.length - 1]!.from = turn.points.at(-1)!;
+    }
+  }
   for (const t of targets) {
     if (reported.includes(t.report)) continue;
     const index = route.findIndex(
-      (p) => p.patternId === pattern.id && distanceNm(p, t.from) < 0.001,
+      (p) =>
+        p.patternId === pattern.id &&
+        distanceNm(p, t.fraction === 0 ? geometry.positions.final : t.from) <
+          0.001,
     );
     if (
       index < 0 ||

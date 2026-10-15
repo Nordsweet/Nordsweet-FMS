@@ -9,6 +9,7 @@ import { useInFlight } from "~/stores/inflight";
 import { useMapSettings } from "~/stores/map";
 import { playChime } from "./chime";
 import { useGps } from "./use-gps";
+import { useTurnPerformance } from "./use-turn-performance";
 
 const useAirport = (code: string | undefined) =>
   useQuery({
@@ -23,6 +24,7 @@ export function FlightRuntime() {
   const observeGps = useMapSettings((s) => s.observeGps);
   const enabled = useMapSettings((s) => s.gpsEnabled);
   const { fix, error } = useGps(enabled || flight.startedAt !== null);
+  const turns = useTurnPerformance(flight.startedAt ? fix : null);
   const { record, setActiveLeg, observe, tick } = flight;
   const departure = useAirport(plan.departure?.ident);
   const airports = useQuery(api.airports.list.queryOptions(undefined)).data;
@@ -38,8 +40,13 @@ export function FlightRuntime() {
     if (!fix || error || Date.now() - Date.parse(fix.time) > 20000) return;
     observeGps(fix);
     if (!flight.startedAt) return;
-    flight.observePattern(fix);
-    const progress = computeProgress(flight.route, fix, flight.activeLeg);
+    flight.observePattern(fix, turns);
+    const progress = computeProgress(
+      flight.route,
+      fix,
+      flight.activeLeg,
+      turns,
+    );
     if (progress && progress.activeLeg !== flight.activeLeg)
       setActiveLeg(progress.activeLeg);
     record({

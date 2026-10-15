@@ -246,3 +246,11 @@ Fixed the flight-mode bug: Add waypoint previously updated only the draft, while
 
 - Increase the side offset from 1 km to 0.75 NM from the runway axis. Both left/right patterns keep the 2 NM threshold extensions and existing Final distances.
 - Refresh derived pattern vertices when restoring an active flight, keeping route geometry and report locations consistent with the new width without resetting flight progress.
+
+## Fly-by turns and pattern entry (2026-10-15)
+
+- Preserve the last en-route fix before the selected circuit entry, both in preview and after acceptance. If already navigating directly to the airport/pattern, use DCT from the present position to the new entry.
+- Default intermediate route and circuit points to speed-dependent rate-one fly-by turns, using shared wind-corrected geometry for map lines, GPS sequencing and navigation readouts. Preserve fixes in the flight plan instead of inserting arc samples.
+- Keep the circuit dimensions when turns cannot fit. Show the affected route/pattern and speed; retain waypoint geometry there rather than silently tightening a turn.
+- Trigger the Final report at the tangent exit onto Final. Preserve active-flight timers, track and progress when adding the circuit.
+- See [fly-by assumptions and equations](FLY_BY_TURNS.md) for the constant-wind, instantaneous-roll model and its limits.

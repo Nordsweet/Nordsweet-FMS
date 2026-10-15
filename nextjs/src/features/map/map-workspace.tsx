@@ -11,6 +11,7 @@ import { useFlight } from "~/stores/flight";
 import { useInFlight } from "~/stores/inflight";
 import { usePlan } from "~/features/plan/use-plan";
 import { useGps } from "~/features/fly/use-gps";
+import { useTurnPerformance } from "~/features/fly/use-turn-performance";
 import { MapSelect } from "./map-select";
 import { PreparationPlanner } from "./preparation-planner";
 import { MapView } from "./map-view";
@@ -23,7 +24,10 @@ export function MapWorkspace({ embedded = false }: { embedded?: boolean }) {
     update = useFlight((s) => s.update),
     navigation = useInFlight();
   const { route } = usePlan();
-  const { fix, error: gpsError } = useGps(settings.gpsEnabled);
+  const { fix, error: gpsError } = useGps(
+    settings.gpsEnabled || navigation.startedAt !== null,
+  );
+  const turns = useTurnPerformance(navigation.startedAt ? fix : null);
   const client = useQueryClient();
   const imported = useMutation(api.map.importAirspace.mutationOptions());
   const [notice, setNotice] = useState<string | null>(null);
@@ -330,7 +334,7 @@ export function MapWorkspace({ embedded = false }: { embedded?: boolean }) {
               variant="outline"
               disabled={!fix || !!gpsError}
               onClick={() => {
-                if (fix) navigation.resumeRoute(route, fix);
+                if (fix) navigation.resumeRoute(route, fix, turns);
               }}
             >
               {t("maptools.cancelDirect")}
