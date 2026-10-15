@@ -1,9 +1,11 @@
+import { trafficPatternEn, trafficPatternPl } from "./traffic-pattern";
 import { type Language } from "~/stores/settings";
 import { atisConsensusEn, atisConsensusPl } from "./atis-consensus";
 import { aircraftEditorEn, aircraftEditorPl } from "./aircraft-editor";
 import { mapToolsEn, mapToolsPl } from "./map-tools";
 
 const pl = {
+  ...trafficPatternPl,
   ...atisConsensusPl,
   ...mapToolsPl,
   ...aircraftEditorPl,
@@ -810,6 +812,7 @@ const pl = {
 export type MessageKey = keyof typeof pl;
 
 const en: Record<MessageKey, string> = {
+  ...trafficPatternEn,
   ...atisConsensusEn,
   ...mapToolsEn,
   ...aircraftEditorEn,

@@ -317,7 +317,8 @@ export function MapWorkspace({ embedded = false }: { embedded?: boolean }) {
               onClick={() =>
                 navigation.startedAt
                   ? navigation.end()
-                  : (settings.setGps(true), navigation.start(route))
+                  : (settings.setGps(true),
+                    navigation.start(route, flight.trafficPattern))
               }
             >
               {t(navigation.startedAt ? "maptools.end" : "maptools.start")}

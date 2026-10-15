@@ -26,6 +26,12 @@ import {
 } from "~/domain/map-search";
 import { MapSearch } from "./map-search";
 import { WaypointInsertionDialog } from "./waypoint-insertion-dialog";
+import { type TrafficPattern } from "~/data/traffic-pattern";
+import {
+  routeWithTrafficPattern,
+  trafficPatternGeometry,
+} from "~/domain/traffic-pattern";
+import { TrafficPatternPopup } from "~/features/fly/traffic-pattern-popup";
 import { airspaceStyle } from "~/domain/airspace-style";
 import { anchoredWaypoint } from "~/domain/waypoint-insertion";
 import {
@@ -155,6 +161,9 @@ export function MapView({
   } | null>(null);
   const [ready, setReady] = useState(false);
   const [click, setClick] = useState<Click | null>(null);
+  const [patternPreview, setPatternPreview] = useState<TrafficPattern | null>(
+    null,
+  );
   const [insertingPoint, setInsertingPoint] = useState<FlightPoint | null>(
     null,
   );
@@ -163,7 +172,9 @@ export function MapView({
   const { route: plannedRoute, plan: routePlan, cruiseSpeedKt } = usePlan();
   const settings = useMapSettings();
   const navigation = useInFlight();
-  const { fix, error: gpsError } = useGps(settings.gpsEnabled);
+  const { fix, error: gpsError } = useGps(
+    settings.gpsEnabled || navigation.startedAt !== null,
+  );
   const route = navigation.startedAt ? navigation.route : plannedRoute;
   const routeRef = useRef(route);
   useEffect(() => {
@@ -394,6 +405,7 @@ export function MapView({
           "direct-to",
           "navaids",
           "planned-route",
+          "pattern-preview",
         ])
           map.addSource(id, { type: "geojson", data: empty });
         map.addLayer({
@@ -450,6 +462,16 @@ export function MapView({
             "line-color": "#ff00ff",
             "line-width": 2,
             "line-opacity": 0.4,
+            "line-dasharray": [4, 3],
+          },
+        });
+        map.addLayer({
+          id: "pattern-preview",
+          type: "line",
+          source: "pattern-preview",
+          paint: {
+            "line-color": "#ff00ff",
+            "line-width": 2.5,
             "line-dasharray": [4, 3],
           },
         });
@@ -886,6 +908,34 @@ export function MapView({
     fix,
   });
 
+  useEffect(() => {
+    if (!ready) return;
+    const previewRoute = patternPreview
+      ? navigation.startedAt && fix
+        ? [
+            { ident: "DCT", ...fix },
+            ...trafficPatternGeometry(patternPreview).points,
+          ]
+        : routeWithTrafficPattern(plannedRoute, patternPreview)
+      : [];
+    void source("pattern-preview")?.setData({
+      type: "FeatureCollection",
+      features:
+        previewRoute.length >= 2
+          ? [
+              {
+                type: "Feature",
+                properties: {},
+                geometry: {
+                  type: "LineString",
+                  coordinates: previewRoute.map((p) => [p.lon, p.lat]),
+                },
+              },
+            ]
+          : [],
+    });
+  }, [ready, patternPreview, fix, navigation.startedAt, plannedRoute]);
+
   // Route line and labelled markers (DOM markers need no glyph server, so they work offline).
   useEffect(() => {
     const map = mapRef.current;
@@ -943,7 +993,7 @@ export function MapView({
     void import("maplibre-gl").then((ml) => {
       if (cancelled) return;
       markers.current = [
-        ...points,
+        ...points.filter((p) => !p.patternId),
         ...(flight.alternate ? [flight.alternate] : []),
       ].map((p) => {
         const el = document.createElement("div");
@@ -1025,6 +1075,7 @@ export function MapView({
     show("route", layers.route);
     show("route-halo", layers.route);
     show("planned-route", layers.route);
+
     show("direct-to", layers.route);
     show("traffic-estimate", layers.traffic);
     show("traffic-trail", layers.traffic);
@@ -1293,7 +1344,11 @@ export function MapView({
   }, [ready, click, selectedAircraft, inspectionZones, selectionTime]);
 
   return (
-    <div className="legacy-map absolute inset-0">
+    <div
+      className="legacy-map absolute inset-0"
+      data-pattern-preview={patternPreview ? "true" : "false"}
+    >
+      {navigation.startedAt && <TrafficPatternPopup />}
       {insertingPoint && (
         <WaypointInsertionDialog
           key={
@@ -1528,6 +1583,33 @@ export function MapView({
                 point={click.point}
                 now={now}
                 addPoint={addPoint}
+                previewPattern={setPatternPreview}
+                acceptPattern={(pattern) => {
+                  if (
+                    navigation.startedAt &&
+                    (!fix || gpsError || now - Date.parse(fix.time) > 20000)
+                  )
+                    return;
+                  update({
+                    trafficPattern: pattern,
+                    destination: { ...pattern.airport },
+                    star: null,
+                    approach: null,
+                  });
+                  if (navigation.startedAt && fix)
+                    navigation.joinTrafficPattern(pattern, fix);
+                  settings.update({
+                    layers: { ...settings.layers, route: true },
+                  });
+                  setPatternPreview(null);
+                  setClick(null);
+                }}
+                removePattern={() => {
+                  update({ trafficPattern: null });
+                  if (navigation.startedAt) navigation.clearTrafficPattern();
+                  setPatternPreview(null);
+                  setClick(null);
+                }}
               />
             ) : click.kind === "segment" ? (
               <div className="grid gap-2">

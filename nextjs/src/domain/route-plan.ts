@@ -1,4 +1,6 @@
 import { type Airport, type Procedure, type Runway } from "~/data/schemas";
+import { type TrafficPattern } from "~/data/traffic-pattern";
+import { trafficPatternGeometry } from "./traffic-pattern";
 import { type FlightPoint } from "~/data/flight";
 
 import { toRad } from "./angles";
@@ -55,6 +57,8 @@ export type ProcedureChoice = {
 };
 
 export type RoutePoint = {
+  patternId?: string;
+  patternAltitudeFt?: number;
   userRestriction?: {
     speedKt: number | null;
     altitudeFt: number | null;
@@ -135,6 +139,7 @@ export type RoutePlanInput = {
   inlineSelections: Record<string, string>;
   /** Map points: saved explicit FPL order, or nearest-leg insertion for older points. */
   insertedWaypoints: FlightPoint[];
+  trafficPattern?: TrafficPattern | null;
   pointRestrictions?: Record<
     string,
     NonNullable<RoutePoint["userRestriction"]>
@@ -927,6 +932,7 @@ const isArrivalPoint = (p: RoutePoint) =>
   p.procedureType === "STAR" || p.procedureType === "APPROACH";
 
 function overrideFt(input: RoutePlanInput, point: RoutePoint) {
+  if (point.patternAltitudeFt !== undefined) return point.patternAltitudeFt;
   const v = input.waypointAltitudes[pointKey(point)];
   return finite(v) ? Math.max(0, Math.round(v)) : null;
 }
@@ -1529,13 +1535,27 @@ export function buildRoutePlan(data: RouteData, input: RoutePlanInput) {
     });
   appendPoint(points, finalPoint);
 
-  const withUserPoints = insertUserWaypoints(
-    points,
-    input.insertedWaypoints,
-  ).map((p) => ({
-    ...p,
-    userRestriction: input.pointRestrictions?.[pointKey(p)],
-  }));
+  let withUserPoints = insertUserWaypoints(points, input.insertedWaypoints).map(
+    (p) => ({
+      ...p,
+      userRestriction: input.pointRestrictions?.[pointKey(p)],
+    }),
+  );
+  if (input.trafficPattern?.airport.ident === destination.ident) {
+    const pattern = input.trafficPattern;
+    withUserPoints = [
+      ...withUserPoints.slice(0, -1).filter((p) => !isArrivalPoint(p)),
+      ...trafficPatternGeometry(pattern).points.map((p) => ({
+        id: p.ident,
+        kind: "waypoint" as const,
+        lat: p.lat,
+        lon: p.lon,
+        patternId: p.patternId,
+        patternAltitudeFt: p.altitudeFt,
+        userRestriction: undefined,
+      })),
+    ];
+  }
   const base = verticalProfile(
     input,
     withUserPoints,
