@@ -73,6 +73,7 @@ const pattern: TrafficPattern = trafficPatternSchema.parse({
   join: "downwind",
   altitudeAalFt: 1000,
   finalDistanceNm: 2,
+  turnPerformance: { tasKt: 60 },
 });
 const middle = (
   a: { lat: number; lon: number },
@@ -88,7 +89,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-test("left and right patterns use exactly 0.75 NM lateral spacing and 2 NM threshold extensions", () => {
+test("slow left and right patterns retain the 0.75 NM minimum and 2 NM threshold extensions", () => {
   for (const direction of ["left", "right"] as const) {
     const g = trafficPatternGeometry({ ...pattern, direction });
     expect(distanceNm(end, g.positions.crosswind)).toBeCloseTo(2, 8);
@@ -109,6 +110,63 @@ test("left and right patterns use exactly 0.75 NM lateral spacing and 2 NM thres
     expect(g.points.at(-1)?.altitudeFt).toBe(500);
   }
 });
+
+test.each(["left", "right"] as const)(
+  "%s circuit widens and joins Base/Final arcs into a semicircle",
+  (direction) => {
+    const g = trafficPatternGeometry({
+      ...pattern,
+      direction,
+      turnPerformance: { tasKt: 100 },
+    });
+    expect(g.lateralOffsetNm).toBeGreaterThan(1.06);
+    expect(g.lateralOffsetNm).toBeLessThan(1.063);
+    const path = flyByRoute(g.points, { tasKt: 170 });
+    expect(path.issues).toEqual([]);
+    const base = path.turns.get(1)!;
+    const final = path.turns.get(2)!;
+    expect(base.radiusNm).toBeCloseTo(100 / (60 * Math.PI), 8);
+    expect(final.radiusNm).toBeCloseTo(base.radiusNm, 8);
+    expect(distanceNm(base.points.at(-1)!, final.points[0]!)).toBeLessThan(
+      0.0005,
+    );
+    expect(base.durationSeconds + final.durationSeconds).toBeCloseTo(60, 1);
+    for (let i = 1; i < path.points.length; i++)
+      expect(distanceNm(path.points[i - 1]!, path.points[i]!)).toBeGreaterThan(
+        0.005,
+      );
+  },
+);
+
+test("navigation follows the circuit speed even with a different cruise speed", () => {
+  const g = trafficPatternGeometry({
+    ...pattern,
+    turnPerformance: { tasKt: 100 },
+  });
+  const route = [{ ident: "START", lat: 49, lon: 20 }, ...g.points];
+  const index = route.length - 3;
+  const turn = flyByRoute(route, { tasKt: 180 }).turns.get(index)!;
+  const progress = computeProgress(route, turn.points[10]!, index - 1, {
+    tasKt: 180,
+  })!;
+  expect(progress.activeLeg).toBe(index);
+  expect(Math.abs(progress.crossTrackNm)).toBeLessThan(0.001);
+});
+
+test.each([0, 90, 180, 270])(
+  "circuit widens for 20 kt wind from %s degrees",
+  (windDirectionDeg) => {
+    const g = trafficPatternGeometry({
+      ...pattern,
+      join: "overhead",
+      turnPerformance: { tasKt: 100, windDirectionDeg, windSpeedKt: 20 },
+    });
+    expect(g.lateralOffsetNm).toBeGreaterThan(0.75);
+    const path = flyByRoute(g.points, { tasKt: 170 });
+    expect(path.issues).toEqual([]);
+    expect(path.turns.size).toBe(4);
+  },
+);
 test.each(["overhead", "crosswind", "downwind", "base", "final"] as const)(
   "%s joins at the start of the selected leg",
   (join) => {

@@ -23,8 +23,16 @@ assumption; a full per-leg forecast/performance trajectory is separate scope.
 
 When turns do not fit, have a near-180-degree reversal, or cannot maintain the tracks in the supplied
 wind, the map retains those waypoint corners and displays an explicit rate-one-unavailable status.
-Pattern dimensions remain 0.75 NM laterally and 2 NM beyond the thresholds. The remaining valid
-turns keep their computed radii. Navigation sequences feasible fly-by points at tangent entry and
+Circuit width starts at 0.75 NM and grows to fit the adjoining Crosswind/Downwind and Base/Final
+tangent budgets, including wind. Threshold extensions stay 2 NM. Adjacent arcs may touch at a shared
+tangent: two 90-degree arcs then form a continuous 180-degree turn, with no forced straight segment.
+Circuit vertices carry their own planned turn performance instead of using cruise/live en-route TAS.
+The aircraft profile supplies circuit KIAS (P2006T: 100); missing values default to 100 KIAS.
+Low-speed IAS≈EAS is converted to TAS using dry-air density at airport elevation plus pattern AAL,
+with METAR temperature/QNH/wind when available and ISA/calm otherwise. This approximation does not
+apply instrument/compressibility corrections. Saved patterns retain the accepted performance;
+older patterns derive 100 KIAS/ISA performance without a storage migration.
+The remaining valid turns keep their computed radii. Navigation sequences feasible fly-by points at tangent entry and
 projects onto the same sampled arc for course, cross-track and remaining distances. Final reporting
 uses tangent exit onto the Final track, rather than requiring overflight of the virtual corner.
 

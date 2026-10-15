@@ -268,7 +268,11 @@ export function usePlan(snapshot?: Flight) {
           lat: p.lat,
           lon: p.lon,
           ...(p.patternId
-            ? { patternId: p.patternId, altitudeFt: p.patternAltitudeFt }
+            ? {
+                patternId: p.patternId,
+                altitudeFt: p.patternAltitudeFt,
+                turnPerformance: p.turnPerformance,
+              }
             : {}),
         }))
     : fallbackFlightRoute(flight);

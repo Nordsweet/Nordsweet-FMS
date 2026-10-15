@@ -1,6 +1,7 @@
 import { type Airport, type Procedure, type Runway } from "~/data/schemas";
 import { type TrafficPattern } from "~/data/traffic-pattern";
 import { trafficPatternGeometry } from "./traffic-pattern";
+import type { TurnPerformance } from "./fly-by";
 import { type FlightPoint } from "~/data/flight";
 
 import { toRad } from "./angles";
@@ -59,6 +60,7 @@ export type ProcedureChoice = {
 export type RoutePoint = {
   patternId?: string;
   patternAltitudeFt?: number;
+  turnPerformance?: TurnPerformance;
   userRestriction?: {
     speedKt: number | null;
     altitudeFt: number | null;
@@ -1552,6 +1554,7 @@ export function buildRoutePlan(data: RouteData, input: RoutePlanInput) {
         lon: p.lon,
         patternId: p.patternId,
         patternAltitudeFt: p.altitudeFt,
+        turnPerformance: p.turnPerformance,
         userRestriction: undefined,
       })),
     ];
