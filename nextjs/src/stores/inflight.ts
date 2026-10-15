@@ -73,7 +73,10 @@ type InFlight = {
   patternReports: PatternReport[];
   patternNotice: { report: PatternReport; expiresAt: number } | null;
   patternPreviousFix: (LatLon & { time: string }) | null;
-  joinTrafficPattern: (pattern: TrafficPattern, position: LatLon) => void;
+  joinTrafficPattern: (
+    pattern: TrafficPattern,
+    position?: LatLon | null,
+  ) => void;
   clearTrafficPattern: () => void;
   observePattern: (
     position: LatLon & { time: string },
@@ -146,7 +149,7 @@ export const useInFlight = create<InFlight>()(
             s.route,
             s.activeLeg,
             trafficPattern,
-            position,
+            position ?? s.track.at(-1) ?? null,
           ),
           divertAirport: trafficPattern.airport.ident,
           patternReports: [],

@@ -30,7 +30,6 @@ export const trafficPatternEn = {
   "pattern.noRunway": "No usable runway geometry available.",
   "pattern.estimated":
     "Threshold position estimated from runway length and airport position.",
-  "pattern.gps": "A current GPS position is needed to join during flight.",
   "pattern.report.downwind": "Report downwind",
   "pattern.report.base": "Report Base",
   "pattern.report.longFinal": "Report Long Final",
@@ -70,8 +69,6 @@ export const trafficPatternPl: Record<keyof typeof trafficPatternEn, string> = {
   "pattern.noRunway": "Brak geometrii pasa do wyrysowania kręgu.",
   "pattern.estimated":
     "Położenie progu oszacowane z długości pasa i położenia lotniska.",
-  "pattern.gps":
-    "Do dołączenia podczas lotu potrzebna jest aktualna pozycja GPS.",
   "pattern.report.downwind": "Report downwind",
   "pattern.report.base": "Report Base",
   "pattern.report.longFinal": "Report Long Final",

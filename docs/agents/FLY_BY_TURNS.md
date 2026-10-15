@@ -30,7 +30,9 @@ uses tangent exit onto the Final track, rather than requiring overflight of the 
 
 Pattern acceptance preserves en-route fixes and the active leg. Once the active target is the
 airport or an existing pattern fix, it instead creates DCT from the current position to the selected
-entry. Both dashed preview and acceptance call the same domain helper.
+entry. Both dashed preview and acceptance call the same domain helper. GPS availability/freshness
+does not block acceptance: use the last available fix or recorded track position for DCT, otherwise
+retain the existing inbound leg to the selected entry. Flight timers and track remain intact.
 
 The derivation was supplied in the workspace `FUTURE_FEATURES.md`. Reference definitions:
 [FAA standard-rate turns](https://www.faasafety.gov/gslac/alc/libview_search.aspx?id=7097) and

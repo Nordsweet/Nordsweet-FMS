@@ -206,7 +206,6 @@ export function PointDetails({
       {mode === "pattern" && airportRecord && (
         <TrafficPatternPanel
           airport={airportRecord}
-          now={now}
           preview={previewPattern}
           accept={acceptPattern}
           cancel={() => setMode(null)}

@@ -437,3 +437,124 @@ test("joining a pattern keeps the remaining arrival fix and warns when rate-one 
   ]);
   await expect(page.getByTestId("turn-constraint")).toBeVisible();
 });
+
+for (const gps of ["denied", "unavailable", "stale"] as const) {
+  test(`pattern can be accepted during flight with ${gps} GPS and survives reload`, async ({
+    page,
+  }) => {
+    await mocks(page);
+    const origin = { ident: "DCT", lat: 49.5, lon: 20.2 };
+    const recorded = {
+      lat: 49.6,
+      lon: 20.3,
+      altitudeFt: 3000,
+      time: new Date(Date.now() - 120000).toISOString(),
+    };
+    const staleFix = { lat: 49.7, lon: 20.4 };
+    await page.addInitScript(
+      ({ gps, origin, recorded, staleFix, airport }) => {
+        Object.defineProperty(navigator, "geolocation", {
+          value: {
+            watchPosition(
+              success: PositionCallback,
+              error?: PositionErrorCallback,
+            ) {
+              queueMicrotask(() => {
+                if (gps === "stale")
+                  success({
+                    coords: {
+                      latitude: staleFix.lat,
+                      longitude: staleFix.lon,
+                      altitude: 1000,
+                      accuracy: 10,
+                      altitudeAccuracy: 10,
+                      speed: 50,
+                      heading: 120,
+                    },
+                    timestamp: Date.now() - 60000,
+                  } as GeolocationPosition);
+                else
+                  error?.({
+                    code: gps === "denied" ? 1 : 2,
+                    message: gps,
+                    PERMISSION_DENIED: 1,
+                    POSITION_UNAVAILABLE: 2,
+                    TIMEOUT: 3,
+                  });
+              });
+              return 1;
+            },
+            clearWatch: () => undefined,
+          },
+        });
+        if (!localStorage.getItem("nordsweet.inflight.v1"))
+          localStorage.setItem(
+            "nordsweet.inflight.v1",
+            JSON.stringify({
+              version: 1,
+              state: {
+                startedAt: "2026-10-15T12:00:00Z",
+                route: [origin, airport],
+                activeLeg: 0,
+                phase: "cruise",
+                trafficPattern: null,
+                patternReports: [],
+                track: gps === "unavailable" ? [recorded] : [],
+              },
+            }),
+          );
+      },
+      { gps, origin, recorded, staleFix, airport },
+    );
+    await page.goto("/fly");
+    const panel = await open(page);
+    await expect(
+      panel.getByText(
+        "A current GPS position is needed to join during flight.",
+      ),
+    ).toHaveCount(0);
+    const accept = panel.getByRole("button", {
+      name: "Accept traffic pattern",
+      exact: true,
+    });
+    await expect(accept).toBeEnabled();
+    await expect(page.locator("[data-pattern-preview='true']")).toBeVisible();
+    await accept.click();
+    const readActive = () =>
+      page.evaluate(
+        () =>
+          (
+            JSON.parse(localStorage.getItem("nordsweet.inflight.v1")!) as {
+              state: {
+                startedAt: string;
+                activeLeg: number;
+                phase: string;
+                route: {
+                  ident: string;
+                  lat: number;
+                  lon: number;
+                  patternId?: string;
+                }[];
+                trafficPattern: TrafficPattern;
+                track: unknown[];
+              };
+            }
+          ).state,
+      );
+    const active = await readActive();
+    const expected =
+      gps === "stale" ? staleFix : gps === "unavailable" ? recorded : origin;
+    expect(active.route[0]).toEqual({
+      ident: "DCT",
+      lat: expected.lat,
+      lon: expected.lon,
+    });
+    expect(active.route[1]?.patternId).toBe(active.trafficPattern.id);
+    expect(active.startedAt).toBe("2026-10-15T12:00:00Z");
+    expect(active.phase).toBe("cruise");
+    expect(active.activeLeg).toBe(0);
+    expect(active.track).toHaveLength(gps === "unavailable" ? 1 : 0);
+    await page.reload();
+    expect((await readActive()).route).toEqual(active.route);
+  });
+}
