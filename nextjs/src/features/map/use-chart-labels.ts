@@ -7,10 +7,11 @@ import {
 } from "~/api/aviation/schemas";
 import { type GpsFix } from "~/features/fly/use-gps";
 import { type LayerId } from "~/stores/map";
-import { airspaceKind, projectedPosition } from "~/domain/map-navigation";
+import { projectedPosition } from "~/domain/map-navigation";
 import { trafficCallsign } from "~/domain/traffic-history";
 import { destinationPoint } from "~/domain/geo";
-import { airspacePalette } from "./symbols";
+import { PARACHUTE_PATH } from "./symbols";
+import { airspaceStyle } from "~/domain/airspace-style";
 import {
   airspaceCaption,
   airspaceCaptionPlacement,
@@ -179,71 +180,91 @@ export function useChartLabels(
                 -5,
               );
             }
-          if (d.layers.airspace && visibility.airspaceNames)
-            for (const z of d.zones) {
-              const rings = z.geometry.coordinates.map((ring) =>
-                ring.map((p) => {
-                  const point = map.project([p[0], p[1]]);
-                  return [point.x, point.y];
-                }),
-              );
-              const ring = rings[0];
-              if (
-                !ring?.length ||
-                ring.every((p) => p[0]! < -250) ||
-                ring.every((p) => p[0]! > width + 250) ||
-                ring.every((p) => p[1]! < -30) ||
-                ring.every((p) => p[1]! > height + 30)
-              )
-                continue;
-              const caption = airspaceCaption(
-                z.properties.name,
-                z.properties.class,
-              );
-              const active = z.properties.active_now;
-              const color = active
-                ? "#b41532"
-                : (airspacePalette[
-                    airspaceKind(z.properties.name, z.properties.class)
-                  ] ?? airspacePalette.OTHER)!.stroke;
-              ctx.font = active
-                ? "700 11px system-ui,sans-serif"
-                : "600 10px system-ui,sans-serif";
-              const titleWidth = ctx.measureText(caption.title).width;
-              ctx.font = "600 10px system-ui,sans-serif";
-              const nameWidth = ctx.measureText(caption.name).width;
-              const point = airspaceCaptionPlacement(
-                rings,
-                Math.max(titleWidth, nameWidth),
-                visibility.airspaceFullNames && !!caption.name,
-              );
-              if (
-                !point ||
-                point.x < -250 ||
-                point.x > width + 30 ||
-                point.y < -30 ||
-                point.y > height + 30
-              )
-                continue;
+        }
+        if (d.layers.airspace)
+          for (const z of d.zones) {
+            const style = airspaceStyle(z.properties);
+            if (!visibility.airspaceNames && !style.parachuting) continue;
+            const rings = z.geometry.coordinates.map((ring) =>
+              ring.map((p) => {
+                const point = map.project([p[0], p[1]]);
+                return [point.x, point.y];
+              }),
+            );
+            const ring = rings[0];
+            if (
+              !ring?.length ||
+              ring.every((p) => p[0]! < -250) ||
+              ring.every((p) => p[0]! > width + 250) ||
+              ring.every((p) => p[1]! < -30) ||
+              ring.every((p) => p[1]! > height + 30)
+            )
+              continue;
+            const caption = airspaceCaption(
+              z.properties.name,
+              z.properties.class,
+            );
+            const active = z.properties.active_now;
+            const color = style.stroke;
+            ctx.font = active
+              ? "700 11px system-ui,sans-serif"
+              : "600 10px system-ui,sans-serif";
+            const titleWidth = ctx.measureText(caption.title).width;
+            ctx.font = "600 10px system-ui,sans-serif";
+            const nameWidth = ctx.measureText(caption.name).width;
+            const point = airspaceCaptionPlacement(
+              rings,
+              Math.max(titleWidth, nameWidth),
+              visibility.airspaceNames &&
+                visibility.airspaceFullNames &&
+                !!caption.name,
+            );
+            if (
+              !point ||
+              point.x < -250 ||
+              point.x > width + 30 ||
+              point.y < -30 ||
+              point.y > height + 30
+            )
+              continue;
+            if (style.parachuting) {
               ctx.save();
-              ctx.fillStyle = color;
-              ctx.textAlign = "center";
-              ctx.textBaseline = "middle";
-              ctx.font = active
-                ? "700 11px system-ui,sans-serif"
-                : "600 10px system-ui,sans-serif";
-              ctx.fillText(
-                caption.title,
-                point.x,
-                point.y + (point.fullName ? -7 : 0),
+              ctx.translate(
+                point.x - 12,
+                point.y - (visibility.airspaceNames ? 38 : 12),
               );
-              if (point.fullName) {
-                ctx.font = "600 10px system-ui,sans-serif";
-                ctx.fillText(caption.name, point.x, point.y + 7);
-              }
+              const parachute = new Path2D(PARACHUTE_PATH);
+              ctx.lineJoin = "round";
+              ctx.lineCap = "round";
+              ctx.fillStyle = "rgba(255,255,255,.9)";
+              ctx.fill(parachute);
+              ctx.strokeStyle = "rgba(255,255,255,.95)";
+              ctx.lineWidth = 4;
+              ctx.stroke(parachute);
+              ctx.strokeStyle = color;
+              ctx.lineWidth = 1.7;
+              ctx.stroke(parachute);
               ctx.restore();
             }
-        }
+            if (!visibility.airspaceNames) continue;
+            ctx.save();
+            ctx.fillStyle = color;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.font = active
+              ? "700 11px system-ui,sans-serif"
+              : "600 10px system-ui,sans-serif";
+            ctx.fillText(
+              caption.title,
+              point.x,
+              point.y + (point.fullName ? -7 : 0),
+            );
+            if (point.fullName) {
+              ctx.font = "600 10px system-ui,sans-serif";
+              ctx.fillText(caption.name, point.x, point.y + 7);
+            }
+            ctx.restore();
+          }
       }
       const ctx = moving.ctx;
       ctx.clearRect(0, 0, width, height);

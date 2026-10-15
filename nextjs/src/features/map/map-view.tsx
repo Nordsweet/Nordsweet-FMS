@@ -26,6 +26,7 @@ import {
 } from "~/domain/map-search";
 import { MapSearch } from "./map-search";
 import { WaypointInsertionDialog } from "./waypoint-insertion-dialog";
+import { airspaceStyle } from "~/domain/airspace-style";
 import { anchoredWaypoint } from "~/domain/waypoint-insertion";
 import {
   pointKey,
@@ -56,12 +57,7 @@ import { useMapSettings, type Basemap, type LayerId } from "~/stores/map";
 import { useGps } from "~/features/fly/use-gps";
 import { MapSummary } from "./map-summary";
 import { PointDetails } from "./point-details";
-import {
-  aircraftSymbol,
-  pointSymbol,
-  pointSymbols,
-  airspacePalette,
-} from "./symbols";
+import { aircraftSymbol, pointSymbol, pointSymbols } from "./symbols";
 import { TrafficCard } from "./traffic-card";
 import { useMapAnimation } from "./use-map-animation";
 import { planAirportFixes } from "~/domain/plan-airport-fixes";
@@ -91,27 +87,6 @@ const POLAND: [[number, number], [number, number]] = [
 /** The API's coverage (PL, CZ, SK) fits one 250 NM query around central Poland/Czechia. */
 /** The airspace the map loads; the flight COMMs panel reads the same cached query. */
 export const AIRSPACE_QUERY = { lat: 50.8, lon: 18.5, radiusNm: 250 };
-
-const CLASS_COLOR: maplibregl.ExpressionSpecification = [
-  "match",
-  ["get", "kind"],
-  "OTHER",
-  airspacePalette.OTHER!.stroke,
-  ...Object.entries(airspacePalette)
-    .filter(([kind]) => kind !== "OTHER")
-    .flatMap(([kind, style]) => [kind, style.stroke]),
-  airspacePalette.OTHER!.stroke,
-];
-const CLASS_FILL: maplibregl.ExpressionSpecification = [
-  "match",
-  ["get", "kind"],
-  "OTHER",
-  airspacePalette.OTHER!.fill,
-  ...Object.entries(airspacePalette)
-    .filter(([kind]) => kind !== "OTHER")
-    .flatMap(([kind, style]) => [kind, style.fill]),
-  airspacePalette.OTHER!.fill,
-];
 
 type Click =
   | {
@@ -426,13 +401,8 @@ export function MapView({
           type: "fill",
           source: "airspace",
           paint: {
-            "fill-color": [
-              "case",
-              ["==", ["get", "active_now"], true],
-              "rgba(221,54,84,.22)",
-              CLASS_FILL,
-            ],
-            "fill-opacity": 1,
+            "fill-color": ["get", "fill"],
+            "fill-opacity": ["get", "fillOpacity"],
           },
         });
         map.addLayer({
@@ -440,18 +410,8 @@ export function MapView({
           type: "line",
           source: "airspace",
           paint: {
-            "line-color": [
-              "case",
-              ["==", ["get", "active_now"], true],
-              "#d92947",
-              CLASS_COLOR,
-            ],
-            "line-width": [
-              "case",
-              ["==", ["get", "active_now"], true],
-              2.2,
-              1.2,
-            ],
+            "line-color": ["get", "stroke"],
+            "line-width": ["get", "lineWidth"],
           },
         });
         for (const symbol of pointSymbols)
@@ -779,6 +739,7 @@ export function MapView({
           ...zone,
           properties: {
             ...zone.properties,
+            ...airspaceStyle(zone.properties),
             kind: airspaceKind(zone.properties.name, zone.properties.class),
           },
         })),

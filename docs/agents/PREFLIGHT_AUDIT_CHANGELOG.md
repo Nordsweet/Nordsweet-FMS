@@ -227,3 +227,9 @@ Fixed the flight-mode bug: Add waypoint previously updated only the draft, while
 - Point details now remove a waypoint from both the planning draft and an active flight. Active-only intermediate fixes also expose Remove from route.
 - Removal matches identifier and coordinates so unrelated points with the same identifier stay intact. Navigation retains a valid active leg, flight start, timers and track; changes survive reload.
 - Regression coverage includes airport-based plans, active/draft synchronization and active-only fixes.
+
+## Airspace colors and PJE symbols (2026-10-15)
+
+- ATZ stays blue, CTR/TMA orange and P/R red, including during AUP/UUP activation. Boundaries, captions and the zone inspector use the same class colors.
+- Confirmed inactive ATZ/CTR/TMA has half the usual fill; missing activation data keeps normal fill. Other zone types retain their existing appearance.
+- ATZ with PJE in activation remarks displays an offline vector parachute on the map and in its details. The icon remains visible when captions are hidden; existing text zoom thresholds are preserved.

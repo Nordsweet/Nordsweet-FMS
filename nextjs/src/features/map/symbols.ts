@@ -227,22 +227,8 @@ export function pointSymbol(
     ctx.restore();
   });
 }
-export const airspacePalette: Record<string, { stroke: string; fill: string }> =
-  {
-    ATZ: { stroke: "#b35a00", fill: "rgba(255, 156, 45, 0.13)" },
-    CTR: { stroke: "#682f9d", fill: "rgba(137, 82, 188, 0.12)" },
-    MCTR: { stroke: "#6134b6", fill: "rgba(110, 92, 210, 0.12)" },
-    TMA: { stroke: "#8540a8", fill: "rgba(173, 101, 214, 0.09)" },
-    MTMA: { stroke: "#6a47b8", fill: "rgba(132, 119, 220, 0.1)" },
-    MATZ: { stroke: "#80612a", fill: "rgba(201, 157, 70, 0.11)" },
-    TRA: { stroke: "#20839b", fill: "rgba(73, 178, 207, 0.12)" },
-    TSA: { stroke: "#22935f", fill: "rgba(72, 188, 118, 0.11)" },
-    P: { stroke: "#bb2e42", fill: "rgba(225, 54, 80, 0.16)" },
-    R: { stroke: "#d4576f", fill: "rgba(221, 85, 114, 0.12)" },
-    D: { stroke: "#c06c00", fill: "rgba(222, 142, 31, 0.12)" },
-    ADIZ: { stroke: "#354e92", fill: "rgba(77, 99, 168, 0.08)" },
-    FIS: { stroke: "#307b4a", fill: "rgba(105, 180, 116, 0.05)" },
-    RMZ: { stroke: "#7b6b1a", fill: "rgba(180, 168, 84, 0.10)" },
-    TMZ: { stroke: "#896125", fill: "rgba(185, 137, 68, 0.10)" },
-    OTHER: { stroke: "#68717f", fill: "rgba(104, 113, 127, 0.08)" },
-  };
+export { airspacePalette } from "~/domain/airspace-style";
+
+/** Compact vector parachute shared by the map canvas and the zone inspector. */
+export const PARACHUTE_PATH =
+  "M2 11C2 5.5 6.5 1 12 1S22 5.5 22 11Z M8 11C8 5.5 10 1 12 1C14 1 16 5.5 16 11 M2 11L10 19 M22 11L14 19 M8 11L11 19 M16 11L13 19 M10 19H14V23H10Z";
