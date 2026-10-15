@@ -241,3 +241,8 @@ Fixed the flight-mode bug: Add waypoint previously updated only the draft, while
 - Changes are previewed as a dashed route and committed only on acceptance. Accepted geometry participates in FPL distance, time, altitude and exports, is drawn solid without position labels, and survives reload/offline use. During flight, acceptance creates a direct join from the current GPS position while preserving timers/track.
 - Ten-second, dismissible report prompts appear once at mid-downwind, mid-base only for a direct Base join, and the start of Final with Long/Final/Short wording. Reports are remembered across reloads. Short pattern legs sequence with a smaller proximity tolerance than en-route legs.
 - Missing threshold coordinates are estimated only when runway length is available and identified in the form. Published pattern altitude is supported as airport metadata; existing records without it use the requested 1000-ft default.
+
+## Traffic pattern lateral spacing (2026-10-15)
+
+- Increase the side offset from 1 km to 0.75 NM from the runway axis. Both left/right patterns keep the 2 NM threshold extensions and existing Final distances.
+- Refresh derived pattern vertices when restoring an active flight, keeping route geometry and report locations consistent with the new width without resetting flight progress.

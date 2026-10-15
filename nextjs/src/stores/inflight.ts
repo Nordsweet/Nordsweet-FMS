@@ -401,9 +401,25 @@ export const useInFlight = create<InFlight>()(
       // Flights saved by an older release lack newer timer and CONFIG fields.
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<InFlight>;
+        const patternPoints = new Map(
+          p.trafficPattern
+            ? trafficPatternGeometry(p.trafficPattern).points.map((point) => [
+                point.ident,
+                point,
+              ])
+            : [],
+        );
         return {
           ...current,
           ...p,
+          // Regenerate derived vertices when fixed pattern dimensions change between releases.
+          route:
+            p.route?.map((point) =>
+              point.patternId === p.trafficPattern?.id &&
+              patternPoints.has(point.ident)
+                ? { ...point, ...patternPoints.get(point.ident)! }
+                : point,
+            ) ?? current.route,
           config: { ...current.config, ...p.config },
           timers: { ...current.timers, ...p.timers },
         };
