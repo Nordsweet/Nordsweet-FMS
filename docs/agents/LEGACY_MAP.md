@@ -57,6 +57,8 @@ State defaults: the `state = {…}` object (~line 1500). DOM refs: `refs = {…}
 
 ## 4. Work board
 
+| Departure traffic pattern | in progress | Codex 2026-10-16 | Leave at leg starts, climb to next restriction/cruise, honour Take-off and Taxi-out runway selections. |
+
 Claim a row before you start (owner = agent/session name + date), commit the claim, release it when
 merged to `develop`. One owner per row.
 
