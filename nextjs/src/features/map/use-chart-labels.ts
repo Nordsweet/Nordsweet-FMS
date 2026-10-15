@@ -1,0 +1,347 @@
+import { useEffect, useRef, type RefObject } from "react";
+import { type Map } from "maplibre-gl";
+import { type Airport, type Navpoint } from "~/data/schemas";
+import {
+  type AirspaceFeature,
+  type TrafficAircraft,
+} from "~/api/aviation/schemas";
+import { type GpsFix } from "~/features/fly/use-gps";
+import { type LayerId } from "~/stores/map";
+import { projectedPosition } from "~/domain/map-navigation";
+import { trafficCallsign } from "~/domain/traffic-history";
+import { destinationPoint } from "~/domain/geo";
+import { PARACHUTE_PATH } from "./symbols";
+import { airspaceStyle } from "~/domain/airspace-style";
+import {
+  airspaceCaption,
+  airspaceCaptionPlacement,
+} from "~/domain/airspace-labels";
+import { airportChartLabel, mapLabelVisibility } from "~/domain/map-labels";
+
+type Labels = {
+  airports: Airport[];
+  points: Navpoint[];
+  zones: AirspaceFeature[];
+  aircraft: TrafficAircraft[];
+  layers: Record<LayerId, boolean>;
+  enabled: boolean;
+  fix: GpsFix | null;
+};
+
+/** Canvas preserves the original fonts without thousands of DOM markers or a remote glyph server. */
+export function useChartLabels(
+  mapRef: RefObject<Map | null>,
+  ready: boolean,
+  data: Labels,
+) {
+  const current = useRef(data);
+  useEffect(() => {
+    current.current = data;
+  });
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!ready || !map) return;
+    const surfaces = ["static", "moving"].map((kind) => {
+      const canvas = document.createElement("canvas");
+      canvas.dataset.chartLabels = kind;
+      canvas.setAttribute("aria-hidden", "true");
+      canvas.style.cssText =
+        "position:absolute;inset:0;width:100%;height:100%;pointer-events:none";
+      map.getCanvasContainer().append(canvas);
+      return { canvas, ctx: canvas.getContext("2d")! };
+    });
+    const stationary = surfaces[0]!,
+      moving = surfaces[1]!;
+    let camera = "",
+      cached: Labels | null = null;
+    // Draw on every map frame: skipping one leaves labels behind the map once it goes idle.
+    const draw = () => {
+      const d = current.current,
+        width = map.getContainer().clientWidth,
+        height = map.getContainer().clientHeight;
+      if (!width || !height) return;
+      const visibility = mapLabelVisibility(map.getZoom(), d.enabled);
+      const ratio = window.devicePixelRatio || 1;
+      let resized = false;
+      for (const { canvas, ctx } of surfaces) {
+        if (
+          canvas.width !== Math.round(width * ratio) ||
+          canvas.height !== Math.round(height * ratio)
+        ) {
+          canvas.width = Math.round(width * ratio);
+          canvas.height = Math.round(height * ratio);
+          ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+          resized = true;
+        }
+      }
+      const center = map.getCenter(),
+        nextCamera = `${center.lng},${center.lat},${map.getZoom()},${map.getBearing()},${width},${height}`;
+      const label = (
+        ctx: CanvasRenderingContext2D,
+        lat: number,
+        lon: number,
+        text: string,
+        color: string,
+        font: string,
+        dx: number,
+        dy: number,
+        halo = false,
+        centered = false,
+      ) => {
+        const point = map.project([lon, lat]);
+        if (
+          point.x < -250 ||
+          point.x > width + 30 ||
+          point.y < -30 ||
+          point.y > height + 30
+        )
+          return;
+        ctx.save();
+        ctx.translate(point.x, point.y);
+        ctx.rotate((-map.getBearing() * Math.PI) / 180);
+        ctx.font = font;
+        ctx.fillStyle = color;
+        ctx.textBaseline = centered ? "middle" : "alphabetic";
+        ctx.textAlign = centered ? "center" : "left";
+        if (halo) {
+          ctx.lineWidth = 3;
+          ctx.strokeStyle = "rgba(255,255,255,.92)";
+          ctx.strokeText(text, dx, dy);
+        }
+        ctx.fillText(text, dx, dy);
+        ctx.restore();
+      };
+      if (
+        resized ||
+        nextCamera !== camera ||
+        cached?.airports !== d.airports ||
+        cached.points !== d.points ||
+        cached.zones !== d.zones ||
+        cached.layers !== d.layers ||
+        cached.enabled !== d.enabled
+      ) {
+        camera = nextCamera;
+        cached = d;
+        const ctx = stationary.ctx;
+        ctx.clearRect(0, 0, width, height);
+        if (d.enabled) {
+          if (d.layers.airports)
+            for (const p of d.airports) {
+              const text = airportChartLabel(p, visibility);
+              if (!text) continue;
+              label(
+                ctx,
+                p.lat,
+                p.lon,
+                text.title,
+                "#126cac",
+                "700 10px system-ui,sans-serif",
+                10,
+                -4,
+              );
+              if (text.details) {
+                label(
+                  ctx,
+                  p.lat,
+                  p.lon,
+                  text.details,
+                  "#2479ae",
+                  "600 8px system-ui,sans-serif",
+                  10,
+                  6,
+                );
+              }
+            }
+          if (visibility.pointNames)
+            for (const p of d.points) {
+              const layer =
+                p.kind === "vfr-reporting-point"
+                  ? "vfr"
+                  : p.kind === "navaid"
+                    ? "navaids"
+                    : "ifr";
+              if (!d.layers[layer]) continue;
+              const color =
+                layer === "ifr"
+                  ? "#1f5794"
+                  : layer === "vfr" || /VOR|DME|NDB/i.test(p.navaid?.type ?? "")
+                    ? "#111827"
+                    : "#6923a5";
+              label(
+                ctx,
+                p.lat,
+                p.lon,
+                p.kind === "vfr-reporting-point"
+                  ? (p.aliases[0] ?? p.ident)
+                  : p.name || p.ident,
+                color,
+                "600 9px system-ui,sans-serif",
+                6,
+                -5,
+              );
+            }
+        }
+        if (d.layers.airspace)
+          for (const z of d.zones) {
+            const style = airspaceStyle(z.properties);
+            if (!visibility.airspaceNames && !style.parachuting) continue;
+            const rings = z.geometry.coordinates.map((ring) =>
+              ring.map((p) => {
+                const point = map.project([p[0], p[1]]);
+                return [point.x, point.y];
+              }),
+            );
+            const ring = rings[0];
+            if (
+              !ring?.length ||
+              ring.every((p) => p[0]! < -250) ||
+              ring.every((p) => p[0]! > width + 250) ||
+              ring.every((p) => p[1]! < -30) ||
+              ring.every((p) => p[1]! > height + 30)
+            )
+              continue;
+            const caption = airspaceCaption(
+              z.properties.name,
+              z.properties.class,
+            );
+            const active = z.properties.active_now;
+            const color = style.stroke;
+            ctx.font = active
+              ? "700 11px system-ui,sans-serif"
+              : "600 10px system-ui,sans-serif";
+            const titleWidth = ctx.measureText(caption.title).width;
+            ctx.font = "600 10px system-ui,sans-serif";
+            const nameWidth = ctx.measureText(caption.name).width;
+            const point = airspaceCaptionPlacement(
+              rings,
+              Math.max(titleWidth, nameWidth),
+              visibility.airspaceNames &&
+                visibility.airspaceFullNames &&
+                !!caption.name,
+            );
+            if (
+              !point ||
+              point.x < -250 ||
+              point.x > width + 30 ||
+              point.y < -30 ||
+              point.y > height + 30
+            )
+              continue;
+            if (style.parachuting) {
+              ctx.save();
+              ctx.translate(
+                point.x - 12,
+                point.y - (visibility.airspaceNames ? 38 : 12),
+              );
+              const parachute = new Path2D(PARACHUTE_PATH);
+              ctx.lineJoin = "round";
+              ctx.lineCap = "round";
+              ctx.fillStyle = "rgba(255,255,255,.9)";
+              ctx.fill(parachute);
+              ctx.strokeStyle = "rgba(255,255,255,.95)";
+              ctx.lineWidth = 4;
+              ctx.stroke(parachute);
+              ctx.strokeStyle = color;
+              ctx.lineWidth = 1.7;
+              ctx.stroke(parachute);
+              ctx.restore();
+            }
+            if (!visibility.airspaceNames) continue;
+            ctx.save();
+            ctx.fillStyle = color;
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.font = active
+              ? "700 11px system-ui,sans-serif"
+              : "600 10px system-ui,sans-serif";
+            ctx.fillText(
+              caption.title,
+              point.x,
+              point.y + (point.fullName ? -7 : 0),
+            );
+            if (point.fullName) {
+              ctx.font = "600 10px system-ui,sans-serif";
+              ctx.fillText(caption.name, point.x, point.y + 7);
+            }
+            ctx.restore();
+          }
+      }
+      const ctx = moving.ctx;
+      ctx.clearRect(0, 0, width, height);
+      const time = Date.now();
+      if (d.layers.traffic && visibility.trafficNames)
+        for (const a of d.aircraft) {
+          const p = projectedPosition(
+            a,
+            a.position_time,
+            a.ground_speed_kt,
+            a.track_deg,
+            time,
+          );
+          if (!p) continue;
+          ctx.globalAlpha = p.alpha;
+          label(
+            ctx,
+            p.lat,
+            p.lon,
+            trafficCallsign(a.callsign) || (a.registration ?? a.hex),
+            "#064f67",
+            "700 10px system-ui,sans-serif",
+            8,
+            -7,
+            true,
+          );
+          const track =
+            a.track_deg == null
+              ? "TRK --"
+              : `${Math.round(a.track_deg).toString().padStart(3, "0")} deg`;
+          const altitude =
+              a.altitude_ft == null
+                ? "ALT --"
+                : `${Math.round(a.altitude_ft)} ft`,
+            speed =
+              a.ground_speed_kt == null
+                ? "SPD --"
+                : `${Math.round(a.ground_speed_kt)} kt`;
+          label(
+            ctx,
+            p.lat,
+            p.lon,
+            `${track} / ${altitude} / ${speed}`,
+            "#17633f",
+            "700 9px system-ui,sans-serif",
+            8,
+            6,
+            true,
+          );
+        }
+      ctx.globalAlpha = 1;
+      if (d.fix?.trackDeg != null && (d.fix.groundSpeedKt ?? 0) >= 1)
+        for (let minute = 1; minute <= 5; minute++) {
+          const p = destinationPoint(
+            d.fix,
+            d.fix.trackDeg,
+            (d.fix.groundSpeedKt! * minute) / 60,
+          );
+          label(
+            ctx,
+            p.lat,
+            p.lon,
+            String(minute),
+            "#244f86",
+            "700 10px system-ui,sans-serif",
+            Math.cos((d.fix.trackDeg * Math.PI) / 180) * 12,
+            Math.sin((d.fix.trackDeg * Math.PI) / 180) * 12,
+            true,
+            true,
+          );
+        }
+    };
+    map.on("render", draw);
+    draw();
+    return () => {
+      map.off("render", draw);
+      surfaces.forEach(({ canvas }) => canvas.remove());
+    };
+  }, [mapRef, ready]);
+}
