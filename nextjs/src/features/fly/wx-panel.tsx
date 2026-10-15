@@ -16,6 +16,7 @@ import { useBriefing } from "~/features/plan/weather";
 import { useT } from "~/i18n/use-t";
 import { cn } from "~/lib/utils";
 import { useAtis } from "~/stores/atis";
+import { reliableAtis } from "~/domain/atis-consensus";
 
 const card =
   "grid content-start gap-3 rounded-[22px] border border-[rgba(141,190,255,.16)] bg-[rgba(10,25,44,.96)] p-3.5";
@@ -53,7 +54,7 @@ function AirportWx({ side }: { side: "takeoff" | "landing" }) {
     );
 
   const metar = briefing.data?.metar ?? null;
-  const atis = briefing.data?.atis[0] ?? null;
+  const atis = briefing.data?.atis.find(reliableAtis) ?? null;
   const elevationFt =
     (side === "takeoff" ? departureAirport : destinationAirport)?.elevationFt ??
     0;

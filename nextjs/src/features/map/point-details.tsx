@@ -11,7 +11,7 @@ import { useT } from "~/i18n/use-t";
 import { useFlight } from "~/stores/flight";
 import { useInFlight } from "~/stores/inflight";
 import { useGps } from "~/features/fly/use-gps";
-import { AirportBriefing } from "~/features/plan/briefing";
+import { AirportBriefing, AirportNotams } from "~/features/plan/briefing";
 import { WaypointWxDialog } from "~/features/plan/route-dialogs";
 import { usePlan } from "~/features/plan/use-plan";
 
@@ -261,12 +261,13 @@ export function PointDetails({
           </div>
         </form>
       )}
-      {(mode === "weather" || mode === "notams") && (
+      {mode === "weather" && (
         <AirportBriefing
           point={{ ...point, ident: airportCode }}
           role="selected"
         />
       )}
+      {mode === "notams" && <AirportNotams icao={airportCode} />}
       {mode === "charts" &&
         (charts.data?.length ? (
           charts.data.map((chart) => (

@@ -128,6 +128,21 @@ test("adds a SID, shows the taxi route and charts", async ({ page }) => {
   await expect(page.getByTestId("taxi-arrival")).toContainText("EPNT");
 
   await flightPanel(page, "Taxi-Out", "WX");
+  await expect(page.getByTestId("wx-departure")).not.toContainText("Charts:");
+  // Charts moved out of Weather and remain available through the airport action.
+  await page.goto("/map");
+  await expect(page.getByTestId("map")).toHaveAttribute(
+    "data-map-ready",
+    "true",
+  );
+  await page.getByRole("button", { name: "Search", exact: true }).click();
+  const search = page.getByRole("dialog", { name: "Search", exact: true });
+  await search.getByRole("textbox").fill("EPKK");
+  await search.getByRole("button", { name: "Search", exact: true }).click();
+  await page
+    .getByRole("dialog", { name: "Details", exact: true })
+    .getByRole("button", { name: "Charts", exact: true })
+    .click();
   await expect(
     page.getByRole("link", { name: "EPKK · National AIP · AD2" }),
   ).toHaveAttribute("href", "/charts/Poland/EPKK/National%20AIP/AD2.pdf");
