@@ -452,3 +452,65 @@ test("Final report follows the fly-by tangent exit instead of requiring passage 
     ),
   ).toBe("shortFinal");
 });
+
+test("without GPS, pattern acceptance retains the remaining route and its active leg", () => {
+  const a = { ident: "START", lat: 49, lon: 20 };
+  const b = { ident: "MID", lat: 49.5, lon: 20 };
+  const last = { ident: "EPAAD", lat: 49.9, lon: 20.1 };
+  const route = [a, b, last, airport];
+  const expected = [a, b, last, ...trafficPatternGeometry(pattern).points];
+  expect(activeRouteWithTrafficPattern(route, 1, pattern)).toEqual({
+    route: expected,
+    activeLeg: 1,
+  });
+  useInFlight.getState().start(route);
+  useInFlight.setState({ activeLeg: 1 });
+  const before = useInFlight.getState();
+  before.joinTrafficPattern(pattern);
+  const after = useInFlight.getState();
+  expect(after.route).toEqual(expected);
+  expect(after.activeLeg).toBe(1);
+  expect(after.startedAt).toBe(before.startedAt);
+  expect(after.timers).toBe(before.timers);
+});
+
+test("without any GPS history, an airport direct retains its existing origin and a changed pattern restarts at entry", () => {
+  const origin = { ident: "DCT", lat: 49.9, lon: 20.1 };
+  const points = trafficPatternGeometry(pattern).points;
+  expect(
+    activeRouteWithTrafficPattern([origin, airport], 0, pattern, null),
+  ).toEqual({ route: [origin, ...points], activeLeg: 0 });
+  expect(
+    activeRouteWithTrafficPattern(
+      [origin, ...points],
+      2,
+      { ...pattern, join: "base" },
+      null,
+    ).activeLeg,
+  ).toBe(0);
+});
+
+test("without a live fix, a stored track position anchors DCT without clearing the recorded flight", () => {
+  const origin = { ident: "DCT", lat: 49, lon: 20 };
+  const recorded = {
+    lat: 49.9,
+    lon: 20.2,
+    altitudeFt: 3000,
+    time: "2026-10-15T12:00:00Z",
+  };
+  useInFlight.getState().start([origin, airport]);
+  useInFlight.setState({ track: [recorded], phase: "cruise" });
+  const before = useInFlight.getState();
+  before.joinTrafficPattern(pattern);
+  const after = useInFlight.getState();
+  expect(after.route[0]).toEqual({
+    ident: "DCT",
+    lat: recorded.lat,
+    lon: recorded.lon,
+  });
+  expect(after.route.slice(1)).toEqual(trafficPatternGeometry(pattern).points);
+  expect(after.track).toBe(before.track);
+  expect(after.timers).toBe(before.timers);
+  expect(after.startedAt).toBe(before.startedAt);
+  expect(after.phase).toBe("cruise");
+});

@@ -11,8 +11,6 @@ import { patternRunwaySuggestion } from "~/domain/traffic-pattern-runway";
 import { atisValue } from "~/domain/atis-pad";
 import { useAtis } from "~/stores/atis";
 import { useFlight } from "~/stores/flight";
-import { useInFlight } from "~/stores/inflight";
-import { useGps } from "~/features/fly/use-gps";
 import { useT } from "~/i18n/use-t";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -26,14 +24,12 @@ export function TrafficPatternPanel({
   accept,
   cancel,
   remove,
-  now,
 }: {
   airport: Airport;
   preview: (pattern: TrafficPattern | null) => void;
   accept: (pattern: TrafficPattern) => void;
   cancel: () => void;
   remove: () => void;
-  now: number;
 }) {
   const t = useT();
   const existing = useFlight((s) => s.flight.trafficPattern);
@@ -101,10 +97,6 @@ export function TrafficPatternPanel({
     );
     return () => preview(null);
   }, [previewJson, preview]);
-  const flying = useInFlight((s) => s.startedAt !== null);
-  const { fix, error } = useGps(flying);
-  const needsGps =
-    flying && (!fix || !!error || now - Date.parse(fix.time) > 20000);
   return (
     <section
       className="grid gap-3 border-t pt-3"
@@ -198,9 +190,8 @@ export function TrafficPatternPanel({
       )}
       {!geometry && <p role="status">{t("pattern.noRunway")}</p>}
       {geometry?.estimated && <small>{t("pattern.estimated")}</small>}
-      {needsGps && <small>{t("pattern.gps")}</small>}
       <Button
-        disabled={!pattern || needsGps}
+        disabled={!pattern}
         onClick={() => {
           if (pattern) accept(pattern);
         }}

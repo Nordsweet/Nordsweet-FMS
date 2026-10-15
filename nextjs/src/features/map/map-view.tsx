@@ -159,6 +159,7 @@ export function MapView({
     settings.gpsEnabled || navigation.startedAt !== null,
   );
   const route = navigation.startedAt ? navigation.route : plannedRoute;
+  const patternPosition = fix ?? navigation.track.at(-1) ?? null;
   const turns = useTurnPerformance(navigation.startedAt ? fix : null);
   // The hook returns a new object each render; the geometry only depends on these numbers.
   const { tasKt, windDirectionDeg, windSpeedKt } = turns;
@@ -177,12 +178,12 @@ export function MapView({
   const previewRoute = useMemo(
     () =>
       patternPreview
-        ? navigation.startedAt && fix
+        ? navigation.startedAt
           ? activeRouteWithTrafficPattern(
               navigation.route,
               navigation.activeLeg,
               patternPreview,
-              fix,
+              patternPosition,
             ).route
           : routeWithTrafficPattern(plannedRoute, patternPreview)
         : [],
@@ -191,7 +192,7 @@ export function MapView({
       navigation.startedAt,
       navigation.route,
       navigation.activeLeg,
-      fix,
+      patternPosition,
       plannedRoute,
     ],
   );
@@ -1274,19 +1275,14 @@ export function MapView({
                 addPoint={addPoint}
                 previewPattern={setPatternPreview}
                 acceptPattern={(pattern) => {
-                  if (
-                    navigation.startedAt &&
-                    (!fix || gpsError || now - Date.parse(fix.time) > 20000)
-                  )
-                    return;
                   update({
                     trafficPattern: pattern,
                     destination: { ...pattern.airport },
                     star: null,
                     approach: null,
                   });
-                  if (navigation.startedAt && fix)
-                    navigation.joinTrafficPattern(pattern, fix);
+                  if (navigation.startedAt)
+                    navigation.joinTrafficPattern(pattern, patternPosition);
                   settings.update({
                     layers: { ...settings.layers, route: true },
                   });

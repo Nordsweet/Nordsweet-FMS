@@ -254,3 +254,8 @@ Fixed the flight-mode bug: Add waypoint previously updated only the draft, while
 - Keep the circuit dimensions when turns cannot fit. Show the affected route/pattern and speed; retain waypoint geometry there rather than silently tightening a turn.
 - Trigger the Final report at the tangent exit onto Final. Preserve active-flight timers, track and progress when adding the circuit.
 - See [fly-by assumptions and equations](FLY_BY_TURNS.md) for the constant-wind, instantaneous-roll model and its limits.
+
+## Traffic pattern without GPS (2026-10-16)
+
+- Allow accepting a traffic pattern during flight when GPS is denied, unavailable or stale; remove the GPS requirement message.
+- Keep preview and accepted active routes consistent. Use the last fix or recorded track for DCT; with no position history, preserve the existing inbound route and flight progress.

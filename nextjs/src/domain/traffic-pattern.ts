@@ -112,7 +112,7 @@ export function activeRouteWithTrafficPattern(
   route: NavPoint[],
   activeLeg: number,
   pattern: TrafficPattern,
-  position: LatLon,
+  position: LatLon | null = null,
 ): { route: NavPoint[]; activeLeg: number } {
   const next = route[activeLeg + 1];
   const direct =
@@ -120,7 +120,12 @@ export function activeRouteWithTrafficPattern(
     !!next.patternId ||
     next.ident === pattern.airport.ident ||
     next.ident.startsWith(pattern.airport.ident + " THR");
-  return direct
+  const amended = routeWithTrafficPattern(route, pattern);
+  const entryLeg = Math.max(
+    0,
+    amended.findIndex((point) => point.patternId === pattern.id) - 1,
+  );
+  return direct && position
     ? {
         route: [
           { ident: "DCT", lat: position.lat, lon: position.lon },
@@ -128,7 +133,8 @@ export function activeRouteWithTrafficPattern(
         ],
         activeLeg: 0,
       }
-    : { route: routeWithTrafficPattern(route, pattern), activeLeg };
+    : // Without an ownship position, retain the existing inbound leg instead of inventing a GPS fix.
+      { route: amended, activeLeg: Math.max(0, Math.min(activeLeg, entryLeg)) };
 }
 
 export type PatternReport =
