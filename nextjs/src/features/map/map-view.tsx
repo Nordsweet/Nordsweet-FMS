@@ -1502,16 +1502,17 @@ export function MapView({
           </div>,
           toolsContainer,
         )}
-      <div className="legacy-map-readout">
-        <span>
-          {t("maptools.route")}: {route.map((p) => p.ident).join(" - ") || "--"}
-        </span>
-        <span>
-          {cursorPosition
-            ? `${cursorPosition.lat.toFixed(5)}, ${cursorPosition.lon.toFixed(5)}`
-            : "--"}
-        </span>
-        {true && (
+      {!embedded && (
+        <div className="legacy-map-readout">
+          <span>
+            {t("maptools.route")}:{" "}
+            {route.map((p) => p.ident).join(" - ") || "--"}
+          </span>
+          <span>
+            {cursorPosition
+              ? `${cursorPosition.lat.toFixed(5)}, ${cursorPosition.lon.toFixed(5)}`
+              : "--"}
+          </span>
           <span data-testid="map-gps-status">
             {!settings.gpsEnabled && !navigation.startedAt
               ? "GPS off"
@@ -1524,8 +1525,8 @@ export function MapView({
                     })
                   : t("fly.gps.waiting")}
           </span>
-        )}
-      </div>
+        </div>
+      )}
       {click &&
         (click.kind !== "traffic" || selectedAircraft) &&
         (click.kind !== "segment" || selectedSegment) && (
