@@ -243,8 +243,8 @@
   border-radius: 50%;
 }
 .legacy-map-tools {
-  background: rgba(247, 244, 234, 0.96);
-  border: 1px solid #c8ced7;
+  background: var(--popover);
+  border: 1px solid var(--border);
   padding: 10px;
   font-size: 12px;
 }
@@ -262,9 +262,9 @@
 .legacy-map-tools [data-slot="select-trigger"],
 .legacy-map-details [data-slot="button"],
 .legacy-map-details [data-slot="input"] {
-  color: #182230;
-  background: #fff;
-  border: 1px solid #bdc6d0;
+  color: var(--foreground);
+  background: var(--secondary);
+  border: 1px solid var(--input);
   border-radius: 6px;
   min-height: 32px;
   height: auto;
@@ -279,36 +279,36 @@
   letter-spacing: 0;
 }
 .legacy-map-details [data-slot="button"][data-variant="default"] {
-  color: white;
-  background: #244f86;
-  border-color: #244f86;
+  color: var(--primary-foreground);
+  background: var(--primary);
+  border-color: var(--primary);
 }
 .legacy-map-details [aria-pressed="true"] {
-  background: #e3f7f4;
-  border-color: #7fc7bd;
+  background: var(--accent);
+  border-color: var(--ring);
 }
 .legacy-map-details label {
   display: grid;
   gap: 4px;
-  color: #65758a;
+  color: var(--muted-foreground);
   font:
     700 10px system-ui,
     sans-serif;
   text-transform: uppercase;
 }
 .legacy-map-tools [aria-pressed="true"] {
-  background: #244f86;
-  color: white;
+  background: var(--primary);
+  color: var(--primary-foreground);
 }
 .legacy-map-tools label {
   font:
     700 11px system-ui,
     sans-serif;
-  color: #334154;
+  color: var(--foreground);
 }
 .legacy-map-tools input[type="checkbox"],
 .legacy-map input[type="checkbox"] {
-  accent-color: #0786f5;
+  accent-color: var(--primary);
   width: 13px;
   height: 13px;
 }
@@ -336,9 +336,9 @@
 .legacy-map-details {
   width: 248px;
   padding: 8px;
-  background: rgba(255, 255, 255, 0.96);
-  color: #182230;
-  border: 1px solid rgba(24, 34, 48, 0.18);
+  background: var(--popover);
+  color: var(--foreground);
+  border: 1px solid var(--border);
   border-radius: 8px;
   font:
     12px system-ui,
@@ -346,7 +346,7 @@
   box-shadow: 0 8px 24px rgba(26, 34, 45, 0.12);
 }
 .legacy-map-details .text-muted-foreground {
-  color: #65758a;
+  color: var(--muted-foreground);
 }
 .legacy-traffic-card {
   gap: 5px;
@@ -361,9 +361,9 @@
 .legacy-traffic-card .grid-cols-2 > div,
 .legacy-traffic-card .grid-cols-2 > button {
   padding: 8px;
-  border: 1px solid #d7dee7;
+  border: 1px solid var(--border);
   border-radius: 7px;
-  background: #f2f9fb;
+  background: var(--muted);
   min-height: 48px;
 }
 .legacy-traffic-card .grid-cols-2 span {
@@ -371,13 +371,13 @@
   text-transform: uppercase;
   font-size: 10px;
   font-weight: 800;
-  color: #65758a;
+  color: var(--muted-foreground);
 }
 .legacy-traffic-card .grid-cols-2 strong {
   display: block;
   font-size: 12px;
   font-weight: 700;
-  color: #064f67;
+  color: var(--accent-2);
   margin-top: 3px;
 }
 .legacy-map .maplibregl-ctrl-scale {
@@ -399,9 +399,9 @@
   width: 100%;
 }
 .legacy-map-info {
-  background: rgba(255, 255, 255, 0.9);
-  color: #182230;
-  border: 1px solid rgba(24, 34, 48, 0.12);
+  background: var(--card);
+  color: var(--foreground);
+  border: 1px solid var(--border);
   border-radius: 9px;
   padding: 8px;
 }
@@ -415,18 +415,18 @@
   align-items: center;
   gap: 5px;
   padding: 5px 8px;
-  background: #fff;
-  border: 1px solid rgba(24, 34, 48, 0.14);
+  background: var(--secondary);
+  border: 1px solid var(--border);
   border-radius: 999px;
 }
 .legacy-map-info [data-slot="button"] {
-  color: #182230;
-  background: #fff;
-  border: 1px solid #bdc6d0;
+  color: var(--foreground);
+  background: var(--secondary);
+  border: 1px solid var(--input);
   border-radius: 6px;
 }
 .legacy-map-info .text-muted-foreground {
-  color: #65758a;
+  color: var(--muted-foreground);
 }
 
 .legacy-map-tools-title {
@@ -450,11 +450,11 @@
   position: relative;
 }
 .legacy-map-tools {
-  color: #182230;
+  color: var(--foreground);
   z-index: 20;
 }
 .legacy-map-tools-title {
-  color: #182230;
+  color: var(--foreground);
 }
 .legacy-tool-section {
   display: flex;
@@ -462,9 +462,9 @@
   gap: 8px;
   width: 100%;
   align-items: center;
-  background: rgba(255, 255, 255, 0.9);
+  background: var(--card);
   padding: 8px;
-  border: 1px solid rgba(24, 34, 48, 0.12);
+  border: 1px solid var(--border);
   border-radius: 9px;
   box-shadow: 0 8px 24px rgba(26, 34, 45, 0.08);
 }
@@ -525,14 +525,14 @@
   align-items: center;
   gap: 8px;
   pointer-events: none;
-  color: #334154;
+  color: var(--foreground);
   font:
     12px system-ui,
     sans-serif;
 }
 .legacy-map-readout > * {
-  border: 1px solid rgba(32, 44, 60, 0.12);
-  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--border);
+  background: var(--card);
   padding: 6px 10px;
   border-radius: 999px;
   box-shadow: 0 8px 24px rgba(26, 34, 45, 0.12);
@@ -550,7 +550,7 @@
   right: 90px;
 }
 .legacy-map-info small {
-  color: #65758a;
+  color: var(--muted-foreground);
   font-size: 10px;
 }
 
@@ -572,7 +572,7 @@
   width: 28px;
   height: 28px;
   padding: 0;
-  color: #182230;
+  color: var(--foreground);
 }
 .legacy-traffic-card > strong {
   padding-right: 32px;
@@ -582,14 +582,14 @@
   font:
     12px system-ui,
     sans-serif;
-  color: #182230;
-  background: #fff;
-  border: 1px solid #bdc6d0;
+  color: var(--foreground);
+  background: var(--secondary);
+  border: 1px solid var(--input);
   border-radius: 6px;
 }
 .legacy-map-select-content [data-slot="select-item"][data-highlighted] {
-  color: white;
-  background: #244f86;
+  color: var(--primary-foreground);
+  background: var(--primary);
 }
 
 .legacy-layers-button[data-slot="button"] {
@@ -793,7 +793,7 @@
 .legacy-map-side {
   display: grid;
   gap: 9px;
-  color: #182230;
+  color: var(--foreground);
 }
 .legacy-metrics {
   display: grid;
@@ -804,15 +804,15 @@
   display: grid;
   gap: 3px;
   padding: 9px;
-  border: 1px solid #d7dee7;
+  border: 1px solid var(--border);
   border-radius: 8px;
-  background: #fbfdff;
+  background: var(--muted);
 }
 .legacy-metric strong {
   font-size: 18px;
 }
 .legacy-metric span {
-  color: #657181;
+  color: var(--muted-foreground);
   font-size: 11px;
   font-weight: 800;
   text-transform: uppercase;
@@ -823,17 +823,17 @@
   grid-template-columns: repeat(3, 1fr);
   gap: 0;
   padding: 0;
-  border-bottom: 1px solid #d6d0c2;
-  background: #fbfaf6;
+  border-bottom: 1px solid var(--border);
+  background: var(--muted);
 }
 .legacy-map-side [data-slot="tabs-trigger"] {
   min-height: 40px;
   min-width: 0;
   border: 0;
-  border-right: 1px solid #d6d0c2;
+  border-right: 1px solid var(--border);
   border-radius: 0;
-  background: #fbfaf6;
-  color: #182230;
+  background: var(--muted);
+  color: var(--foreground);
   font:
     800 13px system-ui,
     sans-serif;
@@ -844,9 +844,9 @@
   border-right: 0;
 }
 .legacy-map-side [data-slot="tabs-trigger"][data-state="active"] {
-  background: #fff;
-  color: #244f86;
-  box-shadow: inset 0 -3px 0 #244f86;
+  background: var(--secondary);
+  color: var(--primary);
+  box-shadow: inset 0 -3px 0 var(--primary);
 }
 .legacy-map-side [data-slot="tabs-content"] {
   display: grid;
@@ -858,9 +858,9 @@
   display: grid;
   gap: 7px;
   padding: 10px;
-  border: 1px solid #d7dee7;
+  border: 1px solid var(--border);
   border-radius: 8px;
-  background: #fff;
+  background: var(--secondary);
 }
 .legacy-card-title {
   display: flex;
@@ -869,7 +869,7 @@
   font-weight: 800;
 }
 .legacy-muted {
-  color: #657181;
+  color: var(--muted-foreground);
   font-size: 12px;
 }
 .legacy-line {
@@ -878,7 +878,7 @@
   gap: 8px;
   align-items: center;
   padding: 6px 0;
-  border-top: 1px solid #edf0f4;
+  border-top: 1px solid var(--border);
   font-size: 12px;
 }
 .legacy-card-title + .legacy-line {
@@ -891,14 +891,14 @@
   min-height: 20px;
   padding: 2px 7px;
   border-radius: 999px;
-  background: #eef3f8;
-  color: #344154;
+  background: var(--accent);
+  color: var(--foreground);
   font-size: 11px;
   font-weight: 800;
 }
 .legacy-tag.hot {
-  background: #ffe8ec;
-  color: #a81731;
+  background: color-mix(in oklab, var(--destructive) 20%, transparent);
+  color: var(--destructive);
 }
 
 /* Legacy airspace inspector: profile beside the zone/service list. */
@@ -915,12 +915,12 @@
   display: grid;
   gap: 6px;
   padding: 9px;
-  border: 1px solid #d7dee7;
+  border: 1px solid var(--border);
   border-radius: 8px;
-  background: #fff;
+  background: var(--secondary);
 }
 .legacy-inspector-heading {
-  color: #43536a;
+  color: var(--muted-foreground);
   font-size: 11px;
   font-weight: 900;
   letter-spacing: 0.08em;
@@ -930,7 +930,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  color: #43536a;
+  color: var(--muted-foreground);
   font-size: 10px;
   font-weight: 800;
 }
@@ -940,17 +940,17 @@
   height: 0;
   margin-right: 3px;
   vertical-align: middle;
-  border-top: 2.5px dashed #0f7898;
+  border-top: 2.5px dashed var(--primary);
 }
 .legacy-inspector-legend i.current {
-  border-top: 2.2px solid #c4334d;
+  border-top: 2.2px solid var(--destructive);
 }
 .legacy-inspector-zone {
   display: grid;
   grid-template-columns: 6px 1fr;
   gap: 8px;
   padding: 7px 0;
-  border-top: 1px solid #edf0f4;
+  border-top: 1px solid var(--border);
 }
 .legacy-inspector-heading + .legacy-inspector-zone {
   border-top: 0;

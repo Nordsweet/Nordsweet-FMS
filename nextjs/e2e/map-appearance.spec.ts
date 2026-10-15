@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-test("legacy chart controls retain their palette and proportional zoom", async ({
+test("legacy chart controls use the app palette and proportional zoom", async ({
   page,
 }) => {
   await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => route.abort());
@@ -18,7 +18,7 @@ test("legacy chart controls retain their palette and proportional zoom", async (
   await expect(tools.getByText("Live traffic", { exact: true })).toBeVisible();
   await expect(
     tools.getByRole("button", { name: "Zoom in", exact: true }),
-  ).toHaveCSS("background-color", "rgb(255, 255, 255)");
+  ).toHaveCSS("background-color", "rgba(255, 255, 255, 0.05)");
   const initialZoom = Number(await map.getAttribute("data-zoom"));
   await tools.getByRole("button", { name: "Zoom in", exact: true }).click();
   await expect
@@ -51,8 +51,5 @@ test("embedded map fills the screen and its legacy Layers panel stays inside a p
   const box = (await panel.boundingBox())!;
   expect(box.x).toBeGreaterThanOrEqual(0);
   expect(box.x + box.width).toBeLessThanOrEqual(390);
-  await expect(panel).toHaveCSS(
-    "background-color",
-    "rgba(247, 244, 234, 0.96)",
-  );
+  await expect(panel).toHaveCSS("background-color", "rgb(15, 29, 52)");
 });
