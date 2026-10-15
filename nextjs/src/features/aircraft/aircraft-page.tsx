@@ -480,6 +480,11 @@ export function AircraftPage() {
             value={draft.maxTailwindKt}
             onChange={(maxTailwindKt) => set({ maxTailwindKt })}
           />
+          <TextField
+            label={t("aircraft.general.patternSpeedKt")}
+            value={draft.patternSpeedKt}
+            onChange={(patternSpeedKt) => set({ patternSpeedKt })}
+          />
         </Fields>
       </Section>
 

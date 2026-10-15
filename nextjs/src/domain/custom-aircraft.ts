@@ -58,6 +58,7 @@ export type AircraftDraft = {
   fuelTankCapacityL: string;
   maxCrosswindKt: string;
   maxTailwindKt: string;
+  patternSpeedKt: string;
   weightBalance: {
     mtowKg: string;
     emptyWeightKg: string;
@@ -104,6 +105,7 @@ export const emptyDraft = (): AircraftDraft => ({
   fuelTankCapacityL: "",
   maxCrosswindKt: "",
   maxTailwindKt: "",
+  patternSpeedKt: "",
   weightBalance: {
     mtowKg: "",
     emptyWeightKg: "",
@@ -292,6 +294,7 @@ export function buildAircraft(
       engineCount: optional(draft.engineCount, "engineCount"),
       usableFuelL: optional(draft.usableFuelL, "usableFuelL"),
       fuelTankCapacityL: optional(draft.fuelTankCapacityL, "fuelTankCapacityL"),
+      patternSpeedKt: optional(draft.patternSpeedKt, "patternSpeedKt"),
       weightBalance: wbUsed
         ? {
             // chartBounds and the source note stay with a built-in's data.
@@ -439,6 +442,7 @@ export function draftFromAircraft(a: Aircraft): AircraftDraft {
     fuelTankCapacityL: text(a.fuelTankCapacityL),
     maxCrosswindKt: text(a.windLimits?.maxCrosswindKt ?? null),
     maxTailwindKt: text(a.windLimits?.maxTailwindKt ?? null),
+    patternSpeedKt: text(a.patternSpeedKt),
     weightBalance: wb
       ? {
           mtowKg: text(wb.mtowKg),

@@ -218,6 +218,8 @@ export const aircraftSchema = z.object({
   engineCount: z.number().int().min(1).max(4).nullable(),
   usableFuelL: z.number().positive().nullable(),
   fuelTankCapacityL: z.number().positive().nullable(),
+  /** Indicated airspeed flown in the traffic pattern. */
+  patternSpeedKt: z.number().positive().nullable().default(null),
   weightBalance: weightBalanceSchema.nullable(),
   takeoff: distancePerformanceSchema.nullable(),
   landing: distancePerformanceSchema.nullable(),

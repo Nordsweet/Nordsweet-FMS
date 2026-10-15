@@ -116,11 +116,13 @@ describe("built-in aircraft overrides", () => {
     const a = builtIn.find((x) => x.id === "R172K")!;
     const draft = draftFromAircraft(a);
     draft.usableFuelL = "200";
+    draft.patternSpeedKt = "80";
     draft.weightBalance.emptyWeightKg = "700";
     const result = buildAircraft(draft, [], a);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.aircraft.usableFuelL).toBe(200);
+    expect(result.aircraft.patternSpeedKt).toBe(80);
     expect(result.aircraft.weightBalance?.emptyWeightKg).toBe(700);
     expect(result.aircraft.weightBalance?.envelope).toEqual(
       a.weightBalance?.envelope,

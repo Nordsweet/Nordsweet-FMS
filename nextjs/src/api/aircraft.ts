@@ -1,5 +1,9 @@
 import { type Aircraft } from "~/data/aircraft";
-import { type AircraftDraft, buildAircraft } from "~/domain/custom-aircraft";
+import {
+  type AircraftDraft,
+  buildAircraft,
+  emptyDraft,
+} from "~/domain/custom-aircraft";
 
 import { loadDataset } from "./datasets";
 
@@ -9,7 +13,10 @@ const KEY = "nordsweet.customAircraft.v1";
 export function readCustomDrafts(): AircraftDraft[] {
   try {
     const value: unknown = JSON.parse(localStorage.getItem(KEY) ?? "[]");
-    return Array.isArray(value) ? (value as AircraftDraft[]) : [];
+    // Drafts saved before a field existed get its empty default.
+    return Array.isArray(value)
+      ? (value as AircraftDraft[]).map((d) => ({ ...emptyDraft(), ...d }))
+      : [];
   } catch {
     return [];
   }

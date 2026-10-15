@@ -51,6 +51,8 @@ export const aircraftEditorEn = {
   "aircraft.general.fuelTankCapacityL": "Tank capacity (L)",
   "aircraft.general.maxCrosswindKt": "Max crosswind (kt)",
   "aircraft.general.maxTailwindKt": "Max tailwind (kt)",
+  "aircraft.general.patternSpeedKt": "Pattern speed (KIAS)",
+  "aircraft.section.patternSpeedKt": "Pattern speed",
   "aircraft.wb": "Weight & balance",
   "aircraft.wb.hint":
     "Leave empty if you have no W&B data. Otherwise fill in the whole section.",
@@ -162,6 +164,8 @@ export const aircraftEditorPl: Record<keyof typeof aircraftEditorEn, string> = {
   "aircraft.general.fuelTankCapacityL": "Pojemność zbiorników (L)",
   "aircraft.general.maxCrosswindKt": "Maks. wiatr boczny (kt)",
   "aircraft.general.maxTailwindKt": "Maks. wiatr w ogon (kt)",
+  "aircraft.general.patternSpeedKt": "Prędkość w kręgu (KIAS)",
+  "aircraft.section.patternSpeedKt": "Prędkość w kręgu",
   "aircraft.wb": "Masa i wyważenie",
   "aircraft.wb.hint":
     "Zostaw puste, jeśli nie masz danych W&B. W przeciwnym razie wypełnij całą sekcję.",
