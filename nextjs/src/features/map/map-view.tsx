@@ -48,6 +48,7 @@ import {
   currentCallsignHistory,
   trafficCallsign,
   trafficTrailSegments,
+  trafficTrailGaps,
 } from "~/domain/traffic-history";
 import { useTrafficSession } from "~/stores/traffic-session";
 import { useInFlight } from "~/stores/inflight";
@@ -326,7 +327,15 @@ export function MapView({
       selectedAircraft
         ? currentCallsignHistory(
             selectedHistoryQuery.data ?? [],
-            histories.get(selectedAircraft.hex) ?? [],
+            [
+              ...(histories.get(selectedAircraft.hex) ?? []),
+              {
+                lat: selectedAircraft.lat,
+                lon: selectedAircraft.lon,
+                sampledAt: Date.parse(selectedAircraft.position_time),
+                callsign: trafficCallsign(selectedAircraft.callsign),
+              },
+            ],
             trafficCallsign(selectedAircraft.callsign),
           )
         : [],
@@ -404,6 +413,7 @@ export function MapView({
           "gps-accuracy",
           "gps-ticks",
           "traffic-trail",
+          "traffic-gap",
           "traffic-vector",
           "traffic-estimate",
           "direct-to",
@@ -547,6 +557,7 @@ export function MapView({
           ["gps-trail", "rgba(118,242,164,.94)", false],
           ["gps-vector", "rgba(36,79,134,.9)", false],
           ["traffic-trail", "#f59e0b", false],
+          ["traffic-gap", "#f59e0b", true],
           ["traffic-vector", "#f59e0b", true],
           ["traffic-estimate", "#00a6c7", true],
           ["direct-to", "#ff00ff", false],
@@ -833,22 +844,26 @@ export function MapView({
     if (!ready) return;
     const aircraft = layers.traffic ? (traffic.data?.aircraft ?? []) : [];
     trafficByHex.current = new Map(aircraft.map((a) => [a.hex, a]));
-    void source("traffic-trail")?.setData({
-      type: "FeatureCollection",
-      features:
-        layers.traffic && selectedHistory.length >= 2
-          ? [
-              {
-                type: "Feature",
-                properties: {},
-                geometry: {
-                  type: "MultiLineString",
-                  coordinates: trafficTrailSegments(selectedHistory),
+    for (const [id, coordinates] of [
+      ["traffic-trail", trafficTrailSegments(selectedHistory)],
+      ["traffic-gap", trafficTrailGaps(selectedHistory)],
+    ] as const)
+      void source(id)?.setData({
+        type: "FeatureCollection",
+        features:
+          layers.traffic && coordinates.length > 0
+            ? [
+                {
+                  type: "Feature",
+                  properties: {},
+                  geometry: {
+                    type: "MultiLineString",
+                    coordinates,
+                  },
                 },
-              },
-            ]
-          : [],
-    });
+              ]
+            : [],
+      });
   }, [ready, layers.traffic, traffic.data, selectedHistory]);
 
   useEffect(() => {
@@ -1052,6 +1067,7 @@ export function MapView({
     show("direct-to", layers.route);
     show("traffic-estimate", layers.traffic);
     show("traffic-trail", layers.traffic);
+    show("traffic-gap", layers.traffic);
     show("traffic-trail-halo", layers.traffic);
     show("traffic-vector", layers.traffic);
     for (const marker of markers.current)

@@ -200,3 +200,10 @@ Fixed the flight-mode bug: Add waypoint previously updated only the draft, while
 - Point/airport options now appear next to the selected point. Airspace details appear next to the clicked map position (or the zone center when selected through search). Both follow map movement and resize and remain within the map viewport, using the existing aircraft popup placement.
 - Owner-confirmed Mode S address `48e9fa` (SP-TDI) is corrected to aircraft type `C172` when collector traffic is loaded. Matching is case-insensitive by address and does not depend on callsign; unrelated aircraft metadata is preserved.
 - Added regression coverage for point/zone popup placement and exact-address traffic correction.
+
+## Traffic track continuity (2026-10-15)
+
+- Fixed history merging: local observations between server samples are retained and sorted, rather than discarded whenever the server has a later sample. Duplicate timestamps use the latest local coordinates while retaining a known callsign when a live update omits it.
+- Include the selected aircraft's latest reported fix immediately, so its confirmed trail joins the live-position projection even before the session observer processes that update.
+- Preserve confirmed solid track sections across coverage gaps; join intervals longer than five minutes with dashed amber links instead of leaving empty breaks. These links connect observed endpoints and do not claim intermediate positions were received. Different callsign flights remain separated.
+- Added regressions for sparse/interleaved history, duplicate timestamps, missing callsigns, latest live fixes, coverage gaps and flight changes.
