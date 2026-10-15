@@ -47,6 +47,15 @@ export const flightSchema = z.object({
   /** Map points: explicit before/after anchors, or nearest leg for older saved points. */
   waypoints: z.array(point),
   trafficPattern: trafficPatternSchema.nullable().default(null),
+  departurePattern: trafficPatternSchema.nullable().default(null),
+  departureRunway: z
+    .object({
+      airport: z.string(),
+      designator: z.string(),
+      source: z.enum(["takeoff", "taxi"]),
+    })
+    .nullable()
+    .default(null),
   pointRestrictions: z.record(z.string(), pointRestrictionSchema).default({}),
   /** Legacy route text: DCT, airways, procedures ("SID NAVUR"), coordinates. */
   routeText: z.string().default(""),
@@ -136,6 +145,8 @@ export function newFlight(): Flight {
     alternate: null,
     waypoints: [],
     trafficPattern: null,
+    departurePattern: null,
+    departureRunway: null,
     pointRestrictions: {},
     routeText: "",
     sid: null,

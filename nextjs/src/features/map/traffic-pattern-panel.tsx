@@ -12,6 +12,7 @@ import {
 } from "~/domain/traffic-pattern";
 import { patternPlanningPerformance } from "~/domain/pattern-performance";
 import { patternRunwaySuggestion } from "~/domain/traffic-pattern-runway";
+import { departureRunwayChoice } from "~/domain/departure-pattern";
 import { atisValue } from "~/domain/atis-pad";
 import { useAtis } from "~/stores/atis";
 import { useFlight } from "~/stores/flight";
@@ -24,12 +25,14 @@ import { MapSelect } from "./map-select";
 /** All edits stay in the dashed map preview until explicit acceptance. */
 export function TrafficPatternPanel({
   airport,
+  departureTargetAltitudeFt,
   preview,
   accept,
   cancel,
   remove,
 }: {
   airport: Airport;
+  departureTargetAltitudeFt: number;
   preview: (pattern: TrafficPattern | null) => void;
   accept: (pattern: TrafficPattern) => void;
   cancel: () => void;
@@ -37,14 +40,24 @@ export function TrafficPatternPanel({
 }) {
   const t = useT();
   const flight = useFlight((s) => s.flight);
-  const existing = flight.trafficPattern;
+  const leaving = flight.departure?.ident === airport.ident;
+  const existing = leaving ? flight.departurePattern : flight.trafficPattern;
+  const ground = useQuery({
+    ...api.ground.byAirport.queryOptions({ airport: airport.ident }),
+    enabled: leaving,
+  }).data;
+  const departureChoice = leaving
+    ? departureRunwayChoice(flight, airport, ground)
+    : null;
   const aircraft = useQuery(
     api.aircraft.list.queryOptions(undefined),
   ).data?.find((a) => a.id === flight.aircraftId);
   const speedKias = aircraft?.patternSpeedKt ?? existing?.speedKias ?? 100;
   const saved = existing?.airport.ident === airport.ident ? existing : null;
   const [id] = useState(() => crypto.randomUUID());
-  const [runwayId, setRunway] = useState(saved?.runway.designator ?? "auto");
+  const [runwayId, setRunway] = useState(
+    saved && !saved.runwayAutomatic ? saved.runway.designator : "auto",
+  );
   const [direction, setDirection] = useState<TrafficPattern["direction"]>(
     saved?.direction ?? "left",
   );
@@ -75,7 +88,9 @@ export function TrafficPatternPanel({
     atis.airport === airport.ident ? atisValue(atis.pad, "wind") : "",
   );
   const runway =
-    airport.runways.find((r) => r.designator === runwayId) ?? suggestion.runway;
+    airport.runways.find((r) => r.designator === runwayId) ??
+    departureChoice?.runway ??
+    suggestion.runway;
   const geometry = runway ? patternRunwayGeometry(airport, runway) : null;
   const pattern = (() => {
     if (!runway) return null;
@@ -83,6 +98,8 @@ export function TrafficPatternPanel({
     if (!geometry) return null;
     const parsed = trafficPatternSchema.safeParse({
       id,
+      operation: leaving ? "leave" : "join",
+      runwayAutomatic: runwayId === "auto",
       airport: { ...airport },
       runway: {
         ...runway,
@@ -96,11 +113,13 @@ export function TrafficPatternPanel({
       turnPerformance: patternPlanningPerformance(
         speedKias,
         airport.elevationFt,
-        Number(altitude),
+        leaving
+          ? Math.max(0, departureTargetAltitudeFt - airport.elevationFt)
+          : Number(altitude),
         data?.metar?.stale ? null : (data?.metar?.raw ?? null),
       ),
       finalDistanceNm:
-        join === "final"
+        !leaving && join === "final"
           ? Number(finalType === "custom" ? custom : finalType)
           : 2,
     });
@@ -128,8 +147,12 @@ export function TrafficPatternPanel({
           {
             value: "auto",
             label: t("pattern.auto", {
-              runway: suggestion.runway?.designator ?? "—",
-              source: t(`pattern.source.${suggestion.source}`),
+              runway:
+                (departureChoice?.runway ?? suggestion.runway)?.designator ??
+                "—",
+              source: t(
+                `pattern.source.${departureChoice?.source ?? suggestion.source}`,
+              ),
             }),
           },
           ...airport.runways.map((r) => ({
@@ -148,16 +171,16 @@ export function TrafficPatternPanel({
           { value: "right", label: t("pattern.right") },
         ]}
       />
-      <Label>{t("pattern.join")}</Label>
+      <Label>{t(leaving ? "pattern.leave" : "pattern.join")}</Label>
       <MapSelect
-        label={t("pattern.join")}
+        label={t(leaving ? "pattern.leave" : "pattern.join")}
         value={join}
         onChange={setJoin}
         options={(
           ["overhead", "crosswind", "downwind", "base", "final"] as const
         ).map((value) => ({ value, label: t(`pattern.${value}`) }))}
       />
-      {join === "final" && (
+      {!leaving && join === "final" && (
         <>
           <Label>{t("pattern.finalType")}</Label>
           <MapSelect
@@ -186,24 +209,27 @@ export function TrafficPatternPanel({
           )}
         </>
       )}
-      <Label>
-        {t("pattern.altitude")}
-        <Input
-          type="number"
-          min="1"
-          max="10000"
-          step="100"
-          value={altitude}
-          onChange={(e) => setAltitude(e.target.value)}
-        />
-      </Label>
-      {pattern && (
+      {!leaving && (
+        <Label>
+          {t("pattern.altitude")}
+          <Input
+            type="number"
+            min="1"
+            max="10000"
+            step="100"
+            value={altitude}
+            onChange={(e) => setAltitude(e.target.value)}
+          />
+        </Label>
+      )}
+      {!leaving && pattern && (
         <small>
           {t("pattern.amsl", {
             altitude: pattern.airport.elevationFt + pattern.altitudeAalFt,
           })}
         </small>
       )}
+      {leaving && <small>{t("pattern.departureClimb")}</small>}
       {pattern && (
         <small data-testid="pattern-dimensions">
           {t("pattern.speed", { speed: speedKias })}

@@ -59,6 +59,7 @@ export type ProcedureChoice = {
 
 export type RoutePoint = {
   patternId?: string;
+  patternOperation?: "join" | "leave";
   patternAltitudeFt?: number;
   turnPerformance?: TurnPerformance;
   userRestriction?: {
@@ -142,6 +143,7 @@ export type RoutePlanInput = {
   /** Map points: saved explicit FPL order, or nearest-leg insertion for older points. */
   insertedWaypoints: FlightPoint[];
   trafficPattern?: TrafficPattern | null;
+  departurePattern?: TrafficPattern | null;
   pointRestrictions?: Record<
     string,
     NonNullable<RoutePoint["userRestriction"]>
@@ -1059,6 +1061,15 @@ function verticalProfile(
     },
     Math.max(0, Math.round(input.altitudeFt)),
   );
+  const outbound = input.departurePattern
+    ? routePoints.find((p, i) => i > 0 && !p.patternId && !p.isProfilePoint)
+    : null;
+  const outboundRestriction = altitudeRestriction(outbound);
+  const departureTarget =
+    outboundRestriction?.minFt ??
+    outboundRestriction?.maxFt ??
+    (outbound ? overrideFt(input, outbound) : null) ??
+    input.altitudeFt;
   const preliminary = descentConstraints(
     input,
     routePoints,
@@ -1113,6 +1124,9 @@ function verticalProfile(
     }, target);
     let altitude = Math.min(
       target,
+      input.departurePattern && distance <= (outbound?.routeDistanceNm ?? 0)
+        ? departureTarget
+        : target,
       sidCap,
       climbCeiling,
       descentCeiling(distance),
@@ -1553,10 +1567,29 @@ export function buildRoutePlan(data: RouteData, input: RoutePlanInput) {
         lat: p.lat,
         lon: p.lon,
         patternId: p.patternId,
+        patternOperation: p.patternOperation,
         patternAltitudeFt: p.altitudeFt,
         turnPerformance: p.turnPerformance,
         userRestriction: undefined,
       })),
+    ];
+  }
+  if (input.departurePattern?.airport.ident === departure.ident) {
+    const pattern = input.departurePattern;
+    withUserPoints = [
+      ...trafficPatternGeometry(pattern).points.map((p, i) => ({
+        id: p.ident,
+        kind: i === 0 ? ("threshold" as const) : ("waypoint" as const),
+        lat: p.lat,
+        lon: p.lon,
+        airportIcao: i === 0 ? departure.ident : undefined,
+        runwayId: i === 0 ? pattern.runway.designator : undefined,
+        patternId: p.patternId,
+        patternOperation: "leave" as const,
+        turnPerformance: p.turnPerformance,
+        userRestriction: undefined,
+      })),
+      ...withUserPoints.slice(1).filter((p) => !isSidPoint(p)),
     ];
   }
   const base = verticalProfile(

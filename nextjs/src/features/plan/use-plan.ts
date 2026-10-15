@@ -17,6 +17,7 @@ import {
 import { distanceNm } from "~/domain/geo";
 import { type NavPoint } from "~/domain/progress";
 import { routeWithTrafficPattern } from "~/domain/traffic-pattern";
+import { resolvedDeparturePattern } from "~/domain/departure-pattern";
 import { fallbackFlightRoute } from "~/domain/waypoint-insertion";
 import { type MetarValues, parseMetar } from "~/domain/metar";
 import {
@@ -166,6 +167,17 @@ export function usePlan(snapshot?: Flight) {
       )
     : FALLBACK_CLIMB_GRADIENT_FT_PER_NM;
 
+  const departureGround = useQuery({
+    ...api.ground.byAirport.queryOptions({
+      airport: flight.departure?.ident ?? "",
+    }),
+    enabled: !!flight.departurePattern,
+  }).data;
+  const departurePattern = resolvedDeparturePattern(
+    flight,
+    departureAirport,
+    departureGround,
+  );
   const routeInput: RoutePlanInput | null =
     departureAirport && destinationAirport
       ? {
@@ -182,6 +194,7 @@ export function usePlan(snapshot?: Flight) {
           inlineSelections: flight.inlineProcedureSelections,
           insertedWaypoints: flight.waypoints,
           trafficPattern: flight.trafficPattern,
+          departurePattern,
           pointRestrictions: flight.pointRestrictions,
           waypointAltitudes: flight.waypointAltitudes,
           waypointWx: flight.waypointWx,
@@ -270,18 +283,26 @@ export function usePlan(snapshot?: Flight) {
           ...(p.patternId
             ? {
                 patternId: p.patternId,
-                altitudeFt: p.patternAltitudeFt,
+                patternOperation: p.patternOperation,
+                altitudeFt:
+                  p.patternOperation === "leave"
+                    ? plan.pointAltitudeByKey[pointKey(p)]
+                    : p.patternAltitudeFt,
                 turnPerformance: p.turnPerformance,
               }
             : {}),
         }))
     : fallbackFlightRoute(flight);
-  const route =
+  const arrivalRoute =
     !plan &&
     flight.trafficPattern &&
     flight.trafficPattern.airport.ident === flight.destination?.ident
       ? routeWithTrafficPattern(baseRoute, flight.trafficPattern)
       : baseRoute;
+  const route =
+    !plan && departurePattern
+      ? routeWithTrafficPattern(arrivalRoute, departurePattern)
+      : arrivalRoute;
 
   const exportPoints = plan
     ? plan.points.map((p) => ({
@@ -365,6 +386,7 @@ export function usePlan(snapshot?: Flight) {
     routeData,
     exportPoints,
     departureAirport,
+    departurePattern,
     destinationAirport,
     alternateAirport,
     plan,

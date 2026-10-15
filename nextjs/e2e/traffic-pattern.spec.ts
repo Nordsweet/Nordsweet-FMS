@@ -87,10 +87,10 @@ async function mocks(page: Page, atis = true) {
     { ...newFlight(), aircraftId: "P2006T", departure, destination: airport },
   );
 }
-async function open(page: Page) {
+async function open(page: Page, code = "EPNT") {
   await page.getByRole("button", { name: "Search", exact: true }).click();
   const search = page.getByRole("dialog", { name: "Search", exact: true });
-  await search.getByRole("textbox").fill("EPNT");
+  await search.getByRole("textbox").fill(code);
   await search.getByRole("button", { name: "Search", exact: true }).click();
   const details = page.getByRole("dialog", { name: "Details", exact: true });
   await details
@@ -111,6 +111,131 @@ const savedPattern = (page: Page) =>
         }
       ).state.flight.trafficPattern,
   );
+
+test("departure offers Leave, ignores circuit altitude, and coexists with the arrival pattern", async ({
+  page,
+}) => {
+  test.setTimeout(60000);
+  await mocks(page);
+  await page.goto("/map");
+  const panel = await open(page, "EPKK");
+  await expect(
+    panel.getByRole("combobox", { name: "Leave traffic pattern", exact: true }),
+  ).toBeVisible();
+  await expect(
+    panel.getByRole("combobox", { name: "Join position", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    panel.getByRole("spinbutton", {
+      name: "Pattern altitude (ft above airfield)",
+      exact: true,
+    }),
+  ).toHaveCount(0);
+  await choose(page, "Leave traffic pattern", "Base");
+  await panel
+    .getByRole("button", { name: "Accept traffic pattern", exact: true })
+    .click();
+  const saved = () =>
+    page.evaluate(
+      () =>
+        (
+          JSON.parse(localStorage.getItem("nordsweet.flight.v2")!) as {
+            state: {
+              flight: {
+                departurePattern: TrafficPattern | null;
+                trafficPattern: TrafficPattern | null;
+                destination: { ident: string };
+              };
+            };
+          }
+        ).state.flight,
+    );
+  expect((await saved()).departurePattern).toMatchObject({
+    operation: "leave",
+    join: "base",
+    airport: { ident: "EPKK" },
+  });
+  expect((await saved()).destination.ident).toBe("EPNT");
+  const arrival = await open(page);
+  await expect(
+    arrival.getByRole("combobox", { name: "Join position", exact: true }),
+  ).toBeVisible();
+  await arrival
+    .getByRole("button", { name: "Accept traffic pattern", exact: true })
+    .click();
+  await page.reload();
+  expect((await saved()).departurePattern?.operation).toBe("leave");
+  expect((await saved()).trafficPattern?.airport.ident).toBe("EPNT");
+  const departure = await open(page, "EPKK");
+  await departure
+    .getByRole("button", { name: "Remove traffic pattern", exact: true })
+    .click();
+  expect((await saved()).departurePattern).toBeNull();
+  expect((await saved()).trafficPattern?.airport.ident).toBe("EPNT");
+});
+
+test("automatic departure circuit follows Take-off then Taxi-out runway selections", async ({
+  page,
+}) => {
+  test.setTimeout(60000);
+  await mocks(page);
+  await page.addInitScript(
+    ({ departure, airport }) => {
+      if (!localStorage.getItem("nordsweet.inflight.v1"))
+        localStorage.setItem(
+          "nordsweet.inflight.v1",
+          JSON.stringify({
+            version: 1,
+            state: {
+              startedAt: "2026-10-16T00:00:00Z",
+              phase: "taxiout",
+              route: [departure, airport],
+              activeLeg: 0,
+            },
+          }),
+        );
+    },
+    { departure, airport },
+  );
+  await page.goto("/fly");
+  await page.getByRole("button", { name: "Take-off", exact: true }).click();
+  await page.getByRole("button", { name: "RWY", exact: true }).click();
+  await page
+    .getByTestId("perf-takeoff")
+    .getByRole("combobox", { name: "Runway", exact: true })
+    .click();
+  await page.getByRole("option", { name: /^07\s/ }).click();
+  await page.goto("/map");
+  const panel = await open(page, "EPKK");
+  await expect(
+    panel.getByRole("combobox", { name: "Runway", exact: true }),
+  ).toContainText("07 · Take-off");
+  await panel
+    .getByRole("button", { name: "Accept traffic pattern", exact: true })
+    .click();
+  await page.goto("/fly");
+  await page.getByRole("button", { name: "Taxi-Out", exact: true }).click();
+  await page.getByRole("button", { name: "Route", exact: true }).click();
+  await page
+    .getByTestId("taxi-departure")
+    .getByRole("combobox", { name: "To", exact: true })
+    .click();
+  await page.getByRole("option", { name: "HP25", exact: true }).click();
+  await page.goto("/map");
+  const updated = await open(page, "EPKK");
+  await expect(
+    updated.getByRole("combobox", { name: "Runway", exact: true }),
+  ).toContainText("25 · Taxi-out");
+  await choose(page, "Runway", "RWY 07");
+  await updated
+    .getByRole("button", { name: "Accept traffic pattern", exact: true })
+    .click();
+  await page.reload();
+  const manual = await open(page, "EPKK");
+  await expect(
+    manual.getByRole("combobox", { name: "Runway", exact: true }),
+  ).toContainText("RWY 07");
+});
 
 test("previews defaults without editing the FPL; ATIS wins over wind, Custom Final persists after acceptance", async ({
   page,

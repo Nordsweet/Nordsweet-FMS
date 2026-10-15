@@ -112,7 +112,7 @@ export function FlyPage() {
   const searchOpen = useMapSettings((state) => state.searchOpen);
   const setSearchOpen = useMapSettings((state) => state.setSearchOpen);
   const t = useT();
-  const { flight, route: planRoute } = usePlan();
+  const { flight, route: planRoute, departurePattern } = usePlan();
   const inFlight = useInFlight();
   const flying = inFlight.startedAt !== null;
   const { fix, error } = useGps(true);
@@ -343,7 +343,11 @@ export function FlyPage() {
               className="shrink-0"
               disabled={planRoute.length < 2}
               onClick={() => {
-                inFlight.start(planRoute, flight.trafficPattern);
+                inFlight.start(
+                  planRoute,
+                  flight.trafficPattern,
+                  departurePattern,
+                );
                 setPhase("taxiout");
                 setDebrief(false);
               }}

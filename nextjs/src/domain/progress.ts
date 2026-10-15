@@ -4,6 +4,7 @@ import { flyByRoute, type TurnPerformance } from "./fly-by";
 export type NavPoint = LatLon & {
   ident: string;
   patternId?: string;
+  patternOperation?: "join" | "leave";
   altitudeFt?: number;
   flyOver?: boolean;
   turnPerformance?: TurnPerformance;

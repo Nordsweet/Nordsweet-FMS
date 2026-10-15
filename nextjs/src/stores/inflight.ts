@@ -70,6 +70,7 @@ type InFlight = {
   divertAirport: string | null;
   route: NavPoint[];
   trafficPattern: TrafficPattern | null;
+  departurePattern: TrafficPattern | null;
   patternReports: PatternReport[];
   patternNotice: { report: PatternReport; expiresAt: number } | null;
   patternPreviousFix: (LatLon & { time: string }) | null;
@@ -77,7 +78,7 @@ type InFlight = {
     pattern: TrafficPattern,
     position?: LatLon | null,
   ) => void;
-  clearTrafficPattern: () => void;
+  clearTrafficPattern: (operation?: "join" | "leave") => void;
   observePattern: (
     position: LatLon & { time: string },
     performance?: TurnPerformance,
@@ -113,7 +114,11 @@ type InFlight = {
   toggleTimer: (key: TimerKey) => void;
   addEvent: (name: string) => void;
   configure: (patch: Partial<FlightConfig>) => void;
-  start: (route: NavPoint[], pattern?: TrafficPattern | null) => void;
+  start: (
+    route: NavPoint[],
+    pattern?: TrafficPattern | null,
+    departurePattern?: TrafficPattern | null,
+  ) => void;
   end: () => void;
   setActiveLeg: (leg: number) => void;
   goDirect: (targetIndex: number, position: LatLon) => void;
@@ -139,34 +144,62 @@ export const useInFlight = create<InFlight>()(
       divertAirport: null,
       route: [],
       trafficPattern: null,
+      departurePattern: null,
       patternReports: [],
       patternNotice: null,
       patternPreviousFix: null,
       joinTrafficPattern: (trafficPattern, position) =>
         set((s) => ({
-          trafficPattern,
+          ...(trafficPattern.operation === "leave"
+            ? { departurePattern: trafficPattern }
+            : {
+                trafficPattern,
+                divertAirport: trafficPattern.airport.ident,
+                patternReports: [],
+                patternNotice: null,
+                patternPreviousFix: null,
+              }),
           ...activeRouteWithTrafficPattern(
             s.route,
             s.activeLeg,
             trafficPattern,
             position ?? s.track.at(-1) ?? null,
           ),
-          divertAirport: trafficPattern.airport.ident,
-          patternReports: [],
-          patternNotice: null,
-          patternPreviousFix: null,
         })),
-      clearTrafficPattern: () =>
+      clearTrafficPattern: (operation = "join") =>
         set((s) => {
-          const route = s.route.filter((p) => !p.patternId);
-          if (s.trafficPattern) route.push({ ...s.trafficPattern.airport });
+          const removed = s.route.filter(
+            (p) => p.patternId && (p.patternOperation ?? "join") === operation,
+          );
+          const target = s.route[s.activeLeg + 1];
+          const route = s.route.filter((p) => !removed.includes(p));
+          if (
+            operation === "leave" &&
+            s.departurePattern &&
+            removed.includes(s.route[0]!)
+          )
+            route.unshift({ ...s.departurePattern.airport });
+          if (operation === "join" && s.trafficPattern)
+            route.push({ ...s.trafficPattern.airport });
           return {
             route,
-            activeLeg: Math.max(0, Math.min(s.activeLeg, route.length - 2)),
-            trafficPattern: null,
-            patternReports: [],
-            patternNotice: null,
-            patternPreviousFix: null,
+            activeLeg: Math.max(
+              0,
+              Math.min(
+                target && !removed.includes(target)
+                  ? route.indexOf(target) - 1
+                  : s.activeLeg,
+                route.length - 2,
+              ),
+            ),
+            ...(operation === "leave"
+              ? { departurePattern: null }
+              : {
+                  trafficPattern: null,
+                  patternReports: [],
+                  patternNotice: null,
+                  patternPreviousFix: null,
+                }),
           };
         }),
       dismissPatternNotice: () => set({ patternNotice: null }),
@@ -311,11 +344,12 @@ export const useInFlight = create<InFlight>()(
       addEvent: (name) =>
         set((s) => ({ timers: addEvent(s.timers, name, Date.now()) })),
       configure: (patch) => set((s) => ({ config: { ...s.config, ...patch } })),
-      start: (route, trafficPattern = null) => {
+      start: (route, trafficPattern = null, departurePattern = null) => {
         const now = new Date().toISOString();
         set({
           startedAt: now,
           trafficPattern,
+          departurePattern,
           patternReports: [],
           patternNotice: null,
           patternPreviousFix: null,
@@ -332,6 +366,7 @@ export const useInFlight = create<InFlight>()(
       end: () =>
         set({
           startedAt: null,
+          departurePattern: null,
           divertAirport: null,
           trafficPattern: null,
           patternNotice: null,
@@ -362,6 +397,7 @@ export const useInFlight = create<InFlight>()(
         }),
       divertTo: (airport, position) =>
         set({
+          departurePattern: null,
           route: directTo([airport], position, 0),
           divertAirport: airport.ident,
           trafficPattern: null,
@@ -417,12 +453,13 @@ export const useInFlight = create<InFlight>()(
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<InFlight>;
         const patternPoints = new Map(
-          p.trafficPattern
-            ? trafficPatternGeometry(p.trafficPattern).points.map((point) => [
-                point.ident,
-                point,
-              ])
-            : [],
+          [p.departurePattern, p.trafficPattern].flatMap((pattern) =>
+            pattern
+              ? trafficPatternGeometry(pattern).points.map(
+                  (point) => [point.ident, point] as const,
+                )
+              : [],
+          ),
         );
         return {
           ...current,
@@ -430,7 +467,8 @@ export const useInFlight = create<InFlight>()(
           // Regenerate derived vertices when fixed pattern dimensions change between releases.
           route:
             p.route?.map((point) =>
-              point.patternId === p.trafficPattern?.id &&
+              (point.patternId === p.trafficPattern?.id ||
+                point.patternId === p.departurePattern?.id) &&
               patternPoints.has(point.ident)
                 ? { ...point, ...patternPoints.get(point.ident)! }
                 : point,
@@ -442,6 +480,7 @@ export const useInFlight = create<InFlight>()(
       partialize: ({
         startedAt,
         trafficPattern,
+        departurePattern,
         patternReports,
         divertAirport,
         route,
@@ -456,6 +495,7 @@ export const useInFlight = create<InFlight>()(
       }) => ({
         startedAt,
         trafficPattern,
+        departurePattern,
         patternReports,
         divertAirport,
         route,

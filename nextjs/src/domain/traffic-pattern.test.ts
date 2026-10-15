@@ -20,6 +20,12 @@ import { buildRoutePlan, pointKey } from "./route-plan";
 import { computeProgress } from "./progress";
 import { useInFlight } from "~/stores/inflight";
 import { flyByRoute } from "./fly-by";
+import {
+  departureRunwayChoice,
+  resolvedDeparturePattern,
+  taxiDepartureRunway,
+} from "./departure-pattern";
+import type { Ground } from "~/data/schemas";
 
 const threshold = { lat: 50, lon: 20, elevationFt: 500 };
 const end = destinationPoint(threshold, 90, 1000 / 1852);
@@ -84,6 +90,151 @@ const middle = (
   lon: a.lon + (b.lon - a.lon) * fraction,
 });
 const original = useInFlight.getState();
+
+test.each(["overhead", "crosswind", "downwind", "base", "final"] as const)(
+  "departure leaves at the start of %s and continues outbound",
+  (join) => {
+    const departure = {
+      ...pattern,
+      id: "departure",
+      operation: "leave" as const,
+      join,
+    };
+    const g = trafficPatternGeometry(departure);
+    expect(distanceNm(g.points[0]!, threshold)).toBeLessThan(0.000001);
+    expect(distanceNm(g.points.at(-1)!, g.positions[join])).toBeLessThan(
+      0.000001,
+    );
+    expect(g.points.slice(1).every((p) => p.altitudeFt === undefined)).toBe(
+      true,
+    );
+    const next = { ident: "NEXT", lat: 51, lon: 21 };
+    const arrival = {
+      ...pattern,
+      id: "arrival",
+      airport: { ...pattern.airport, ident: "EPBB" },
+    };
+    const route = routeWithTrafficPattern(
+      [airport, next, { ...airport, ident: "EPBB" }],
+      arrival,
+    );
+    const amended = routeWithTrafficPattern(route, departure);
+    expect(amended[g.points.length]).toEqual(next);
+    expect(amended.at(-1)?.patternId).toBe("arrival");
+    expect(
+      trafficPatternReport(departure, amended, 1, g.positions[join], null, []),
+    ).toBeNull();
+    useInFlight.getState().start(route, arrival);
+    useInFlight.getState().joinTrafficPattern(departure);
+    expect(useInFlight.getState().activeLeg).toBe(0);
+    expect(useInFlight.getState().trafficPattern).toEqual(arrival);
+    useInFlight.getState().clearTrafficPattern("leave");
+    expect(useInFlight.getState().route[0]).toMatchObject({
+      ident: airport.ident,
+      lat: airport.lat,
+      lon: airport.lon,
+    });
+    expect(useInFlight.getState().route.slice(1)).toEqual(route.slice(1));
+    useInFlight.getState().start(amended, arrival, departure);
+    useInFlight.getState().goToPoint(next, { lat: 50.8, lon: 20.8 });
+    const direct = useInFlight.getState().route;
+    useInFlight.getState().clearTrafficPattern("leave");
+    expect(useInFlight.getState().route).toEqual(direct);
+  },
+);
+
+test.each([null, 1800])(
+  "departure climbs through the circuit toward the next restriction (%s) or cruise",
+  (limit) => {
+    const departure = {
+      ...pattern,
+      operation: "leave" as const,
+      join: "base" as const,
+    };
+    const destination = { ...airport, ident: "EPBB", lat: 51 };
+    const plan = buildRoutePlan(
+      {
+        airport: () => null,
+        point: () => ({ lat: 50.5, lon: 20 }),
+        procedures: () => [],
+        airways: {},
+      },
+      {
+        departure: airport,
+        destination,
+        alternate: null,
+        altitudeFt: 6000,
+        routeText: "NEXT",
+        selections: { SID: null, STAR: null, APPROACH: null },
+        inlineSelections: {},
+        insertedWaypoints: [],
+        departurePattern: departure,
+        pointRestrictions:
+          limit === null
+            ? {}
+            : {
+                NEXT: { altitudeFt: limit, altitudeMode: "at", speedKt: null },
+              },
+        waypointAltitudes: {},
+        waypointWx: {},
+        conditionsWind: null,
+        runwayWind: () => null,
+        climbGradientFtPerNm: 500,
+      },
+    )!;
+    const circuit = plan.points.filter((p) => p.patternOperation === "leave");
+    expect(circuit[0]?.runwayId).toBe("09");
+    const lastAltitude = plan.pointAltitudeByKey[pointKey(circuit.at(-1))]!;
+    expect(lastAltitude).toBeGreaterThan(1500);
+    expect(lastAltitude).toBeLessThanOrEqual(limit ?? 6000);
+    expect(circuit.every((p) => p.patternAltitudeFt === undefined)).toBe(true);
+    const flight = { ...newFlight(), departurePattern: departure };
+    expect(
+      parseNordFile(toNordFile(flight, null), []).flight.departurePattern,
+    ).toEqual(departure);
+  },
+);
+
+test("latest Take-off/Taxi-out runway choice wins; manual circuit runway stays selected", () => {
+  const ground: Ground = {
+    airport: airport.ident,
+    elements: [{ id: "HP27", label: "HP27", type: "holdingPoint" }],
+    connections: {},
+    standExits: {},
+  };
+  const flight = {
+    ...newFlight(),
+    departure: airport,
+    departurePattern: {
+      ...pattern,
+      operation: "leave" as const,
+      runwayAutomatic: true,
+    },
+  };
+  expect(taxiDepartureRunway(airport, ground, "HP27")?.designator).toBe("27");
+  flight.taxiInputs[`departure|${airport.ident}`] = { from: null, to: "HP27" };
+  expect(departureRunwayChoice(flight, airport, ground)?.source).toBe("taxi");
+  flight.departureRunway = {
+    airport: airport.ident,
+    designator: "09",
+    source: "takeoff",
+  };
+  expect(
+    resolvedDeparturePattern(flight, airport, ground)?.runway.designator,
+  ).toBe("09");
+  flight.departureRunway = {
+    airport: airport.ident,
+    designator: "27",
+    source: "taxi",
+  };
+  expect(
+    resolvedDeparturePattern(flight, airport, ground)?.runway.designator,
+  ).toBe("27");
+  flight.departurePattern.runwayAutomatic = false;
+  expect(
+    resolvedDeparturePattern(flight, airport, ground)?.runway.designator,
+  ).toBe("09");
+});
 afterEach(() => {
   useInFlight.setState(original, true);
   vi.unstubAllGlobals();
