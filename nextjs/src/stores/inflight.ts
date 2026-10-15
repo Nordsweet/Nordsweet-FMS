@@ -29,10 +29,12 @@ import { type NavPoint, directTo, computeProgress } from "~/domain/progress";
 import { type TrafficPattern } from "~/data/traffic-pattern";
 import {
   trafficPatternGeometry,
+  activeRouteWithTrafficPattern,
   trafficPatternReport,
   type PatternReport,
 } from "~/domain/traffic-pattern";
 import { type TrackPoint } from "~/domain/track";
+import { type TurnPerformance } from "~/domain/fly-by";
 
 /** Record a track point at most this often (5 s) unless the aircraft has not moved. */
 const TRACK_INTERVAL_MS = 5000;
@@ -73,7 +75,10 @@ type InFlight = {
   patternPreviousFix: (LatLon & { time: string }) | null;
   joinTrafficPattern: (pattern: TrafficPattern, position: LatLon) => void;
   clearTrafficPattern: () => void;
-  observePattern: (position: LatLon & { time: string }) => void;
+  observePattern: (
+    position: LatLon & { time: string },
+    performance?: TurnPerformance,
+  ) => void;
   dismissPatternNotice: () => void;
   activeLeg: number;
   track: TrackPoint[];
@@ -115,7 +120,11 @@ type InFlight = {
   insertWaypoint: (index: number, point: NavPoint) => void;
   /** Remove one fix and keep the current navigation leg valid without resetting flight state. */
   removeWaypoint: (index: number) => void;
-  resumeRoute: (route: NavPoint[], position: LatLon) => void;
+  resumeRoute: (
+    route: NavPoint[],
+    position: LatLon,
+    performance?: TurnPerformance,
+  ) => void;
   record: (point: TrackPoint) => void;
 };
 
@@ -131,18 +140,19 @@ export const useInFlight = create<InFlight>()(
       patternNotice: null,
       patternPreviousFix: null,
       joinTrafficPattern: (trafficPattern, position) =>
-        set({
+        set((s) => ({
           trafficPattern,
-          route: [
-            { ident: "DCT", ...position },
-            ...trafficPatternGeometry(trafficPattern).points,
-          ],
-          activeLeg: 0,
+          ...activeRouteWithTrafficPattern(
+            s.route,
+            s.activeLeg,
+            trafficPattern,
+            position,
+          ),
           divertAirport: trafficPattern.airport.ident,
           patternReports: [],
           patternNotice: null,
           patternPreviousFix: null,
-        }),
+        })),
       clearTrafficPattern: () =>
         set((s) => {
           const route = s.route.filter((p) => !p.patternId);
@@ -157,7 +167,7 @@ export const useInFlight = create<InFlight>()(
           };
         }),
       dismissPatternNotice: () => set({ patternNotice: null }),
-      observePattern: (position) =>
+      observePattern: (position, performance) =>
         set((s) => {
           if (!s.startedAt || !s.trafficPattern) return s;
           if (s.patternPreviousFix?.time === position.time) return s;
@@ -173,6 +183,7 @@ export const useInFlight = create<InFlight>()(
             position,
             previous,
             s.patternReports,
+            performance,
           );
           return {
             patternPreviousFix: position,
@@ -377,11 +388,12 @@ export const useInFlight = create<InFlight>()(
             ),
           };
         }),
-      resumeRoute: (route, position) =>
+      resumeRoute: (route, position, performance) =>
         set({
           route,
           divertAirport: null,
-          activeLeg: computeProgress(route, position, 0)?.activeLeg ?? 0,
+          activeLeg:
+            computeProgress(route, position, 0, performance)?.activeLeg ?? 0,
         }),
       record: (point) =>
         set((s) => {

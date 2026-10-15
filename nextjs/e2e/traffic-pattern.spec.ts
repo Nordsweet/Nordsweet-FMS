@@ -7,6 +7,7 @@ import {
   patternRunwayGeometry,
 } from "../src/domain/traffic-pattern";
 import { type TrafficPattern } from "../src/data/traffic-pattern";
+import { destinationPoint } from "../src/domain/geo";
 const raw = JSON.parse(
   fs.readFileSync("public/data/airports.json", "utf8"),
 ) as { ident: string }[];
@@ -367,4 +368,72 @@ test("accepting a Base join during flight preserves the flight and reports halfw
     accuracy: 5,
   });
   await expect(page.getByTestId("pattern-report")).toHaveText(/Report Base/);
+});
+
+test("joining a pattern keeps the remaining arrival fix and warns when rate-one turns cannot fit", async ({
+  page,
+  context,
+}) => {
+  await mocks(page);
+  await context.grantPermissions(["geolocation"]);
+  await context.setGeolocation({
+    latitude: departure.lat,
+    longitude: departure.lon,
+    accuracy: 5,
+  });
+  const arrivalFix = { ident: "EPNTD", ...destinationPoint(airport, 90, 8) };
+  await page.addInitScript(
+    ({ departure, arrivalFix, airport }) => {
+      if (!localStorage.getItem("nordsweet.inflight.v1"))
+        localStorage.setItem(
+          "nordsweet.inflight.v1",
+          JSON.stringify({
+            version: 1,
+            state: {
+              startedAt: "2026-10-15T12:00:00Z",
+              route: [departure, arrivalFix, airport],
+              activeLeg: 0,
+              phase: "cruise",
+              trafficPattern: null,
+              patternReports: [],
+            },
+          }),
+        );
+    },
+    { departure, arrivalFix, airport },
+  );
+  await page.goto("/fly");
+  const panel = await open(page);
+  await expect(page.getByTestId("turn-constraint")).toContainText("Rate-one");
+  await panel
+    .getByRole("button", { name: "Accept traffic pattern", exact: true })
+    .click();
+  const active = () =>
+    page.evaluate(
+      () =>
+        (
+          JSON.parse(localStorage.getItem("nordsweet.inflight.v1")!) as {
+            state: {
+              route: { ident: string; patternId?: string }[];
+              activeLeg: number;
+              startedAt: string;
+              trafficPattern: TrafficPattern;
+            };
+          }
+        ).state,
+    );
+  const accepted = await active();
+  expect(accepted.route.slice(0, 2).map((p) => p.ident)).toEqual([
+    "EPKK",
+    "EPNTD",
+  ]);
+  expect(accepted.route[2]?.patternId).toBe(accepted.trafficPattern.id);
+  expect(accepted.activeLeg).toBe(0);
+  expect(accepted.startedAt).toBe("2026-10-15T12:00:00Z");
+  await page.reload();
+  expect((await active()).route.slice(0, 2).map((p) => p.ident)).toEqual([
+    "EPKK",
+    "EPNTD",
+  ]);
+  await expect(page.getByTestId("turn-constraint")).toBeVisible();
 });

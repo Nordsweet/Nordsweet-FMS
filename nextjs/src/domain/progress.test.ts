@@ -15,10 +15,9 @@ describe("computeProgress", () => {
     expect(p.next.ident).toBe("B");
     expect(p.crossTrackNm).toBeLessThan(0); // north of an eastbound track = left
     expect(p.crossTrackNm).toBeCloseTo(-3, 0);
-    expect(p.distanceToDestinationNm).toBeCloseTo(
-      p.distanceToNextNm + 60.04,
-      1,
-    );
+    // Remaining path includes the corner arc and the shortened outbound straight.
+    expect(p.distanceToDestinationNm - p.distanceToNextNm).toBeGreaterThan(60);
+    expect(p.distanceToDestinationNm - p.distanceToNextNm).toBeLessThan(60.5);
   });
 
   it("sequences once abeam the waypoint and never goes back", () => {
