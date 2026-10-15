@@ -1,5 +1,7 @@
 export const trafficPatternEn = {
   "pattern.title": "Traffic Pattern",
+  "pattern.turnUnavailable":
+    "Rate-one fly-by unavailable at {speed} kt TAS for the marked corners; waypoint geometry retained:",
   "pattern.runway": "Runway",
   "pattern.auto": "Auto · RWY {runway} · {source}",
   "pattern.source.atis": "ATIS",
@@ -38,6 +40,8 @@ export const trafficPatternEn = {
 } as const;
 export const trafficPatternPl: Record<keyof typeof trafficPatternEn, string> = {
   "pattern.title": "Traffic Pattern",
+  "pattern.turnUnavailable":
+    "Zakręt fly-by rate one nie jest możliwy przy {speed} kt TAS w oznaczonych narożnikach; zachowano przebieg przez punkty:",
   "pattern.runway": "Pas",
   "pattern.auto": "Auto · RWY {runway} · {source}",
   "pattern.source.atis": "ATIS",

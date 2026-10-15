@@ -27,8 +27,10 @@ import { WaypointInsertionDialog } from "./waypoint-insertion-dialog";
 import { type TrafficPattern } from "~/data/traffic-pattern";
 import {
   routeWithTrafficPattern,
-  trafficPatternGeometry,
+  activeRouteWithTrafficPattern,
 } from "~/domain/traffic-pattern";
+import { flyByRoute } from "~/domain/fly-by";
+import { useTurnPerformance } from "~/features/fly/use-turn-performance";
 import { TrafficPatternPopup } from "~/features/fly/traffic-pattern-popup";
 import { anchoredWaypoint } from "~/domain/waypoint-insertion";
 import {
@@ -157,6 +159,51 @@ export function MapView({
     settings.gpsEnabled || navigation.startedAt !== null,
   );
   const route = navigation.startedAt ? navigation.route : plannedRoute;
+  const turns = useTurnPerformance(navigation.startedAt ? fix : null);
+  // The hook returns a new object each render; the geometry only depends on these numbers.
+  const { tasKt, windDirectionDeg, windSpeedKt } = turns;
+  const turnPerformance = useMemo(
+    () => ({ tasKt, windDirectionDeg, windSpeedKt }),
+    [tasKt, windDirectionDeg, windSpeedKt],
+  );
+  const routePath = useMemo(
+    () => flyByRoute(route, turnPerformance),
+    [route, turnPerformance],
+  );
+  const plannedPath = useMemo(
+    () => flyByRoute(plannedRoute, turnPerformance).points,
+    [plannedRoute, turnPerformance],
+  );
+  const previewRoute = useMemo(
+    () =>
+      patternPreview
+        ? navigation.startedAt && fix
+          ? activeRouteWithTrafficPattern(
+              navigation.route,
+              navigation.activeLeg,
+              patternPreview,
+              fix,
+            ).route
+          : routeWithTrafficPattern(plannedRoute, patternPreview)
+        : [],
+    [
+      patternPreview,
+      navigation.startedAt,
+      navigation.route,
+      navigation.activeLeg,
+      fix,
+      plannedRoute,
+    ],
+  );
+  const previewPath = useMemo(
+    () => flyByRoute(previewRoute, turnPerformance),
+    [previewRoute, turnPerformance],
+  );
+  const entryIndex = previewRoute.findIndex((point) => !!point.patternId);
+  const previewStart = previewPath.legs.findIndex(
+    (leg) => leg >= Math.max(0, entryIndex - 1),
+  );
+  const turnIssues = patternPreview ? previewPath.issues : routePath.issues;
   const routeRef = useRef(route);
   useEffect(() => {
     routeRef.current = route;
@@ -320,7 +367,8 @@ export function MapView({
     following: settings.following,
     trackUp: settings.trackUp,
     selectedHex,
-    directRoute: route[0]?.ident === "DCT" ? route : null,
+    // The route source includes the curved DCT leg; a second straight chord would cut its arc.
+    directRoute: null,
   });
 
   // Create the map once. deck.gl needs WebGL and `window`, so it is loaded in the browser only.
@@ -624,27 +672,27 @@ export function MapView({
   }, [ready, fix, theme]);
 
   useEffect(() => {
-    const previewRoute = patternPreview
-      ? navigation.startedAt && fix
-        ? [
-            { ident: "DCT", ...fix },
-            ...trafficPatternGeometry(patternPreview).points,
-          ]
-        : routeWithTrafficPattern(plannedRoute, patternPreview)
-      : [];
-    sceneRef.current?.set({ patternPreview: toPaths([previewRoute]) });
-  }, [ready, patternPreview, fix, navigation.startedAt, plannedRoute]);
+    sceneRef.current?.set({
+      patternPreview:
+        previewRoute.length >= 2
+          ? toPaths([previewPath.points.slice(Math.max(0, previewStart))])
+          : [],
+    });
+  }, [ready, previewRoute.length, previewPath.points, previewStart]);
 
   // The route line, and its waypoints as DOM labels (keyboard- and screen-reader-reachable).
   useEffect(() => {
     sceneRef.current?.set({
       route: toPaths([
-        route[0]?.ident === "DCT" ? route.slice(1) : route,
+        routePath.points,
         ...(flight.destination && flight.alternate
           ? [[flight.destination, flight.alternate]]
           : []),
       ]),
-      plannedRoute: route[0]?.ident === "DCT" ? toPaths([plannedRoute]) : [],
+      plannedRoute:
+        route[0]?.ident === "DCT" && !navigation.trafficPattern
+          ? toPaths([plannedPath])
+          : [],
     });
     markers.current?.set(
       [
@@ -693,8 +741,10 @@ export function MapView({
     flight.destination,
     flight.alternate,
     airports.data,
-    plannedRoute,
+    plannedPath,
     navpoints.data,
+    routePath.points,
+    navigation.trafficPattern,
   ]);
 
   const segmentTime = (index: number) => {
@@ -955,6 +1005,27 @@ export function MapView({
       data-pattern-preview={patternPreview ? "true" : "false"}
     >
       {navigation.startedAt && <TrafficPatternPopup />}
+      {layers.route && turnIssues.length > 0 && (
+        <div
+          role="status"
+          data-testid="turn-constraint"
+          className="bg-card text-card-foreground absolute bottom-12 left-3 z-10 max-w-sm rounded-lg border p-2 text-xs shadow"
+        >
+          {t("pattern.turnUnavailable", {
+            speed: Math.round(turnPerformance.tasKt),
+          })}{" "}
+          {[
+            ...new Set(
+              turnIssues.map((issue) => {
+                const point = (patternPreview ? previewRoute : route)[
+                  issue.index
+                ];
+                return point?.patternId ? t("pattern.title") : point?.ident;
+              }),
+            ),
+          ].join(", ")}
+        </div>
+      )}
       {insertingPoint && (
         <WaypointInsertionDialog
           key={

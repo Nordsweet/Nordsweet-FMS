@@ -21,6 +21,7 @@ import { useInFlight } from "~/stores/inflight";
 
 import { Group, Row } from "./emergency-panel";
 import { type GpsFix } from "./use-gps";
+import { useTurnPerformance } from "./use-turn-performance";
 
 const TANKS: Record<string, [string, string]> = {
   P2006T: ["LH tank", "RH tank"],
@@ -40,6 +41,7 @@ export function FredaDialog({ fix, now }: { fix: GpsFix | null; now: number }) {
   const t = useT();
   const { flight, aircraft, fuelPlanning, plan } = usePlan();
   const inFlight = useInFlight();
+  const turns = useTurnPerformance(fix);
   const frequencies = useQuery(
     api.frequencies.list.queryOptions(undefined),
   ).data;
@@ -74,7 +76,7 @@ export function FredaDialog({ fix, now }: { fix: GpsFix | null; now: number }) {
 
   // Radio: the departure's after-departure frequency, near the arrival the destination's.
   const progress = fix
-    ? computeProgress(inFlight.route, fix, inFlight.activeLeg)
+    ? computeProgress(inFlight.route, fix, inFlight.activeLeg, turns)
     : null;
   const nearArrival = inFlight.activeLeg >= inFlight.route.length - 2;
   const frequency = (icao: string | undefined, services: string[]) => {

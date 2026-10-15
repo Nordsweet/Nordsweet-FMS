@@ -12,12 +12,14 @@ import {
   routeWithTrafficPattern,
   trafficPatternGeometry,
   trafficPatternReport,
+  activeRouteWithTrafficPattern,
 } from "./traffic-pattern";
 import { patternRunwaySuggestion } from "./traffic-pattern-runway";
 import { distanceNm, destinationPoint } from "./geo";
 import { buildRoutePlan, pointKey } from "./route-plan";
 import { computeProgress } from "./progress";
 import { useInFlight } from "~/stores/inflight";
+import { flyByRoute } from "./fly-by";
 
 const threshold = { lat: 50, lon: 20, elevationFt: 500 };
 const end = destinationPoint(threshold, 90, 1000 / 1852);
@@ -263,7 +265,11 @@ test("downwind reports at its midpoint once; Base only reports on a direct Base 
     trafficPatternReport(basePattern, baseRoute, 1, baseMid, null, []),
   ).toBe("base");
   expect(trafficPatternReport(pattern, route, 2, baseMid, null, [])).toBeNull();
-  expect(computeProgress(baseRoute, baseMid, 1)?.activeLeg).toBe(1);
+  // Fly-by can start the Final turn before the Base midpoint; its report remains eligible.
+  const active = computeProgress(baseRoute, baseMid, 1)!.activeLeg;
+  expect(
+    trafficPatternReport(basePattern, baseRoute, active, baseMid, null, []),
+  ).toBe("base");
 });
 test.each([
   [8, "longFinal"],
@@ -297,7 +303,7 @@ test("joining an active flight retains timers/track and remembers reports withou
   vi.resetModules();
   const { useInFlight: persisted } = await import("~/stores/inflight");
   const s = persisted.getState();
-  s.start([airport, { ident: "END", lat: 51, lon: 20 }]);
+  s.start([{ ident: "START", lat: 49, lon: 20 }, airport]);
   const before = persisted.getState();
   s.joinTrafficPattern(pattern, { lat: 49, lon: 20 });
   persisted.setState({ activeLeg: 1 });
@@ -357,4 +363,92 @@ test("rehydration refreshes saved pattern geometry without resetting flight prog
   expect(state.activeLeg).toBe(1);
   expect(state.phase).toBe("cruise");
   expect(state.patternReports).toEqual(["downwind"]);
+});
+
+test("pattern entry retains the last arrival fix in planned and active routes", () => {
+  const departure = { ident: "DEPARTURE", lat: 49, lon: 20 };
+  const lastFix = { ident: "EPAAD", lat: 49.9, lon: 20.1 };
+  const route = [departure, lastFix, airport];
+  const expected = [
+    departure,
+    lastFix,
+    ...trafficPatternGeometry(pattern).points,
+  ];
+  expect(routeWithTrafficPattern(route, pattern)).toEqual(expected);
+  const active = activeRouteWithTrafficPattern(route, 0, pattern, departure);
+  expect(active).toEqual({ route: expected, activeLeg: 0 });
+  useInFlight.getState().start(route);
+  const before = useInFlight.getState();
+  before.joinTrafficPattern(pattern, departure);
+  expect(useInFlight.getState().route).toEqual(expected);
+  expect(useInFlight.getState().startedAt).toEqual(before.startedAt);
+  expect(useInFlight.getState().timers).toBe(before.timers);
+  // A direct to a reporting fix keeps that fix before the pattern.
+  expect(
+    activeRouteWithTrafficPattern(
+      [{ ...departure, ident: "DCT" }, lastFix, airport],
+      0,
+      pattern,
+      departure,
+    ).route[1],
+  ).toEqual(lastFix);
+});
+
+test("already direct to the airport goes directly to entry, without restoring passed fixes", () => {
+  const departure = { ident: "DEPARTURE", lat: 49, lon: 20 };
+  const lastFix = { ident: "EPAAD", lat: 49.9, lon: 20.1 };
+  const position = { lat: 49.95, lon: 20.15 };
+  const expected = [
+    { ident: "DCT", ...position },
+    ...trafficPatternGeometry(pattern).points,
+  ];
+  expect(
+    activeRouteWithTrafficPattern(
+      [departure, lastFix, airport],
+      1,
+      pattern,
+      position,
+    ),
+  ).toEqual({ route: expected, activeLeg: 0 });
+  expect(
+    activeRouteWithTrafficPattern(
+      [{ ...departure, ident: "DCT" }, airport],
+      0,
+      pattern,
+      position,
+    ).route,
+  ).toEqual(expected);
+  const old = trafficPatternGeometry({ ...pattern, join: "base" }).points;
+  expect(
+    activeRouteWithTrafficPattern(
+      [{ ...departure, ident: "DCT" }, ...old],
+      0,
+      pattern,
+      position,
+    ).route,
+  ).toEqual(expected);
+});
+
+test("Final report follows the fly-by tangent exit instead of requiring passage over its virtual corner", () => {
+  const route = [
+    { ident: "DCT", lat: 49, lon: 20 },
+    ...trafficPatternGeometry(pattern).points,
+  ];
+  const performance = { tasKt: 60 };
+  const finalIndex = route.length - 2;
+  const turn = flyByRoute(route, performance).turns.get(finalIndex)!;
+  expect(turn).toBeDefined();
+  const exit = turn.points.at(-1)!;
+  expect(distanceNm(exit, route[finalIndex]!)).toBeGreaterThan(0.1);
+  expect(
+    trafficPatternReport(
+      pattern,
+      route,
+      finalIndex,
+      exit,
+      null,
+      [],
+      performance,
+    ),
+  ).toBe("shortFinal");
 });
