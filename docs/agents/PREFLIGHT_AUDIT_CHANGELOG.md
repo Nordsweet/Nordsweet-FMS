@@ -221,3 +221,9 @@ Fixed the flight-mode bug: Add waypoint previously updated only the draft, while
 - The embedded map no longer renders its own Route/coordinates/GPS row beneath the Fly status row. Fly keeps its route, next-waypoint distance and GPS status.
 - The standalone preparation map retains its Route/coordinates/GPS readout.
 - Regression coverage checks a single route row before and during a simulated flight, and preserves the standalone map readout.
+
+## Remove waypoint from active flights (2026-10-15)
+
+- Point details now remove a waypoint from both the planning draft and an active flight. Active-only intermediate fixes also expose Remove from route.
+- Removal matches identifier and coordinates so unrelated points with the same identifier stay intact. Navigation retains a valid active leg, flight start, timers and track; changes survive reload.
+- Regression coverage includes airport-based plans, active/draft synchronization and active-only fixes.

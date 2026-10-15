@@ -99,6 +99,8 @@ type InFlight = {
   /** Replace the remaining route with the diversion airport, retaining flight timers and track. */
   divertTo: (airport: NavPoint, position: LatLon) => void;
   insertWaypoint: (index: number, point: NavPoint) => void;
+  /** Remove one fix and keep the current navigation leg valid without resetting flight state. */
+  removeWaypoint: (index: number) => void;
   resumeRoute: (route: NavPoint[], position: LatLon) => void;
   record: (point: TrackPoint) => void;
 };
@@ -272,6 +274,22 @@ export const useInFlight = create<InFlight>()(
           route: [...s.route.slice(0, index), point, ...s.route.slice(index)],
           activeLeg: index <= s.activeLeg ? s.activeLeg + 1 : s.activeLeg,
         })),
+      removeWaypoint: (index) =>
+        set((s) => {
+          if (!Number.isInteger(index) || index < 0 || index >= s.route.length)
+            return s;
+          const route = s.route.filter((_, i) => i !== index);
+          return {
+            route,
+            activeLeg: Math.max(
+              0,
+              Math.min(
+                route.length - 2,
+                s.activeLeg - (index <= s.activeLeg ? 1 : 0),
+              ),
+            ),
+          };
+        }),
       resumeRoute: (route, position) =>
         set({
           route,

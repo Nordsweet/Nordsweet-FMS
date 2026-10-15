@@ -143,9 +143,25 @@ test("airport-based FPL keeps a manual position in the derived route and after r
     "SKAVI",
     "EPNT",
   ]);
+  await page.locator('[data-route-marker="KELEL"]').click();
+  await page
+    .getByRole("dialog", { name: "Details", exact: true })
+    .getByRole("button", { name: "Remove from route", exact: true })
+    .click();
+  await expect(page.locator("[data-route-marker]")).toHaveText([
+    "EPKK",
+    "SKAVI",
+    "EPNT",
+  ]);
+  await page.reload();
+  await expect(page.locator("[data-route-marker]")).toHaveText([
+    "EPKK",
+    "SKAVI",
+    "EPNT",
+  ]);
   await page.getByRole("link", { name: "Flight Planner", exact: true }).click();
   await page.getByRole("tab", { name: "Route", exact: true }).click();
-  await expect(page.getByText("KELEL", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("KELEL", { exact: true })).toHaveCount(0);
 });
 
 test("Insert here also updates the persisted active flight rather than only the planned draft", async ({
@@ -200,4 +216,92 @@ test("Insert here also updates the persisted active flight rather than only the 
   );
   expect(saved.state.startedAt).toBe("2026-10-14T09:00:00.000Z");
   expect(saved.state.activeLeg).toBe(0);
+});
+
+test("Remove from route updates the active flight and draft, survives reload and keeps flight progress", async ({
+  page,
+}) => {
+  const otherB = { ...b, lat: 49.4 };
+  await load(page, { ...draft, waypoints: [b, otherB] });
+  await page.addInitScript(
+    (route) => {
+      if (!localStorage.getItem("nordsweet.inflight.v1"))
+        localStorage.setItem(
+          "nordsweet.inflight.v1",
+          JSON.stringify({
+            version: 1,
+            state: {
+              startedAt: "2026-10-14T09:00:00.000Z",
+              route,
+              activeLeg: 1,
+              phase: "cruise",
+            },
+          }),
+        );
+    },
+    [a, b, otherB, c],
+  );
+  await page.goto("/fly");
+  await expect(page.locator("[data-route-marker]")).toHaveText([
+    "A",
+    "B",
+    "B",
+    "C",
+  ]);
+  await page.locator('[data-route-marker="B"]').first().click();
+  await page
+    .getByRole("dialog", { name: "Details", exact: true })
+    .getByRole("button", { name: "Remove from route", exact: true })
+    .click();
+  await expect(page.locator("[data-route-marker]")).toHaveText(["A", "B", "C"]);
+  await expect(
+    page.getByRole("button", { name: "Remove from route", exact: true }),
+  ).toHaveCount(0);
+  await page.reload();
+  await expect(page.locator("[data-route-marker]")).toHaveText(["A", "B", "C"]);
+  const saved = await page.evaluate(() => ({
+    active: JSON.parse(localStorage.getItem("nordsweet.inflight.v1")!) as {
+      state: { startedAt: string; activeLeg: number; phase: string };
+    },
+    draft: JSON.parse(localStorage.getItem("nordsweet.flight.v2")!) as {
+      state: { flight: { waypoints: { ident: string }[] } };
+    },
+  }));
+  expect(saved.active.state.startedAt).toBe("2026-10-14T09:00:00.000Z");
+  expect(saved.active.state.activeLeg).toBe(0);
+  expect(saved.active.state.phase).toBe("cruise");
+  expect(saved.draft.state.flight.waypoints).toEqual([otherB]);
+});
+
+test("an active-only waypoint can be removed without changing the draft endpoints", async ({
+  page,
+}) => {
+  await load(page, { ...draft, waypoints: [] });
+  await page.addInitScript(
+    (route) => {
+      if (!localStorage.getItem("nordsweet.inflight.v1"))
+        localStorage.setItem(
+          "nordsweet.inflight.v1",
+          JSON.stringify({
+            version: 1,
+            state: {
+              startedAt: "2026-10-14T09:00:00.000Z",
+              route,
+              activeLeg: 0,
+              phase: "cruise",
+            },
+          }),
+        );
+    },
+    [a, b, c],
+  );
+  await page.goto("/fly");
+  await page.locator('[data-route-marker="B"]').click();
+  await page
+    .getByRole("dialog", { name: "Details", exact: true })
+    .getByRole("button", { name: "Remove from route", exact: true })
+    .click();
+  await expect(page.locator("[data-route-marker]")).toHaveText(["A", "C"]);
+  await page.reload();
+  await expect(page.locator("[data-route-marker]")).toHaveText(["A", "C"]);
 });

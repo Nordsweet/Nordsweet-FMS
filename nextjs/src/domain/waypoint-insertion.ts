@@ -1,7 +1,8 @@
 import { type Flight, type FlightPoint } from "~/data/flight";
 import { distanceNm } from "./geo";
 
-const samePoint = (a: FlightPoint, b: FlightPoint) =>
+/** Match a fix by identifier and position across saved plans and map data. */
+export const sameFlightPoint = (a: FlightPoint, b: FlightPoint) =>
   a.ident.trim().toUpperCase() === b.ident.trim().toUpperCase() &&
   Math.abs(a.lat - b.lat) < 0.00001 &&
   Math.abs(a.lon - b.lon) < 0.00001;
@@ -48,7 +49,7 @@ export function anchoredWaypoint(
       placement: at < route.length ? "before" : "after",
       occurrence: route
         .slice(0, at < route.length ? at : route.length - 1)
-        .filter((p) => samePoint(p, target)).length,
+        .filter((p) => sameFlightPoint(p, target)).length,
     },
   };
 }
@@ -70,7 +71,7 @@ export function waypointInsertionIndex(
       p.ident.trim().toUpperCase() === target.ident.trim().toUpperCase() &&
       (target.lat === undefined ||
         target.lon === undefined ||
-        samePoint(p, { ...target, lat: target.lat, lon: target.lon }))
+        sameFlightPoint(p, { ...target, lat: target.lat, lon: target.lon }))
         ? [i]
         : [],
     );

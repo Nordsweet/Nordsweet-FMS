@@ -97,3 +97,34 @@ test("inserting into an active flight updates its route while preserving timers 
   expect(useInFlight.getState().activeLeg).toBe(2);
   expect(useInFlight.getState().timers).toBe(timers);
 });
+
+test.each([
+  { index: 0, activeLeg: 2, expectedLeg: 1 },
+  { index: 2, activeLeg: 2, expectedLeg: 1 },
+  { index: 3, activeLeg: 2, expectedLeg: 2 },
+  { index: 4, activeLeg: 2, expectedLeg: 2 },
+  { index: 4, activeLeg: 3, expectedLeg: 2 },
+])(
+  "removing fix $index keeps the active leg valid ($activeLeg → $expectedLeg) and preserves flight state",
+  ({ index, activeLeg, expectedLeg }) => {
+    vi.stubGlobal("localStorage", {
+      getItem: () => null,
+      setItem: vi.fn(),
+      removeItem: vi.fn(),
+    });
+    const route = [a, b, point, c, { ident: "END", lat: 53, lon: 19 }];
+    const store = useInFlight.getState();
+    store.start(route);
+    useInFlight.setState({ activeLeg, phase: "cruise", divertAirport: "EPNT" });
+    const before = useInFlight.getState();
+    store.removeWaypoint(index);
+    const after = useInFlight.getState();
+    expect(after.route).toEqual(route.filter((_, i) => i !== index));
+    expect(after.activeLeg).toBe(expectedLeg);
+    expect(after.startedAt).toBe(before.startedAt);
+    expect(after.timers).toBe(before.timers);
+    expect(after.track).toBe(before.track);
+    expect(after.phase).toBe("cruise");
+    expect(after.divertAirport).toBe("EPNT");
+  },
+);
