@@ -13,6 +13,11 @@ export const trafficPatternEn = {
   "pattern.left": "Left",
   "pattern.right": "Right",
   "pattern.join": "Join position",
+  "pattern.leave": "Leave traffic pattern",
+  "pattern.departureClimb":
+    "Climb immediately to the next waypoint altitude restriction, or cruise altitude when unrestricted.",
+  "pattern.source.takeoff": "Take-off",
+  "pattern.source.taxi": "Taxi-out",
   "pattern.overhead": "Overhead",
   "pattern.crosswind": "Crosswind",
   "pattern.downwind": "Downwind",
@@ -54,6 +59,11 @@ export const trafficPatternPl: Record<keyof typeof trafficPatternEn, string> = {
   "pattern.left": "Lewy",
   "pattern.right": "Prawy",
   "pattern.join": "Pozycja dołączenia",
+  "pattern.leave": "Leave traffic pattern",
+  "pattern.departureClimb":
+    "Od razu wznoś się do wysokości ograniczenia następnego punktu, a bez ograniczenia — do wysokości przelotowej.",
+  "pattern.source.takeoff": "Start",
+  "pattern.source.taxi": "Kołowanie do startu",
   "pattern.overhead": "Overhead",
   "pattern.crosswind": "Crosswind",
   "pattern.downwind": "Downwind",

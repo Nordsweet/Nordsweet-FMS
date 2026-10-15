@@ -83,7 +83,10 @@ export function trafficPatternGeometry(pattern: TrafficPattern) {
     lateralOffsetNm = required;
   }
   const downwind = destinationPoint(crosswind, side, lateralOffsetNm);
-  const finalDistance = pattern.join === "final" ? pattern.finalDistanceNm : 2;
+  const finalDistance =
+    pattern.operation !== "leave" && pattern.join === "final"
+      ? pattern.finalDistanceNm
+      : 2;
   const final = destinationPoint(
     pattern.runway.threshold,
     h + 180,
@@ -103,10 +106,40 @@ export function trafficPatternGeometry(pattern: TrafficPattern) {
   };
   const all = ["overhead", "crosswind", "downwind", "base", "final"] as const;
   const selected = all.slice(all.indexOf(pattern.join));
+  if (pattern.operation === "leave") {
+    const legs =
+      pattern.join === "overhead"
+        ? (["overhead"] as const)
+        : all.slice(1, all.indexOf(pattern.join) + 1);
+    const points: NavPoint[] = [
+      {
+        ...pattern.runway.threshold,
+        ident: `${pattern.airport.ident} THR${pattern.runway.designator}`,
+        patternId: pattern.id,
+        patternOperation: "leave",
+        altitudeFt: pattern.runway.threshold.elevationFt,
+      },
+      ...legs.map((leg, i) => ({
+        ...positions[leg],
+        ident: `TPD${i + 1}/${pattern.airport.ident}`,
+        patternId: pattern.id,
+        patternOperation: "leave" as const,
+        turnPerformance,
+      })),
+    ];
+    return {
+      points,
+      positions,
+      finalDistance,
+      lateralOffsetNm,
+      turnPerformance,
+    };
+  }
   const points = selected.map((leg, i) => ({
     ...positions[leg],
     ident: `TP${i + 1}/${pattern.airport.ident}`,
     patternId: pattern.id,
+    patternOperation: "join" as const,
     altitudeFt: pattern.airport.elevationFt + pattern.altitudeAalFt,
     turnPerformance,
   }));
@@ -114,6 +147,7 @@ export function trafficPatternGeometry(pattern: TrafficPattern) {
     ...pattern.runway.threshold,
     ident: pattern.airport.ident,
     patternId: pattern.id,
+    patternOperation: "join" as const,
     altitudeFt: pattern.runway.threshold.elevationFt,
     turnPerformance,
   });
@@ -125,7 +159,22 @@ export function routeWithTrafficPattern(
   route: NavPoint[],
   pattern: TrafficPattern,
 ): NavPoint[] {
-  const clean = route.filter((p) => !p.patternId);
+  const operation = pattern.operation ?? "join";
+  const clean = route.filter(
+    (p) => !p.patternId || (p.patternOperation ?? "join") !== operation,
+  );
+  if (operation === "leave") {
+    const start = clean.findIndex(
+      (p) =>
+        p.ident === pattern.airport.ident ||
+        p.ident.startsWith(pattern.airport.ident + " THR"),
+    );
+    // Replacing a departure must retain both the outbound fixes and any arrival pattern.
+    return [
+      ...trafficPatternGeometry(pattern).points,
+      ...clean.slice(start >= 0 ? start + 1 : 0),
+    ];
+  }
   const reverseIndex = [...clean]
     .reverse()
     .findIndex(
@@ -147,10 +196,19 @@ export function activeRouteWithTrafficPattern(
   pattern: TrafficPattern,
   position: LatLon | null = null,
 ): { route: NavPoint[]; activeLeg: number } {
+  if (pattern.operation === "leave") {
+    const next = route[activeLeg + 1];
+    const amended = routeWithTrafficPattern(route, pattern);
+    const target =
+      activeLeg > 0 && next && !next.patternId
+        ? amended.findIndex((p) => p === next) - 1
+        : 0;
+    return { route: amended, activeLeg: Math.max(0, target) };
+  }
   const next = route[activeLeg + 1];
   const direct =
     !next ||
-    !!next.patternId ||
+    (!!next.patternId && next.patternOperation !== "leave") ||
     next.ident === pattern.airport.ident ||
     next.ident.startsWith(pattern.airport.ident + " THR");
   const amended = routeWithTrafficPattern(route, pattern);
@@ -182,6 +240,7 @@ export function trafficPatternReport(
   reported: readonly PatternReport[],
   performance?: TurnPerformance,
 ) {
+  if (pattern.operation === "leave") return null;
   const geometry = trafficPatternGeometry(pattern);
   const midpoint = (a: LatLon, b: LatLon) => ({
     lat: (a.lat + b.lat) / 2,

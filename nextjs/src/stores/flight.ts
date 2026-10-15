@@ -28,6 +28,13 @@ export const useFlight = create<FlightStore>()(
           flight: {
             ...s.flight,
             ...patch,
+            ...(patch.departure !== undefined &&
+            patch.departure?.ident !== s.flight.departure?.ident
+              ? {
+                  departurePattern: patch.departurePattern ?? null,
+                  departureRunway: patch.departureRunway ?? null,
+                }
+              : {}),
             ...(patch.destination !== undefined &&
             patch.destination?.ident !== s.flight.destination?.ident &&
             patch.trafficPattern === undefined

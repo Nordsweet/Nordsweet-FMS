@@ -42,6 +42,14 @@ entry. Both dashed preview and acceptance call the same domain helper. GPS avail
 does not block acceptance: use the last available fix or recorded track position for DCT, otherwise
 retain the existing inbound leg to the selected entry. Flight timers and track remain intact.
 
+Departure circuits are independent of arrival circuits. They run from the take-off threshold
+through the starts of each leg up to the selected exit, then connect to the first outbound fix.
+Overhead exits at the airport centre. No pattern-height constraint is attached to departure
+vertices: the normal climb gradient applies, targeting the next outbound altitude restriction
+or cruise altitude. Automatic runway selection follows the most recent explicit Take-off or
+unambiguous Taxi-out selection; a manual circuit runway overrides it. Both pattern configurations
+and their operation markers survive reload and .nord round-trips.
+
 The derivation was supplied in the workspace `FUTURE_FEATURES.md`. Reference definitions:
 [FAA standard-rate turns](https://www.faasafety.gov/gslac/alc/libview_search.aspx?id=7097) and
 [FAA Order 8260.58D, geometric turn anticipation](https://www.faa.gov/documentLibrary/media/Order/Order_8260.58D.pdf).

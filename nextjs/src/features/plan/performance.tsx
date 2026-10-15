@@ -93,6 +93,15 @@ export function usePhasePerformance(phase: "takeoff" | "landing") {
   const change = (patch: Partial<typeof inputs>) => {
     const current = useFlight.getState().flight;
     update({
+      ...(phase === "takeoff" && point && patch.runwayId
+        ? {
+            departureRunway: {
+              airport: point.ident,
+              designator: patch.runwayId,
+              source: "takeoff" as const,
+            },
+          }
+        : {}),
       performanceInputs: {
         ...current.performanceInputs,
         [inputKey]: {

@@ -5,6 +5,22 @@ Reference: <https://nordsweet-performance-calculator.mrnordsweet.chatgpt.site/> 
 `5265bc5de9510aa3d83cc469860a730962b96c78`. Starting develop: `2f289ed6dc8d7b7c3186b100577c787c64df1de2`.
 Branch: `codex/preflight-parity-audit`.
 
+## Departure circuits (2026-10-16)
+
+- Traffic Pattern at the departure airport offers Leave traffic pattern with the same five
+  positions, flown from the selected take-off threshold to the beginning of the chosen leg,
+  then onward to the next route fix. Overhead leaves at the airport centre.
+- Departure and arrival circuits are stored independently and may coexist. Preview, acceptance,
+  removal, active flight state, saved flights and .nord import/export preserve both ends.
+- Departure has no circuit-height or Final-distance input: climb begins immediately toward the
+  next outbound waypoint altitude restriction (including manual altitude), or cruise altitude.
+  The planner retains its climb gradient instead of imposing a circuit-height plateau.
+- Automatic departure runway follows the latest explicit Take-off or unambiguous Taxi-out
+  runway/holding-point selection. Old saved Take-off/Taxi-out inputs are also recognised.
+  A manual runway selected in the circuit panel remains an override.
+- Circuit speed remains the aircraft circuit KIAS. Departure turn sizing uses the target climb
+  altitude for its IAS/TAS conversion, avoiding sizing all departure turns at the old circuit height.
+
 ## Adaptive circuit fly-by turns (2026-10-16)
 
 - Circuit lateral offset starts at 0.75 NM and expands automatically to fit rate-one turns,

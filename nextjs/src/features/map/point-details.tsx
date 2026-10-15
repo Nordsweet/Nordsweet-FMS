@@ -7,7 +7,11 @@ import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { type FlightPoint } from "~/data/flight";
-import { formatRoutePoint, pointKey } from "~/domain/route-plan";
+import {
+  formatRoutePoint,
+  pointKey,
+  altitudeRestriction,
+} from "~/domain/route-plan";
 import { sameFlightPoint } from "~/domain/waypoint-insertion";
 import { type MessageKey } from "~/i18n/messages";
 import { useT } from "~/i18n/use-t";
@@ -84,6 +88,15 @@ export function PointDetails({
     }),
     enabled: point.kind === "airport",
   }).data;
+  const outbound = plan?.points.find(
+    (p, i) => i > 0 && !p.patternId && !p.isProfilePoint,
+  );
+  const outboundRestriction = altitudeRestriction(outbound);
+  const departureTargetAltitudeFt =
+    outboundRestriction?.minFt ??
+    outboundRestriction?.maxFt ??
+    (outbound ? flight.waypointAltitudes[pointKey(outbound)] : null) ??
+    flight.cruiseAltitudeFt;
   const charts = useQuery({
     ...api.charts.byAirport.queryOptions({ airport: airportCode }),
     enabled: airport && mode === "charts",
@@ -206,6 +219,7 @@ export function PointDetails({
       {mode === "pattern" && airportRecord && (
         <TrafficPatternPanel
           airport={airportRecord}
+          departureTargetAltitudeFt={departureTargetAltitudeFt}
           preview={previewPattern}
           accept={acceptPattern}
           cancel={() => setMode(null)}

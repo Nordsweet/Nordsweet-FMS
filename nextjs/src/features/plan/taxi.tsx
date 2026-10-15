@@ -14,6 +14,7 @@ import {
 import { type FlightPoint } from "~/data/flight";
 import { type Ground } from "~/data/schemas";
 import { taxiRoute } from "~/domain/taxi";
+import { taxiDepartureRunway } from "~/domain/departure-pattern";
 import { useT } from "~/i18n/use-t";
 import { useFlight } from "~/stores/flight";
 
@@ -64,6 +65,9 @@ export function AirportTaxi({
   const { data: ground } = useQuery(
     api.ground.byAirport.queryOptions({ airport: point.ident }),
   );
+  const { data: airport } = useQuery(
+    api.airports.get.queryOptions({ code: point.ident }),
+  );
   const first = (type: string) =>
     ground?.elements.find((e) => e.type === type)?.id ?? "";
   // Departure: stand → holding point; arrival: runway → stand.
@@ -82,7 +86,21 @@ export function AirportTaxi({
       taxiInputs: { ...flight.taxiInputs, [inputKey]: { ...inputs, ...patch } },
     });
   const setFrom = (from: string) => change({ from });
-  const setTo = (to: string) => change({ to });
+  const setTo = (to: string) => {
+    change({ to });
+    const runway =
+      airport && phase === "departure"
+        ? taxiDepartureRunway(airport, ground, to)
+        : null;
+    if (runway)
+      update({
+        departureRunway: {
+          airport: point.ident,
+          designator: runway.designator,
+          source: "taxi",
+        },
+      });
+  };
   if (!ground) return null;
   const start =
     from ?? (phase === "departure" ? first("stand") : first("runway"));

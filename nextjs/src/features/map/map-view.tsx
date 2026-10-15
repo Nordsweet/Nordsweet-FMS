@@ -200,10 +200,19 @@ export function MapView({
     () => flyByRoute(previewRoute, turnPerformance),
     [previewRoute, turnPerformance],
   );
-  const entryIndex = previewRoute.findIndex((point) => !!point.patternId);
+  const entryIndex = previewRoute.findIndex(
+    (point) => point.patternId === patternPreview?.id,
+  );
   const previewStart = previewPath.legs.findIndex(
     (leg) => leg >= Math.max(0, entryIndex - 1),
   );
+  const lastPreviewPattern = previewRoute
+    .map((point) => point.patternId)
+    .lastIndexOf(patternPreview?.id);
+  const previewExit =
+    patternPreview?.operation === "leave"
+      ? previewPath.legs.findIndex((leg) => leg > lastPreviewPattern)
+      : -1;
   const turnIssues = patternPreview ? previewPath.issues : routePath.issues;
   const routeRef = useRef(route);
   useEffect(() => {
@@ -676,10 +685,21 @@ export function MapView({
     sceneRef.current?.set({
       patternPreview:
         previewRoute.length >= 2
-          ? toPaths([previewPath.points.slice(Math.max(0, previewStart))])
+          ? toPaths([
+              previewPath.points.slice(
+                Math.max(0, previewStart),
+                previewExit >= 0 ? previewExit + 1 : undefined,
+              ),
+            ])
           : [],
     });
-  }, [ready, previewRoute.length, previewPath.points, previewStart]);
+  }, [
+    ready,
+    previewRoute.length,
+    previewPath.points,
+    previewStart,
+    previewExit,
+  ]);
 
   // The route line, and its waypoints as DOM labels (keyboard- and screen-reader-reachable).
   useEffect(() => {
@@ -1275,12 +1295,15 @@ export function MapView({
                 addPoint={addPoint}
                 previewPattern={setPatternPreview}
                 acceptPattern={(pattern) => {
-                  update({
-                    trafficPattern: pattern,
-                    destination: { ...pattern.airport },
-                    star: null,
-                    approach: null,
-                  });
+                  if (pattern.operation === "leave")
+                    update({ departurePattern: pattern, sid: null });
+                  else
+                    update({
+                      trafficPattern: pattern,
+                      destination: { ...pattern.airport },
+                      star: null,
+                      approach: null,
+                    });
                   if (navigation.startedAt)
                     navigation.joinTrafficPattern(pattern, patternPosition);
                   settings.update({
@@ -1290,8 +1313,14 @@ export function MapView({
                   setClick(null);
                 }}
                 removePattern={() => {
-                  update({ trafficPattern: null });
-                  if (navigation.startedAt) navigation.clearTrafficPattern();
+                  const leaving = click.point.ident === flight.departure?.ident;
+                  update(
+                    leaving
+                      ? { departurePattern: null }
+                      : { trafficPattern: null },
+                  );
+                  if (navigation.startedAt)
+                    navigation.clearTrafficPattern(leaving ? "leave" : "join");
                   setPatternPreview(null);
                   setClick(null);
                 }}
