@@ -488,6 +488,52 @@ export function AircraftPage() {
         </Fields>
       </Section>
 
+      <Section title={t("aircraft.flaps")}>
+        <Hint>{t("aircraft.flaps.hint")}</Hint>
+        <div className="grid max-w-xs gap-1.5">
+          <Label htmlFor="aircraft-gear">{t("aircraft.flaps.gear")}</Label>
+          <Select
+            value={draft.retractableGear ? "retractable" : "fixed"}
+            onValueChange={(gear) =>
+              set({ retractableGear: gear === "retractable" })
+            }
+          >
+            <SelectTrigger id="aircraft-gear" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="fixed">{t("aircraft.flaps.fixed")}</SelectItem>
+              <SelectItem value="retractable">
+                {t("aircraft.flaps.retractable")}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        {(draft.retractableGear
+          ? (["gearDown", "gearUp"] as const)
+          : (["gearDown"] as const)
+        ).map((gearSet) => (
+          <div key={gearSet} className="grid gap-2">
+            {draft.retractableGear && (
+              <strong className="text-sm">
+                {t(`aircraft.flaps.${gearSet}`)}
+              </strong>
+            )}
+            <RowsTable
+              columns={[
+                { label: t("aircraft.col.flap"), text: true },
+                { label: t("aircraft.col.minKias") },
+                { label: t("aircraft.col.maxKias") },
+              ]}
+              rows={draft.flapSpeeds[gearSet]}
+              onChange={(rows) =>
+                set({ flapSpeeds: { ...draft.flapSpeeds, [gearSet]: rows } })
+              }
+            />
+          </div>
+        ))}
+      </Section>
+
       <Section title={t("aircraft.wb")}>
         <Hint>{t("aircraft.wb.hint")}</Hint>
         <Fields>
