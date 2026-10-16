@@ -5,6 +5,18 @@ Reference: <https://nordsweet-performance-calculator.mrnordsweet.chatgpt.site/> 
 `5265bc5de9510aa3d83cc469860a730962b96c78`. Starting develop: `2f289ed6dc8d7b7c3186b100577c787c64df1de2`.
 Branch: `codex/preflight-parity-audit`.
 
+## Traffic pattern ARP endpoint (2026-10-16)
+
+- Arrival patterns now continue through the selected landing threshold to the airport ARP.
+  The threshold is flown over before the ARP segment, retaining the existing Final approach.
+- Removing an arrival pattern preserves the route to ARP. Once the aircraft is targeting the
+  pattern, removal creates DCT from current GPS/last recorded position (last route vertex fallback)
+  to ARP; remaining en-route waypoints stay intact while still inbound to them.
+- The planned ARP endpoint persists after removal, including when arrival procedure text still
+  supplies a runway threshold. Changing the destination resets that explicit endpoint choice.
+- Reload upgrades older threshold-only pattern endpoints without resetting flight progress;
+  a Direct-to ARP that intentionally skipped pattern vertices remains a Direct-to.
+
 ## Own-aircraft traffic identification (2026-10-16)
 
 - Map/Fly resolves the flight registration (or the selected airframe profile registration) to a

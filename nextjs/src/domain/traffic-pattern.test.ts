@@ -92,6 +92,171 @@ const middle = (
 const original = useInFlight.getState();
 
 test.each(["overhead", "crosswind", "downwind", "base", "final"] as const)(
+  "%s arrival continues through the threshold to an off-axis ARP",
+  (join) => {
+    const p = {
+      ...pattern,
+      join,
+      airport: { ...pattern.airport, lat: 50.003, lon: 20.004 },
+    };
+    const g = trafficPatternGeometry(p);
+    expect(g.points.at(-1)).toMatchObject({
+      ...p.airport,
+      altitudeFt: p.airport.elevationFt,
+    });
+    expect(g.points.at(-2)).toMatchObject({
+      ...threshold,
+      ident: "EPAA THR09",
+      flyOver: true,
+    });
+    const path = flyByRoute(g.points, { tasKt: 60 });
+    expect(path.turns.has(g.points.length - 2)).toBe(false);
+    expect(
+      path.points.some((point) => distanceNm(point, threshold) < 0.000001),
+    ).toBe(true);
+  },
+);
+
+test("removing the active arrival continues from current position to ARP and preserves flight state", () => {
+  const p = {
+    ...pattern,
+    airport: { ...pattern.airport, lat: 50.003, lon: 20.004 },
+  };
+  const g = trafficPatternGeometry(p);
+  useInFlight
+    .getState()
+    .start([{ ident: "DCT", lat: 49, lon: 20 }, ...g.points], p);
+  useInFlight.setState({ activeLeg: 1 });
+  const before = useInFlight.getState();
+  const position = middle(g.positions.downwind, g.positions.base);
+  before.clearTrafficPattern("join", position);
+  const after = useInFlight.getState();
+  expect(after.route).toEqual([
+    { ident: "DCT", ...position },
+    { ...p.airport },
+  ]);
+  expect(after.activeLeg).toBe(0);
+  expect(after.trafficPattern).toBeNull();
+  expect(after.startedAt).toBe(before.startedAt);
+  expect(after.timers).toBe(before.timers);
+  expect(after.track).toBe(before.track);
+});
+
+test("ARP endpoint remains selected after removing a pattern even with an arrival procedure in route text", () => {
+  const destination = { ...airport, lat: 50.003, lon: 20.004 };
+  const procedure = {
+    airport: airport.ident,
+    type: "APPROACH" as const,
+    id: "TESTAPP",
+    designator: "TESTAPP",
+    runways: ["09"],
+    source: "test",
+    legs: [
+      {
+        ident: "FINAL",
+        lat: 49.99,
+        lon: 20,
+        altitude: null,
+        speedKt: null,
+        trackMagDeg: null,
+        distanceNm: null,
+      },
+    ],
+  };
+  const plan = buildRoutePlan(
+    {
+      airport: () => null,
+      point: () => null,
+      procedures: (_code, type) => (type === "APPROACH" ? [procedure] : []),
+      airways: {},
+    },
+    {
+      departure: { ...airport, ident: "EPBB", lat: 49 },
+      destination,
+      alternate: null,
+      altitudeFt: 3000,
+      routeText: "TESTAPP",
+      arrivalToArp: true,
+      selections: { SID: null, STAR: null, APPROACH: null },
+      inlineSelections: {},
+      insertedWaypoints: [],
+      waypointAltitudes: {},
+      waypointWx: {},
+      conditionsWind: null,
+      runwayWind: () => null,
+      climbGradientFtPerNm: 500,
+    },
+  )!;
+  const points = plan.points.filter((point) => !point.isProfilePoint);
+  expect(points.at(-1)).toMatchObject({
+    id: airport.ident,
+    lat: destination.lat,
+    lon: destination.lon,
+  });
+  expect(points.at(-2)).toMatchObject({
+    kind: "threshold",
+    lat: threshold.lat,
+    lon: threshold.lon,
+    flyOver: true,
+  });
+});
+
+test("legacy saved arrivals acquire the threshold before ARP without restoring skipped Direct-to points", async () => {
+  const p = {
+    ...pattern,
+    airport: { ...pattern.airport, lat: 50.003, lon: 20.004 },
+  };
+  const g = trafficPatternGeometry(p);
+  const route = [
+    { ident: "DCT", lat: 49, lon: 20 },
+    ...g.points
+      .filter((point) => !point.flyOver)
+      .map((point) =>
+        point.ident === p.airport.ident ? { ...point, ...threshold } : point,
+      ),
+  ];
+  vi.stubGlobal("localStorage", {
+    getItem: () =>
+      JSON.stringify({
+        version: 1,
+        state: {
+          startedAt: "2026-10-16T00:00:00Z",
+          trafficPattern: p,
+          route,
+          activeLeg: 1,
+        },
+      }),
+    setItem: vi.fn(),
+    removeItem: vi.fn(),
+  });
+  vi.resetModules();
+  const { useInFlight: reloaded } = await import("~/stores/inflight");
+  expect(reloaded.getState().route).toEqual([route[0], ...g.points]);
+  expect(reloaded.getState().activeLeg).toBe(1);
+  reloaded
+    .getState()
+    .goDirect(reloaded.getState().route.length - 1, { lat: 49.9, lon: 20.1 });
+  const direct = reloaded.getState().route;
+  vi.stubGlobal("localStorage", {
+    getItem: () =>
+      JSON.stringify({
+        version: 1,
+        state: {
+          startedAt: "2026-10-16T00:00:00Z",
+          trafficPattern: p,
+          route: direct,
+          activeLeg: 0,
+        },
+      }),
+    setItem: vi.fn(),
+    removeItem: vi.fn(),
+  });
+  vi.resetModules();
+  const { useInFlight: directReload } = await import("~/stores/inflight");
+  expect(directReload.getState().route).toEqual(direct);
+});
+
+test.each(["overhead", "crosswind", "downwind", "base", "final"] as const)(
   "departure leaves at the start of %s and continues outbound",
   (join) => {
     const departure = {

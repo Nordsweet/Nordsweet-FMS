@@ -47,6 +47,8 @@ export const flightSchema = z.object({
   /** Map points: explicit before/after anchors, or nearest leg for older saved points. */
   waypoints: z.array(point),
   trafficPattern: trafficPatternSchema.nullable().default(null),
+  /** Explicit airport-centre endpoint retained when an arrival pattern is removed. */
+  arrivalToArp: z.boolean().default(false),
   departurePattern: trafficPatternSchema.nullable().default(null),
   departureRunway: z
     .object({
@@ -145,6 +147,7 @@ export function newFlight(): Flight {
     alternate: null,
     waypoints: [],
     trafficPattern: null,
+    arrivalToArp: false,
     departurePattern: null,
     departureRunway: null,
     pointRestrictions: {},

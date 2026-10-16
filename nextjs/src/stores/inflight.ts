@@ -78,7 +78,10 @@ type InFlight = {
     pattern: TrafficPattern,
     position?: LatLon | null,
   ) => void;
-  clearTrafficPattern: (operation?: "join" | "leave") => void;
+  clearTrafficPattern: (
+    operation?: "join" | "leave",
+    position?: LatLon | null,
+  ) => void;
   observePattern: (
     position: LatLon & { time: string },
     performance?: TurnPerformance,
@@ -166,7 +169,7 @@ export const useInFlight = create<InFlight>()(
             position ?? s.track.at(-1) ?? null,
           ),
         })),
-      clearTrafficPattern: (operation = "join") =>
+      clearTrafficPattern: (operation = "join", position) =>
         set((s) => {
           const removed = s.route.filter(
             (p) => p.patternId && (p.patternOperation ?? "join") === operation,
@@ -181,6 +184,28 @@ export const useInFlight = create<InFlight>()(
             route.unshift({ ...s.departurePattern.airport });
           if (operation === "join" && s.trafficPattern)
             route.push({ ...s.trafficPattern.airport });
+          // Once the target is in the removed arrival, continue from ownship rather than an old inbound leg.
+          if (
+            operation === "join" &&
+            s.trafficPattern &&
+            target &&
+            removed.includes(target)
+          ) {
+            const current = position ?? s.track.at(-1) ?? s.route[s.activeLeg];
+            return {
+              route: [
+                ...(current
+                  ? [{ ident: "DCT", lat: current.lat, lon: current.lon }]
+                  : []),
+                { ...s.trafficPattern.airport },
+              ],
+              activeLeg: 0,
+              trafficPattern: null,
+              patternReports: [],
+              patternNotice: null,
+              patternPreviousFix: null,
+            };
+          }
           return {
             route,
             activeLeg: Math.max(
@@ -461,18 +486,47 @@ export const useInFlight = create<InFlight>()(
               : [],
           ),
         );
+        const route =
+          p.route?.map((point) =>
+            (point.patternId === p.trafficPattern?.id ||
+              point.patternId === p.departurePattern?.id) &&
+            patternPoints.has(point.ident)
+              ? { ...point, ...patternPoints.get(point.ident)! }
+              : point,
+          ) ?? current.route;
+        const arrival = p.trafficPattern;
+        const threshold = arrival
+          ? patternPoints.get(
+              `${arrival.airport.ident} THR${arrival.runway.designator}`,
+            )
+          : null;
+        const arpIndex = arrival
+          ? route.findIndex(
+              (point) =>
+                point.patternId === arrival.id &&
+                point.ident === arrival.airport.ident,
+            )
+          : -1;
+        // Older saved arrivals used the airport ident at the threshold. Keep that threshold before the new ARP endpoint.
+        if (
+          arrival &&
+          threshold &&
+          arpIndex > 0 &&
+          route.some(
+            (point) =>
+              point.patternId === arrival.id && point.ident.startsWith("TP"),
+          ) &&
+          !route.some(
+            (point) =>
+              point.ident === threshold.ident && point.patternId === arrival.id,
+          )
+        )
+          route.splice(arpIndex, 0, threshold);
         return {
           ...current,
           ...p,
           // Regenerate derived vertices when fixed pattern dimensions change between releases.
-          route:
-            p.route?.map((point) =>
-              (point.patternId === p.trafficPattern?.id ||
-                point.patternId === p.departurePattern?.id) &&
-              patternPoints.has(point.ident)
-                ? { ...point, ...patternPoints.get(point.ident)! }
-                : point,
-            ) ?? current.route,
+          route,
           config: { ...current.config, ...p.config },
           timers: { ...current.timers, ...p.timers },
         };

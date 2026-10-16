@@ -60,6 +60,7 @@ export type ProcedureChoice = {
 export type RoutePoint = {
   patternId?: string;
   patternOperation?: "join" | "leave";
+  flyOver?: boolean;
   patternAltitudeFt?: number;
   turnPerformance?: TurnPerformance;
   userRestriction?: {
@@ -143,6 +144,7 @@ export type RoutePlanInput = {
   /** Map points: saved explicit FPL order, or nearest-leg insertion for older points. */
   insertedWaypoints: FlightPoint[];
   trafficPattern?: TrafficPattern | null;
+  arrivalToArp?: boolean;
   departurePattern?: TrafficPattern | null;
   pointRestrictions?: Record<
     string,
@@ -1549,7 +1551,12 @@ export function buildRoutePlan(data: RouteData, input: RoutePlanInput) {
       icao: destination.ident,
       runway: finalPoint.runwayId ?? "--",
     });
-  appendPoint(points, finalPoint);
+  const endAtArp =
+    input.arrivalToArp &&
+    !input.trafficPattern &&
+    finalPoint.kind === "threshold";
+  appendPoint(points, endAtArp ? { ...finalPoint, flyOver: true } : finalPoint);
+  if (endAtArp) appendPoint(points, destinationPoint);
 
   let withUserPoints = insertUserWaypoints(points, input.insertedWaypoints).map(
     (p) => ({
@@ -1568,6 +1575,7 @@ export function buildRoutePlan(data: RouteData, input: RoutePlanInput) {
         lon: p.lon,
         patternId: p.patternId,
         patternOperation: p.patternOperation,
+        flyOver: p.flyOver,
         patternAltitudeFt: p.altitudeFt,
         turnPerformance: p.turnPerformance,
         userRestriction: undefined,

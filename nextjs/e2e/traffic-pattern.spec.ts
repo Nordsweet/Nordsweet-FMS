@@ -7,7 +7,7 @@ import {
   patternRunwayGeometry,
 } from "../src/domain/traffic-pattern";
 import { type TrafficPattern } from "../src/data/traffic-pattern";
-import { destinationPoint } from "../src/domain/geo";
+import { destinationPoint, distanceNm } from "../src/domain/geo";
 import { flyByRoute } from "../src/domain/fly-by";
 const raw = JSON.parse(
   fs.readFileSync("public/data/airports.json", "utf8"),
@@ -408,16 +408,119 @@ test("accepted pattern reports downwind once at its midpoint and Short Final at 
   await expect(page.getByTestId("pattern-report")).toHaveCount(0);
   await context.setGeolocation({
     latitude: flyByRoute(g.points, { tasKt: 100 })
-      .turns.get(g.points.length - 2)!
+      .turns.get(
+        g.points.findIndex(
+          (point) => distanceNm(point, g.positions.final) < 0.000001,
+        ),
+      )!
       .points.at(-1)!.lat,
     longitude: flyByRoute(g.points, { tasKt: 100 })
-      .turns.get(g.points.length - 2)!
+      .turns.get(
+        g.points.findIndex(
+          (point) => distanceNm(point, g.positions.final) < 0.000001,
+        ),
+      )!
       .points.at(-1)!.lon,
     accuracy: 5,
   });
   await expect(page.getByTestId("pattern-report")).toHaveText(
     /Report Short Final/,
   );
+});
+
+test("arrival ends at ARP and removing it during flight continues there from ownship", async ({
+  page,
+  context,
+}) => {
+  await mocks(page);
+  const g = trafficPatternGeometry(pattern);
+  const position = {
+    lat: (g.positions.downwind.lat + g.positions.base.lat) / 2,
+    lon: (g.positions.downwind.lon + g.positions.base.lon) / 2,
+  };
+  await context.grantPermissions(["geolocation"]);
+  await context.setGeolocation({
+    latitude: position.lat,
+    longitude: position.lon,
+    accuracy: 5,
+  });
+  await page.addInitScript(
+    ({ pattern, route, flight }) => {
+      if (localStorage.getItem("nordsweet.inflight.v1")) return;
+      localStorage.setItem(
+        "nordsweet.flight.v2",
+        JSON.stringify({ version: 1, state: { flight } }),
+      );
+      if (!localStorage.getItem("nordsweet.inflight.v1"))
+        localStorage.setItem(
+          "nordsweet.inflight.v1",
+          JSON.stringify({
+            version: 1,
+            state: {
+              startedAt: "2026-10-16T00:00:00Z",
+              route,
+              trafficPattern: pattern,
+              activeLeg: 1,
+              phase: "cruise",
+            },
+          }),
+        );
+    },
+    {
+      pattern,
+      route: [{ ident: "DCT", lat: 49, lon: 20 }, ...g.points],
+      flight: {
+        ...newFlight(),
+        aircraftId: "P2006T",
+        departure,
+        destination: airport,
+        trafficPattern: pattern,
+      },
+    },
+  );
+  await page.goto("/fly");
+  const active = () =>
+    page.evaluate(
+      () =>
+        (
+          JSON.parse(localStorage.getItem("nordsweet.inflight.v1")!) as {
+            state: {
+              route: {
+                ident: string;
+                lat: number;
+                lon: number;
+                patternId?: string;
+              }[];
+              activeLeg: number;
+              startedAt: string;
+              trafficPattern: TrafficPattern | null;
+            };
+          }
+        ).state,
+    );
+  const panel = await open(page);
+  expect((await active()).route.at(-1)).toMatchObject({
+    ident: airport.ident,
+    lat: airport.lat,
+    lon: airport.lon,
+  });
+  expect((await active()).route.at(-2)?.ident).toBe("EPNT THR30");
+  await panel
+    .getByRole("button", { name: "Remove traffic pattern", exact: true })
+    .click();
+  await expect.poll(async () => (await active()).trafficPattern).toBeNull();
+  const removed = await active();
+  expect(removed.route).toHaveLength(2);
+  expect(removed.route[0]).toMatchObject({ ident: "DCT", ...position });
+  expect(removed.route[1]).toMatchObject({
+    ident: airport.ident,
+    lat: airport.lat,
+    lon: airport.lon,
+  });
+  expect(removed.activeLeg).toBe(0);
+  await page.reload();
+  expect((await active()).route).toEqual(removed.route);
+  expect(await savedPattern(page)).toBeNull();
 });
 
 test("accepting a Base join during flight preserves the flight and reports halfway along Base", async ({

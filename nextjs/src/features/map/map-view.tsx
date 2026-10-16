@@ -1338,10 +1338,18 @@ export function MapView({
                   update(
                     leaving
                       ? { departurePattern: null }
-                      : { trafficPattern: null },
+                      : {
+                          trafficPattern: null,
+                          arrivalToArp: true,
+                          star: null,
+                          approach: null,
+                        },
                   );
                   if (navigation.startedAt)
-                    navigation.clearTrafficPattern(leaving ? "leave" : "join");
+                    navigation.clearTrafficPattern(
+                      leaving ? "leave" : "join",
+                      patternPosition,
+                    );
                   setPatternPreview(null);
                   setClick(null);
                 }}
