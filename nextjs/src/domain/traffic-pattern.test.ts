@@ -92,6 +92,66 @@ const middle = (
 });
 const original = useInFlight.getState();
 
+test.each(["left", "right"] as const)(
+  "EPKK RW25 %s downwind exit stays smooth toward a fix south of the airport",
+  (direction) => {
+    const epkk = airportSchema.parse(airports.find((a) => a.ident === "EPKK"));
+    const runway = epkk.runways.find((r) => r.designator === "25")!;
+    const p: TrafficPattern = {
+      ...pattern,
+      airport: epkk,
+      runway: { ...runway, ...patternRunwayGeometry(epkk, runway)! },
+      operation: "leave",
+      join: "downwind",
+      direction,
+      turnPerformance: { tasKt: 100 },
+    };
+    const next = { ident: "SOUTH", ...destinationPoint(epkk, 180, 3) };
+    const g = trafficPatternGeometry(p);
+    const old = [...g.points, next];
+    if (direction === "right")
+      expect(flyByRoute(old, { tasKt: 100 }).issues.length).toBeGreaterThan(0);
+    const route = routeWithTrafficPattern([epkk, next], p);
+    const path = flyByRoute(route, { tasKt: 150 });
+    expect(path.issues).toEqual([]);
+    expect(path.turns.has(g.points.length - 1)).toBe(true);
+    expect(route.at(-1)).toEqual(next);
+    expect(
+      route.filter((point) => point.ident.startsWith("TPX")).length,
+    ).toBeGreaterThan(0);
+    expect([...path.turns.values()].every((turn) => turn.radiusNm > 0.53)).toBe(
+      true,
+    );
+    // Selected leg must turn toward downwind rather than shortcutting back across crosswind.
+    const downwindTurn = path.turns.get(g.points.length - 1)!;
+    const signed = trackOffset(
+      g.positions.crosswind,
+      g.positions.downwind,
+      downwindTurn.points.at(-1)!,
+    ).crossTrackNm;
+    expect(Math.sign(signed)).toBe(direction === "right" ? 1 : -1);
+  },
+);
+
+test("departure exit handles an outbound fix behind the selected leg with two tangent guides", () => {
+  const p: TrafficPattern = {
+    ...pattern,
+    operation: "leave",
+    join: "crosswind",
+    turnPerformance: { tasKt: 100 },
+  };
+  const g = trafficPatternGeometry(p);
+  const next = {
+    ident: "BEHIND",
+    ...destinationPoint(g.positions.crosswind, 180, 3),
+  };
+  const route = routeWithTrafficPattern([airport, next], p);
+  expect(route.filter((point) => point.ident.startsWith("TPX"))).toHaveLength(
+    2,
+  );
+  expect(flyByRoute(route, { tasKt: 100 }).issues).toEqual([]);
+});
+
 test.each(["25", "07"])(
   "EPKK RW%s departure and Final follow the threshold axis despite stored headings",
   (designator) => {
@@ -137,6 +197,47 @@ test.each(["25", "07"])(
     );
   },
 );
+
+test("saved departure gains smooth exit guides without losing its active target or restoring skipped pattern points", async () => {
+  const p: TrafficPattern = {
+    ...pattern,
+    operation: "leave",
+    join: "downwind",
+    direction: "right",
+    turnPerformance: { tasKt: 100 },
+  };
+  const g = trafficPatternGeometry(p);
+  const next = { ident: "OUTBOUND", ...destinationPoint(airport, 0, 3) };
+  let route = [...g.points, next];
+  const storage = () =>
+    JSON.stringify({
+      version: 1,
+      state: {
+        startedAt: "2026-10-16T00:00:00Z",
+        departurePattern: p,
+        route,
+        activeLeg: route.length - 2,
+      },
+    });
+  vi.stubGlobal("localStorage", {
+    getItem: storage,
+    setItem: vi.fn(),
+    removeItem: vi.fn(),
+  });
+  vi.resetModules();
+  const { useInFlight: reloaded } = await import("~/stores/inflight");
+  const active = reloaded.getState();
+  expect(
+    active.route.filter((point) => point.ident.startsWith("TPX")).length,
+  ).toBeGreaterThan(0);
+  expect(active.route[active.activeLeg + 1]).toEqual(next);
+  expect(flyByRoute(active.route, { tasKt: 100 }).issues).toEqual([]);
+  active.goDirect(active.route.length - 1, { lat: 50.01, lon: 20.01 });
+  route = reloaded.getState().route;
+  vi.resetModules();
+  const { useInFlight: directReload } = await import("~/stores/inflight");
+  expect(directReload.getState().route).toEqual(route);
+});
 
 test("a degenerate threshold pair retains the stored heading fallback", () => {
   const g = trafficPatternGeometry({
@@ -341,7 +442,8 @@ test.each(["overhead", "crosswind", "downwind", "base", "final"] as const)(
       arrival,
     );
     const amended = routeWithTrafficPattern(route, departure);
-    expect(amended[g.points.length]).toEqual(next);
+    expect(amended.slice(0, g.points.length)).toEqual(g.points);
+    expect(amended.find((point) => point.ident === next.ident)).toEqual(next);
     expect(amended.at(-1)?.patternId).toBe("arrival");
     expect(
       trafficPatternReport(departure, amended, 1, g.positions[join], null, []),

@@ -477,16 +477,26 @@ export const useInFlight = create<InFlight>()(
       // Flights saved by an older release lack newer timer and CONFIG fields.
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<InFlight>;
+        const departure = p.departurePattern;
+        const departureEnd = departure
+          ? (p.route
+              ?.map((point) => point.patternId)
+              .lastIndexOf(departure.id) ?? -1)
+          : -1;
+        const departureGeometry = departure
+          ? trafficPatternGeometry(departure, p.route?.[departureEnd + 1])
+          : null;
         const patternPoints = new Map(
           [p.departurePattern, p.trafficPattern].flatMap((pattern) =>
             pattern
-              ? trafficPatternGeometry(pattern).points.map(
-                  (point) => [point.ident, point] as const,
-                )
+              ? (pattern === departure
+                  ? departureGeometry!
+                  : trafficPatternGeometry(pattern)
+                ).points.map((point) => [point.ident, point] as const)
               : [],
           ),
         );
-        const route =
+        let route =
           p.route?.map((point) =>
             (point.patternId === p.trafficPattern?.id ||
               point.patternId === p.departurePattern?.id) &&
@@ -494,6 +504,32 @@ export const useInFlight = create<InFlight>()(
               ? { ...point, ...patternPoints.get(point.ident)! }
               : point,
           ) ?? current.route;
+        const target = p.route?.[(p.activeLeg ?? 0) + 1];
+        if (departure && departureGeometry) {
+          const canonicalExit =
+            trafficPatternGeometry(departure).points.at(-1)!;
+          const exit = route.findIndex(
+            (point) =>
+              point.patternId === departure.id &&
+              point.ident === canonicalExit.ident,
+          );
+          // Add/refresh derived exit guides only if the selected exit is still in
+          // the route. Direct-to legs that skipped the pattern remain untouched.
+          if (exit >= 0) {
+            route = route.filter(
+              (point) =>
+                point.patternId !== departure.id ||
+                !point.ident.startsWith("TPX"),
+            );
+            route.splice(
+              exit + 1,
+              0,
+              ...departureGeometry.points.filter((point) =>
+                point.ident.startsWith("TPX"),
+              ),
+            );
+          }
+        }
         const arrival = p.trafficPattern;
         const threshold = arrival
           ? patternPoints.get(
@@ -522,11 +558,34 @@ export const useInFlight = create<InFlight>()(
           )
         )
           route.splice(arpIndex, 0, threshold);
+        let targetOccurrence =
+          p.route
+            ?.slice(0, (p.activeLeg ?? 0) + 2)
+            .filter(
+              (point) =>
+                point.ident === target?.ident &&
+                point.patternId === target?.patternId,
+            ).length ?? 0;
+        const targetIndex = target
+          ? route.findIndex(
+              (point) =>
+                point.ident === target.ident &&
+                point.patternId === target.patternId &&
+                --targetOccurrence === 0,
+            )
+          : -1;
         return {
           ...current,
           ...p,
           // Regenerate derived vertices when fixed pattern dimensions change between releases.
           route,
+          activeLeg:
+            targetIndex >= 0
+              ? Math.max(0, targetIndex - 1)
+              : Math.max(
+                  0,
+                  Math.min(p.activeLeg ?? current.activeLeg, route.length - 2),
+                ),
           config: { ...current.config, ...p.config },
           timers: { ...current.timers, ...p.timers },
         };

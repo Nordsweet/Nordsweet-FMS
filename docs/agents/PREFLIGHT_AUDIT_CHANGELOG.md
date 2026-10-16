@@ -5,6 +5,22 @@ Reference: <https://nordsweet-performance-calculator.mrnordsweet.chatgpt.site/> 
 `5265bc5de9510aa3d83cc469860a730962b96c78`. Starting develop: `2f289ed6dc8d7b7c3186b100577c787c64df1de2`.
 Branch: `codex/preflight-parity-audit`.
 
+## Smooth departure from the selected circuit leg (2026-10-16)
+
+- Leaving a right-hand circuit at Downwind no longer connects the Crosswind corner
+  directly to an outbound fix behind it, which could exceed the adjacent rate-one
+  tangent budgets and disable both rounded turns.
+- Establish the selected leg's direction using derived exit guides, then turn toward
+  the first outbound fix. Allocate enough straight distance for both tangent arcs;
+  an additional dogleg supports fixes directly behind the leg without a sharp reversal.
+  Straight continuations need no extra guide. Turn radius/speed and runway alignment
+  are retained, and infeasible wind geometry still produces the existing warning.
+- Preview, FPL calculation and active navigation share the same geometry. Derived
+  guides are removed with the departure pattern; saved flights refresh them while
+  preserving their active target and intentional Direct-to legs.
+- Regression tests cover left/right EPKK RW25 exits toward a southern fix, a reverse
+  outbound direction and saved-flight upgrade. Browser coverage now uses Right/Downwind.
+
 ## Traffic pattern runway centreline (2026-10-16)
 
 - Departure and Final geometry now use the geographic axis between runway thresholds,

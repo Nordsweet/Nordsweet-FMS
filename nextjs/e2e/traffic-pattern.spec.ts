@@ -114,7 +114,7 @@ const savedPattern = (page: Page) =>
 
 test("departure offers Leave, ignores circuit altitude, and coexists with the arrival pattern", async ({
   page,
-}) => {
+}, testInfo) => {
   test.setTimeout(60000);
   await mocks(page);
   await page.goto("/map");
@@ -131,7 +131,10 @@ test("departure offers Leave, ignores circuit altitude, and coexists with the ar
       exact: true,
     }),
   ).toHaveCount(0);
-  await choose(page, "Leave traffic pattern", "Base");
+  await choose(page, "Runway", "RWY 25");
+  await choose(page, "Pattern direction", "Right");
+  await choose(page, "Leave traffic pattern", "Downwind");
+  await expect(page.getByTestId("turn-constraint")).toHaveCount(0);
   await panel
     .getByRole("button", { name: "Accept traffic pattern", exact: true })
     .click();
@@ -152,10 +155,18 @@ test("departure offers Leave, ignores circuit altitude, and coexists with the ar
     );
   expect((await saved()).departurePattern).toMatchObject({
     operation: "leave",
-    join: "base",
+    join: "downwind",
+    direction: "right",
     airport: { ident: "EPKK" },
   });
   expect((await saved()).destination.ident).toBe("EPNT");
+  await expect(page.getByTestId("turn-constraint")).toHaveCount(0);
+  for (let i = 0; i < 8; i++)
+    await page.getByRole("button", { name: "Zoom in", exact: true }).click();
+  await page.getByRole("button", { name: "Layers", exact: true }).click();
+  await page.screenshot({
+    path: testInfo.outputPath("right-downwind-departure.png"),
+  });
   const arrival = await open(page);
   await expect(
     arrival.getByRole("combobox", { name: "Join position", exact: true }),

@@ -1584,8 +1584,9 @@ export function buildRoutePlan(data: RouteData, input: RoutePlanInput) {
   }
   if (input.departurePattern?.airport.ident === departure.ident) {
     const pattern = input.departurePattern;
+    const outbound = withUserPoints.slice(1).filter((p) => !isSidPoint(p));
     withUserPoints = [
-      ...trafficPatternGeometry(pattern).points.map((p, i) => ({
+      ...trafficPatternGeometry(pattern, outbound[0]).points.map((p, i) => ({
         id: p.ident,
         kind: i === 0 ? ("threshold" as const) : ("waypoint" as const),
         lat: p.lat,
@@ -1597,7 +1598,7 @@ export function buildRoutePlan(data: RouteData, input: RoutePlanInput) {
         turnPerformance: p.turnPerformance,
         userRestriction: undefined,
       })),
-      ...withUserPoints.slice(1).filter((p) => !isSidPoint(p)),
+      ...outbound,
     ];
   }
   const base = verticalProfile(
