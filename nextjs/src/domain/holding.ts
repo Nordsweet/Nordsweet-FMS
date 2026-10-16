@@ -278,7 +278,7 @@ export function observeHolding(
   const moved = previous && distanceNm(previous, fix) > 0.003;
   const heading =
     fix.trackDeg ?? (moved ? initialBearingDeg(previous, fix) : null);
-  let result = { ...state, previous: fix };
+  let result = { ...state, previous: { ...fix, trackDeg: heading } };
   if (
     state.phase === "outbound" &&
     state.timerStartedAt !== null &&
@@ -308,9 +308,19 @@ export function observeHolding(
     const toFix = initialBearingDeg(fix, state.config.fix);
     const behind =
       Math.cos(toRad(angleDiffDeg(geometry.outboundDeg, toFix))) <= 0.00001;
+    // A 3°/s turn can already be past abeam while still approaching outbound.
+    // Wait for a steady track, rather than starting during its final degrees.
+    const steady =
+      previous?.trackDeg !== null &&
+      previous?.trackDeg !== undefined &&
+      heading !== null &&
+      Math.abs(angleDiffDeg(previous.trackDeg, heading)) /
+        ((at - previousAt) / 1000) <=
+        1;
     if (
       heading !== null &&
-      Math.abs(angleDiffDeg(heading, geometry.outboundDeg)) <= 15 &&
+      Math.abs(angleDiffDeg(heading, geometry.outboundDeg)) <= 5 &&
+      steady &&
       behind &&
       distanceNm(fix, state.config.fix) > 0.1
     )

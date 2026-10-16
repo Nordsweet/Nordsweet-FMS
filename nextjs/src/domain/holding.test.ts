@@ -186,6 +186,14 @@ test("parallel and teardrop are chosen from actual arrival, mirrored turns and t
         0.2,
       );
       state = advance(state, sample(p, 20, geometry.outboundDeg));
+      state = advance(
+        state,
+        sample(
+          destinationPoint(p, geometry.outboundDeg, 0.03),
+          21,
+          geometry.outboundDeg,
+        ),
+      );
       expect(state.phase).toBe("outbound");
     }
 });
@@ -260,4 +268,24 @@ test("outbound guidance never points back before the timer ends; zero-turn entri
   )!;
   expect(start.desiredTrackDeg).toBeCloseTo(150, 2);
   expect(start.distanceToNextNm).toBeCloseTo(100 / 60, 3);
+});
+
+test("an angled direct entry waits for the first turn to finish even when already past abeam", () => {
+  const angled = { ...config, approachTrueDeg: 90 };
+  let state = {
+    ...armHolding(angled),
+    phase: "turn" as const,
+  } as HoldingRuntime;
+  const geometry = holdingGeometry(angled);
+  state = advance(state, sample(geometry.turn.at(-3)!, 10, 174));
+  state = advance(state, sample(geometry.turn.at(-2)!, 11, 177));
+  expect(state.timerStartedAt).toBeNull();
+  state = advance(state, sample(geometry.turn.at(-1)!, 12, 180));
+  expect(state.timerStartedAt).toBeNull();
+  state = advance(
+    state,
+    sample(destinationPoint(geometry.outbound[0]!, 180, 0.03), 13, 180),
+  );
+  expect(state.phase).toBe("outbound");
+  expect(state.timerStartedAt).toBe(origin + 13000);
 });

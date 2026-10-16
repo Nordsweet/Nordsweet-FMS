@@ -24,7 +24,9 @@ Branch: `codex/preflight-parity-audit`.
   Exit HOLD resumes at the following route fix; a hold at the destination resumes
   toward that destination. Direct-to/diversion/end clear the active hold.
 - Its separate outbound countdown starts when the aircraft is moving, established
-  outbound and abeam/past the fix. Fix passage itself never starts the timer. Each
+  outbound with a steady GPS track and abeam/past the fix. Angled entries cannot
+  start timing during the last degrees of their first turn. Fix passage itself
+  never starts the timer. Each
   completed circuit re-arms it. Repeated, reversed and stale GPS timestamps cannot
   restart it; saved runtime preserves the original start timestamp across reloads.
   Existing flight and utility timers remain independent. Configuration is included

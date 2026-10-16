@@ -251,6 +251,11 @@ test("GPS fix passage and abeam start a separate persisted outbound timer; Exit 
     destinationPoint(geometry.outbound[0]!, geometry.outboundDeg, 0.02),
     geometry.outboundDeg,
   );
+  await expect(status).toHaveAttribute("data-holding-phase", "turn");
+  await move(
+    destinationPoint(geometry.outbound[0]!, geometry.outboundDeg, 0.05),
+    geometry.outboundDeg,
+  );
   await expect(status).toHaveAttribute("data-holding-phase", "outbound");
   await expect(page.locator("[data-holding-timer]")).toHaveText("01:00");
   await page.clock.fastForward(10000);
