@@ -135,7 +135,7 @@ export function trafficPatternGeometry(pattern: TrafficPattern) {
       turnPerformance,
     };
   }
-  const points = selected.map((leg, i) => ({
+  const points: NavPoint[] = selected.map((leg, i) => ({
     ...positions[leg],
     ident: `TP${i + 1}/${pattern.airport.ident}`,
     patternId: pattern.id,
@@ -143,12 +143,23 @@ export function trafficPatternGeometry(pattern: TrafficPattern) {
     altitudeFt: pattern.airport.elevationFt + pattern.altitudeAalFt,
     turnPerformance,
   }));
+  if (distanceNm(pattern.runway.threshold, pattern.airport) > 0.000001)
+    points.push({
+      ...pattern.runway.threshold,
+      ident: `${pattern.airport.ident} THR${pattern.runway.designator}`,
+      patternId: pattern.id,
+      patternOperation: "join",
+      altitudeFt: pattern.runway.threshold.elevationFt,
+      turnPerformance,
+      // Final must reach the landing threshold before continuing toward an off-axis ARP.
+      flyOver: true,
+    });
   points.push({
-    ...pattern.runway.threshold,
+    ...pattern.airport,
     ident: pattern.airport.ident,
     patternId: pattern.id,
-    patternOperation: "join" as const,
-    altitudeFt: pattern.runway.threshold.elevationFt,
+    patternOperation: "join",
+    altitudeFt: pattern.airport.elevationFt,
     turnPerformance,
   });
   return { points, positions, finalDistance, lateralOffsetNm, turnPerformance };

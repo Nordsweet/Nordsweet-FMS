@@ -38,7 +38,10 @@ export const useFlight = create<FlightStore>()(
             ...(patch.destination !== undefined &&
             patch.destination?.ident !== s.flight.destination?.ident &&
             patch.trafficPattern === undefined
-              ? { trafficPattern: null }
+              ? {
+                  trafficPattern: null,
+                  arrivalToArp: patch.arrivalToArp ?? false,
+                }
               : {}),
           },
         })),

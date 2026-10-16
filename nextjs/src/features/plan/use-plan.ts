@@ -194,6 +194,7 @@ export function usePlan(snapshot?: Flight) {
           inlineSelections: flight.inlineProcedureSelections,
           insertedWaypoints: flight.waypoints,
           trafficPattern: flight.trafficPattern,
+          arrivalToArp: flight.arrivalToArp,
           departurePattern,
           pointRestrictions: flight.pointRestrictions,
           waypointAltitudes: flight.waypointAltitudes,
@@ -280,6 +281,7 @@ export function usePlan(snapshot?: Flight) {
           ident: formatRoutePoint({ ...p, profileLabels: undefined }),
           lat: p.lat,
           lon: p.lon,
+          flyOver: p.flyOver,
           ...(p.patternId
             ? {
                 patternId: p.patternId,

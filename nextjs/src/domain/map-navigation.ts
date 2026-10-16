@@ -6,6 +6,7 @@ import {
   trackOffset,
 } from "./geo";
 import { type NavPoint } from "./progress";
+import { isOwnTraffic, type AircraftIdentity } from "./traffic-identity";
 
 export function positionAgeAlpha(ageMs: number) {
   return ageMs <= 60000 ? 1 : Math.max(0, 1 - (ageMs - 60000) / 60000);
@@ -214,13 +215,18 @@ export function trafficAlertLevel(
     trackDeg: number | null;
   } | null,
   target: {
+    hex?: string;
+    registration?: string | null;
+    callsign?: string | null;
     lat: number;
     lon: number;
     altitudeFt: number | null;
     speedKt: number | null;
     trackDeg: number | null;
   },
+  identity?: AircraftIdentity | null,
 ): "normal" | "red" | "amber" | "caution" {
+  if (isOwnTraffic(target, identity)) return "normal";
   if (
     own?.altitudeFt == null ||
     target.altitudeFt === null ||

@@ -35,6 +35,7 @@ import {
   trafficDestination,
   trafficHistory,
   trafficIdentifiers,
+  trafficAircraftIdentity,
 } from "./traffic-details";
 
 /**
@@ -268,6 +269,11 @@ export const api = {
     ),
   },
   traffic: {
+    aircraftIdentity: query(
+      "traffic.aircraftIdentity",
+      trafficAircraftIdentity,
+      live(24 * HOUR),
+    ),
     identifiers: query("traffic.identifiers", trafficIdentifiers, live(HOUR)),
     destination: query("traffic.destination", trafficDestination, live(HOUR)),
     history: query("traffic.history", trafficHistory, live(MINUTE)),

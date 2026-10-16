@@ -4,6 +4,7 @@ import { destinationPoint } from "~/domain/geo";
 import { mapLabelVisibility } from "~/domain/map-labels";
 import { projectedPosition, trafficAlertLevel } from "~/domain/map-navigation";
 import { type GpsFix } from "~/features/fly/use-gps";
+import type { AircraftIdentity } from "~/domain/traffic-identity";
 import type { DeckMap, DeckScene, Scene } from "./deck";
 import { trafficLabels } from "./deck/labels";
 import { toPaths } from "./deck/data";
@@ -21,6 +22,7 @@ export function useMapAnimation({
   trackUp,
   selectedHex,
   directRoute,
+  ownIdentity,
 }: {
   mapRef: RefObject<DeckMap | null>;
   sceneRef: RefObject<DeckScene | null>;
@@ -32,6 +34,7 @@ export function useMapAnimation({
   trackUp: boolean;
   selectedHex: string;
   directRoute: { lat: number; lon: number }[] | null;
+  ownIdentity: AircraftIdentity;
 }) {
   useEffect(() => {
     const map = mapRef.current,
@@ -96,10 +99,14 @@ export function useMapAnimation({
                 : null,
               {
                 ...position,
+                hex: a.hex,
+                registration: a.registration,
+                callsign: a.callsign,
                 altitudeFt: a.altitude_ft,
                 speedKt: a.ground_speed_kt,
                 trackDeg: a.track_deg,
               },
+              ownIdentity,
             );
             traffic.push({
               position: at,
@@ -246,5 +253,6 @@ export function useMapAnimation({
     trackUp,
     selectedHex,
     directRoute,
+    ownIdentity,
   ]);
 }

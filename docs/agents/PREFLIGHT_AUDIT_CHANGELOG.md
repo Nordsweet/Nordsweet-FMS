@@ -5,6 +5,37 @@ Reference: <https://nordsweet-performance-calculator.mrnordsweet.chatgpt.site/> 
 `5265bc5de9510aa3d83cc469860a730962b96c78`. Starting develop: `2f289ed6dc8d7b7c3186b100577c787c64df1de2`.
 Branch: `codex/preflight-parity-audit`.
 
+## Traffic pattern ARP endpoint (2026-10-16)
+
+- Arrival patterns now continue through the selected landing threshold to the airport ARP.
+  The threshold is flown over before the ARP segment, retaining the existing Final approach.
+- Removing an arrival pattern preserves the route to ARP. Once the aircraft is targeting the
+  pattern, removal creates DCT from current GPS/last recorded position (last route vertex fallback)
+  to ARP; remaining en-route waypoints stay intact while still inbound to them.
+- The planned ARP endpoint persists after removal, including when arrival procedure text still
+  supplies a runway threshold. Changing the destination resets that explicit endpoint choice.
+- Reload upgrades older threshold-only pattern endpoints without resetting flight progress;
+  a Direct-to ARP that intentionally skipped pattern vertices remains a Direct-to.
+
+## Own-aircraft traffic identification (2026-10-16)
+
+- Map/Fly resolves the flight registration (or the selected airframe profile registration) to a
+  Mode S address using the [aircraft database endpoint](https://www.adsbdb.com/). The collector
+  has no airframe-registration lookup endpoint; existing live traffic still comes from it.
+- Validate the database's echoed registration and six-digit Mode S address; reject mismatches
+  and placeholder addresses. Country separators in compact registrations are tried in a bounded
+  lookup. Results are cached with the app's normal query/offline cache for up to 24 hours.
+- Reuse the owner's previously confirmed SP-TDI / 48e9fa airframe record, which is absent from
+  the public database; the same record supplies the existing C172 type correction.
+- Own Mode S reports remain visible with a normal traffic icon and cannot trigger CPA alert
+  colouring. Other aircraft keep their existing alert thresholds, including the same aircraft type.
+- If database lookup fails or has no record, exact normalised traffic registration is used;
+  callsign is a fallback only when that traffic report has no registration. A known, different
+  Mode S address is never suppressed by a matching registration/callsign. Position proximity
+  alone never identifies ownship. Changing the flight registration uses a separate cache entry.
+- Tests cover lookup validation and errors, compact/profile/typed registrations, conflicting
+  identifiers, alert classification, rendered animation icons and switching registration in the UI.
+
 ## Departure circuits (2026-10-16)
 
 - Traffic Pattern at the departure airport offers Leave traffic pattern with the same five
