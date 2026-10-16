@@ -503,7 +503,9 @@ export const useInFlight = create<InFlight>()(
           oldOverhead &&
           p.route?.[0]?.patternId === departure?.id &&
           p.route[0].ident ===
-            `${departure.airport.ident} THR${departure.runway.designator}`;
+            `${departure.airport.ident} THR${departure.runway.designator}` &&
+          p.route[1]?.patternId === departure.id &&
+          p.route[1].ident === `TPD1/${departure.airport.ident}`;
         const patternPoints = new Map(
           [p.departurePattern, p.trafficPattern].flatMap((pattern) =>
             pattern

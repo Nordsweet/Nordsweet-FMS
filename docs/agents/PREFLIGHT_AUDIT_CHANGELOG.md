@@ -15,7 +15,8 @@ Branch: `codex/preflight-parity-audit`.
   returning over the runway does not introduce a descent or circuit altitude cap.
 - Saved plans recalculate; older active THR-to-ARP Overhead departures gain the full
   circuit without losing their active outbound target. Intentional Direct-to legs
-  that skipped the circuit remain unchanged. Arrival Overhead still uses the ARP.
+  that skipped the circuit and manually edited departure prefixes remain unchanged.
+  Arrival Overhead still uses the ARP.
 - Unit regressions cover both circuit directions, runway overflight before turning,
   climb/restrictions and old-flight migration. Browser coverage selects Overhead,
   checks all circuit legs, reloads and records the rendered route.

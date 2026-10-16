@@ -148,7 +148,7 @@ test.each(["left", "right"] as const)(
   },
 );
 
-test.each([0, 1, "direct"] as const)(
+test.each([0, 1, "direct", "edited"] as const)(
   "legacy Overhead departure upgrades its circuit while preserving progress (%s)",
   async (active) => {
     const p: TrafficPattern = {
@@ -171,6 +171,8 @@ test.each([0, 1, "direct"] as const)(
       oldOverhead,
       next,
     ];
+    if (active === "edited")
+      route.splice(1, 0, { ident: "MANUAL", lat: 50.1, lon: 20.1 });
     vi.stubGlobal("localStorage", {
       getItem: () =>
         JSON.stringify({
@@ -179,7 +181,7 @@ test.each([0, 1, "direct"] as const)(
             startedAt: "2026-10-16T00:00:00Z",
             departurePattern: p,
             route,
-            activeLeg: active === "direct" ? 0 : active,
+            activeLeg: typeof active === "number" ? active : 0,
           },
         }),
       setItem: vi.fn(),
@@ -188,7 +190,7 @@ test.each([0, 1, "direct"] as const)(
     vi.resetModules();
     const { useInFlight: reloaded } = await import("~/stores/inflight");
     const state = reloaded.getState();
-    if (active === "direct") {
+    if (typeof active !== "number") {
       expect(state.route).toEqual(route);
     } else {
       expect(state.route).toEqual(routeWithTrafficPattern([airport, next], p));
