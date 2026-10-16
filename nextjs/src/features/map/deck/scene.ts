@@ -82,6 +82,8 @@ export type Scene = {
   route: Path[];
   plannedRoute: Path[];
   patternPreview: Path[];
+  holding: Path[];
+  holdingPreview: Path[];
   directTo: Path[];
   gpsTrail: Path[];
   gpsVector: Path[];
@@ -128,6 +130,8 @@ export const emptyScene = (): Scene => ({
   route: [],
   plannedRoute: [],
   patternPreview: [],
+  holding: [],
+  holdingPreview: [],
   directTo: [],
   gpsTrail: [],
   gpsVector: [],
@@ -501,6 +505,10 @@ export function buildLayers(s: Scene, refresh: () => void): Layer[] {
       getDashArray: DASH,
     }),
     paths("pattern-preview", s.patternPreview, MAGENTA, 2.5, true, {
+      dash: true,
+    }),
+    paths("holding", s.holding, MAGENTA, 2, route, { round: true }),
+    paths("holding-preview", s.holdingPreview, MAGENTA, 2.5, true, {
       dash: true,
     }),
     new IconLayer<TrafficDatum>({

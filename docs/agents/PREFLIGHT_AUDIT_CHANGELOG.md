@@ -5,6 +5,34 @@ Reference: <https://nordsweet-performance-calculator.mrnordsweet.chatgpt.site/> 
 `5265bc5de9510aa3d83cc469860a730962b96c78`. Starting develop: `2f289ed6dc8d7b7c3186b100577c787c64df1de2`.
 Branch: `codex/preflight-parity-audit`.
 
+## Holding at a selected fix (2026-10-16)
+
+- Point/airport details include HOLD: fixed fix, level in ft AMSL, magnetic inbound
+  course, right/left turns and outbound minutes. Right turns are the default;
+  time defaults to 60 seconds through 14,000 ft and 90 seconds above it. The next
+  active fix suggests fresh GPS altitude; further fixes use their planned altitude.
+  Explicit time edits survive subsequent level edits.
+- Automatic direct/parallel/teardrop selection follows the mirrored 70/110/180-degree
+  sectors in [FAA AIM 5-3-8](https://www.faa.gov/air_traffic/publications/atpubs/aim_html/chap5_section_3.html).
+  Entry is recalculated from actual GPS arrival track at the fix. The dashed preview
+  and accepted magenta paths include sampled rate-one turns and tangent intercepts.
+  Map geometry is nominal still-air geometry at the configured TAS; this version
+  does not model wind drift or certify protected-airspace containment.
+- Accept adds an off-route fix at the existing minimum-added-distance insertion
+  position. An armed future hold retains intervening fixes. Active HOLD suspends
+  normal route sequencing, flies over the fix and provides guidance along its path.
+  Exit HOLD resumes at the following route fix; a hold at the destination resumes
+  toward that destination. Direct-to/diversion/end clear the active hold.
+- Its separate outbound countdown starts when the aircraft is moving, established
+  outbound and abeam/past the fix. Fix passage itself never starts the timer. Each
+  completed circuit re-arms it. Repeated, reversed and stale GPS timestamps cannot
+  restart it; saved runtime preserves the original start timestamp across reloads.
+  Existing flight and utility timers remain independent. Configuration is included
+  in saved flights and `.nord` files; older files default to no hold. EN/PL included.
+- Holding loops have no fixed circuit count, so their duration/fuel is not included
+  in the ordinary route trip estimate; destination ETA is hidden while holding.
+  FREDA uses the selected hold level. This is new functionality, not a legacy port.
+
 ## Draggable airport and waypoint details (2026-10-16)
 
 - Airport and point dialogs now use the existing traffic-dialog drag behavior:

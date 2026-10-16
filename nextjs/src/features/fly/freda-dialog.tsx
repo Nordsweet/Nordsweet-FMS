@@ -13,7 +13,7 @@ import {
 } from "~/components/ui/dialog";
 import { Input } from "~/components/ui/input";
 import { timerElapsed } from "~/domain/flight-timers";
-import { computeProgress } from "~/domain/progress";
+import { navigationProgress } from "~/domain/holding";
 import { fmt } from "~/features/plan/fields";
 import { usePlan } from "~/features/plan/use-plan";
 import { useT } from "~/i18n/use-t";
@@ -76,7 +76,13 @@ export function FredaDialog({ fix, now }: { fix: GpsFix | null; now: number }) {
 
   // Radio: the departure's after-departure frequency, near the arrival the destination's.
   const progress = fix
-    ? computeProgress(inFlight.route, fix, inFlight.activeLeg, turns)
+    ? navigationProgress(
+        inFlight.route,
+        fix,
+        inFlight.activeLeg,
+        turns,
+        inFlight.holding,
+      )
     : null;
   const nearArrival = inFlight.activeLeg >= inFlight.route.length - 2;
   const frequency = (icao: string | undefined, services: string[]) => {
@@ -95,7 +101,9 @@ export function FredaDialog({ fix, now }: { fix: GpsFix | null; now: number }) {
       ? new Date(now + (progress.distanceToNextNm / gs) * 3_600_000)
       : null;
   const plannedFt = progress
-    ? (plan?.pointAltitudeByKey[progress.next.ident] ?? flight.cruiseAltitudeFt)
+    ? (progress.next.altitudeFt ??
+      plan?.pointAltitudeByKey[progress.next.ident] ??
+      flight.cruiseAltitudeFt)
     : null;
 
   const close = () => {
