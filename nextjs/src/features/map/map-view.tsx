@@ -30,6 +30,7 @@ import {
   activeRouteWithTrafficPattern,
 } from "~/domain/traffic-pattern";
 import { flyByRoute } from "~/domain/fly-by";
+import { ownRegistration } from "~/domain/traffic-identity";
 import { useTurnPerformance } from "~/features/fly/use-turn-performance";
 import { TrafficPatternPopup } from "~/features/fly/traffic-pattern-popup";
 import { anchoredWaypoint } from "~/domain/waypoint-insertion";
@@ -152,7 +153,26 @@ export function MapView({
   );
   const flight = useFlight((s) => s.flight);
   const update = useFlight((s) => s.update);
-  const { route: plannedRoute, plan: routePlan, cruiseSpeedKt } = usePlan();
+  const {
+    route: plannedRoute,
+    plan: routePlan,
+    cruiseSpeedKt,
+    aircraft: ownAircraft,
+  } = usePlan();
+  const registration = ownRegistration(
+    flight.registration,
+    ownAircraft?.registration,
+  );
+  const identityQuery = useQuery({
+    ...api.traffic.aircraftIdentity.queryOptions({ registration }),
+    enabled: !!registration,
+    retry: false,
+  });
+  const ownHex = identityQuery.data?.hex ?? null;
+  const ownIdentity = useMemo(
+    () => ({ registration, hex: ownHex }),
+    [registration, ownHex],
+  );
   const settings = useMapSettings();
   const navigation = useInFlight();
   const { fix, error: gpsError } = useGps(
@@ -373,6 +393,7 @@ export function MapView({
     ready,
     aircraft: traffic.data?.aircraft,
     trafficEnabled: layers.traffic,
+    ownIdentity,
     fix,
     following: settings.following,
     trackUp: settings.trackUp,

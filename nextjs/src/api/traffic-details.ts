@@ -1,6 +1,72 @@
 import { z } from "zod";
 import { env } from "~/env";
 import { type TrafficSample } from "~/domain/traffic-history";
+import { normalizeRegistration } from "~/domain/aircraft";
+import { confirmedTrafficAircraft } from "~/domain/traffic-metadata";
+
+const identitySchema = z.object({
+  response: z.object({
+    aircraft: z.object({
+      registration: z.string().min(1),
+      mode_s: z
+        .string()
+        .regex(/^[a-f0-9]{6}$/i)
+        .refine((hex) => !["000000", "ffffff"].includes(hex.toLowerCase())),
+      icao_type: z.string().nullish(),
+    }),
+  }),
+});
+
+/** Look up an airframe, validating the echoed registration before accepting its Mode S address. */
+export async function trafficAircraftIdentity({
+  registration,
+}: {
+  registration: string;
+}) {
+  const input = registration.toUpperCase().replace(/\s/g, "");
+  if (
+    !/^[A-Z0-9+-]{3,12}$/.test(input) ||
+    normalizeRegistration(input).length < 3
+  )
+    return null;
+  const confirmed = confirmedTrafficAircraft.find(
+    (record) =>
+      normalizeRegistration(record.registration) ===
+      normalizeRegistration(input),
+  );
+  if (confirmed)
+    return {
+      registration: confirmed.registration,
+      hex: confirmed.hex,
+      icaoType: confirmed.type,
+    };
+  // The database requires country separators; compact registrations need bounded, verified variants.
+  const candidates = new Set([input]);
+  if (!/[-+]/.test(input) && !/^N\d/.test(input))
+    for (let at = 1; at <= Math.min(3, input.length - 2); at++)
+      candidates.add(input.slice(0, at) + "-" + input.slice(at));
+  for (const candidate of candidates) {
+    const response = await fetch(
+      `https://api.adsbdb.com/v0/aircraft/${encodeURIComponent(candidate)}`,
+      { signal: AbortSignal.timeout(5000) },
+    );
+    if (response.status === 404) continue;
+    if (!response.ok) throw new Error(`Aircraft identity: ${response.status}`);
+    const aircraft = identitySchema.parse(await response.json()).response
+      .aircraft;
+    if (
+      normalizeRegistration(aircraft.registration) !==
+      normalizeRegistration(input)
+    )
+      throw new Error("Aircraft registration mismatch");
+    return {
+      registration: aircraft.registration,
+      hex: aircraft.mode_s.toLowerCase(),
+      icaoType: aircraft.icao_type ?? null,
+    };
+  }
+  return null;
+}
 
 const routeSchema = z.object({
   response: z.object({
