@@ -445,18 +445,18 @@ export function buildLayers(s: Scene): Layer[] {
       sizeUnits: "pixels",
     }),
     text("airport-titles", s.airportTitles, halo, {
-      size: 10,
+      size: 13,
       weight: 700,
       offset: [10, -2],
     }),
     text("airport-details", s.airportDetails, halo, {
-      size: 8,
+      size: 11,
       weight: 600,
       offset: [10, 0],
       baseline: "top",
     }),
     text("point-names", s.pointNames, halo, {
-      size: 9,
+      size: 11,
       weight: 600,
       offset: [6, -4],
     }),
