@@ -1298,7 +1298,7 @@ export function MapView({
                   : click.kind
             }
             onClose={() => setClick(null)}
-            draggable={click.kind === "traffic"}
+            draggable={click.kind === "traffic" || click.kind === "point"}
             mapRef={mapRef}
             anchor={
               selectedAircraft

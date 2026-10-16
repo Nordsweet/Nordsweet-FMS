@@ -5,6 +5,14 @@ Reference: <https://nordsweet-performance-calculator.mrnordsweet.chatgpt.site/> 
 `5265bc5de9510aa3d83cc469860a730962b96c78`. Starting develop: `2f289ed6dc8d7b7c3186b100577c787c64df1de2`.
 Branch: `codex/preflight-parity-audit`.
 
+## Draggable airport and waypoint details (2026-10-16)
+
+- Airport and point dialogs now use the existing traffic-dialog drag behavior:
+  drag their Details header with a mouse or touch. Movement stays within map bounds;
+  body controls and Close retain their normal actions.
+- New selections start at their map anchor. Browser coverage moves an airport dialog
+  without panning the map, then moves a waypoint dialog and inserts that waypoint.
+
 ## Overhead departure after a full circuit (2026-10-16)
 
 - Departure Overhead now flies Crosswind, Downwind, Base and Final before returning
