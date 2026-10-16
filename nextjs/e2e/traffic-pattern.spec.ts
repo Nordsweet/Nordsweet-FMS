@@ -185,6 +185,40 @@ test("departure offers Leave, ignores circuit altitude, and coexists with the ar
   expect((await saved()).trafficPattern?.airport.ident).toBe("EPNT");
 });
 
+test("Overhead departure completes the circuit before runway overflight and survives reload", async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(60000);
+  await mocks(page);
+  await page.goto("/map");
+  const panel = await open(page, "EPKK");
+  await choose(page, "Runway", "RWY 25");
+  await choose(page, "Pattern direction", "Right");
+  await choose(page, "Leave traffic pattern", "Overhead");
+  await expect(page.getByTestId("turn-constraint")).toHaveCount(0);
+  await panel
+    .getByRole("button", { name: "Accept traffic pattern", exact: true })
+    .click();
+  await expect(page.getByTestId("turn-constraint")).toHaveCount(0);
+  for (const leg of [
+    "TPD1/EPKK",
+    "TPD2/EPKK",
+    "TPD3/EPKK",
+    "TPD4/EPKK",
+    "TPD5/EPKK",
+  ])
+    await expect(page.getByText(leg, { exact: true })).toBeVisible();
+  for (let i = 0; i < 8; i++)
+    await page.getByRole("button", { name: "Zoom in", exact: true }).click();
+  await page.getByRole("button", { name: "Layers", exact: true }).click();
+  await page.screenshot({
+    path: testInfo.outputPath("overhead-full-circuit.png"),
+  });
+  await page.reload();
+  await expect(page.getByText("TPD5/EPKK", { exact: true })).toBeVisible();
+  await expect(page.getByTestId("turn-constraint")).toHaveCount(0);
+});
+
 test("automatic departure circuit follows Take-off then Taxi-out runway selections", async ({
   page,
 }) => {

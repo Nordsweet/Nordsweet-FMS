@@ -486,6 +486,26 @@ export const useInFlight = create<InFlight>()(
         const departureGeometry = departure
           ? trafficPatternGeometry(departure, p.route?.[departureEnd + 1])
           : null;
+        const oldOverhead =
+          departure?.operation === "leave" &&
+          departure.join === "overhead" &&
+          p.route?.some(
+            (point) =>
+              point.patternId === departure.id &&
+              point.ident === `TPD1/${departure.airport.ident}`,
+          ) &&
+          !p.route.some(
+            (point) =>
+              point.patternId === departure.id &&
+              point.ident === `TPD2/${departure.airport.ident}`,
+          );
+        const upgradeOverhead =
+          oldOverhead &&
+          p.route?.[0]?.patternId === departure?.id &&
+          p.route[0].ident ===
+            `${departure.airport.ident} THR${departure.runway.designator}` &&
+          p.route[1]?.patternId === departure.id &&
+          p.route[1].ident === `TPD1/${departure.airport.ident}`;
         const patternPoints = new Map(
           [p.departurePattern, p.trafficPattern].flatMap((pattern) =>
             pattern
@@ -498,6 +518,11 @@ export const useInFlight = create<InFlight>()(
         );
         let route =
           p.route?.map((point) =>
+            !(
+              oldOverhead &&
+              !upgradeOverhead &&
+              point.patternId === departure?.id
+            ) &&
             (point.patternId === p.trafficPattern?.id ||
               point.patternId === p.departurePattern?.id) &&
             patternPoints.has(point.ident)
@@ -505,6 +530,10 @@ export const useInFlight = create<InFlight>()(
               : point,
           ) ?? current.route;
         const target = p.route?.[(p.activeLeg ?? 0) + 1];
+        // Old Overhead departures contained only THR → ARP. Upgrade the complete
+        // departure prefix, preserving any Direct-to that intentionally skipped it.
+        if (upgradeOverhead && departureGeometry)
+          route.splice(0, 2, ...departureGeometry.points);
         if (departure && departureGeometry) {
           const canonicalExit =
             trafficPatternGeometry(departure).points.at(-1)!;

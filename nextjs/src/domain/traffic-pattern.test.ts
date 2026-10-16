@@ -93,6 +93,116 @@ const middle = (
 const original = useInFlight.getState();
 
 test.each(["left", "right"] as const)(
+  "%s Overhead departure completes all four circuit turns before flying over the runway",
+  (direction) => {
+    const epkk = airportSchema.parse(airports.find((a) => a.ident === "EPKK"));
+    const runway = epkk.runways.find((r) => r.designator === "25")!;
+    const p: TrafficPattern = {
+      ...pattern,
+      airport: epkk,
+      runway: { ...runway, ...patternRunwayGeometry(epkk, runway)! },
+      direction,
+      operation: "leave",
+      join: "overhead",
+      turnPerformance: { tasKt: 100 },
+    };
+    const next = { ident: "OUTBOUND", ...destinationPoint(epkk, 180, 5) };
+    const g = trafficPatternGeometry(p);
+    expect(g.points.slice(1).map((point) => [point.lat, point.lon])).toEqual(
+      ["crosswind", "downwind", "base", "final", "overhead"].map((leg) => {
+        const point = g.positions[leg as keyof typeof g.positions];
+        return [point.lat, point.lon];
+      }),
+    );
+    const overhead = g.points.at(-1)!;
+    expect(overhead.flyOver).toBe(true);
+    expect(distanceNm(overhead, p.runway.threshold)).toBeCloseTo(
+      distanceNm(p.runway.threshold, p.runway.departureEnd) / 2,
+      8,
+    );
+    expect(
+      Math.abs(
+        trackOffset(p.runway.threshold, p.runway.departureEnd, overhead)
+          .crossTrackNm,
+      ),
+    ).toBeLessThan(0.000001);
+    expect(
+      g.points.slice(1).every((point) => point.altitudeFt === undefined),
+    ).toBe(true);
+    const route = routeWithTrafficPattern([epkk, next], p);
+    const path = flyByRoute(route, { tasKt: 150 });
+    expect(path.issues).toEqual([]);
+    for (const index of [1, 2, 3, 4]) expect(path.turns.has(index)).toBe(true);
+    expect(path.turns.has(5)).toBe(false);
+    expect(
+      path.points.some((point) => distanceNm(point, overhead) < 0.000001),
+    ).toBe(true);
+    expect(
+      trackOffset(
+        overhead,
+        g.positions.crosswind,
+        path.turns.get(6)!.points[0]!,
+      ).alongTrackNm,
+    ).toBeGreaterThan(0);
+    expect(route.at(-1)).toEqual(next);
+  },
+);
+
+test.each([0, 1, "direct", "edited"] as const)(
+  "legacy Overhead departure upgrades its circuit while preserving progress (%s)",
+  async (active) => {
+    const p: TrafficPattern = {
+      ...pattern,
+      operation: "leave",
+      join: "overhead",
+    };
+    const next = { ident: "NEXT", lat: 51, lon: 21 };
+    const oldOverhead = {
+      ...p.airport,
+      ident: `TPD1/${p.airport.ident}`,
+      patternId: p.id,
+      patternOperation: "leave" as const,
+      turnPerformance: p.turnPerformance,
+    };
+    const route = [
+      active === "direct"
+        ? { ident: "DCT", lat: 50.1, lon: 20.1 }
+        : trafficPatternGeometry(p).points[0]!,
+      oldOverhead,
+      next,
+    ];
+    if (active === "edited")
+      route.splice(1, 0, { ident: "MANUAL", lat: 50.1, lon: 20.1 });
+    vi.stubGlobal("localStorage", {
+      getItem: () =>
+        JSON.stringify({
+          version: 1,
+          state: {
+            startedAt: "2026-10-16T00:00:00Z",
+            departurePattern: p,
+            route,
+            activeLeg: typeof active === "number" ? active : 0,
+          },
+        }),
+      setItem: vi.fn(),
+      removeItem: vi.fn(),
+    });
+    vi.resetModules();
+    const { useInFlight: reloaded } = await import("~/stores/inflight");
+    const state = reloaded.getState();
+    if (typeof active !== "number") {
+      expect(state.route).toEqual(route);
+    } else {
+      expect(state.route).toEqual(routeWithTrafficPattern([airport, next], p));
+      expect(state.route[state.activeLeg + 1]?.ident).toBe(
+        active === 0 ? `TPD1/${airport.ident}` : next.ident,
+      );
+      expect(flyByRoute(state.route, { tasKt: 100 }).issues).toEqual([]);
+    }
+  },
+);
+
+test.each(["left", "right"] as const)(
   "EPKK RW25 %s downwind exit stays smooth toward a fix south of the airport",
   (direction) => {
     const epkk = airportSchema.parse(airports.find((a) => a.ident === "EPKK"));
@@ -467,13 +577,18 @@ test.each(["overhead", "crosswind", "downwind", "base", "final"] as const)(
   },
 );
 
-test.each([null, 1800])(
-  "departure climbs through the circuit toward the next restriction (%s) or cruise",
-  (limit) => {
+test.each([
+  ["base", null],
+  ["base", 1800],
+  ["overhead", null],
+  ["overhead", 1800],
+] as const)(
+  "departure via %s climbs toward the next restriction (%s) or cruise",
+  (join, limit) => {
     const departure = {
       ...pattern,
       operation: "leave" as const,
-      join: "base" as const,
+      join,
     };
     const destination = { ...airport, ident: "EPBB", lat: 51 };
     const plan = buildRoutePlan(
@@ -512,6 +627,10 @@ test.each([null, 1800])(
     expect(lastAltitude).toBeGreaterThan(1500);
     expect(lastAltitude).toBeLessThanOrEqual(limit ?? 6000);
     expect(circuit.every((p) => p.patternAltitudeFt === undefined)).toBe(true);
+    if (join === "overhead")
+      expect(
+        circuit.find((point) => point.id === `TPD5/${airport.ident}`)?.flyOver,
+      ).toBe(true);
     const flight = { ...newFlight(), departurePattern: departure };
     expect(
       parseNordFile(toNordFile(flight, null), []).flight.departurePattern,
