@@ -54,7 +54,10 @@ export function patternRunwayGeometry(airport: Airport, runway: Runway) {
 }
 
 /** Keep a minimum 0.75 NM lateral offset and widen until adjacent rate-one arcs fit. */
-export function trafficPatternGeometry(pattern: TrafficPattern) {
+export function trafficPatternGeometry(
+  pattern: TrafficPattern,
+  outbound?: LatLon,
+) {
   const turnPerformance =
     pattern.turnPerformance ??
     patternPlanningPerformance(
@@ -148,6 +151,23 @@ export function trafficPatternGeometry(pattern: TrafficPattern) {
         turnPerformance,
       })),
     ];
+    if (outbound && pattern.join !== "overhead") {
+      const nextLeg = {
+        crosswind: downwind,
+        downwind: base,
+        base: final,
+        final: pattern.runway.threshold,
+      };
+      points.push(
+        ...departureExitGuides(
+          points,
+          nextLeg[pattern.join],
+          outbound,
+          pattern,
+          turnPerformance,
+        ),
+      );
+    }
     return {
       points,
       positions,
@@ -186,6 +206,60 @@ export function trafficPatternGeometry(pattern: TrafficPattern) {
   return { points, positions, finalDistance, lateralOffsetNm, turnPerformance };
 }
 
+/** Establish the selected leg's track before turning outbound; never squeeze rate-one arcs. */
+function departureExitGuides(
+  points: NavPoint[],
+  legEnd: LatLon,
+  outbound: LatLon,
+  pattern: TrafficPattern,
+  performance: TurnPerformance,
+): NavPoint[] {
+  const start = points.at(-1)!;
+  const heading = initialBearingDeg(start, legEnd);
+  if (
+    Math.abs(angleDiffDeg(heading, initialBearingDeg(start, outbound))) < 1 &&
+    flyByRoute([...points, outbound], performance).issues.length === 0
+  )
+    return [];
+  const radius = performance.tasKt / (60 * Math.PI);
+  const maxLength = Math.max(2, distanceNm(start, outbound) + 4 * radius);
+  const guide = (position: LatLon, index: number): NavPoint => ({
+    ...position,
+    ident: `TPX${index}/${pattern.airport.ident}`,
+    patternId: pattern.id,
+    patternOperation: "leave",
+    turnPerformance: performance,
+  });
+  // A straight lead suffices for most exits. A dogleg also supports an outbound
+  // fix behind the selected leg without asking the fly-by solver for a reversal.
+  for (const dogleg of [false, true]) {
+    for (
+      let length = Math.max(0.05, 2 * radius + 0.01);
+      length <= maxLength;
+      length *= 1.2
+    ) {
+      const first = guide(destinationPoint(start, heading, length), 1);
+      const guides = dogleg
+        ? [
+            first,
+            guide(
+              destinationPoint(
+                first,
+                heading + (pattern.direction === "left" ? -90 : 90),
+                length,
+              ),
+              2,
+            ),
+          ]
+        : [first];
+      const path = flyByRoute([...points, ...guides, outbound], performance);
+      if (path.issues.length === 0) return guides;
+    }
+  }
+  // Preserve the solver's existing warning when wind/geometry has no feasible transition.
+  return [];
+}
+
 /** Replace the destination arrival with the selected pattern, retaining the preceding route. */
 export function routeWithTrafficPattern(
   route: NavPoint[],
@@ -202,9 +276,10 @@ export function routeWithTrafficPattern(
         p.ident.startsWith(pattern.airport.ident + " THR"),
     );
     // Replacing a departure must retain both the outbound fixes and any arrival pattern.
+    const outbound = clean.slice(start >= 0 ? start + 1 : 0);
     return [
-      ...trafficPatternGeometry(pattern).points,
-      ...clean.slice(start >= 0 ? start + 1 : 0),
+      ...trafficPatternGeometry(pattern, outbound[0]).points,
+      ...outbound,
     ];
   }
   const reverseIndex = [...clean]
