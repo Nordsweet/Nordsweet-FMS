@@ -5,6 +5,18 @@ Reference: <https://nordsweet-performance-calculator.mrnordsweet.chatgpt.site/> 
 `5265bc5de9510aa3d83cc469860a730962b96c78`. Starting develop: `2f289ed6dc8d7b7c3186b100577c787c64df1de2`.
 Branch: `codex/preflight-parity-audit`.
 
+## Traffic pattern runway centreline (2026-10-16)
+
+- Departure and Final geometry now use the geographic axis between runway thresholds,
+  including previously saved patterns. EPKK RW25 metadata says 252 degrees while its
+  threshold pair defines approximately 257.68 degrees; mixing them offset the departure line.
+- Extend the line from the take-off threshold through the opposite threshold, then 2 NM
+  further along the same great circle. Rate-one turns remain beyond the runway.
+- Keep the stored heading as a fallback for coincident thresholds. No runway reference
+  data, runway selection, pattern dimensions or ARP endpoint behavior changed.
+- Regression checks cover EPKK RW25 and RW07, the smoothed departure segment, Final,
+  the 2 NM extension and the degenerate-threshold fallback.
+
 ## Traffic pattern ARP endpoint (2026-10-16)
 
 - Arrival patterns now continue through the selected landing threshold to the airport ARP.
