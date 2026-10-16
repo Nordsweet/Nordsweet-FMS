@@ -421,11 +421,14 @@ export function MapView({
       mapRef.current = map;
       sceneRef.current = scene;
       const syncZoom = () => {
+        // A quarter-step change rebuilds every layer: wait until the pinch/inertia is over.
+        if (map.interacting) return;
         const zoom = Math.round(map.getZoom() * 4) / 4;
         if (zoom !== scene.state.zoom) scene.set({ zoom });
       };
       syncZoom();
       map.on("move", syncZoom);
+      map.on("moveend", syncZoom);
       markers.current = new MarkerLayer(map, root);
       map.on("dragstart", () => useMapSettings.getState().follow(false));
       let lastCursorUpdate = 0;

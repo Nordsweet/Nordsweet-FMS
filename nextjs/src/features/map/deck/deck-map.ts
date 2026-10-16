@@ -54,6 +54,8 @@ export class DeckMap {
   private readonly observer: ResizeObserver;
   private settle = 0;
   private pressed: Point | null = null;
+  /** True while a gesture or its inertia is running. */
+  interacting = false;
   private fitted: { bounds: Bounds; padding: number } | null;
 
   constructor(
@@ -87,6 +89,14 @@ export class DeckMap {
         isDragging ? "grabbing" : isHovering ? "pointer" : "grab",
       onViewStateChange: ({ viewState }) => this.setView(viewState),
       onInteractionStateChange: (state) => {
+        const was = this.interacting;
+        this.interacting = [
+          state.isDragging,
+          state.isZooming,
+          state.isRotating,
+          state.inTransition,
+        ].some(Boolean);
+        if (was && !this.interacting) this.emit("moveend", undefined);
         if (state.isDragging) this.emit("dragstart", undefined);
       },
       onHover: (info) => {
