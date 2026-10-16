@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { trafficPatternSchema } from "./traffic-pattern";
+import { holdingSchema } from "./holding";
 
 export const pointRestrictionSchema = z.object({
   speedKt: z.number().positive().nullable().default(null),
@@ -47,6 +48,7 @@ export const flightSchema = z.object({
   /** Map points: explicit before/after anchors, or nearest leg for older saved points. */
   waypoints: z.array(point),
   trafficPattern: trafficPatternSchema.nullable().default(null),
+  holding: holdingSchema.nullable().default(null),
   /** Explicit airport-centre endpoint retained when an arrival pattern is removed. */
   arrivalToArp: z.boolean().default(false),
   departurePattern: trafficPatternSchema.nullable().default(null),
@@ -147,6 +149,7 @@ export function newFlight(): Flight {
     alternate: null,
     waypoints: [],
     trafficPattern: null,
+    holding: null,
     arrivalToArp: false,
     departurePattern: null,
     departureRunway: null,

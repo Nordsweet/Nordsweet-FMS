@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { api } from "~/api";
 import { distanceNm } from "~/domain/geo";
-import { computeProgress } from "~/domain/progress";
+import { navigationProgress } from "~/domain/holding";
 import { useFlight } from "~/stores/flight";
 import { useInFlight } from "~/stores/inflight";
 import { useMapSettings } from "~/stores/map";
@@ -41,11 +41,14 @@ export function FlightRuntime() {
     observeGps(fix);
     if (!flight.startedAt) return;
     flight.observePattern(fix, turns);
-    const progress = computeProgress(
-      flight.route,
+    flight.observeHolding(fix, Date.now());
+    const current = useInFlight.getState();
+    const progress = navigationProgress(
+      current.route,
       fix,
-      flight.activeLeg,
+      current.activeLeg,
       turns,
+      current.holding,
     );
     if (progress && progress.activeLeg !== flight.activeLeg)
       setActiveLeg(progress.activeLeg);

@@ -3,8 +3,10 @@ import { type Language } from "~/stores/settings";
 import { atisConsensusEn, atisConsensusPl } from "./atis-consensus";
 import { aircraftEditorEn, aircraftEditorPl } from "./aircraft-editor";
 import { mapToolsEn, mapToolsPl } from "./map-tools";
+import { holdingEn, holdingPl } from "./holding";
 
 const pl = {
+  ...holdingPl,
   ...trafficPatternPl,
   ...atisConsensusPl,
   ...mapToolsPl,
@@ -814,6 +816,7 @@ const pl = {
 export type MessageKey = keyof typeof pl;
 
 const en: Record<MessageKey, string> = {
+  ...holdingEn,
   ...trafficPatternEn,
   ...atisConsensusEn,
   ...mapToolsEn,

@@ -1,5 +1,7 @@
 import { type TrafficPattern } from "~/data/traffic-pattern";
 import { TrafficPatternPanel } from "./traffic-pattern-panel";
+import { HoldingPanel } from "./holding-panel";
+import { type Holding } from "~/data/holding";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "~/api";
@@ -37,12 +39,18 @@ export function PointDetails({
   previewPattern,
   acceptPattern,
   removePattern,
+  previewHolding,
+  acceptHolding,
+  removeHolding,
 }: {
   point: FlightPoint & { name: string; kind: string };
   now: number;
   previewPattern: (pattern: TrafficPattern | null) => void;
   acceptPattern: (pattern: TrafficPattern) => void;
   removePattern: () => void;
+  previewHolding: (holding: Holding | null) => void;
+  acceptHolding: (holding: Holding) => void;
+  removeHolding: () => void;
   addPoint: (
     point: FlightPoint,
     as: "departure" | "destination" | "waypoint",
@@ -77,7 +85,7 @@ export function PointDetails({
     restriction?.altitudeMode ?? "at",
   );
   const [mode, setMode] = useState<
-    "restriction" | "weather" | "notams" | "charts" | "pattern" | null
+    "restriction" | "weather" | "notams" | "charts" | "pattern" | "hold" | null
   >(null);
   const airportCode =
     routePoint?.airportIcao ?? (point.kind === "airport" ? point.ident : "");
@@ -114,6 +122,14 @@ export function PointDetails({
         {point.lat.toFixed(5)}, {point.lon.toFixed(5)}
       </span>
       <div className="flex flex-wrap gap-2">
+        <Button
+          size="sm"
+          variant="outline"
+          aria-expanded={mode === "hold"}
+          onClick={() => setMode(mode === "hold" ? null : "hold")}
+        >
+          {t("holding.title")}
+        </Button>
         {navigation.startedAt && (
           <Button
             size="sm"
@@ -216,6 +232,16 @@ export function PointDetails({
             </Button>
           ))}
       </div>
+      {mode === "hold" && (
+        <HoldingPanel
+          point={point}
+          now={now}
+          preview={previewHolding}
+          accept={acceptHolding}
+          remove={removeHolding}
+          cancel={() => setMode(null)}
+        />
+      )}
       {mode === "pattern" && airportRecord && (
         <TrafficPatternPanel
           airport={airportRecord}

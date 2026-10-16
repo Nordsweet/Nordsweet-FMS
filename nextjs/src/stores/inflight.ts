@@ -35,6 +35,14 @@ import {
 } from "~/domain/traffic-pattern";
 import { type TrackPoint } from "~/domain/track";
 import { type TurnPerformance } from "~/domain/fly-by";
+import { holdingRuntimeSchema, type Holding } from "~/data/holding";
+import {
+  armHolding,
+  observeHolding,
+  holdingFixIndex,
+  type HoldFix,
+  type HoldingRuntime,
+} from "~/domain/holding";
 
 /** Record a track point at most this often (5 s) unless the aircraft has not moved. */
 const TRACK_INTERVAL_MS = 5000;
@@ -64,6 +72,10 @@ const DEFAULT_CONFIG: FlightConfig = {
 };
 
 type InFlight = {
+  holding: HoldingRuntime | null;
+  setHolding: (config: Holding | null) => void;
+  observeHolding: (fix: HoldFix, now: number) => void;
+  exitHolding: (position: LatLon | null) => void;
   /** null when no flight is in progress. */
   startedAt: string | null;
   /** Airport selected with Divert, retained across direct-to fixes and reloads. */
@@ -144,6 +156,39 @@ export const useInFlight = create<InFlight>()(
   persist(
     (set, get) => ({
       startedAt: null,
+      holding: null,
+      setHolding: (config) =>
+        set({ holding: config ? armHolding(config) : null }),
+      observeHolding: (fix, now) =>
+        set((s) => {
+          if (!s.holding || !s.startedAt) return s;
+          const index = holdingFixIndex(s.route, s.holding.config, s.activeLeg);
+          if (index < 0) return { holding: null };
+          return {
+            holding: observeHolding(
+              s.holding,
+              fix,
+              index === s.activeLeg + 1,
+              now,
+            ),
+          };
+        }),
+      exitHolding: (position) =>
+        set((s) => {
+          if (!s.holding || s.holding.phase === "armed")
+            return { holding: null };
+          const index = holdingFixIndex(s.route, s.holding.config, s.activeLeg);
+          const remaining = s.route.slice(
+            index >= 0 ? index + 1 : s.activeLeg + 1,
+          );
+          if (!remaining.length) remaining.push(s.holding.config.fix);
+          const from = position ?? s.track.at(-1) ?? s.holding.config.fix;
+          return {
+            holding: null,
+            route: [{ ...from, ident: "DCT" }, ...remaining],
+            activeLeg: 0,
+          };
+        }),
       divertAirport: null,
       route: [],
       trafficPattern: null,
@@ -373,6 +418,7 @@ export const useInFlight = create<InFlight>()(
         const now = new Date().toISOString();
         set({
           startedAt: now,
+          holding: null,
           trafficPattern,
           departurePattern,
           patternReports: [],
@@ -390,6 +436,7 @@ export const useInFlight = create<InFlight>()(
       },
       end: () =>
         set({
+          holding: null,
           startedAt: null,
           departurePattern: null,
           divertAirport: null,
@@ -400,6 +447,7 @@ export const useInFlight = create<InFlight>()(
       setActiveLeg: (activeLeg) => set({ activeLeg }),
       goDirect: (targetIndex, position) =>
         set((s) => ({
+          holding: null,
           route: directTo(s.route, position, targetIndex),
           activeLeg: 0,
         })),
@@ -418,10 +466,12 @@ export const useInFlight = create<InFlight>()(
               Math.max(0, index),
             ),
             activeLeg: 0,
+            holding: null,
           };
         }),
       divertTo: (airport, position) =>
         set({
+          holding: null,
           departurePattern: null,
           route: directTo([airport], position, 0),
           divertAirport: airport.ident,
@@ -454,6 +504,7 @@ export const useInFlight = create<InFlight>()(
         }),
       resumeRoute: (route, position, performance) =>
         set({
+          holding: null,
           route,
           divertAirport: null,
           activeLeg:
@@ -477,6 +528,10 @@ export const useInFlight = create<InFlight>()(
       // Flights saved by an older release lack newer timer and CONFIG fields.
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<InFlight>;
+        if (p.holding) {
+          const holding = holdingRuntimeSchema.safeParse(p.holding);
+          p.holding = holding.success ? holding.data : null;
+        }
         const departure = p.departurePattern;
         const departureEnd = departure
           ? (p.route
@@ -620,6 +675,7 @@ export const useInFlight = create<InFlight>()(
         };
       },
       partialize: ({
+        holding,
         startedAt,
         trafficPattern,
         departurePattern,
@@ -635,6 +691,7 @@ export const useInFlight = create<InFlight>()(
         config,
         timers,
       }) => ({
+        holding,
         startedAt,
         trafficPattern,
         departurePattern,

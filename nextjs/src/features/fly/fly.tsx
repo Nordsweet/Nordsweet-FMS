@@ -19,7 +19,7 @@ import {
   checklistFlaps,
 } from "~/domain/flight-phase";
 import { magneticVariationDeg, trueToMagneticDeg } from "~/domain/magnetic";
-import { computeProgress } from "~/domain/progress";
+import { navigationProgress } from "~/domain/holding";
 import { type TrackPoint, summarizeTrack, toGpx } from "~/domain/track";
 import { ChecklistsPage } from "~/features/checklists/checklists";
 import { fmt, fmtMinutes } from "~/features/plan/fields";
@@ -131,7 +131,13 @@ export function FlyPage() {
 
   const progress =
     flying && fix
-      ? computeProgress(inFlight.route, fix, inFlight.activeLeg, turns)
+      ? navigationProgress(
+          inFlight.route,
+          fix,
+          inFlight.activeLeg,
+          turns,
+          inFlight.holding,
+        )
       : null;
   const variation = fix ? magneticVariationDeg(fix) : 0;
   const mag = (trueDeg: number | null) =>
@@ -140,9 +146,12 @@ export function FlyPage() {
   const minutesFor = (nm: number) =>
     gs !== null && gs > 5 ? (nm / gs) * 60 : null;
   const eteNext = progress ? minutesFor(progress.distanceToNextNm) : null;
-  const eteDest = progress
-    ? minutesFor(progress.distanceToDestinationNm)
-    : null;
+  const holdingActive =
+    !!inFlight.holding && inFlight.holding.phase !== "armed";
+  const eteDest =
+    progress && !holdingActive
+      ? minutesFor(progress.distanceToDestinationNm)
+      : null;
   const fredaDue = inFlight.fredaDueAt !== null && now >= inFlight.fredaDueAt;
   const fredaIn =
     inFlight.fredaDueAt !== null
@@ -204,7 +213,9 @@ export function FlyPage() {
         <Tile
           label={`${t("fly.destination")} ${inFlight.route.at(-1)?.ident ?? ""}`}
           value={
-            progress ? `${fmt(progress.distanceToDestinationNm, 1)} NM` : "—"
+            progress && !holdingActive
+              ? `${fmt(progress.distanceToDestinationNm, 1)} NM`
+              : "—"
           }
         />
         <Tile label={t("fly.ete")} value={fmtMinutes(eteDest)} />
@@ -348,6 +359,7 @@ export function FlyPage() {
                   flight.trafficPattern,
                   departurePattern,
                 );
+                inFlight.setHolding(flight.holding);
                 setPhase("taxiout");
                 setDebrief(false);
               }}
