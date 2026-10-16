@@ -1,7 +1,13 @@
 import { type TrafficPattern } from "~/data/traffic-pattern";
 import { type Airport, type Runway } from "~/data/schemas";
 import { type NavPoint } from "./progress";
-import { destinationPoint, distanceNm, trackOffset, type LatLon } from "./geo";
+import {
+  destinationPoint,
+  distanceNm,
+  initialBearingDeg,
+  trackOffset,
+  type LatLon,
+} from "./geo";
 import { angleDiffDeg } from "./angles";
 import { flyByRoute, type TurnPerformance } from "./fly-by";
 import { patternPlanningPerformance } from "./pattern-performance";
@@ -57,9 +63,24 @@ export function trafficPatternGeometry(pattern: TrafficPattern) {
       pattern.altitudeAalFt,
       null,
     );
-  const h = pattern.runway.trueHeadingDeg;
+  const runwayLengthNm = distanceNm(
+    pattern.runway.threshold,
+    pattern.runway.departureEnd,
+  );
+  // Stored headings can disagree with published thresholds. Derive the axis here too
+  // so persisted patterns use the same centreline as newly selected runways.
+  const h =
+    runwayLengthNm > 0.000001
+      ? initialBearingDeg(pattern.runway.threshold, pattern.runway.departureEnd)
+      : pattern.runway.trueHeadingDeg;
   const side = h + (pattern.direction === "left" ? -90 : 90);
-  const crosswind = destinationPoint(pattern.runway.departureEnd, h, 2);
+  // Extend from the first threshold: restarting at the opposite end with the
+  // initial bearing would introduce another error from course convergence.
+  const crosswind = destinationPoint(
+    pattern.runway.threshold,
+    h,
+    runwayLengthNm + 2,
+  );
   const standardFinal = destinationPoint(pattern.runway.threshold, h + 180, 2);
   let lateralOffsetNm = 0.75;
   // Solve using the actual tangent budgets, including wind and geodesic course convergence.

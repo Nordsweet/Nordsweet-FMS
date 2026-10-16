@@ -1,4 +1,5 @@
 import { afterEach, expect, test, vi } from "vitest";
+import airports from "../../public/data/airports.json";
 import { airportSchema } from "~/data/schemas";
 import {
   trafficPatternSchema,
@@ -15,7 +16,7 @@ import {
   activeRouteWithTrafficPattern,
 } from "./traffic-pattern";
 import { patternRunwaySuggestion } from "./traffic-pattern-runway";
-import { distanceNm, destinationPoint } from "./geo";
+import { distanceNm, destinationPoint, trackOffset } from "./geo";
 import { buildRoutePlan, pointKey } from "./route-plan";
 import { computeProgress } from "./progress";
 import { useInFlight } from "~/stores/inflight";
@@ -90,6 +91,62 @@ const middle = (
   lon: a.lon + (b.lon - a.lon) * fraction,
 });
 const original = useInFlight.getState();
+
+test.each(["25", "07"])(
+  "EPKK RW%s departure and Final follow the threshold axis despite stored headings",
+  (designator) => {
+    const epkk = airportSchema.parse(airports.find((a) => a.ident === "EPKK"));
+    const runway = epkk.runways.find((r) => r.designator === designator)!;
+    const geometry = patternRunwayGeometry(epkk, runway)!;
+    // Parsing also exercises the persisted pattern shape with its original heading.
+    const saved = trafficPatternSchema.parse({
+      ...pattern,
+      airport: epkk,
+      runway: { ...runway, ...geometry },
+      operation: "leave",
+      join: "downwind",
+      turnPerformance: { tasKt: 100 },
+    });
+    const g = trafficPatternGeometry(saved);
+    const { threshold, departureEnd } = geometry;
+    expect(
+      Math.abs(
+        trackOffset(threshold, g.positions.crosswind, departureEnd)
+          .crossTrackNm,
+      ),
+    ).toBeLessThan(0.000001);
+    expect(distanceNm(departureEnd, g.positions.crosswind)).toBeCloseTo(2, 8);
+    expect(
+      Math.abs(
+        trackOffset(threshold, departureEnd, g.positions.final).crossTrackNm,
+      ),
+    ).toBeLessThan(0.000001);
+    expect(
+      trackOffset(threshold, departureEnd, g.positions.final).alongTrackNm,
+    ).toBeCloseTo(-2, 7);
+    // Rate-one smoothing must keep the initial straight on the runway axis and
+    // start its first turn beyond the opposite threshold.
+    const path = flyByRoute(g.points, { tasKt: 100 });
+    const firstTurn = path.turns.get(1)!;
+    expect(firstTurn).toBeDefined();
+    const entry = firstTurn.points[0]!;
+    const offset = trackOffset(threshold, departureEnd, entry);
+    expect(Math.abs(offset.crossTrackNm)).toBeLessThan(0.0005);
+    expect(offset.alongTrackNm).toBeGreaterThan(
+      distanceNm(threshold, departureEnd),
+    );
+  },
+);
+
+test("a degenerate threshold pair retains the stored heading fallback", () => {
+  const g = trafficPatternGeometry({
+    ...pattern,
+    runway: { ...pattern.runway, departureEnd: threshold },
+  });
+  expect(
+    distanceNm(g.positions.crosswind, destinationPoint(threshold, 90, 2)),
+  ).toBeLessThan(0.000001);
+});
 
 test.each(["overhead", "crosswind", "downwind", "base", "final"] as const)(
   "%s arrival continues through the threshold to an off-axis ARP",
