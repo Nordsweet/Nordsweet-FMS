@@ -5,6 +5,21 @@ Reference: <https://nordsweet-performance-calculator.mrnordsweet.chatgpt.site/> 
 `5265bc5de9510aa3d83cc469860a730962b96c78`. Starting develop: `2f289ed6dc8d7b7c3186b100577c787c64df1de2`.
 Branch: `codex/preflight-parity-audit`.
 
+## Overhead departure after a full circuit (2026-10-16)
+
+- Departure Overhead now flies Crosswind, Downwind, Base and Final before returning
+  along the runway axis to its midpoint. The midpoint is a fly-over: the outbound
+  turn starts after passing over the runway, using the same rate-one exit guides.
+- Left/right selection and adaptive circuit width still apply. Continue climbing
+  to the next waypoint restriction or cruise altitude throughout the full circuit;
+  returning over the runway does not introduce a descent or circuit altitude cap.
+- Saved plans recalculate; older active THR-to-ARP Overhead departures gain the full
+  circuit without losing their active outbound target. Intentional Direct-to legs
+  that skipped the circuit remain unchanged. Arrival Overhead still uses the ARP.
+- Unit regressions cover both circuit directions, runway overflight before turning,
+  climb/restrictions and old-flight migration. Browser coverage selects Overhead,
+  checks all circuit legs, reloads and records the rendered route.
+
 ## Smooth departure from the selected circuit leg (2026-10-16)
 
 - Leaving a right-hand circuit at Downwind no longer connects the Crosswind corner

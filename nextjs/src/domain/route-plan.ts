@@ -1595,6 +1595,7 @@ export function buildRoutePlan(data: RouteData, input: RoutePlanInput) {
         runwayId: i === 0 ? pattern.runway.designator : undefined,
         patternId: p.patternId,
         patternOperation: "leave" as const,
+        flyOver: p.flyOver,
         turnPerformance: p.turnPerformance,
         userRestriction: undefined,
       })),

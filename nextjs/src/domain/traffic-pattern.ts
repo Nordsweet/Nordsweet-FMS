@@ -122,7 +122,10 @@ export function trafficPatternGeometry(
     lateralOffsetNm,
   );
   const positions = {
-    overhead: pattern.airport,
+    overhead:
+      pattern.operation === "leave"
+        ? destinationPoint(pattern.runway.threshold, h, runwayLengthNm / 2)
+        : pattern.airport,
     crosswind,
     downwind,
     base,
@@ -133,7 +136,7 @@ export function trafficPatternGeometry(
   if (pattern.operation === "leave") {
     const legs =
       pattern.join === "overhead"
-        ? (["overhead"] as const)
+        ? (["crosswind", "downwind", "base", "final", "overhead"] as const)
         : all.slice(1, all.indexOf(pattern.join) + 1);
     const points: NavPoint[] = [
       {
@@ -149,10 +152,13 @@ export function trafficPatternGeometry(
         patternId: pattern.id,
         patternOperation: "leave" as const,
         turnPerformance,
+        // Complete Final along the runway axis before starting the outbound turn.
+        ...(leg === "overhead" ? { flyOver: true } : {}),
       })),
     ];
-    if (outbound && pattern.join !== "overhead") {
+    if (outbound) {
       const nextLeg = {
+        overhead: crosswind,
         crosswind: downwind,
         downwind: base,
         base: final,
