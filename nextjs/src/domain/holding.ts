@@ -69,8 +69,12 @@ const unit = (h: number): Vec => ({
 });
 const move = (p: Vec, h: number, d: number) =>
   plus(p, { x: unit(h).x * d, y: unit(h).y * d });
-const sweep = (a: number, b: number, sign: number) =>
-  normalizeDeg(sign * (b - a));
+const sweep = (a: number, b: number, sign: number) => {
+  const change = normalizeDeg(sign * (b - a));
+  // Tangent headings can differ by floating-point noise across the 0/360 seam.
+  // Treat coincident headings as zero, never as an extra full-circle capture.
+  return change < 1e-7 || 360 - change < 1e-7 ? 0 : change;
+};
 
 /** Sampled constant-radius turns; no fly-by cut of the holding fix. */
 function turn(
@@ -151,15 +155,33 @@ export function holdingGeometry(
     config.inboundTrueDeg + 180 - (entry === "teardrop" ? 30 * sign : 0),
   );
   const turnSign = entry === "parallel" ? -sign : sign;
+  // An oblique direct arrival needs a wider initial turn to reach the racetrack's
+  // outbound offset. Otherwise its rate-one return overshoots inbound and the
+  // same-direction capture makes an almost complete extra circle at the fix.
+  const entryRadius =
+    entry === "direct"
+      ? (2 * radius) /
+        (1 + Math.cos(toRad(config.approachTrueDeg - config.inboundTrueDeg)))
+      : radius;
   const firstTurn = turn(
     { x: 0, y: 0 },
     config.approachTrueDeg,
     sweep(config.approachTrueDeg, outboundDeg, turnSign),
     turnSign,
-    radius,
+    entryRadius,
   );
   const outboundStart = firstTurn.at(-1)!;
-  const outboundEnd = move(outboundStart, outboundDeg, length);
+  // If the turn finishes before abeam, reach abeam before timing outbound,
+  // matching the timer's existing wings-level AND abeam condition.
+  const beforeAbeam =
+    entry === "direct"
+      ? Math.max(
+          0,
+          outboundStart.x * unit(config.inboundTrueDeg).x +
+            outboundStart.y * unit(config.inboundTrueDeg).y,
+        )
+      : 0;
+  const outboundEnd = move(outboundStart, outboundDeg, length + beforeAbeam);
   const inbound = returnPath(
     outboundEnd,
     outboundDeg,
