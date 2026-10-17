@@ -13,8 +13,14 @@ import {
   type HoldFix,
   type HoldingRuntime,
 } from "./holding";
-import { destinationPoint, distanceNm, initialBearingDeg } from "./geo";
+import {
+  destinationPoint,
+  distanceNm,
+  initialBearingDeg,
+  trackOffset,
+} from "./geo";
 import { angleDiffDeg } from "./angles";
+import { flyByRoute } from "./fly-by";
 
 const config: Holding = {
   fix: { ident: "KELEL", lat: 50, lon: 20 },
@@ -55,6 +61,75 @@ function turnChanges(path: { lat: number; lon: number }[]) {
     )
     .filter((delta) => Math.abs(delta) > 0.05);
 }
+
+test("aligned returns do not add a full-circle capture at rotated inbound courses", () => {
+  for (const direction of ["right", "left"] as const)
+    for (let course = 0; course < 360; course += 0.7) {
+      const c = {
+        ...config,
+        direction,
+        inboundTrueDeg: course,
+        approachTrueDeg: course,
+      };
+      const g = holdingGeometry(c);
+      const length = g.return
+        .slice(1)
+        .reduce((sum, p, i) => sum + distanceNm(g.return[i]!, p), 0);
+      expect(length, `${direction} inbound ${course}`).toBeLessThan(
+        Math.PI * g.radiusNm + (c.tasKt * c.legSeconds) / 3600 + 0.001,
+      );
+    }
+});
+
+test("left 242 degree HOLD capture does not loop around the fix", () => {
+  for (const tasKt of [100, 120]) {
+    const g = holdingGeometry({
+      ...config,
+      inboundTrueDeg: 242,
+      approachTrueDeg: 170,
+      direction: "left",
+      tasKt,
+    });
+    const degrees = turnChanges(g.return).reduce(
+      (sum, delta) => sum + Math.abs(delta),
+      0,
+    );
+    expect(degrees).toBeLessThan(181);
+  }
+});
+
+test("oblique direct entries reach the outbound offset without looping or cutting the timed leg", () => {
+  for (const direction of ["right", "left"] as const)
+    for (const inboundTrueDeg of [0.7, 75, 242, 359.9])
+      for (const offset of [-69, 0, 72, 110])
+        for (const legSeconds of [15, 60, 90]) {
+          const sign = direction === "right" ? 1 : -1;
+          const c = {
+            ...config,
+            direction,
+            inboundTrueDeg,
+            approachTrueDeg: inboundTrueDeg + sign * offset,
+            legSeconds,
+          };
+          const g = holdingGeometry(c);
+          expect(g.entry).toBe("direct");
+          expect(
+            turnChanges(g.return).reduce(
+              (sum, delta) => sum + Math.abs(delta),
+              0,
+            ),
+          ).toBeLessThan(181);
+          expect(distanceNm(g.return.at(-1)!, c.fix)).toBeLessThan(0.000001);
+          expect(
+            turnChanges(g.entryPath).every((delta) => Math.abs(delta) < 3.2),
+          ).toBe(true);
+          const abeam = trackOffset(g.outbound[0]!, g.outbound[1]!, c.fix);
+          expect(
+            distanceNm(g.outbound[0]!, g.outbound[1]!) -
+              Math.max(0, abeam.alongTrackNm),
+          ).toBeCloseTo((c.tasKt * legSeconds) / 3600, 3);
+        }
+});
 
 test("parallel entry and its timed reversal oppose the hold; inbound capture and later laps follow it", () => {
   for (const direction of ["right", "left"] as const) {
@@ -167,7 +242,13 @@ test("rate-one racetrack closes at fly-over fix; entry connectors have tangent j
       expect(distanceNm(g.racetrack.at(-1)!, c.fix)).toBeLessThan(0.000001);
       expect(distanceNm(g.entryPath.at(-1)!, c.fix)).toBeLessThan(0.000001);
       expect(distanceNm(g.outbound[0]!, g.outbound[1]!)).toBeCloseTo(
-        100 / 60,
+        100 / 60 +
+          (g.entry === "direct"
+            ? Math.max(
+                0,
+                trackOffset(g.outbound[0]!, g.outbound[1]!, c.fix).alongTrackNm,
+              )
+            : 0),
         3,
       );
       const path = g.entryPath.filter(
@@ -316,6 +397,82 @@ test("active hold pauses normal guidance; Exit resumes after fix without resetti
   useInFlight.setState({ holding: state, route, activeLeg: 1 });
   store.exitHolding(fix);
   expect(useInFlight.getState().route.at(-1)?.ident).toBe("DEST");
+});
+
+test("Exit retains the current tangent, curves toward remaining fixes and survives persistence", () => {
+  for (const direction of ["left", "right"] as const)
+    for (const tasKt of [100, 120])
+      for (const phase of ["turn", "outbound", "return"] as const) {
+        const c = { ...config, direction, tasKt };
+        const g = holdingGeometry(c);
+        const position =
+          phase === "turn"
+            ? g.turn[25]!
+            : phase === "outbound"
+              ? g.outbound[0]!
+              : g.return[25]!;
+        for (const bearing of [0, 90, 180, 270]) {
+          const destination = {
+            ident: "DEST",
+            ...destinationPoint(position, bearing, 10),
+          };
+          const route = [
+            { ident: "DEP", ...destinationPoint(c.fix, 180, 5) },
+            c.fix,
+            destination,
+          ];
+          const state = { ...armHolding(c), phase };
+          useInFlight.setState({ holding: state, route, activeLeg: 0 });
+          const heading = navigationProgress(
+            route,
+            position,
+            0,
+            { tasKt },
+            state,
+          )!.desiredTrackDeg;
+          useInFlight.getState().exitHolding(position);
+          const saved = JSON.parse(
+            JSON.stringify(useInFlight.getState().route),
+          ) as typeof route;
+          const path = flyByRoute(saved, { tasKt: 180 });
+          expect(path.issues).toEqual([]);
+          expect(saved.map((p) => p.ident)).toEqual(["DCT", "DEST"]);
+          expect(
+            Math.abs(
+              angleDiffDeg(
+                heading,
+                initialBearingDeg(path.points[0]!, path.points[1]!),
+              ),
+            ),
+          ).toBeLessThan(1);
+          expect(
+            turnChanges(path.points).every((delta) => Math.abs(delta) < 3.3),
+          ).toBe(true);
+          expect(distanceNm(path.points.at(-1)!, destination)).toBeLessThan(
+            0.000001,
+          );
+          expect(
+            navigationProgress(saved, position, 0, { tasKt: 180 }, null)?.next
+              .ident,
+          ).toBe("DEST");
+        }
+      }
+});
+
+test("Exit prefers live GPS track and removing an armed hold leaves the route unchanged", () => {
+  const route = [
+    { ident: "DEP", ...destinationPoint(config.fix, 180, 5) },
+    config.fix,
+    { ident: "DEST", ...destinationPoint(config.fix, 90, 10) },
+  ];
+  useInFlight.setState({ route, activeLeg: 0, holding: armHolding(config) });
+  useInFlight.getState().exitHolding(config.fix);
+  expect(useInFlight.getState().route).toBe(route);
+  useInFlight.setState({
+    holding: { ...armHolding(config), phase: "outbound" },
+  });
+  useInFlight.getState().exitHolding({ ...config.fix, trackDeg: 42 });
+  expect(useInFlight.getState().route[0]?.initialCourseDeg).toBe(42);
 });
 
 test("outbound guidance never points back before the timer ends; zero-turn entries remain navigable", () => {

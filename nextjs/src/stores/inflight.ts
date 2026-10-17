@@ -40,6 +40,7 @@ import {
   armHolding,
   observeHolding,
   holdingFixIndex,
+  holdingProgress,
   type HoldFix,
   type HoldingRuntime,
 } from "~/domain/holding";
@@ -75,7 +76,9 @@ type InFlight = {
   holding: HoldingRuntime | null;
   setHolding: (config: Holding | null) => void;
   observeHolding: (fix: HoldFix, now: number) => void;
-  exitHolding: (position: LatLon | null) => void;
+  exitHolding: (
+    position: (LatLon & { trackDeg?: number | null }) | null,
+  ) => void;
   /** null when no flight is in progress. */
   startedAt: string | null;
   /** Airport selected with Divert, retained across direct-to fixes and reloads. */
@@ -183,9 +186,23 @@ export const useInFlight = create<InFlight>()(
           );
           if (!remaining.length) remaining.push(s.holding.config.fix);
           const from = position ?? s.track.at(-1) ?? s.holding.config.fix;
+          const heading =
+            position?.trackDeg ??
+            holdingProgress(s.holding, from, s.activeLeg)?.desiredTrackDeg ??
+            s.holding.config.inboundTrueDeg;
           return {
             holding: null,
-            route: [{ ...from, ident: "DCT" }, ...remaining],
+            route: [
+              {
+                lat: from.lat,
+                lon: from.lon,
+                ident: "DCT",
+                initialCourseDeg: heading,
+                initialTurnDirection: s.holding.config.direction,
+                turnPerformance: { tasKt: s.holding.config.tasKt },
+              },
+              ...remaining,
+            ],
             activeLeg: 0,
           };
         }),

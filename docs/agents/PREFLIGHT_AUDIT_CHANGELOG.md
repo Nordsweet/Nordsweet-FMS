@@ -5,6 +5,36 @@ Reference: <https://nordsweet-performance-calculator.mrnordsweet.chatgpt.site/> 
 `5265bc5de9510aa3d83cc469860a730962b96c78`. Starting develop: `2f289ed6dc8d7b7c3186b100577c787c64df1de2`.
 Branch: `codex/preflight-parity-audit`.
 
+## Smooth HOLD exit (2026-10-17)
+
+- Exit HOLD retains the current ground track before joining the next remaining
+  flight-plan fix with rate-one fly-by arcs. Use a fresh GPS course when available,
+  otherwise the holding curve's local tangent at the last recorded position.
+  The exit uses the configured holding TAS and supports fixes behind the aircraft.
+- Reuse the departure-pattern connector rather than introduce another turn solver.
+  Virtual corners stay internal: FPL identifiers and next-fix targets are unchanged.
+  Map rendering and guidance use the same curve, including after reload. Removing
+  an armed hold still leaves the original route untouched; flight timers are retained.
+- Sequence a curved exit at its real end/next-fix tangent rather than prematurely
+  crossing the original DCT's abeam plane. Cover both holding directions, all active
+  phases, 100/120 kt, live-course priority, persistence and subsequent real-fix indices.
+
+## HOLD capture loop correction (2026-10-17)
+
+- Reproduce the owner's left HOLD at inbound 242°, one-minute outbound and both
+  100/120 kt, approaching from the north. An oblique direct entry placed outbound
+  inside the normal racetrack width; forcing a same-direction tangent capture
+  then added almost 360° at the fix. Widen the initial entry arc to reach the normal
+  outbound offset, allowing a rate-one 180° return and a straight inbound capture.
+  The wider entry turns more slowly than rate one; it never tightens the radius.
+  The established racetrack and parallel-entry direction exception are unchanged.
+- Match the existing timer's abeam condition: where the initial turn finishes
+  before abeam, the outbound path reaches abeam before the configured timed leg.
+- Also clamp floating-point differences at the 0/360° seam to zero; otherwise
+  already-aligned tangent headings could generate a separate full circle.
+- Regression coverage includes the owner's 242° case, both hold directions,
+  rotated headings, short/custom timed legs, smooth joins and the timed distance.
+
 ## Parallel HOLD entry direction (2026-10-17)
 
 - Correct the requested parallel-entry rule: both the initial turn onto outbound
