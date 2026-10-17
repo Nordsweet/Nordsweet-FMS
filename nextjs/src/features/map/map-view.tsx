@@ -83,6 +83,7 @@ import { FJORD_BACKGROUND } from "./deck/fjord";
 import { palettes, themeOf } from "./deck/theme";
 import { mapLabelVisibility } from "~/domain/map-labels";
 import { MapScale } from "./map-scale";
+import { WindTile } from "./wind-tile";
 import { FloatingDetails } from "./floating-details";
 import { AirspaceDetails } from "./airspace-details";
 import { useT } from "~/i18n/use-t";
@@ -1312,6 +1313,7 @@ export function MapView({
           </div>,
           toolsContainer,
         )}
+      <WindTile mapRef={mapRef} ready={ready} />
       {!embedded && (
         <div className="legacy-map-readout">
           <span>

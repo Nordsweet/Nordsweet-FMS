@@ -4,8 +4,10 @@ import { atisConsensusEn, atisConsensusPl } from "./atis-consensus";
 import { aircraftEditorEn, aircraftEditorPl } from "./aircraft-editor";
 import { mapToolsEn, mapToolsPl } from "./map-tools";
 import { holdingEn, holdingPl } from "./holding";
+import { windEn, windPl } from "./wind";
 
 const pl = {
+  ...windPl,
   ...holdingPl,
   ...trafficPatternPl,
   ...atisConsensusPl,
@@ -816,6 +818,7 @@ const pl = {
 export type MessageKey = keyof typeof pl;
 
 const en: Record<MessageKey, string> = {
+  ...windEn,
   ...holdingEn,
   ...trafficPatternEn,
   ...atisConsensusEn,
