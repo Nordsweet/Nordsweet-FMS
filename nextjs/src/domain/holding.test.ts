@@ -13,7 +13,12 @@ import {
   type HoldFix,
   type HoldingRuntime,
 } from "./holding";
-import { destinationPoint, distanceNm, initialBearingDeg } from "./geo";
+import {
+  destinationPoint,
+  distanceNm,
+  initialBearingDeg,
+  trackOffset,
+} from "./geo";
 import { angleDiffDeg } from "./angles";
 
 const config: Holding = {
@@ -55,6 +60,75 @@ function turnChanges(path: { lat: number; lon: number }[]) {
     )
     .filter((delta) => Math.abs(delta) > 0.05);
 }
+
+test("aligned returns do not add a full-circle capture at rotated inbound courses", () => {
+  for (const direction of ["right", "left"] as const)
+    for (let course = 0; course < 360; course += 0.7) {
+      const c = {
+        ...config,
+        direction,
+        inboundTrueDeg: course,
+        approachTrueDeg: course,
+      };
+      const g = holdingGeometry(c);
+      const length = g.return
+        .slice(1)
+        .reduce((sum, p, i) => sum + distanceNm(g.return[i]!, p), 0);
+      expect(length, `${direction} inbound ${course}`).toBeLessThan(
+        Math.PI * g.radiusNm + (c.tasKt * c.legSeconds) / 3600 + 0.001,
+      );
+    }
+});
+
+test("left 242 degree HOLD capture does not loop around the fix", () => {
+  for (const tasKt of [100, 120]) {
+    const g = holdingGeometry({
+      ...config,
+      inboundTrueDeg: 242,
+      approachTrueDeg: 170,
+      direction: "left",
+      tasKt,
+    });
+    const degrees = turnChanges(g.return).reduce(
+      (sum, delta) => sum + Math.abs(delta),
+      0,
+    );
+    expect(degrees).toBeLessThan(181);
+  }
+});
+
+test("oblique direct entries reach the outbound offset without looping or cutting the timed leg", () => {
+  for (const direction of ["right", "left"] as const)
+    for (const inboundTrueDeg of [0.7, 75, 242, 359.9])
+      for (const offset of [-69, 0, 72, 110])
+        for (const legSeconds of [15, 60, 90]) {
+          const sign = direction === "right" ? 1 : -1;
+          const c = {
+            ...config,
+            direction,
+            inboundTrueDeg,
+            approachTrueDeg: inboundTrueDeg + sign * offset,
+            legSeconds,
+          };
+          const g = holdingGeometry(c);
+          expect(g.entry).toBe("direct");
+          expect(
+            turnChanges(g.return).reduce(
+              (sum, delta) => sum + Math.abs(delta),
+              0,
+            ),
+          ).toBeLessThan(181);
+          expect(distanceNm(g.return.at(-1)!, c.fix)).toBeLessThan(0.000001);
+          expect(
+            turnChanges(g.entryPath).every((delta) => Math.abs(delta) < 3.2),
+          ).toBe(true);
+          const abeam = trackOffset(g.outbound[0]!, g.outbound[1]!, c.fix);
+          expect(
+            distanceNm(g.outbound[0]!, g.outbound[1]!) -
+              Math.max(0, abeam.alongTrackNm),
+          ).toBeCloseTo((c.tasKt * legSeconds) / 3600, 3);
+        }
+});
 
 test("parallel entry and its timed reversal oppose the hold; inbound capture and later laps follow it", () => {
   for (const direction of ["right", "left"] as const) {
@@ -167,7 +241,13 @@ test("rate-one racetrack closes at fly-over fix; entry connectors have tangent j
       expect(distanceNm(g.racetrack.at(-1)!, c.fix)).toBeLessThan(0.000001);
       expect(distanceNm(g.entryPath.at(-1)!, c.fix)).toBeLessThan(0.000001);
       expect(distanceNm(g.outbound[0]!, g.outbound[1]!)).toBeCloseTo(
-        100 / 60,
+        100 / 60 +
+          (g.entry === "direct"
+            ? Math.max(
+                0,
+                trackOffset(g.outbound[0]!, g.outbound[1]!, c.fix).alongTrackNm,
+              )
+            : 0),
         3,
       );
       const path = g.entryPath.filter(

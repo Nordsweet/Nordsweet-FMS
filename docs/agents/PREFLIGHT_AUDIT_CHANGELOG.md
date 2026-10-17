@@ -5,6 +5,22 @@ Reference: <https://nordsweet-performance-calculator.mrnordsweet.chatgpt.site/> 
 `5265bc5de9510aa3d83cc469860a730962b96c78`. Starting develop: `2f289ed6dc8d7b7c3186b100577c787c64df1de2`.
 Branch: `codex/preflight-parity-audit`.
 
+## HOLD capture loop correction (2026-10-17)
+
+- Reproduce the owner's left HOLD at inbound 242°, one-minute outbound and both
+  100/120 kt, approaching from the north. An oblique direct entry placed outbound
+  inside the normal racetrack width; forcing a same-direction tangent capture
+  then added almost 360° at the fix. Widen the initial entry arc to reach the normal
+  outbound offset, allowing a rate-one 180° return and a straight inbound capture.
+  The wider entry turns more slowly than rate one; it never tightens the radius.
+  The established racetrack and parallel-entry direction exception are unchanged.
+- Match the existing timer's abeam condition: where the initial turn finishes
+  before abeam, the outbound path reaches abeam before the configured timed leg.
+- Also clamp floating-point differences at the 0/360° seam to zero; otherwise
+  already-aligned tangent headings could generate a separate full circle.
+- Regression coverage includes the owner's 242° case, both hold directions,
+  rotated headings, short/custom timed legs, smooth joins and the timed distance.
+
 ## Parallel HOLD entry direction (2026-10-17)
 
 - Correct the requested parallel-entry rule: both the initial turn onto outbound
