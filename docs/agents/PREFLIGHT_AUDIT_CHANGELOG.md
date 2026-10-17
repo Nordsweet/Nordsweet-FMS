@@ -5,6 +5,18 @@ Reference: <https://nordsweet-performance-calculator.mrnordsweet.chatgpt.site/> 
 `5265bc5de9510aa3d83cc469860a730962b96c78`. Starting develop: `2f289ed6dc8d7b7c3186b100577c787c64df1de2`.
 Branch: `codex/preflight-parity-audit`.
 
+## Live wind estimate and map tile (2026-10-17)
+
+- Import the Future Features/XCSoar wind plan's GPS-only display stage into the T3
+  architecture. Add an independent velocity-circle estimator fed by the shared
+  GPS stream during confirmed flight, with quality/freshness checks and session
+  resets. Planned TAS, derived GPS vectors and replay are not live measurements.
+- Add an 80 px lower-left Map/Fly tile: downwind arrow, camera-bearing correction
+  and meteorological FROM/kt readout such as `270°/012`. Show placeholders while
+  collecting or stale, and no invented direction in calm. PL/EN descriptions.
+- Keep airport weather, planning wind and navigation calculations independent.
+  See [model, thresholds and imported scope](WIND_ESTIMATION.md).
+
 ## Smooth HOLD exit (2026-10-17)
 
 - Exit HOLD retains the current ground track before joining the next remaining

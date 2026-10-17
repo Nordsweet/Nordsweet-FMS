@@ -10,6 +10,7 @@ import { useMapSettings } from "~/stores/map";
 import { playChime } from "./chime";
 import { useGps } from "./use-gps";
 import { useTurnPerformance } from "./use-turn-performance";
+import { useWindEstimation } from "./use-wind-estimation";
 
 const useAirport = (code: string | undefined) =>
   useQuery({
@@ -19,6 +20,7 @@ const useAirport = (code: string | undefined) =>
 
 /** Mounted once above routes: leg sequencing, recording and flight timers continue across screens. */
 export function FlightRuntime() {
+  useWindEstimation();
   const flight = useInFlight();
   const plan = useFlight((s) => s.flight);
   const observeGps = useMapSettings((s) => s.observeGps);

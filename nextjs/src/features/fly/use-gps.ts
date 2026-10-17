@@ -2,6 +2,7 @@ import { useCallback, useSyncExternalStore } from "react";
 import { distanceNm, initialBearingDeg } from "~/domain/geo";
 import { mToFt, mpsToKt } from "~/domain/units";
 export type GpsFix = {
+  source?: "gps" | "derived" | "replay";
   lat: number;
   lon: number;
   altitudeFt: number | null;
@@ -48,10 +49,12 @@ function subscribe(listener: () => void) {
             coords.heading === null || !Number.isFinite(coords.heading)
               ? null
               : coords.heading;
+          let derived = speed === null || heading === null;
           if (previous && (speed === null || speed < 1 || heading === null)) {
             const hours = (timestamp - Date.parse(previous.time)) / 3600000;
             const distance = distanceNm(previous, position);
             if (hours > 0 && distance > 0.003) {
+              derived = true;
               if (speed === null || speed < 1) speed = distance / hours;
               heading ??= initialBearingDeg(previous, position);
             }
@@ -59,6 +62,7 @@ function subscribe(listener: () => void) {
           publish({
             error: null,
             fix: {
+              source: derived ? "derived" : "gps",
               lat: coords.latitude,
               lon: coords.longitude,
               altitudeFt:
@@ -90,7 +94,7 @@ function subscribe(listener: () => void) {
 /** Legacy "Debug with GPX": replayed fixes replace the device GPS; null hands it back. */
 export function simulateFix(fix: GpsFix | null) {
   simulating = fix !== null;
-  publish({ fix, error: null });
+  publish({ fix: fix ? { ...fix, source: "replay" } : null, error: null });
 }
 
 /** A shared browser watch keeps the map and Fly screen on the same GPS observation. */
