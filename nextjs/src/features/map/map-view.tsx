@@ -33,7 +33,14 @@ import { flyByRoute } from "~/domain/fly-by";
 import { ownRegistration } from "~/domain/traffic-identity";
 import { useTurnPerformance } from "~/features/fly/use-turn-performance";
 import { TrafficPatternPopup } from "~/features/fly/traffic-pattern-popup";
-import { anchoredWaypoint } from "~/domain/waypoint-insertion";
+import { HoldingStatus } from "~/features/fly/holding-status";
+import { type Holding } from "~/data/holding";
+import { holdingGeometry } from "~/domain/holding";
+import {
+  anchoredWaypoint,
+  optimalWaypointIndex,
+  sameFlightPoint,
+} from "~/domain/waypoint-insertion";
 import {
   pointKey,
   formatRoutePoint,
@@ -146,6 +153,7 @@ export function MapView({
   } | null>(null);
   const [ready, setReady] = useState(false);
   const [click, setClick] = useState<Click | null>(null);
+  const [holdingPreview, setHoldingPreview] = useState<Holding | null>(null);
   const [patternPreview, setPatternPreview] = useState<TrafficPattern | null>(
     null,
   );
@@ -180,6 +188,24 @@ export function MapView({
     settings.gpsEnabled || navigation.startedAt !== null,
   );
   const route = navigation.startedAt ? navigation.route : plannedRoute;
+  const holding = navigation.startedAt
+    ? (navigation.holding?.config ?? null)
+    : flight.holding;
+  const holdingEntry = navigation.startedAt
+    ? navigation.holding?.entry
+    : undefined;
+  useEffect(() => {
+    const geometry = holding ? holdingGeometry(holding, holdingEntry) : null;
+    const preview = holdingPreview ? holdingGeometry(holdingPreview) : null;
+    sceneRef.current?.set({
+      holding: geometry
+        ? toPaths([geometry.racetrack, geometry.entryPath])
+        : [],
+      holdingPreview: preview
+        ? toPaths([preview.racetrack, preview.entryPath])
+        : [],
+    });
+  }, [ready, holding, holdingEntry, holdingPreview]);
   const patternPosition = fix ?? navigation.track.at(-1) ?? null;
   const turns = useTurnPerformance(navigation.startedAt ? fix : null);
   // The hook returns a new object each render; the geometry only depends on these numbers.
@@ -189,12 +215,28 @@ export function MapView({
     [tasKt, windDirectionDeg, windSpeedKt],
   );
   const routePath = useMemo(
-    () => flyByRoute(route, turnPerformance),
-    [route, turnPerformance],
+    () =>
+      flyByRoute(
+        route.map((point) =>
+          holding && sameFlightPoint(point, holding.fix)
+            ? { ...point, flyOver: true }
+            : point,
+        ),
+        turnPerformance,
+      ),
+    [route, turnPerformance, holding],
   );
   const plannedPath = useMemo(
-    () => flyByRoute(plannedRoute, turnPerformance).points,
-    [plannedRoute, turnPerformance],
+    () =>
+      flyByRoute(
+        plannedRoute.map((point) =>
+          flight.holding && sameFlightPoint(point, flight.holding.fix)
+            ? { ...point, flyOver: true }
+            : point,
+        ),
+        turnPerformance,
+      ).points,
+    [plannedRoute, turnPerformance, flight.holding],
   );
   const previewRoute = useMemo(
     () =>
@@ -421,11 +463,14 @@ export function MapView({
       mapRef.current = map;
       sceneRef.current = scene;
       const syncZoom = () => {
+        // A quarter-step change rebuilds every layer: wait until the pinch/inertia is over.
+        if (map.interacting) return;
         const zoom = Math.round(map.getZoom() * 4) / 4;
         if (zoom !== scene.state.zoom) scene.set({ zoom });
       };
       syncZoom();
       map.on("move", syncZoom);
+      map.on("moveend", syncZoom);
       markers.current = new MarkerLayer(map, root);
       map.on("dragstart", () => useMapSettings.getState().follow(false));
       let lastCursorUpdate = 0;
@@ -1052,8 +1097,10 @@ export function MapView({
         theme === "dark" && "legacy-map--dark",
       )}
       data-pattern-preview={patternPreview ? "true" : "false"}
+      data-holding-preview={holdingPreview ? "true" : "false"}
     >
       {navigation.startedAt && <TrafficPatternPopup />}
+      {navigation.startedAt && <HoldingStatus />}
       {layers.route && turnIssues.length > 0 && (
         <div
           role="status"
@@ -1298,7 +1345,7 @@ export function MapView({
                   : click.kind
             }
             onClose={() => setClick(null)}
-            draggable={click.kind === "traffic"}
+            draggable={click.kind === "traffic" || click.kind === "point"}
             mapRef={mapRef}
             anchor={
               selectedAircraft
@@ -1327,6 +1374,52 @@ export function MapView({
                 now={now}
                 addPoint={addPoint}
                 previewPattern={setPatternPreview}
+                previewHolding={setHoldingPreview}
+                acceptHolding={(holding) => {
+                  const plannedIndex = plannedRoute.findIndex(
+                    (p, i) => i > 0 && sameFlightPoint(p, holding.fix),
+                  );
+                  const waypoint = anchoredWaypoint(
+                    plannedRoute,
+                    holding.fix,
+                    optimalWaypointIndex(plannedRoute, holding.fix),
+                  );
+                  update({
+                    holding,
+                    ...(plannedIndex < 0
+                      ? { waypoints: [...flight.waypoints, waypoint] }
+                      : {}),
+                  });
+                  if (navigation.startedAt) {
+                    if (
+                      !navigation.route.some(
+                        (p, i) =>
+                          i > navigation.activeLeg &&
+                          sameFlightPoint(p, holding.fix),
+                      )
+                    ) {
+                      const suffix = navigation.route.slice(
+                        navigation.activeLeg,
+                      );
+                      const index =
+                        navigation.activeLeg +
+                        Math.max(1, optimalWaypointIndex(suffix, holding.fix));
+                      navigation.insertWaypoint(index, holding.fix);
+                    }
+                    navigation.setHolding(holding);
+                  }
+                  settings.update({
+                    layers: { ...settings.layers, route: true },
+                  });
+                  setHoldingPreview(null);
+                  setClick(null);
+                }}
+                removeHolding={() => {
+                  update({ holding: null });
+                  navigation.exitHolding(patternPosition);
+                  setHoldingPreview(null);
+                  setClick(null);
+                }}
                 acceptPattern={(pattern) => {
                   if (pattern.operation === "leave")
                     update({ departurePattern: pattern, sid: null });

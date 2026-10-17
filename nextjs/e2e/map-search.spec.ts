@@ -152,11 +152,60 @@ test("airport and waypoint search center and open the existing route options", a
     .poll(async () =>
       Number(await page.getByTestId("map").getAttribute("data-center-lon")),
     )
-    .toBeCloseTo(19.7855, 2);
+    .toBeCloseTo(19.784722, 5);
   await expectDetailsAtMapCenter(page);
+  const before = (await details.boundingBox())!;
+  const header = (await details
+    .getByText("Details", { exact: true })
+    .boundingBox())!;
+  await page.mouse.move(header.x + 25, header.y + header.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(header.x - 75, header.y + header.height / 2 + 65, {
+    steps: 8,
+  });
+  await page.mouse.up();
+  await expect
+    .poll(async () => (await details.boundingBox())!.x)
+    .toBeCloseTo(before.x - 100, 0);
+  await expect
+    .poll(async () => (await details.boundingBox())!.y)
+    .toBeCloseTo(before.y + 65, 0);
+  await expect
+    .poll(async () =>
+      Number(await page.getByTestId("map").getAttribute("data-center-lon")),
+    )
+    .toBeCloseTo(19.784722, 5);
+  await expect
+    .poll(async () =>
+      Number(await page.getByTestId("map").getAttribute("data-center-lat")),
+    )
+    .toBeCloseTo(50.077778, 5);
   await details.getByRole("button", { name: "Close", exact: true }).click();
   await search(page, "KELEL");
   await expect(details).toContainText("KELEL");
+  await expect
+    .poll(async () =>
+      Number(await page.getByTestId("map").getAttribute("data-center-lon")),
+    )
+    .toBeCloseTo(20.175278, 5);
+  const waypoint = (await details.boundingBox())!;
+  const waypointHeader = (await details
+    .getByText("Details", { exact: true })
+    .boundingBox())!;
+  await page.mouse.move(
+    waypointHeader.x + 25,
+    waypointHeader.y + waypointHeader.height / 2,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    waypointHeader.x - 55,
+    waypointHeader.y + waypointHeader.height / 2 + 40,
+    { steps: 8 },
+  );
+  await page.mouse.up();
+  await expect
+    .poll(async () => (await details.boundingBox())!.x)
+    .toBeCloseTo(waypoint.x - 80, 0);
   await expect(page.getByTestId("map")).toHaveAttribute(
     "data-selected-ident",
     "KELEL",

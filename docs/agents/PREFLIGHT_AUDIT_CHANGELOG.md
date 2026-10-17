@@ -5,6 +5,60 @@ Reference: <https://nordsweet-performance-calculator.mrnordsweet.chatgpt.site/> 
 `5265bc5de9510aa3d83cc469860a730962b96c78`. Starting develop: `2f289ed6dc8d7b7c3186b100577c787c64df1de2`.
 Branch: `codex/preflight-parity-audit`.
 
+## Parallel HOLD entry direction (2026-10-17)
+
+- Correct the requested parallel-entry rule: both the initial turn onto outbound
+  and the reversal after its timer use the opposite direction to the selected hold.
+  Inbound capture and every subsequent circuit use the selected holding direction.
+  Left holds mirror right holds. Direct/teardrop no longer choose an opposite-direction
+  inbound capture merely because its connector is shorter.
+- Keep rate-one radius, timed outbound length and tangent continuity. For very short
+  custom legs that cannot fit the opposing-circle tangent, complete the opposite
+  reversal before a holding-direction capture, without shrinking the turn radius or
+  drawing a sharp shortcut. The normal 60/90-second entries use a tangent connector.
+- Preview, accepted map paths, GPS guidance and restored holds derive from the same
+  geometry, so existing saved configurations receive the correction automatically.
+  Regression tests detect signed turn direction for both hold directions and rotated
+  inbound courses, check 15/60/90-second legs and preserve subsequent-lap direction.
+
+## Holding at a selected fix (2026-10-16)
+
+- Point/airport details include HOLD: fixed fix, level in ft AMSL, magnetic inbound
+  course, right/left turns and outbound minutes. Right turns are the default;
+  time defaults to 60 seconds through 14,000 ft and 90 seconds above it. The next
+  active fix suggests fresh GPS altitude; further fixes use their planned altitude.
+  Explicit time edits survive subsequent level edits.
+- Automatic direct/parallel/teardrop selection follows the mirrored 70/110/180-degree
+  sectors in [FAA AIM 5-3-8](https://www.faa.gov/air_traffic/publications/atpubs/aim_html/chap5_section_3.html).
+  Entry is recalculated from actual GPS arrival track at the fix. The dashed preview
+  and accepted magenta paths include sampled rate-one turns and tangent intercepts.
+  Map geometry is nominal still-air geometry at the configured TAS; this version
+  does not model wind drift or certify protected-airspace containment.
+- Accept adds an off-route fix at the existing minimum-added-distance insertion
+  position. An armed future hold retains intervening fixes. Active HOLD suspends
+  normal route sequencing, flies over the fix and provides guidance along its path.
+  Exit HOLD resumes at the following route fix; a hold at the destination resumes
+  toward that destination. Direct-to/diversion/end clear the active hold.
+- Its separate outbound countdown starts when the aircraft is moving, established
+  outbound with a steady GPS track and abeam/past the fix. Angled entries cannot
+  start timing during the last degrees of their first turn. Fix passage itself
+  never starts the timer. Each
+  completed circuit re-arms it. Repeated, reversed and stale GPS timestamps cannot
+  restart it; saved runtime preserves the original start timestamp across reloads.
+  Existing flight and utility timers remain independent. Configuration is included
+  in saved flights and `.nord` files; older files default to no hold. EN/PL included.
+- Holding loops have no fixed circuit count, so their duration/fuel is not included
+  in the ordinary route trip estimate; destination ETA is hidden while holding.
+  FREDA uses the selected hold level. This is new functionality, not a legacy port.
+
+## Draggable airport and waypoint details (2026-10-16)
+
+- Airport and point dialogs now use the existing traffic-dialog drag behavior:
+  drag their Details header with a mouse or touch. Movement stays within map bounds;
+  body controls and Close retain their normal actions.
+- New selections start at their map anchor. Browser coverage moves an airport dialog
+  without panning the map, then moves a waypoint dialog and inserts that waypoint.
+
 ## Overhead departure after a full circuit (2026-10-16)
 
 - Departure Overhead now flies Crosswind, Downwind, Base and Final before returning

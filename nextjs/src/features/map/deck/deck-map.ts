@@ -29,6 +29,8 @@ const MAX_ZOOM = 22;
 /** A view change is "ended" once it has been still this long; wheel zoom has no end event of its own. */
 const SETTLE_MS = 150;
 const PICK_RADIUS = 10;
+/** A touchpad pinch arrives as ctrl+wheel events with tiny deltas (MapLibre scales them up 10x too). */
+const PINCH_GAIN = 12;
 /** A press that moves further than this is a drag, not a click. */
 const CLICK_TOLERANCE_PX = 5;
 const FLY = new FlyToInterpolator({ speed: 1.6 });
@@ -54,6 +56,8 @@ export class DeckMap {
   private readonly observer: ResizeObserver;
   private settle = 0;
   private pressed: Point | null = null;
+  /** True while a gesture or its inertia is running. */
+  interacting = false;
   private fitted: { bounds: Bounds; padding: number } | null;
 
   constructor(
@@ -87,6 +91,14 @@ export class DeckMap {
         isDragging ? "grabbing" : isHovering ? "pointer" : "grab",
       onViewStateChange: ({ viewState }) => this.setView(viewState),
       onInteractionStateChange: (state) => {
+        const was = this.interacting;
+        this.interacting = [
+          state.isDragging,
+          state.isZooming,
+          state.isRotating,
+          state.inTransition,
+        ].some(Boolean);
+        if (was && !this.interacting) this.emit("moveend", undefined);
         if (state.isDragging) this.emit("dragstart", undefined);
       },
       onHover: (info) => {
@@ -97,6 +109,7 @@ export class DeckMap {
     });
     // deck.gl's own click gesture must finish within 250 ms of the press, and it picks on the press:
     // the first pick compiles shaders, so a quick tap could be dropped. The browser's click is robust.
+    container.addEventListener("wheel", this.onWheel, { capture: true });
     container.addEventListener("pointerdown", this.onPointerDown);
     container.addEventListener("click", this.onClick);
     this.observer = new ResizeObserver(() => {
@@ -112,6 +125,14 @@ export class DeckMap {
     });
     this.observer.observe(container);
   }
+
+  // Runs before deck.gl reads the event, which takes `deltaY` as is.
+  private readonly onWheel = (event: WheelEvent) => {
+    if (event.ctrlKey)
+      Object.defineProperty(event, "deltaY", {
+        value: event.deltaY * PINCH_GAIN,
+      });
+  };
 
   private readonly onPointerDown = (event: PointerEvent) => {
     this.pressed = { x: event.clientX, y: event.clientY };
@@ -297,6 +318,7 @@ export class DeckMap {
   }
 
   destroy() {
+    this.container.removeEventListener("wheel", this.onWheel, true);
     this.container.removeEventListener("pointerdown", this.onPointerDown);
     this.container.removeEventListener("click", this.onClick);
     clearTimeout(this.settle);
