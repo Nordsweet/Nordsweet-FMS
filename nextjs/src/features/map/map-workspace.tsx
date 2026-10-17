@@ -6,7 +6,12 @@ import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { useT } from "~/i18n/use-t";
-import { useMapSettings, mapLayers, type LayerId } from "~/stores/map";
+import {
+  useMapSettings,
+  mapLayers,
+  trafficNetworks,
+  type LayerId,
+} from "~/stores/map";
 import { useFlight } from "~/stores/flight";
 import { useInFlight } from "~/stores/inflight";
 import { usePlan } from "~/features/plan/use-plan";
@@ -15,6 +20,13 @@ import { useTurnPerformance } from "~/features/fly/use-turn-performance";
 import { MapSelect } from "./map-select";
 import { PreparationPlanner } from "./preparation-planner";
 import { MapView } from "./map-view";
+
+const networkLabels = {
+  "adsb.lol": "adsb.lol",
+  "adsb.fi": "adsb.fi",
+  opensky: "OpenSky",
+  ogn: "OGN",
+} as const satisfies Record<(typeof trafficNetworks)[number], string>;
 
 /** `embedded`: the in-flight background map (legacy `?embed=1`): full-bleed, tools behind Layers. */
 export function MapWorkspace({ embedded = false }: { embedded?: boolean }) {
@@ -246,6 +258,26 @@ export function MapWorkspace({ embedded = false }: { embedded?: boolean }) {
               {displayLabel(id)}
             </Label>
           ))}
+          {settings.layers.traffic &&
+            trafficNetworks.map((id) => (
+              <Label key={id}>
+                <input
+                  type="checkbox"
+                  aria-label={networkLabels[id]}
+                  checked={settings.trafficSources.includes(id)}
+                  onChange={(e) =>
+                    settings.update({
+                      trafficSources: trafficNetworks.filter((n) =>
+                        n === id
+                          ? e.target.checked
+                          : settings.trafficSources.includes(n),
+                      ),
+                    })
+                  }
+                />
+                {networkLabels[id]}
+              </Label>
+            ))}
         </div>
         <div className="legacy-tool-section legacy-navigation-tools">
           <Label>

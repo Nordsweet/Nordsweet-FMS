@@ -84,6 +84,8 @@ const icaoPath = (icao: string, suffix = "") =>
   `/airports/${encodeURIComponent(icao.trim().toUpperCase())}${suffix}`;
 
 export type Around = { lat: number; lon: number; radiusNm?: number };
+/** `sources`: the traffic networks to query (the API merges all of them when omitted). */
+export type TrafficAround = Around & { sources?: readonly string[] };
 export type AirspacePlan = "current" | "next";
 
 /** Pilot-reported ATIS; independent device confirmations are counted by the collector. */
@@ -140,15 +142,19 @@ export const aviationApi = {
   atis: (icao: string) => get(icaoPath(icao, "/atis"), atisResponseSchema),
   notams: (icao: string) =>
     get(icaoPath(icao, "/notams"), notamsResponseSchema),
-  traffic: ({ lat, lon, radiusNm }: Around) =>
-    get("/traffic", trafficResponseSchema, {
-      lat,
-      lon,
-      radius_nm: radiusNm,
-    }).then((response) => ({
-      ...response,
-      aircraft: response.aircraft.map(correctTrafficMetadata),
-    })),
+  traffic: ({ lat, lon, radiusNm, sources }: TrafficAround) =>
+    // An empty list must not reach the API: omitting `sources` there means every network.
+    sources?.length === 0
+      ? Promise.resolve({ count: 0, aircraft: [], sources: {} })
+      : get("/traffic", trafficResponseSchema, {
+          lat,
+          lon,
+          radius_nm: radiusNm,
+          sources: sources?.join(","),
+        }).then((response) => ({
+          ...response,
+          aircraft: response.aircraft.map(correctTrafficMetadata),
+        })),
   airspace: ({ lat, lon, radiusNm, plan }: Around & { plan?: AirspacePlan }) =>
     get("/airspace", airspaceResponseSchema, {
       lat,

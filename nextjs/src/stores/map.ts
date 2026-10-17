@@ -13,6 +13,13 @@ export const mapLayers = [
   "route",
   "traffic",
 ] as const;
+/** The live-traffic networks the aviation API can merge, in the order the UI lists them. */
+export const trafficNetworks = [
+  "adsb.lol",
+  "adsb.fi",
+  "opensky",
+  "ogn",
+] as const;
 export type LayerId = (typeof mapLayers)[number];
 export type Basemap = "osm" | "dark" | "night" | "fjord";
 export const mapPreferencesSchema = z.object({
@@ -38,6 +45,9 @@ export const mapPreferencesSchema = z.object({
       route: true,
       traffic: true,
     }),
+  trafficSources: z
+    .array(z.enum(trafficNetworks))
+    .default([...trafficNetworks]),
   labels: z.boolean().default(true),
   hiddenClasses: z.array(z.string()).default([]),
   trackUp: z.boolean().default(false),

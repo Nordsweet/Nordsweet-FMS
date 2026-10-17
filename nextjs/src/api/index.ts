@@ -6,6 +6,7 @@ import { type AircraftDraft } from "~/domain/custom-aircraft";
 import {
   type AirspacePlan,
   type Around,
+  type TrafficAround,
   type CommunityAtisReport,
   aviationApi,
 } from "./aviation/client";
@@ -279,7 +280,7 @@ export const api = {
     history: query("traffic.history", trafficHistory, live(MINUTE)),
     around: query(
       "traffic.around",
-      (around: Around) => aviationApi.traffic(around),
+      (around: TrafficAround) => aviationApi.traffic(around),
       {
         staleTime: 5 * SECOND,
         gcTime: MINUTE, // positions are worthless after a minute; do not persist them

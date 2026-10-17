@@ -340,7 +340,10 @@ export function MapView({
     radiusNm: 250,
   });
   const traffic = useQuery({
-    ...api.traffic.around.queryOptions(view),
+    ...api.traffic.around.queryOptions({
+      ...view,
+      sources: settings.trafficSources,
+    }),
     enabled: ready && layers.traffic,
     refetchInterval: 15_000,
     // A new viewport is a new query key; keep the old aircraft on screen until it loads.
@@ -976,6 +979,7 @@ export function MapView({
           lat: center?.lat ?? view.lat,
           lon: center?.lng ?? view.lon,
           radiusNm: 250,
+          sources: settings.trafficSources,
         }),
         retry: false,
       })

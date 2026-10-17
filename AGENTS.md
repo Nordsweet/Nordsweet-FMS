@@ -16,3 +16,8 @@ Never commit to `main`; never force-push `develop`.
 Finish every piece of work by pushing it to `develop` (run the gates first; merge `origin/develop`
 before pushing). Stage only your own files: other agents may have uncommitted work in the same
 checkout, so push from a clean `git worktree` if the merge would touch their files.
+
+The map app consumes the aviation API contract (`~/Developer/aviation-api-collector`, `docs/API.md` is
+the source of truth). After backend changes to `/traffic`, `/stream` or `/status`, update the schemas,
+client and tests here. If the frontend needs a new field, change the API repo and its `docs/API.md` in
+the same piece of work.
