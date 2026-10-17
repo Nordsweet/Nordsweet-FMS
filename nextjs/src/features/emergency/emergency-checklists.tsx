@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { useT } from "~/i18n/use-t";
@@ -37,6 +37,10 @@ export function EmergencyChecklists() {
     return () => clearInterval(timer);
   }, []);
   const p = session?.procedure;
+  const procedureView = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    procedureView.current?.scrollIntoView({ block: "start" });
+  }, [p?.key, p?.revision, reference]);
   const checked = p
     ? (session?.variants[`${p.key}@${p.revision}`]?.checked ?? {})
     : {};
@@ -217,7 +221,11 @@ export function EmergencyChecklists() {
             </div>
           )}
           {p && (operationalProcedure(p) || reference) && (
-            <div className="grid gap-3" data-testid="emergency-procedure">
+            <div
+              ref={procedureView}
+              className="grid scroll-mt-20 gap-3"
+              data-testid="emergency-procedure"
+            >
               {!operationalProcedure(p) && (
                 <div className="rounded border border-amber-500 p-3">
                   <strong>{t("emer.reference")}</strong>

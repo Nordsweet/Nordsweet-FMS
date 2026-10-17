@@ -259,6 +259,9 @@ test("EMER stays within a phone viewport and long source actions do not overflow
     })
     .click();
   const dialog = page.getByRole("dialog", { name: "EMER", exact: true });
+  await expect(
+    panel.getByTestId("emergency-procedure").getByRole("checkbox").first(),
+  ).toBeInViewport();
   const box = await dialog.boundingBox();
   expect(box!.x).toBeGreaterThanOrEqual(0);
   expect(box!.x + box!.width).toBeLessThanOrEqual(375);
