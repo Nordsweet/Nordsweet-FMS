@@ -162,6 +162,11 @@ export const PICK_LAYERS = ["traffic", "airports", "vfr", "ifr", "navaids"];
 
 const OSM_TILES = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 const FONT = "system-ui, sans-serif";
+/** Edges soften over about a screen pixel: the default is fine at 2x, but jagged on 1x (Windows) displays. */
+const sdfSettings = () => ({
+  sdf: true,
+  smoothing: window.devicePixelRatio >= 2 ? 0.1 : 0.25,
+});
 const MAGENTA: Rgba = [255, 0, 255, 255];
 const AMBER: Rgba = [245, 158, 11, 255];
 const SELECTION: Rgba = [255, 176, 0, 255];
@@ -274,7 +279,7 @@ function text(
     fontWeight: style.weight,
     // Glyphs are cut from the system font on a canvas: no glyph server, so it works offline.
     characterSet: "auto",
-    fontSettings: { sdf: true },
+    fontSettings: sdfSettings(),
     outlineWidth: style.halo ? 3 : 0,
     outlineColor: halo,
     getTextAnchor: style.anchor ?? "start",
@@ -374,7 +379,7 @@ function fjordLabels(zoom: number) {
       sizeUnits: "pixels",
       fontFamily: FONT,
       characterSet: "auto",
-      fontSettings: { sdf: true },
+      fontSettings: sdfSettings(),
       outlineWidth: 2,
       outlineColor: rule.halo,
       getTextAnchor: "middle",
