@@ -23,8 +23,8 @@ Branch: `codex/preflight-parity-audit`.
   20 seconds. Missing verified best-glide speed remains unavailable.
 - Keep routine report popups out of an active emergency session; keep map/target status visible.
   Prevent horizontal clipping of long emergency text; omit twin-only climb data on single engines.
-- Validation: format, ESLint, types, build, **387 unit tests**, **74 E2E** pass. Three EMER scenarios
-  also pass on the final build, including instrument readings and unavailable range after reload.
+- Validation: format, ESLint, types, build, **387 unit tests**, **75 E2E scenarios** (74-suite plus final 4-case EMER rerun) pass. Four EMER scenarios
+  also pass on the final build, including phone bounds, instrument readings and unavailable range after reload.
   Source status, assumptions and release dependencies: [EMERGENCY.md](EMERGENCY.md).
 
 ## Live wind estimate and map tile (2026-10-17)

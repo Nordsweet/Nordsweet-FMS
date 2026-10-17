@@ -1130,7 +1130,7 @@ export function MapView({
         <div
           role="status"
           data-testid="emergency-map-status"
-          className="bg-card/95 text-card-foreground absolute bottom-28 left-3 z-10 max-w-xs rounded-lg border border-red-500 p-2 text-xs shadow"
+          className="bg-card/95 text-card-foreground absolute bottom-56 left-3 z-10 max-w-[calc(100%-6rem)] rounded-lg border border-red-500 p-2 text-xs shadow sm:bottom-44 sm:max-w-xs"
         >
           <strong>
             EMER ·{" "}

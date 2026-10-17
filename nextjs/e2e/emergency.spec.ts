@@ -241,3 +241,29 @@ test("reference is not offered for a twin; takeoff sufficiency needs pilot confi
   await panel.getByLabel("I confirm sufficient runway ahead").check();
   await expect(option).toHaveJSProperty("disabled", false);
 });
+
+test("EMER stays within a phone viewport and long source actions do not overflow", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await seed(page);
+  const panel = await emer(page);
+  await panel.getByRole("button", { name: "Engine Out", exact: true }).click();
+  await panel
+    .getByRole("button", { name: "Browse source reference (FR172H)" })
+    .click();
+  await panel
+    .getByRole("button", {
+      name: "Engine Failure — During Flight",
+      exact: true,
+    })
+    .click();
+  const dialog = page.getByRole("dialog", { name: "EMER", exact: true });
+  const box = await dialog.boundingBox();
+  expect(box!.x).toBeGreaterThanOrEqual(0);
+  expect(box!.x + box!.width).toBeLessThanOrEqual(375);
+  expect(
+    await dialog.evaluate((el) => el.scrollWidth - el.clientWidth),
+  ).toBeLessThanOrEqual(1);
+  await page.screenshot({ path: "test-results/emergency-phone.png" });
+});
