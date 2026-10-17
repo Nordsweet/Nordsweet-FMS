@@ -8,6 +8,37 @@ const corner = { ident: "B", lat: 50, lon: 20 };
 const from = { ident: "A", ...destinationPoint(corner, 270, 10) };
 const right = { ident: "C", ...destinationPoint(corner, 180, 10) };
 
+test("initial-course curves preserve real fix indices, guidance and destination distance", () => {
+  const route = [
+    {
+      ...corner,
+      ident: "DCT",
+      initialCourseDeg: 0,
+      turnPerformance: { tasKt: 100 },
+    },
+    { ident: "NEXT", ...destinationPoint(corner, 90, 10) },
+    { ident: "END", ...destinationPoint(corner, 0, 20) },
+  ];
+  const path = flyByRoute(route, { tasKt: 120 });
+  expect(path.issues).toEqual([]);
+  expect([...path.turns.keys()]).toEqual([1]);
+  expect(path.legs.every((leg) => leg === 0 || leg === 1)).toBe(true);
+  expect(
+    Math.abs(
+      angleDiffDeg(0, initialBearingDeg(path.points[0]!, path.points[1]!)),
+    ),
+  ).toBeLessThan(1);
+  const progress = computeProgress(route, corner, 0, { tasKt: 120 })!;
+  expect(progress.next.ident).toBe("NEXT");
+  expect(progress.desiredTrackDeg).toBeCloseTo(0, 1);
+  expect(progress.distanceToDestinationNm).toBeCloseTo(
+    path.points
+      .slice(1)
+      .reduce((sum, p, i) => sum + distanceNm(path.points[i]!, p), 0),
+    6,
+  );
+});
+
 test("adjacent rate-one turns may touch to form a continuous 180 degree turn", () => {
   const next = {
     ident: "C",
@@ -21,6 +52,47 @@ test("adjacent rate-one turns may touch to form a continuous 180 degree turn", (
   const b = path.turns.get(2)!;
   expect(a.durationSeconds + b.durationSeconds).toBeCloseTo(60, 1);
   expect(distanceNm(a.points.at(-1)!, b.points[0]!)).toBeLessThan(0.0005);
+});
+
+test("a curved exit sequences at the real tangent, not the original DCT abeam plane", () => {
+  const route = [
+    { ...corner, ident: "DCT", initialCourseDeg: 0 },
+    { ident: "NEXT", ...destinationPoint(corner, 180, 1) },
+    { ident: "END", ...destinationPoint(corner, 90, 10) },
+  ];
+  const path = flyByRoute(route, { tasKt: 100 });
+  expect(path.issues).toEqual([]);
+  const last = path.legs.lastIndexOf(0);
+  for (let i = 0; i < last - 2; i++) {
+    if (distanceNm(path.points[i]!, path.points[last + 1]!) < 0.05) continue;
+    expect(
+      computeProgress(route, path.points[i]!, 0, { tasKt: 100 })?.activeLeg,
+    ).toBe(0);
+  }
+  expect(
+    computeProgress(route, path.points[last + 1]!, 0, { tasKt: 100 })
+      ?.activeLeg,
+  ).toBe(1);
+});
+
+test("an exit reserves room for a faster subsequent enroute turn", () => {
+  for (const bearing of [45, 90, 135, 180, 225, 270, 315])
+    for (const distance of [2, 4]) {
+      const route = [
+        {
+          ...corner,
+          ident: "DCT",
+          initialCourseDeg: 0,
+          turnPerformance: { tasKt: 100 },
+        },
+        { ident: "NEXT", ...destinationPoint(corner, bearing, distance) },
+        { ident: "END", ...destinationPoint(corner, 90, 10) },
+      ];
+      expect(
+        flyByRoute(route, { tasKt: 180 }).issues,
+        `${bearing}° / ${distance} NM`,
+      ).toEqual([]);
+    }
 });
 
 test.each([80, 100, 120, 140, 160])(

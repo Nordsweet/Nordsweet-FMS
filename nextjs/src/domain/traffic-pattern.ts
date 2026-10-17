@@ -9,7 +9,7 @@ import {
   type LatLon,
 } from "./geo";
 import { angleDiffDeg } from "./angles";
-import { flyByRoute, type TurnPerformance } from "./fly-by";
+import { flyByRoute, courseExitGuides, type TurnPerformance } from "./fly-by";
 import { patternPlanningPerformance } from "./pattern-performance";
 
 /** Use published thresholds where available; otherwise estimate from runway length and ARP. */
@@ -222,48 +222,19 @@ function departureExitGuides(
 ): NavPoint[] {
   const start = points.at(-1)!;
   const heading = initialBearingDeg(start, legEnd);
-  if (
-    Math.abs(angleDiffDeg(heading, initialBearingDeg(start, outbound))) < 1 &&
-    flyByRoute([...points, outbound], performance).issues.length === 0
-  )
-    return [];
-  const radius = performance.tasKt / (60 * Math.PI);
-  const maxLength = Math.max(2, distanceNm(start, outbound) + 4 * radius);
-  const guide = (position: LatLon, index: number): NavPoint => ({
+  return courseExitGuides(
+    points,
+    heading,
+    [outbound],
+    performance,
+    pattern.direction,
+  ).map((position, index): NavPoint => ({
     ...position,
-    ident: `TPX${index}/${pattern.airport.ident}`,
+    ident: `TPX${index + 1}/${pattern.airport.ident}`,
     patternId: pattern.id,
     patternOperation: "leave",
     turnPerformance: performance,
-  });
-  // A straight lead suffices for most exits. A dogleg also supports an outbound
-  // fix behind the selected leg without asking the fly-by solver for a reversal.
-  for (const dogleg of [false, true]) {
-    for (
-      let length = Math.max(0.05, 2 * radius + 0.01);
-      length <= maxLength;
-      length *= 1.2
-    ) {
-      const first = guide(destinationPoint(start, heading, length), 1);
-      const guides = dogleg
-        ? [
-            first,
-            guide(
-              destinationPoint(
-                first,
-                heading + (pattern.direction === "left" ? -90 : 90),
-                length,
-              ),
-              2,
-            ),
-          ]
-        : [first];
-      const path = flyByRoute([...points, ...guides, outbound], performance);
-      if (path.issues.length === 0) return guides;
-    }
-  }
-  // Preserve the solver's existing warning when wind/geometry has no feasible transition.
-  return [];
+  }));
 }
 
 /** Replace the destination arrival with the selected pattern, retaining the preceding route. */
