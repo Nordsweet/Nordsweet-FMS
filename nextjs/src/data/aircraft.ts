@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { emergencyProcedureSchema } from "./emergency";
 
 /**
  * POH table as a nested grid. Axes are optional and may hold a single point (a value the POH did
@@ -242,6 +243,13 @@ export const aircraftSchema = z.object({
   climbTables: z.array(climbTableSchema).default([]),
   cruise: cruiseSchema.nullable(),
   checklists: z.array(checklistSchema),
+  emergencyProcedures: z.array(emergencyProcedureSchema).default([]),
+  emergencyEquipment: z
+    .object({
+      hydraulic: z.boolean().optional(),
+      pneumatic: z.boolean().optional(),
+    })
+    .default({}),
   windLimits: z
     .object({
       maxCrosswindKt: z.number().nullable(),

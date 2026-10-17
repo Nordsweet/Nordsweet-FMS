@@ -68,6 +68,7 @@ import { useTrafficSession } from "~/stores/traffic-session";
 import { useInFlight } from "~/stores/inflight";
 import { useMapSettings, type Basemap, type LayerId } from "~/stores/map";
 import { useGps } from "~/features/fly/use-gps";
+import { useEmergencyMap } from "~/features/emergency/use-emergency-map";
 import { MapSummary } from "./map-summary";
 import { PointDetails } from "./point-details";
 import { TrafficCard } from "./traffic-card";
@@ -298,6 +299,25 @@ export function MapView({
   });
 
   const airports = useQuery(api.airports.list.queryOptions(undefined));
+  const emergencyMap = useEmergencyMap(airports.data ?? [], fix, gpsError, now);
+  useEffect(() => {
+    sceneRef.current?.set({
+      emergencyRoute: emergencyMap.preview ? [] : toPaths([emergencyMap.path]),
+      emergencyPreview: emergencyMap.preview
+        ? toPaths([emergencyMap.path])
+        : [],
+      emergencyRange: emergencyMap.circle.length
+        ? [{ polygon: emergencyMap.circle.map((p) => [p.lon, p.lat]) }]
+        : [],
+      emergencyAirports: emergencyMap.reachable.map((a) => [a.lon, a.lat]),
+    });
+  }, [
+    ready,
+    emergencyMap.path,
+    emergencyMap.preview,
+    emergencyMap.circle,
+    emergencyMap.reachable,
+  ]);
   const navpoints = useQuery(api.navpoints.list.queryOptions(undefined));
   const procedures = useQuery(api.procedures.all.queryOptions(undefined));
   const activeEndpoint = navigation.startedAt
@@ -1104,8 +1124,35 @@ export function MapView({
       data-pattern-preview={patternPreview ? "true" : "false"}
       data-holding-preview={holdingPreview ? "true" : "false"}
     >
-      {navigation.startedAt && <TrafficPatternPopup />}
-      {navigation.startedAt && <HoldingStatus />}
+      {navigation.startedAt && !emergencyMap.active && <TrafficPatternPopup />}
+      {navigation.startedAt && !emergencyMap.active && <HoldingStatus />}
+      {emergencyMap.active && (
+        <div
+          role="status"
+          data-testid="emergency-map-status"
+          className="bg-card/95 text-card-foreground absolute bottom-56 left-3 z-10 max-w-[calc(100%-6rem)] rounded-lg border border-red-500 p-2 text-xs shadow sm:bottom-44 sm:max-w-xs"
+        >
+          <strong>
+            EMER ·{" "}
+            {emergencyMap.target
+              ? `${emergencyMap.target.airport} RW${emergencyMap.target.runway}`
+              : t("emer.noRoute")}
+          </strong>
+          <p>{emergencyMap.preview ? t("emer.preview") : t("emer.final")}</p>
+          <p>
+            {emergencyMap.range
+              ? t("emer.range", {
+                  range: emergencyMap.range.radiusNm.toFixed(1),
+                  minutes: emergencyMap.range.minutes.toFixed(1),
+                  reference: emergencyMap.range.referenceFt,
+                })
+              : t("emer.rangeUnavailable")}
+          </p>
+          {emergencyMap.range && emergencyMap.reachable.length === 0 && (
+            <p>{t("emer.noReachable")}</p>
+          )}
+        </div>
+      )}
       {layers.route && turnIssues.length > 0 && (
         <div
           role="status"

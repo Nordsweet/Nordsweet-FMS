@@ -5,8 +5,10 @@ import { aircraftEditorEn, aircraftEditorPl } from "./aircraft-editor";
 import { mapToolsEn, mapToolsPl } from "./map-tools";
 import { holdingEn, holdingPl } from "./holding";
 import { windEn, windPl } from "./wind";
+import { emergencyEn, emergencyPl } from "./emergency";
 
 const pl = {
+  ...emergencyPl,
   ...windPl,
   ...holdingPl,
   ...trafficPatternPl,
@@ -818,6 +820,7 @@ const pl = {
 export type MessageKey = keyof typeof pl;
 
 const en: Record<MessageKey, string> = {
+  ...emergencyEn,
   ...windEn,
   ...holdingEn,
   ...trafficPatternEn,

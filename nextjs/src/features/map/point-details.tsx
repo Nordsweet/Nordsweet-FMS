@@ -23,6 +23,7 @@ import { useGps } from "~/features/fly/use-gps";
 import { AirportBriefing, AirportNotams } from "~/features/plan/briefing";
 import { WaypointWxDialog } from "~/features/plan/route-dialogs";
 import { usePlan } from "~/features/plan/use-plan";
+import { EmergencyAirportChoice } from "~/features/emergency/emergency-airport-choice";
 
 const KIND_LABEL: Record<string, MessageKey> = {
   airport: "maptools.kind.airport",
@@ -116,6 +117,9 @@ export function PointDetails({
         onClose={() => setWxOpen(false)}
       />
       <strong>{point.ident}</strong>
+      {airportRecord && (
+        <EmergencyAirportChoice airport={airportRecord} now={now} />
+      )}
       {point.name !== point.ident && <span>{point.name}</span>}
       <span className="text-muted-foreground text-xs font-bold">
         {t(KIND_LABEL[point.kind] ?? "maptools.kind.point")} |{" "}
