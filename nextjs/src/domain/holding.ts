@@ -87,7 +87,7 @@ function turn(
   );
 }
 
-/** CSC tangent connector to the inbound course. The first turn follows the hold direction. */
+/** Tangent inbound capture with explicit reversal and capture directions. */
 function returnPath(
   p: Vec,
   heading: number,
@@ -95,40 +95,44 @@ function returnPath(
   sign: number,
   radius: number,
   minimumTurn: number,
-) {
+  endSign: number,
+): Vec[] {
   const firstCentre = move(p, heading + sign * 90, radius);
-  const candidates: { points: Vec[]; length: number }[] = [];
-  for (const endSign of [sign, -sign]) {
-    const lastCentre = move({ x: 0, y: 0 }, inbound + endSign * 90, radius);
-    const dx = lastCentre.x - firstCentre.x,
-      dy = lastCentre.y - firstCentre.y;
-    const distance = Math.hypot(dx, dy);
-    if (distance < 1e-7 || (endSign !== sign && distance < 2 * radius))
-      continue;
-    const bearing = toDeg(Math.atan2(dx, dy));
-    const tangent =
-      bearing +
-      (endSign === sign ? 0 : toDeg(Math.asin((2 * sign * radius) / distance)));
-    const firstTurn = sweep(heading, tangent, sign);
-    if (firstTurn + 1e-5 < minimumTurn) continue;
-    const lastTurn = sweep(tangent, inbound, endSign);
-    const a = turn(p, heading, firstTurn, sign, radius);
-    const bStart = move(lastCentre, tangent - endSign * 90, radius);
-    const b = turn(bStart, tangent, lastTurn, endSign, radius);
-    candidates.push({
-      points: [...a, ...b],
-      length:
-        radius * toRad(firstTurn + lastTurn) +
-        Math.hypot(bStart.x - a.at(-1)!.x, bStart.y - a.at(-1)!.y),
-    });
-  }
-  // Same-direction circles always have an outer tangent. A coincident pair is a full circle.
-  return (
-    candidates.sort((a, b) => a.length - b.length)[0]?.points ?? [
-      ...turn(p, heading, 360, sign, radius),
-      { x: 0, y: 0 },
-    ]
-  );
+  const lastCentre = move({ x: 0, y: 0 }, inbound + endSign * 90, radius);
+  const dx = lastCentre.x - firstCentre.x,
+    dy = lastCentre.y - firstCentre.y;
+  const distance = Math.hypot(dx, dy);
+  if (distance < 1e-7 && endSign === sign)
+    return turn(p, heading, sweep(heading, inbound, sign), sign, radius);
+  const reversalCapture = () => {
+    // Very short legs may not fit an inner tangent. Complete the opposite reversal,
+    // then capture with holding-direction arcs instead of a sharp join or wrong-way turn.
+    const reversal = turn(p, heading, 270, sign, radius);
+    return [
+      ...reversal,
+      ...returnPath(
+        reversal.at(-1)!,
+        heading + sign * 270,
+        inbound,
+        endSign,
+        radius,
+        0,
+        endSign,
+      ),
+    ];
+  };
+  if (endSign !== sign && distance < 2 * radius) return reversalCapture();
+  const bearing = toDeg(Math.atan2(dx, dy));
+  const tangent =
+    bearing +
+    (endSign === sign ? 0 : toDeg(Math.asin((2 * sign * radius) / distance)));
+  const firstTurn = sweep(heading, tangent, sign);
+  if (firstTurn + 1e-5 < minimumTurn) return reversalCapture();
+  const lastTurn = sweep(tangent, inbound, endSign);
+  const a = turn(p, heading, firstTurn, sign, radius);
+  const bStart = move(lastCentre, tangent - endSign * 90, radius);
+  const b = turn(bStart, tangent, lastTurn, endSign, radius);
+  return [...a, ...b];
 }
 
 /** Nominal still-air geometry, including the selected automatic entry and a rate-one racetrack. */
@@ -160,9 +164,10 @@ export function holdingGeometry(
     outboundEnd,
     outboundDeg,
     config.inboundTrueDeg,
-    sign,
+    entry === "parallel" ? -sign : sign,
     radius,
     entry === "parallel" ? 180 : 0,
+    sign,
   );
   const nominalTurn = turn(
     { x: 0, y: 0 },

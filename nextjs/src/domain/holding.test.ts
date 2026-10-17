@@ -41,6 +41,90 @@ const advance = (s: HoldingRuntime, p: HoldFix, next = true) =>
 const initialStore = useInFlight.getState();
 afterEach(() => useInFlight.setState(initialStore, true));
 
+function turnChanges(path: { lat: number; lon: number }[]) {
+  const points = path.filter(
+    (p, i) => i === 0 || distanceNm(path[i - 1]!, p) > 0.000001,
+  );
+  return points
+    .slice(1, -1)
+    .map((p, i) =>
+      angleDiffDeg(
+        initialBearingDeg(points[i]!, p),
+        initialBearingDeg(p, points[i + 2]!),
+      ),
+    )
+    .filter((delta) => Math.abs(delta) > 0.05);
+}
+
+test("parallel entry and its timed reversal oppose the hold; inbound capture and later laps follow it", () => {
+  for (const direction of ["right", "left"] as const) {
+    const sign = direction === "right" ? 1 : -1;
+    for (const course of [0, 75, 280])
+      for (const legSeconds of [15, 60, 90]) {
+        const c = {
+          ...config,
+          direction,
+          inboundTrueDeg: course,
+          approachTrueDeg: course + sign * 240,
+          legSeconds,
+        };
+        const g = holdingGeometry(c);
+        expect(g.entry).toBe("parallel");
+        expect(
+          turnChanges(g.turn).every((delta) => Math.sign(delta) === -sign),
+        ).toBe(true);
+        const changes = turnChanges(g.return);
+        expect(Math.sign(changes[0]!)).toBe(-sign);
+        expect(Math.sign(changes.at(-1)!)).toBe(sign);
+        const capture = changes.findIndex((delta) => Math.sign(delta) === sign);
+        expect(capture).toBeGreaterThan(0);
+        expect(
+          changes.slice(capture).every((delta) => Math.sign(delta) === sign),
+        ).toBe(true);
+        expect(distanceNm(g.return[0]!, g.outbound[1]!)).toBeLessThan(0.000001);
+        expect(distanceNm(g.return.at(-1)!, c.fix)).toBeLessThan(0.000001);
+        expect(
+          turnChanges(g.entryPath).every((delta) => Math.abs(delta) < 3.2),
+        ).toBe(true);
+        expect(
+          turnChanges(g.racetrack).every((delta) => Math.sign(delta) === sign),
+        ).toBe(true);
+        const nextLap = holdingGeometry(
+          { ...c, approachTrueDeg: course },
+          "direct",
+        );
+        expect(
+          turnChanges(nextLap.turn).every((delta) => Math.sign(delta) === sign),
+        ).toBe(true);
+        expect(
+          turnChanges(nextLap.return).every(
+            (delta) => Math.sign(delta) === sign,
+          ),
+        ).toBe(true);
+      }
+  }
+});
+
+test("direct and teardrop use only the selected holding direction, including inbound capture", () => {
+  for (const direction of ["right", "left"] as const) {
+    const sign = direction === "right" ? 1 : -1;
+    for (const approach of [0, 45, 90, 120, 150, 175, 300, 350]) {
+      const g = holdingGeometry({
+        ...config,
+        direction,
+        approachTrueDeg: sign * approach,
+      });
+      expect(g.entry).not.toBe("parallel");
+      expect(
+        turnChanges(g.turn).every((delta) => Math.sign(delta) === sign),
+      ).toBe(true);
+      expect(
+        turnChanges(g.return).every((delta) => Math.sign(delta) === sign),
+      ).toBe(true);
+    }
+  }
+});
+
 test("entry sectors follow FAA diagram and mirror across inbound for left turns", () => {
   for (const [approach, expected] of [
     [0, "direct"],
