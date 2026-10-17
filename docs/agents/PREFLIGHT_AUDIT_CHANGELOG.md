@@ -5,6 +5,22 @@ Reference: <https://nordsweet-performance-calculator.mrnordsweet.chatgpt.site/> 
 `5265bc5de9510aa3d83cc469860a730962b96c78`. Starting develop: `2f289ed6dc8d7b7c3186b100577c787c64df1de2`.
 Branch: `codex/preflight-parity-audit`.
 
+## Parallel HOLD entry direction (2026-10-17)
+
+- Correct the requested parallel-entry rule: both the initial turn onto outbound
+  and the reversal after its timer use the opposite direction to the selected hold.
+  Inbound capture and every subsequent circuit use the selected holding direction.
+  Left holds mirror right holds. Direct/teardrop no longer choose an opposite-direction
+  inbound capture merely because its connector is shorter.
+- Keep rate-one radius, timed outbound length and tangent continuity. For very short
+  custom legs that cannot fit the opposing-circle tangent, complete the opposite
+  reversal before a holding-direction capture, without shrinking the turn radius or
+  drawing a sharp shortcut. The normal 60/90-second entries use a tangent connector.
+- Preview, accepted map paths, GPS guidance and restored holds derive from the same
+  geometry, so existing saved configurations receive the correction automatically.
+  Regression tests detect signed turn direction for both hold directions and rotated
+  inbound courses, check 15/60/90-second legs and preserve subsequent-lap direction.
+
 ## Holding at a selected fix (2026-10-16)
 
 - Point/airport details include HOLD: fixed fix, level in ft AMSL, magnetic inbound
