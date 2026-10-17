@@ -30,7 +30,7 @@ const MAX_ZOOM = 22;
 const SETTLE_MS = 150;
 const PICK_RADIUS = 10;
 /** A touchpad pinch arrives as ctrl+wheel events with tiny deltas (MapLibre scales them up 10x too). */
-const PINCH_GAIN = 8;
+const PINCH_GAIN = 12;
 /** A press that moves further than this is a drag, not a click. */
 const CLICK_TOLERANCE_PX = 5;
 const FLY = new FlyToInterpolator({ speed: 1.6 });
