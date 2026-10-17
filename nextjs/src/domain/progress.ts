@@ -1,13 +1,11 @@
 import { type LatLon, distanceNm, initialBearingDeg, trackOffset } from "./geo";
-import { flyByRoute, type TurnPerformance } from "./fly-by";
+import { flyByRoute, type TurnPerformance, type FlyByPoint } from "./fly-by";
 
-export type NavPoint = LatLon & {
+export type NavPoint = FlyByPoint & {
   ident: string;
   patternId?: string;
   patternOperation?: "join" | "leave";
   altitudeFt?: number;
-  flyOver?: boolean;
-  turnPerformance?: TurnPerformance;
 };
 
 /** Within this distance of the next waypoint it counts as passed even if not yet abeam. */
@@ -27,38 +25,12 @@ export type Progress = {
   distanceToDestinationNm: number;
 };
 
-/**
- * Fly-by sequencing at tangent entry, with guidance and distances along the same curved map path.
- * Unavailable turns retain waypoint passage sequencing; legs never move backwards.
- */
-export function computeProgress(
-  route: NavPoint[],
+/** Project only onto the sequenced curved leg; later nearby legs cannot skip a fix. */
+function nearestLeg(
+  path: ReturnType<typeof flyByRoute>,
   position: LatLon,
-  currentLeg: number,
-  performance: TurnPerformance = { tasKt: 100 },
-): Progress | null {
-  if (route.length < 2) return null;
-  const path = flyByRoute(route, performance);
-  let leg = Math.min(Math.max(0, currentLeg), route.length - 2);
-  while (leg < route.length - 2) {
-    const from = route[leg]!;
-    const to = route[leg + 1]!;
-    const turn = path.turns.get(leg + 1);
-    const offset = trackOffset(from, to, position);
-    const passed = turn
-      ? (Math.abs(offset.crossTrackNm) <= 0.15 &&
-          offset.alongTrackNm >= distanceNm(from, to) - turn.entryNm) ||
-        offset.alongTrackNm >= distanceNm(from, to)
-      : distanceNm(position, to) <
-          (to.patternId
-            ? Math.min(0.05, distanceNm(from, to) * 0.2)
-            : PASSED_NM) || offset.alongTrackNm >= distanceNm(from, to);
-    if (!passed) break;
-    leg++;
-  }
-  const from = route[leg]!;
-  const next = route[leg + 1]!;
-  // Restrict projection to the sequenced leg: a nearby later leg must not skip an unflown fix.
+  leg: number,
+) {
   let nearest: {
     index: number;
     distance: number;
@@ -86,6 +58,53 @@ export function computeProgress(
         cross: offset.crossTrackNm,
       };
   }
+  return nearest;
+}
+
+/**
+ * Fly-by sequencing at tangent entry, with guidance and distances along the same curved map path.
+ * Unavailable turns retain waypoint passage sequencing; legs never move backwards.
+ */
+export function computeProgress(
+  route: NavPoint[],
+  position: LatLon,
+  currentLeg: number,
+  performance: TurnPerformance = { tasKt: 100 },
+): Progress | null {
+  if (route.length < 2) return null;
+  const path = flyByRoute(route, performance);
+  let leg = Math.min(Math.max(0, currentLeg), route.length - 2);
+  while (leg < route.length - 2) {
+    const from = route[leg]!;
+    const to = route[leg + 1]!;
+    const turn = path.turns.get(leg + 1);
+    const offset = trackOffset(from, to, position);
+    // An exit dogleg can cross the original DCT's abeam plane early. Sequence
+    // only at the end of its actual curve, including the next real fix's tangent.
+    const curvedExit = leg === 0 && from.initialCourseDeg != null;
+    const last = path.legs.lastIndexOf(leg);
+    const endFrom = path.points[last]!,
+      endTo = path.points[last + 1]!;
+    const passed =
+      curvedExit && last >= 0
+        ? distanceNm(position, endTo) < 0.05 ||
+          (nearestLeg(path, position, leg)?.index === last &&
+            trackOffset(endFrom, endTo, position).alongTrackNm >=
+              distanceNm(endFrom, endTo))
+        : turn
+          ? (Math.abs(offset.crossTrackNm) <= 0.15 &&
+              offset.alongTrackNm >= distanceNm(from, to) - turn.entryNm) ||
+            offset.alongTrackNm >= distanceNm(from, to)
+          : distanceNm(position, to) <
+              (to.patternId
+                ? Math.min(0.05, distanceNm(from, to) * 0.2)
+                : PASSED_NM) || offset.alongTrackNm >= distanceNm(from, to);
+    if (!passed) break;
+    leg++;
+  }
+  const from = route[leg]!;
+  const next = route[leg + 1]!;
+  const nearest = nearestLeg(path, position, leg);
   let distanceToNextNm = nearest
     ? nearest.remaining + nearest.distance
     : distanceNm(position, next);

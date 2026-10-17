@@ -3,6 +3,8 @@ import { newFlight } from "../src/data/flight";
 import { type Holding } from "../src/data/holding";
 import { destinationPoint } from "../src/domain/geo";
 import { holdingGeometry } from "../src/domain/holding";
+import { flyByRoute } from "../src/domain/fly-by";
+import { type NavPoint } from "../src/domain/progress";
 
 const fix = { ident: "KELEL", lat: 49.313611, lon: 20.175278 };
 const departure = { ident: "EPKK", lat: 50.077778, lon: 19.784722 };
@@ -281,14 +283,38 @@ test("GPS fix passage and abeam start a separate persisted outbound timer; Exit 
         ).state.holding.timerStartedAt,
     ),
   ).toBe(started);
+  // Reload reinstalls the fixture's initial northbound GPS fix. Restore the
+  // actual outbound observation before testing the live-course exit.
+  await move(
+    destinationPoint(geometry.outbound[0]!, geometry.outboundDeg, 0.06),
+    geometry.outboundDeg,
+  );
   await status.getByRole("button", { name: "Exit HOLD", exact: true }).click();
   await expect(status).toHaveCount(0);
-  const remaining = await page.evaluate(() =>
-    (
-      JSON.parse(localStorage.getItem("nordsweet.inflight.v1")!) as {
-        state: { route: { ident: string }[] };
-      }
-    ).state.route.map((p) => p.ident),
+  const remaining = await page.evaluate(
+    () =>
+      (
+        JSON.parse(localStorage.getItem("nordsweet.inflight.v1")!) as {
+          state: { route: NavPoint[] };
+        }
+      ).state.route,
   );
-  expect(remaining).toEqual(["DCT", "EPNT"]);
+  expect(remaining.map((p) => p.ident)).toEqual(["DCT", "EPNT"]);
+  expect(remaining[0]?.initialCourseDeg).toBeCloseTo(180, 0);
+  const exit = flyByRoute(remaining, { tasKt: 100 });
+  expect(exit.issues).toEqual([]);
+  expect(exit.points.length).toBeGreaterThan(3);
+  await page.screenshot({ path: "test-results/holding-exit.png" });
+  await page.reload();
+  await expect(status).toHaveCount(0);
+  expect(
+    await page.evaluate(
+      () =>
+        (
+          JSON.parse(localStorage.getItem("nordsweet.inflight.v1")!) as {
+            state: { route: NavPoint[] };
+          }
+        ).state.route,
+    ),
+  ).toEqual(remaining);
 });

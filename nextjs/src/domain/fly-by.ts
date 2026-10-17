@@ -35,14 +35,77 @@ export type TurnIssue = {
   reason: "space" | "reversal" | "wind" | "speed";
 };
 
+export type FlyByPoint = LatLon & {
+  flyOver?: boolean;
+  turnPerformance?: TurnPerformance;
+  /** Start a resumed route on this ground track before turning toward its first fix. */
+  initialCourseDeg?: number;
+  initialTurnDirection?: "left" | "right";
+};
+type FlyByPath = {
+  points: LatLon[];
+  legs: number[];
+  turns: Map<number, FlyByTurn>;
+  candidates: Map<number, FlyByTurn>;
+  issues: TurnIssue[];
+};
+
 /** Constant-air-relative 3°/s turns in a geodesic local frame; never shrink a radius to fit. */
 export function flyByRoute(
-  route: readonly (LatLon & {
-    flyOver?: boolean;
-    turnPerformance?: TurnPerformance;
-  })[],
+  route: readonly FlyByPoint[],
   performance: TurnPerformance,
-) {
+): FlyByPath {
+  const start = route[0];
+  if (start?.initialCourseDeg != null && route.length > 1) {
+    const plain = [
+      { ...start, initialCourseDeg: undefined },
+      ...route.slice(1),
+    ];
+    const setting = start.turnPerformance ?? performance;
+    const guides = courseExitGuides(
+      plain.slice(0, 1),
+      start.initialCourseDeg,
+      plain.slice(1),
+      setting,
+      start.initialTurnDirection ?? "right",
+      performance,
+    ).map((p) => ({ ...p, turnPerformance: setting }));
+    const path = flyByRoute(
+      [plain[0]!, ...guides, ...plain.slice(1)],
+      performance,
+    );
+    // Virtual corners shape the curve but never become FPL fixes or sequencing targets.
+    const remap = (turns: Map<number, FlyByTurn>) =>
+      new Map(
+        [...turns]
+          .filter(([index]) => index > guides.length)
+          .map(([index, turn]) => [
+            index - guides.length,
+            { ...turn, index: index - guides.length },
+          ]),
+      );
+    return {
+      ...path,
+      legs: path.legs.map((leg) => Math.max(0, leg - guides.length)),
+      turns: remap(path.turns),
+      candidates: remap(path.candidates),
+      issues: [
+        ...path.issues.map((issue) => ({
+          ...issue,
+          index: Math.max(0, issue.index - guides.length),
+        })),
+        ...(!guides.length &&
+        Math.abs(
+          angleDiffDeg(
+            start.initialCourseDeg,
+            initialBearingDeg(start, route[1]!),
+          ),
+        ) >= 1
+          ? [{ index: 0, reason: "space" as const }]
+          : []),
+      ],
+    };
+  }
   const turns = new Map<number, FlyByTurn>();
   const candidates = new Map<number, FlyByTurn>();
   const issues: TurnIssue[] = [];
@@ -170,6 +233,63 @@ export function flyByRoute(
     else append(p, Math.max(0, i - 1));
   });
   return { points, legs, turns, candidates, issues };
+}
+
+/** Shared departure/HOLD connector: establish the current course, then fit full rate-one arcs. */
+export function courseExitGuides(
+  prefix: readonly FlyByPoint[],
+  heading: number,
+  suffix: readonly FlyByPoint[],
+  performance: TurnPerformance,
+  direction: "left" | "right",
+  routePerformance: TurnPerformance = performance,
+): LatLon[] {
+  const start = prefix.at(-1),
+    outbound = suffix[0];
+  if (!start || !outbound) return [];
+  if (
+    Math.abs(angleDiffDeg(heading, initialBearingDeg(start, outbound))) < 1 &&
+    flyByRoute([...prefix, ...suffix], routePerformance).issues.length === 0
+  )
+    return [];
+  const radius = performance.tasKt / (60 * Math.PI);
+  const maxLength = Math.max(2, distanceNm(start, outbound) + 4 * radius);
+  // A dogleg handles fixes behind the aircraft without an abrupt reversal.
+  for (const dogleg of [false, true])
+    for (
+      let length = Math.max(0.05, 2 * radius + 0.01);
+      length <= maxLength;
+      length *= 1.2
+    ) {
+      const first = destinationPoint(start, heading, length);
+      const guides = dogleg
+        ? [
+            first,
+            destinationPoint(
+              first,
+              heading + (direction === "left" ? -90 : 90),
+              length,
+            ),
+          ]
+        : [first];
+      const path = flyByRoute(
+        [
+          ...prefix,
+          ...guides.map((p) => ({ ...p, turnPerformance: performance })),
+          ...suffix,
+        ],
+        routePerformance,
+      );
+      if (
+        !path.issues.some(
+          (issue) =>
+            issue.index >= prefix.length - 1 &&
+            issue.index <= prefix.length + guides.length,
+        )
+      )
+        return guides;
+    }
+  return [];
 }
 
 /** Live TAS is inferred from the measured ground vector minus the supplied planning wind. */

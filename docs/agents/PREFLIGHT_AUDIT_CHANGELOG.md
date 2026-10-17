@@ -5,6 +5,20 @@ Reference: <https://nordsweet-performance-calculator.mrnordsweet.chatgpt.site/> 
 `5265bc5de9510aa3d83cc469860a730962b96c78`. Starting develop: `2f289ed6dc8d7b7c3186b100577c787c64df1de2`.
 Branch: `codex/preflight-parity-audit`.
 
+## Smooth HOLD exit (2026-10-17)
+
+- Exit HOLD retains the current ground track before joining the next remaining
+  flight-plan fix with rate-one fly-by arcs. Use a fresh GPS course when available,
+  otherwise the holding curve's local tangent at the last recorded position.
+  The exit uses the configured holding TAS and supports fixes behind the aircraft.
+- Reuse the departure-pattern connector rather than introduce another turn solver.
+  Virtual corners stay internal: FPL identifiers and next-fix targets are unchanged.
+  Map rendering and guidance use the same curve, including after reload. Removing
+  an armed hold still leaves the original route untouched; flight timers are retained.
+- Sequence a curved exit at its real end/next-fix tangent rather than prematurely
+  crossing the original DCT's abeam plane. Cover both holding directions, all active
+  phases, 100/120 kt, live-course priority, persistence and subsequent real-fix indices.
+
 ## HOLD capture loop correction (2026-10-17)
 
 - Reproduce the owner's left HOLD at inbound 242°, one-minute outbound and both

@@ -1416,7 +1416,13 @@ export function MapView({
                 }}
                 removeHolding={() => {
                   update({ holding: null });
-                  navigation.exitHolding(patternPosition);
+                  navigation.exitHolding(
+                    !gpsError &&
+                      fix &&
+                      Date.now() - Date.parse(fix.time) <= 20000
+                      ? fix
+                      : null,
+                  );
                   setHoldingPreview(null);
                   setClick(null);
                 }}
