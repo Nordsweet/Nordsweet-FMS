@@ -1,4 +1,5 @@
 "use client";
+import { EmergencyChecklists } from "~/features/emergency/emergency-checklists";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -249,6 +250,7 @@ export function ChecklistsPage({
           />
         </>
       )}
+      <EmergencyChecklists />
     </div>
   );
 }

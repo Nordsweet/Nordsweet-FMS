@@ -725,11 +725,15 @@
   max-height: calc(100dvh - var(--top) - 1rem);
 }
 .fly-popover[data-panel="emer"] {
+  grid-template-columns: minmax(0, 1fr);
   --head: #fff;
   width: min(380px, calc(100vw - 2rem));
   max-height: min(560px, calc(100dvh - var(--top) - 1rem));
   border-color: rgba(255, 117, 143, 0.35);
   background: rgba(10, 18, 30, 0.99);
+}
+.fly-popover[data-panel="emer"] > * {
+  min-width: 0;
 }
 .fly-popover[data-panel="config"] {
   width: min(560px, calc(100vw - 2rem));

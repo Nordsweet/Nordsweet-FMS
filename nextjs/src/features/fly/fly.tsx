@@ -30,6 +30,7 @@ import { useT } from "~/i18n/use-t";
 import { cn } from "~/lib/utils";
 import { MapWorkspace } from "~/features/map/map-workspace";
 import { useInFlight } from "~/stores/inflight";
+import { useEmergency, emergencyScope } from "~/stores/emergency";
 
 import { ChartPanel } from "./chart-panel";
 import { CommsPanel } from "./comms-panel";
@@ -112,7 +113,7 @@ export function FlyPage() {
   const searchOpen = useMapSettings((state) => state.searchOpen);
   const setSearchOpen = useMapSettings((state) => state.setSearchOpen);
   const t = useT();
-  const { flight, route: planRoute, departurePattern } = usePlan();
+  const { flight, route: planRoute, departurePattern, aircraft } = usePlan();
   const inFlight = useInFlight();
   const flying = inFlight.startedAt !== null;
   const { fix, error } = useGps(true);
@@ -261,6 +262,15 @@ export function FlyPage() {
     </>
   );
 
+  const emergency = useEmergency((s) => s.session);
+  const emergencyActive =
+    emergency?.scope ===
+      emergencyScope(
+        flight.id,
+        aircraft?.id ?? flight.aircraftId,
+        inFlight.startedAt,
+        flight.registration,
+      ) && emergency.endedAt === null;
   const content: Record<Panel, React.ReactNode> = {
     emer: <EmergencyPanel phase={phase} />,
     route: (flying
@@ -316,8 +326,10 @@ export function FlyPage() {
       <MapWorkspace embedded />
       <div className="fly-scrim" aria-hidden="true" data-open={open !== null} />
       {flying && <EventToast />}
-      {flying && <CommsChangePopup phase={phase} estimate={comms.estimate} />}
-      {flying && <FredaDialog fix={fix} now={now} />}
+      {flying && !emergencyActive && (
+        <CommsChangePopup phase={phase} estimate={comms.estimate} />
+      )}
+      {flying && !emergencyActive && <FredaDialog fix={fix} now={now} />}
       {flying && inFlight.replayEnabled && <GpxReplayDock />}
       <div className="bg-card/90 absolute top-3 left-1/2 z-30 flex max-w-[calc(100%-1.5rem)] -translate-x-1/2 gap-2 overflow-x-auto rounded-3xl border p-2 backdrop-blur">
         {flying ? (

@@ -89,6 +89,10 @@ export type Scene = {
   gpsVector: Path[];
   gpsTicks: Path[];
   gpsAccuracy: { polygon: Pos[] }[];
+  emergencyRoute: Path[];
+  emergencyPreview: Path[];
+  emergencyRange: { polygon: Pos[] }[];
+  emergencyAirports: Pos[];
   trafficTrail: Path[];
   trafficGap: Path[];
   trafficVector: Path[];
@@ -137,6 +141,10 @@ export const emptyScene = (): Scene => ({
   gpsVector: [],
   gpsTicks: [],
   gpsAccuracy: [],
+  emergencyRoute: [],
+  emergencyPreview: [],
+  emergencyRange: [],
+  emergencyAirports: [],
   trafficTrail: [],
   trafficGap: [],
   trafficVector: [],
@@ -508,6 +516,40 @@ export function buildLayers(s: Scene, refresh: () => void): Layer[] {
       widthUnits: "pixels",
       extensions: dashed,
       getDashArray: DASH,
+    }),
+    paths("emergency-route", s.emergencyRoute, [255, 80, 60, 255], 3, true, {
+      round: true,
+    }),
+    paths(
+      "emergency-preview",
+      s.emergencyPreview,
+      [255, 160, 40, 255],
+      3,
+      true,
+      { dash: true },
+    ),
+    new PolygonLayer<{ polygon: Pos[] }>({
+      id: "emergency-range",
+      data: s.emergencyRange,
+      getPolygon: (d) => d.polygon,
+      getFillColor: [40, 220, 100, 20],
+      getLineColor: [40, 220, 100, 210],
+      getLineWidth: 2,
+      lineWidthUnits: "pixels",
+      stroked: true,
+      filled: true,
+    }),
+    new ScatterplotLayer<Pos>({
+      id: "emergency-airports",
+      data: s.emergencyAirports,
+      getPosition: (d) => d,
+      getRadius: 16,
+      radiusUnits: "pixels",
+      getLineColor: [40, 240, 100, 255],
+      getLineWidth: 3,
+      lineWidthUnits: "pixels",
+      stroked: true,
+      filled: false,
     }),
     paths("pattern-preview", s.patternPreview, MAGENTA, 2.5, true, {
       dash: true,

@@ -5,6 +5,28 @@ Reference: <https://nordsweet-performance-calculator.mrnordsweet.chatgpt.site/> 
 `5265bc5de9510aa3d83cc469860a730962b96c78`. Starting develop: `2f289ed6dc8d7b7c3186b100577c787c64df1de2`.
 Branch: `codex/preflight-parity-audit`.
 
+## EMER / Engine Out (2026-10-18)
+
+- Add Engine Out / Engine Fire shortcuts, aircraft procedure categories, manual phase selection,
+  explicit runway-ahead confirmation and one shared, offline, revision-scoped emergency session
+  in Fly and after normal Checklists. Closing preserves progress; ending requires confirmation.
+- Import all 22 Reims Rocket Engine Failure reference actions and warnings/notes for owner-assigned
+  FR172H, including the unsuccessful-restart branch. Preserve original source language and keep
+  reference material separate from verified operational guidance. Engine Fire and other missing
+  procedures show explicit unavailable states. Full applicable AFM/POH review remains outstanding.
+- Airborne Engine Out creates a separate threshold-based approach overlay with a full 0.5 NM final,
+  tangent rate-one joining, a stable target and explicit alternate/recalculation controls.
+  Preserve the original FPL; retain phase restrictions as an unvalidated preview.
+- Add current-trend range and green estimated-reachable airport outlines using complete approach
+  length and each threshold's elevation. No wind correction. Browser altitude is not silently
+  treated as AMSL: current instrument altitude/descent can be entered explicitly and expire after
+  20 seconds. Missing verified best-glide speed remains unavailable.
+- Keep routine report popups out of an active emergency session; keep map/target status visible.
+  Prevent horizontal clipping of long emergency text; omit twin-only climb data on single engines.
+- Validation: format, ESLint, types, build, **387 unit tests**, **74 E2E** pass. Three EMER scenarios
+  also pass on the final build, including instrument readings and unavailable range after reload.
+  Source status, assumptions and release dependencies: [EMERGENCY.md](EMERGENCY.md).
+
 ## Live wind estimate and map tile (2026-10-17)
 
 - Import the Future Features/XCSoar wind plan's GPS-only display stage into the T3
