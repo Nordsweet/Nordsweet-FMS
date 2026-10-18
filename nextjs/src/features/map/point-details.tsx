@@ -198,7 +198,8 @@ export function PointDetails({
                     (_, i) => i !== waypointIndex,
                   ),
                 });
-              if (activeIndex >= 0) navigation.removeWaypoint(activeIndex);
+              if (activeIndex >= 0)
+                navigation.removeWaypoint(activeIndex, error ? null : fix);
             }}
           >
             {t("maptools.removePoint")}

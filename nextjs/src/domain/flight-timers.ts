@@ -285,6 +285,8 @@ export function stepTimers(
       if (s.at - next.todCandidateAt >= 10_000) {
         event("Top of Descent", next.todCandidateAt, "auto");
         next.todCandidateAt = null;
+        if (next.pendingPhase?.phase === "climb") next.pendingPhase = null;
+        phase = "descent";
       }
     } else next.todCandidateAt = null;
   }

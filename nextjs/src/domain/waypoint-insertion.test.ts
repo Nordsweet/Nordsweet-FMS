@@ -12,6 +12,71 @@ const a = { ident: "A", lat: 50, lon: 19 },
   b = { ident: "B", lat: 51, lon: 19 },
   c = { ident: "C", lat: 52, lon: 19 };
 const point = { ident: "NEW", lat: 51.6, lon: 19.1 };
+
+test.each([0, 1])(
+  "editing current leg at index %i starts at the aircraft and preserves flight state",
+  (index) => {
+    vi.stubGlobal("localStorage", {
+      getItem: () => null,
+      setItem: vi.fn(),
+      removeItem: vi.fn(),
+    });
+    const store = useInFlight.getState();
+    store.start([a, b, c]);
+    useInFlight.setState({ phase: "cruise" });
+    const before = useInFlight.getState();
+    const position = { lat: 50.4, lon: 19.2 };
+    store.removeWaypoint(index, position);
+    const after = useInFlight.getState();
+    expect(after.route).toEqual([
+      { ident: "DCT", ...position },
+      ...(index === 0 ? [b, c] : [c]),
+    ]);
+    expect(after.activeLeg).toBe(0);
+    expect(after.startedAt).toBe(before.startedAt);
+    expect(after.timers).toBe(before.timers);
+    expect(after.track).toBe(before.track);
+    expect(after.phase).toBe("cruise");
+  },
+);
+
+test("insertion on the current leg starts at the aircraft; later edits do not change that leg", () => {
+  vi.stubGlobal("localStorage", {
+    getItem: () => null,
+    setItem: vi.fn(),
+    removeItem: vi.fn(),
+  });
+  const store = useInFlight.getState();
+  const position = { lat: 50.4, lon: 19.2 };
+  store.start([a, b, c]);
+  store.insertWaypoint(1, point, position);
+  expect(useInFlight.getState().route).toEqual([
+    { ident: "DCT", ...position },
+    point,
+    b,
+    c,
+  ]);
+  store.removeWaypoint(3, { lat: 50.5, lon: 19.3 });
+  expect(useInFlight.getState().route).toEqual([
+    { ident: "DCT", ...position },
+    point,
+    b,
+  ]);
+});
+
+test("removing the final active target leaves no leg back to an already passed fix", () => {
+  vi.stubGlobal("localStorage", {
+    getItem: () => null,
+    setItem: vi.fn(),
+    removeItem: vi.fn(),
+  });
+  const store = useInFlight.getState();
+  const position = { lat: 51.5, lon: 19.2 };
+  store.start([a, b, c]);
+  useInFlight.setState({ activeLeg: 1 });
+  store.removeWaypoint(2, position);
+  expect(useInFlight.getState().route).toEqual([{ ident: "DCT", ...position }]);
+});
 test("suggests the least additional distance without changing endpoints", () => {
   expect(optimalWaypointIndex([a, b, c], point)).toBe(2);
   expect(optimalWaypointIndex([], point)).toBe(0);

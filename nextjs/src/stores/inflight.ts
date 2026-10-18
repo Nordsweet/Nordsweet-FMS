@@ -143,9 +143,13 @@ type InFlight = {
   goToPoint: (target: NavPoint, position: LatLon) => void;
   /** Replace the remaining route with the diversion airport, retaining flight timers and track. */
   divertTo: (airport: NavPoint, position: LatLon) => void;
-  insertWaypoint: (index: number, point: NavPoint) => void;
+  insertWaypoint: (
+    index: number,
+    point: NavPoint,
+    position?: LatLon | null,
+  ) => void;
   /** Remove one fix and keep the current navigation leg valid without resetting flight state. */
-  removeWaypoint: (index: number) => void;
+  removeWaypoint: (index: number, position?: LatLon | null) => void;
   resumeRoute: (
     route: NavPoint[],
     position: LatLon,
@@ -498,16 +502,45 @@ export const useInFlight = create<InFlight>()(
           patternPreviousFix: null,
           activeLeg: 0,
         }),
-      insertWaypoint: (index, point) =>
-        set((s) => ({
-          route: [...s.route.slice(0, index), point, ...s.route.slice(index)],
-          activeLeg: index <= s.activeLeg ? s.activeLeg + 1 : s.activeLeg,
-        })),
-      removeWaypoint: (index) =>
+      insertWaypoint: (index, point, position) =>
+        set((s) => {
+          const route = [
+            ...s.route.slice(0, index),
+            point,
+            ...s.route.slice(index),
+          ];
+          const present = position ?? s.track.at(-1);
+          if (s.startedAt && present && index === s.activeLeg + 1)
+            return {
+              route: directTo(route, present, index),
+              activeLeg: 0,
+              holding: null,
+            };
+          return {
+            route,
+            activeLeg: index <= s.activeLeg ? s.activeLeg + 1 : s.activeLeg,
+          };
+        }),
+      removeWaypoint: (index, position) =>
         set((s) => {
           if (!Number.isInteger(index) || index < 0 || index >= s.route.length)
             return s;
           const route = s.route.filter((_, i) => i !== index);
+          const present = position ?? s.track.at(-1);
+          if (
+            s.startedAt &&
+            present &&
+            (index === s.activeLeg || index === s.activeLeg + 1)
+          ) {
+            const remaining = s.route
+              .slice(s.activeLeg + 1)
+              .filter((_, i) => i + s.activeLeg + 1 !== index);
+            return {
+              route: directTo(remaining, present, 0),
+              activeLeg: 0,
+              holding: null,
+            };
+          }
           return {
             route,
             activeLeg: Math.max(

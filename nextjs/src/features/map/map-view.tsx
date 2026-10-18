@@ -819,6 +819,18 @@ export function MapView({
           ? toPaths([plannedPath])
           : [],
     });
+  }, [
+    ready,
+    route,
+    routePath.points,
+    flight.destination,
+    flight.alternate,
+    plannedPath,
+    navigation.trafficPattern,
+  ]);
+
+  // Camera/speed updates redraw geometry without replacing a button during a click/tap.
+  useEffect(() => {
     markers.current?.set(
       [
         ...route.filter((p) => !p.patternId),
@@ -834,6 +846,10 @@ export function MapView({
               (point.ident === p.ident || point.aliases.includes(p.ident)),
           )?.aliases[0] ?? p.ident;
         el.style.cursor = "pointer";
+        const hitTarget = document.createElement("span");
+        hitTarget.className = "legacy-route-hit-target";
+        hitTarget.setAttribute("aria-hidden", "true");
+        el.append(hitTarget);
         el.tabIndex = 0;
         el.setAttribute("role", "button");
         el.setAttribute("aria-label", p.ident);
@@ -860,17 +876,7 @@ export function MapView({
         return { element: el, lon: p.lon, lat: p.lat };
       }),
     );
-  }, [
-    ready,
-    route,
-    flight.destination,
-    flight.alternate,
-    airports.data,
-    plannedPath,
-    navpoints.data,
-    routePath.points,
-    navigation.trafficPattern,
-  ]);
+  }, [ready, route, flight.alternate, airports.data, navpoints.data]);
 
   const segmentTime = (index: number) => {
     const target = route[index + 1],
@@ -1208,10 +1214,21 @@ export function MapView({
           insert={(index) => {
             const point = anchoredWaypoint(route, insertingPoint, index);
             update({ waypoints: [...flight.waypoints, point] });
-            if (navigation.startedAt) navigation.insertWaypoint(index, point);
+            if (navigation.startedAt)
+              navigation.insertWaypoint(index, point, gpsError ? null : fix);
             setInsertingPoint(null);
           }}
         />
+      )}
+      {fix && !gpsError && !settings.following && (
+        <Button
+          className="bg-card/95 absolute bottom-24 left-1/2 z-30 -translate-x-1/2 rounded-full shadow-lg backdrop-blur"
+          variant="outline"
+          data-testid="map-recenter"
+          onClick={() => settings.follow(true)}
+        >
+          {t("maptools.center")}
+        </Button>
       )}
       {!embedded && (
         <Button
