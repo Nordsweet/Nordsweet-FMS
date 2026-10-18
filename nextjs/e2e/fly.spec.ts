@@ -36,14 +36,14 @@ test("flies the route: sequencing, direct-to and debrief", async ({
   }, flight);
 
   await page.goto("/fly");
-  await expect(page.getByText(/^Route:/)).toHaveCount(1);
-  await expect(page.getByTestId("gps-status")).toBeVisible();
+  await expect(page.getByText(/^Route:/)).toHaveCount(0);
+  await expect(page.getByTestId("gps-status")).toHaveCount(0);
   await expect(page.getByTestId("map-gps-status")).toHaveCount(0);
   await page.getByRole("button", { name: "Start flight" }).click();
-  await expect(page.getByText(/^Route:/)).toHaveCount(1);
-  await expect(page.getByTestId("gps-status")).toBeVisible();
+  await expect(page.getByText(/^Route:/)).toHaveCount(0);
+  await expect(page.getByTestId("gps-status")).toHaveCount(0);
   await expect(page.getByTestId("map-gps-status")).toHaveCount(0);
-  await expect(page.getByTestId("gps-status")).toContainText("GPS ±5 m");
+
   await page.getByRole("button", { name: "Info", exact: true }).click();
   await expect(page.getByTestId("fly-next")).toHaveText("BBBB");
   await expect(page.getByTestId("fly-xte")).toHaveText(/^1\.\d L$/); // 0.02° north of the (great-circle) track

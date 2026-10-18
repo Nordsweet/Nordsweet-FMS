@@ -151,10 +151,6 @@ export function MapView({
   const sceneRef = useRef<DeckScene | null>(null);
   const markers = useRef<MarkerLayer | null>(null);
   const captions = useRef(new AirspaceCaptions());
-  const [cursorPosition, setCursorPosition] = useState<{
-    lat: number;
-    lon: number;
-  } | null>(null);
   const [ready, setReady] = useState(false);
   const [click, setClick] = useState<Click | null>(null);
   const [holdingPreview, setHoldingPreview] = useState<Holding | null>(null);
@@ -500,12 +496,6 @@ export function MapView({
       map.on("moveend", syncZoom);
       markers.current = new MarkerLayer(map, root);
       map.on("dragstart", () => useMapSettings.getState().follow(false));
-      let lastCursorUpdate = 0;
-      map.on("mousemove", ({ lngLat }) => {
-        if (Date.now() - lastCursorUpdate < 100) return;
-        lastCursorUpdate = Date.now();
-        setCursorPosition({ lat: lngLat.lat, lon: lngLat.lng });
-      });
       let lastViewportUpdate = 0;
       map.on("moveend", () => {
         if (Date.now() - lastViewportUpdate < 1100) return;
@@ -1420,31 +1410,6 @@ export function MapView({
           toolsContainer,
         )}
       <WindTile mapRef={mapRef} ready={ready} />
-      {!embedded && (
-        <div className="legacy-map-readout">
-          <span>
-            {t("maptools.route")}:{" "}
-            {route.map((p) => p.ident).join(" - ") || "--"}
-          </span>
-          <span>
-            {cursorPosition
-              ? `${cursorPosition.lat.toFixed(5)}, ${cursorPosition.lon.toFixed(5)}`
-              : "--"}
-          </span>
-          <span data-testid="map-gps-status">
-            {!settings.gpsEnabled && !navigation.startedAt
-              ? "GPS off"
-              : gpsError
-                ? t(`fly.gps.${gpsError}`)
-                : fix
-                  ? t("fly.gps.fix", {
-                      accuracy: Math.round(fix.accuracyM),
-                      time: fix.time.slice(11, 16) + "Z",
-                    })
-                  : t("fly.gps.waiting")}
-          </span>
-        </div>
-      )}
       {click &&
         (click.kind !== "traffic" || selectedAircraft) &&
         (click.kind !== "segment" || selectedSegment) && (
