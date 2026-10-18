@@ -5,6 +5,31 @@ Reference: <https://nordsweet-performance-calculator.mrnordsweet.chatgpt.site/> 
 `5265bc5de9510aa3d83cc469860a730962b96c78`. Starting develop: `2f289ed6dc8d7b7c3186b100577c787c64df1de2`.
 Branch: `codex/preflight-parity-audit`.
 
+## Circuit previews, flight phases and advance guidance (2026-10-19)
+
+- Preparation previews now use the same route planner and navigation conversion as the accepted
+  FPL, preserving fly-over flags and replacing arrival/departure procedures consistently.
+  Tight Base entries get rate-one connector guides without shrinking the turn radius.
+- Arrival entry fixes carry circuit AMSL altitude; descent follows TOD so the aircraft reaches
+  that altitude by entry. Fly-over sequencing retains the fix instead of switching 0.3 NM early.
+- Approaching the departure runway on the ground selects Take-off. Explicit pattern/Take-off/
+  Taxi-out runway choices take precedence; without a selection use the nearest runway geometry.
+  On-block now requires GS strictly below 2 kt for 20 continuous seconds; missing/stale samples
+  and GS at/above 2 kt reset the candidate.
+- Position source selection/Connector setup is available in Aircraft preparation before Start.
+  Home Start passes the accepted patterns and aircraft type to the existing flight session.
+- FPL and waypoint insertion share the same G1000-inspired DTK/DIS/ALT table, active-row styling
+  and magnetic heading readouts. CENTER has white text and sits closer to the bottom edge.
+- Route Heading/Altitude commands look ahead 30 seconds to the actual fly-by tangent, the next
+  planned level or TOD. Countdown changes to NOW when due; history records only the clean
+  instruction with its first NOW timestamp. Invalid/paused samples cancel pending predictions;
+  already-required corrections are displayed immediately, with no invented past countdown.
+
+- Validation: formatting, lint, TypeScript/static export, 444 unit tests and 90 E2E scenarios.
+  Full browser run passed 88; the new 20-second On-block dwell required a longer stopped GPX
+  fixture, and the unchanged Engine Fire scenario passed on isolated rerun after a local timeout.
+  Final-build countdown/history test passed again. FPL/CENTER and Base previews inspected visually.
+
 ## Postflight readings and debrief statistics (2026-10-18)
 
 - Debrief now accepts actual ending MTH and remaining fuel (litres). Accept switches to four

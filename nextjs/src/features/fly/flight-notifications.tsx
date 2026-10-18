@@ -3,9 +3,16 @@
 import { memo, useEffect, useMemo, useState } from "react";
 import { create } from "zustand";
 import {
-  flightGuidance,
+  guidanceTimeline,
+  type TimedGuidance,
+} from "~/domain/guidance-timeline";
+import {
+  observeGuidance,
+  type GuidanceNotices,
+} from "~/domain/guidance-notices";
+import {
+  flightGuidanceAvailable,
   plannedGuidanceAltitude,
-  type GuidanceCommand,
 } from "~/domain/flight-guidance";
 import { initialBearingDeg } from "~/domain/geo";
 import { navigationProgress } from "~/domain/holding";
@@ -26,52 +33,29 @@ import { TrafficAdvisoryPopups } from "./traffic-advisory-popup";
 import { type TrafficAircraft } from "~/api/aviation/schemas";
 import { type AircraftIdentity } from "~/domain/traffic-identity";
 
-type Notice = { key: string; command: GuidanceCommand; expiresAt: number };
-// Transient commands are shared between Map and Fly, but never restored as instructions after reload.
-const useGuidanceNotices = create<{
-  session: string | null;
-  seen: Set<string>;
-  notices: Notice[];
-  observe: (
-    session: string,
-    context: string,
-    commands: GuidanceCommand[],
-    now: number,
-  ) => void;
-  dismiss: (key: string) => void;
-}>((set) => ({
+// Shared across Map and Fly, deliberately transient after reload.
+const useGuidanceNotices = create<
+  GuidanceNotices & {
+    observe: (
+      session: string,
+      context: string,
+      events: TimedGuidance[],
+      now: number,
+      available: boolean,
+    ) => void;
+    dismiss: (key: string) => void;
+  }
+>((set) => ({
   session: null,
   seen: new Set(),
   notices: [],
+  observe: (session, context, events, now, available) =>
+    set((s) => observeGuidance(s, session, context, events, now, available)),
   dismiss: (key) =>
-    set((s) => ({ notices: s.notices.filter((n) => n.key !== key) })),
-  observe: (session, context, commands, now) =>
-    set((s) => {
-      const same = s.session === session;
-      const seen = new Set(same ? s.seen : []);
-      const keyed = commands.map((command) => ({
-        command,
-        key: `${context}|${command.category}|${command.direction}|${command.category === "heading" ? Math.round(command.headingDeg / 10) : command.altitudeFt}`,
-      }));
-      const notices = same
-        ? s.notices.filter(
-            (n) => n.expiresAt > now && keyed.some((c) => c.key === n.key),
-          )
-        : [];
-      for (const item of keyed) {
-        if (seen.has(item.key)) continue;
-        seen.add(item.key);
-        notices.push({ ...item, expiresAt: now + 12000 });
-      }
-      if (
-        same &&
-        seen.size === s.seen.size &&
-        notices.length === s.notices.length &&
-        notices.every((n, i) => n === s.notices[i])
-      )
-        return s;
-      return { session, seen, notices };
-    }),
+    set((s) => ({
+      seen: new Set([...s.seen, key]),
+      notices: s.notices.filter((n) => n.key !== key),
+    })),
 }));
 
 // Radio estimates retain their own slow clock; transient-popup expiry must not
@@ -155,7 +139,13 @@ export function FlightNotifications({
         ? initialBearingDeg(from, next)
         : null;
     const commands = progress
-      ? flightGuidance({
+      ? guidanceTimeline({
+          route: navigation.route,
+          activeLeg: progress.activeLeg,
+          performance: turns,
+          plan,
+          cruiseAltitudeFt,
+          holdingActive,
           now,
           phase: navigation.phase,
           fix,
@@ -176,10 +166,21 @@ export function FlightNotifications({
       : [];
     const context = holdingActive
       ? `${holding.config.fix.ident}:${holding.config.inboundTrueDeg}:${holding.config.direction}|${holding.circuits}|${holding.phase}`
-      : `${progress?.activeLeg}|${from?.ident}:${from?.lat}:${from?.lon}|${next?.ident}:${next?.lat}:${next?.lon}`;
+      : navigation.route
+          .map(
+            (p) =>
+              `${p.ident}:${p.lat}:${p.lon}:${p.altitudeFt ?? ""}:${p.patternId ?? ""}`,
+          )
+          .join("|");
     useGuidanceNotices
       .getState()
-      .observe(navigation.startedAt, context, commands, now);
+      .observe(
+        navigation.startedAt,
+        context,
+        commands,
+        now,
+        flightGuidanceAvailable({ now, phase: navigation.phase, fix }),
+      );
   }, [navigation, fix, turns, plan, cruiseAltitudeFt, progress, now]);
   return (
     <div
@@ -197,23 +198,28 @@ export function FlightNotifications({
           />
         )}
         {session === navigation.startedAt &&
-          notices.map(({ key, command }) => (
-            <FlightPopup
-              key={key}
-              category={command.category}
-              notificationId={`guidance:${key}`}
-              message={
-                command.category === "heading"
-                  ? t(`fly.popup.turn.${command.direction}`, {
-                      heading: String(command.headingDeg).padStart(3, "0"),
-                    })
-                  : t(`fly.popup.${command.direction}`, {
-                      altitude: command.altitudeFt,
-                    })
-              }
-              onDismiss={() => dismiss(key)}
-            />
-          ))}
+          notices.map(({ key, command, dueAt, announcedAt }) => {
+            const message =
+              command.category === "heading"
+                ? t(`fly.popup.turn.${command.direction}`, {
+                    heading: String(command.headingDeg).padStart(3, "0"),
+                  })
+                : t(`fly.popup.${command.direction}`, {
+                    altitude: command.altitudeFt,
+                  });
+            return (
+              <FlightPopup
+                key={key}
+                category={command.category}
+                notificationId={`guidance:${key}`}
+                message={`${message} ${announcedAt === null ? t("fly.popup.inSeconds", { seconds: Math.max(1, Math.ceil((dueAt - now) / 1000)) }) : t("fly.popup.now")}`}
+                recordHistory={announcedAt !== null}
+                recordedAt={announcedAt ?? undefined}
+                historyMessage={message}
+                onDismiss={() => dismiss(key)}
+              />
+            );
+          })}
         <TrafficPatternPopup />
         <FrequencyNotification phase={navigation.phase} fix={fix} />
         <EventToast />

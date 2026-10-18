@@ -30,6 +30,7 @@ import {
   activeRouteWithTrafficPattern,
 } from "~/domain/traffic-pattern";
 import { flyByRoute } from "~/domain/fly-by";
+import { navigationRoute } from "~/domain/navigation-route";
 import { ownRegistration } from "~/domain/traffic-identity";
 import { useTurnPerformance } from "~/features/fly/use-turn-performance";
 import { FlightNotifications } from "~/features/fly/flight-notifications";
@@ -49,6 +50,7 @@ import {
   pointKey,
   formatRoutePoint,
   speedRestrictionKt,
+  buildRoutePlan,
 } from "~/domain/route-plan";
 import { type FlightPoint } from "~/data/flight";
 import { distanceNm, initialBearingDeg } from "~/domain/geo";
@@ -172,6 +174,8 @@ export function MapView({
     plan: routePlan,
     cruiseSpeedKt,
     aircraft: ownAircraft,
+    routeInput,
+    routeData,
   } = usePlan();
   const registration = ownRegistration(
     flight.registration,
@@ -253,7 +257,19 @@ export function MapView({
               patternPreview,
               patternPosition,
             ).route
-          : routeWithTrafficPattern(plannedRoute, patternPreview)
+          : routeData && routeInput
+            ? (() => {
+                const preview = buildRoutePlan(routeData, {
+                  ...routeInput,
+                  ...(patternPreview.operation === "leave"
+                    ? { departurePattern: patternPreview }
+                    : { trafficPattern: patternPreview }),
+                });
+                return preview
+                  ? navigationRoute(preview)
+                  : routeWithTrafficPattern(plannedRoute, patternPreview);
+              })()
+            : routeWithTrafficPattern(plannedRoute, patternPreview)
         : [],
     [
       patternPreview,
@@ -262,6 +278,8 @@ export function MapView({
       navigation.activeLeg,
       patternPosition,
       plannedRoute,
+      routeInput,
+      routeData,
     ],
   );
   const previewPath = useMemo(
@@ -1222,7 +1240,7 @@ export function MapView({
       )}
       {fix && !gpsError && !settings.following && (
         <Button
-          className="bg-card/95 absolute bottom-24 left-1/2 z-30 -translate-x-1/2 rounded-full shadow-lg backdrop-blur"
+          className="bg-card/95 absolute bottom-5 left-1/2 z-30 -translate-x-1/2 rounded-full text-white shadow-lg backdrop-blur"
           variant="outline"
           data-testid="map-recenter"
           onClick={() => settings.follow(true)}

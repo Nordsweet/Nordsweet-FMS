@@ -47,6 +47,12 @@ import { useTurnPerformance } from "./use-turn-performance";
 import { PositionSourcePanel } from "./position-source-panel";
 import { FlightStatusBar } from "./flight-status-bar";
 import { Debrief } from "./debrief";
+import {
+  FlightPlanTable,
+  FlightPlanCells,
+  flightPlanRowClass,
+} from "./flight-plan-table";
+import { plannedGuidanceAltitude } from "~/domain/flight-guidance";
 import { NotificationBell, NotificationHistory } from "./notification-history";
 import { usePositionSource } from "~/stores/position-source";
 
@@ -120,7 +126,13 @@ export function FlyPage() {
   const searchOpen = useMapSettings((state) => state.searchOpen);
   const setSearchOpen = useMapSettings((state) => state.setSearchOpen);
   const t = useT();
-  const { flight, route: planRoute, departurePattern, aircraft } = usePlan();
+  const {
+    flight,
+    route: planRoute,
+    departurePattern,
+    aircraft,
+    plan,
+  } = usePlan();
   const inFlight = useInFlight();
   const flying = inFlight.startedAt !== null;
   const { fix, connectorStatus } = useGps(true);
@@ -283,27 +295,28 @@ export function FlyPage() {
   const content: Record<Panel, React.ReactNode> = {
     emer: <EmergencyPanel phase={phase} />,
     fpl: inFlight.route.length ? (
-      <ol
-        aria-label={t("mapplanner.points")}
-        className="grid max-h-[60vh] gap-2 overflow-y-auto"
-      >
+      <FlightPlanTable label={t("mapplanner.points")}>
         {inFlight.route.map((point, index) => (
-          <li
+          <div
+            role="listitem"
             key={`${index}-${point.ident}`}
             aria-current={index === inFlight.activeLeg + 1 ? "step" : undefined}
-            className={cn(
-              "flex items-center gap-3 rounded-lg border p-3 text-sm",
-              index === inFlight.activeLeg + 1 &&
-                "border-primary bg-primary/10 text-primary",
-            )}
+            className={flightPlanRowClass(index === inFlight.activeLeg + 1)}
           >
-            <span className="text-muted-foreground w-6 text-right tabular-nums">
-              {index + 1}
-            </span>
-            <strong className="min-w-0 break-words">{point.ident}</strong>
-          </li>
+            <FlightPlanCells
+              point={point}
+              previous={inFlight.route[index - 1]}
+              altitudeFt={plannedGuidanceAltitude(
+                point,
+                0,
+                plan,
+                flight.cruiseAltitudeFt,
+              )}
+              selected={index === inFlight.activeLeg + 1}
+            />
+          </div>
         ))}
-      </ol>
+      </FlightPlanTable>
     ) : (
       <p className="text-muted-foreground text-sm">{t("plan.navlog.empty")}</p>
     ),

@@ -26,7 +26,7 @@ export type Progress = {
 };
 
 /** Project only onto the sequenced curved leg; later nearby legs cannot skip a fix. */
-function nearestLeg(
+export function nearestLeg(
   path: ReturnType<typeof flyByRoute>,
   position: LatLon,
   leg: number,
@@ -96,7 +96,7 @@ export function computeProgress(
               offset.alongTrackNm >= distanceNm(from, to) - turn.entryNm) ||
             offset.alongTrackNm >= distanceNm(from, to)
           : distanceNm(position, to) <
-              (to.patternId
+              (to.patternId || to.flyOver
                 ? Math.min(0.05, distanceNm(from, to) * 0.2)
                 : PASSED_NM) || offset.alongTrackNm >= distanceNm(from, to);
     if (!passed) break;

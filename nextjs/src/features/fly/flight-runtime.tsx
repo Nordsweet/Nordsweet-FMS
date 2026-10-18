@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { api } from "~/api";
 import { distanceNm } from "~/domain/geo";
+import { departureRunwayChoice } from "~/domain/departure-pattern";
+import { patternRunwayGeometry } from "~/domain/traffic-pattern";
 import { navigationProgress } from "~/domain/holding";
 import { useFlight } from "~/stores/flight";
 import { useInFlight } from "~/stores/inflight";
@@ -31,6 +33,12 @@ export function FlightRuntime() {
   const turns = useTurnPerformance(flight.startedAt ? fix : null);
   const { record, setActiveLeg, observe, tick } = flight;
   const departure = useAirport(plan.departure?.ident);
+  const groundData = useQuery({
+    ...api.ground.byAirport.queryOptions({
+      airport: plan.departure?.ident ?? "",
+    }),
+    enabled: !!plan.departure,
+  }).data;
   const airports = useQuery(api.airports.list.queryOptions(undefined)).data;
   const flying = flight.startedAt !== null;
   useEffect(() => {
@@ -89,6 +97,27 @@ export function FlightRuntime() {
         departureElevationFt: departure?.elevationFt ?? 0,
         cruiseAltitudeFt: plan.cruiseAltitudeFt,
         groundElevationFt: ground?.ft ?? departure?.elevationFt ?? 0,
+        departureRunway:
+          current.departurePattern?.runway ??
+          (departure
+            ? (() => {
+                const runway = departureRunwayChoice(
+                  plan,
+                  departure,
+                  groundData,
+                )?.runway;
+                return runway
+                  ? patternRunwayGeometry(departure, runway)
+                  : (departure.runways
+                      .map((r) => patternRunwayGeometry(departure, r))
+                      .filter((r) => r !== null)
+                      .sort(
+                        (a, b) =>
+                          distanceNm(fix, a.threshold) -
+                          distanceNm(fix, b.threshold),
+                      )[0] ?? null);
+              })()
+            : null),
       },
     );
     // Only a new fix drives the timers; the rest is read at that moment.
