@@ -16,6 +16,7 @@ export type GpsFix = {
   altitudeAccuracyM?: number | null;
   groundSpeedKt: number | null;
   trackDeg: number | null;
+  headingTrueDeg?: number;
   accuracyM: number;
   time: string;
   receivedAt?: number;
@@ -148,6 +149,7 @@ function startSource() {
           trueAirspeedKt: data.trueAirspeedKt,
           altitudeAglFt: data.altitudeAglFt,
           verticalSpeedFpm: data.verticalSpeedFpm,
+          headingTrueDeg: data.headingTrueDeg,
         },
       });
     },

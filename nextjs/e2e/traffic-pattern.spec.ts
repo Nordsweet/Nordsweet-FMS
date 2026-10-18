@@ -448,7 +448,7 @@ test("accepted pattern reports downwind once at its midpoint and Short Final at 
     /Report downwind/,
   );
   await page
-    .getByRole("button", { name: "Dismiss report reminder", exact: true })
+    .getByRole("button", { name: "Dismiss Comms", exact: true })
     .click();
   await page.reload();
   await expect(page.getByTestId("pattern-report")).toHaveCount(0);
