@@ -6,6 +6,10 @@ import { destinationPoint, distanceNm, trackOffset, type LatLon } from "./geo";
 import { flyByRoute } from "./fly-by";
 
 export const EMERGENCY_MAX_AGE_MS = 20_000;
+/** Owner's requested Fire mapping; independent of GPS and Engine Out airborne evidence. */
+export function engineFirePhase(phase: FlightPhase): EmergencyPhase {
+  return phase === "taxiout" || phase === "taxiin" ? "ground" : "flight";
+}
 export type EmergencyTarget = {
   airport: string;
   runway: string;

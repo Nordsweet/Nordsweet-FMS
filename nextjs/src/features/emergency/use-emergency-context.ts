@@ -5,7 +5,11 @@ import { usePlan } from "~/features/plan/use-plan";
 import { useInFlight } from "~/stores/inflight";
 import { useGps } from "~/features/fly/use-gps";
 import { useEmergency, emergencyScope } from "~/stores/emergency";
-import { emergencyContext, emergencyCandidates } from "~/domain/emergency";
+import {
+  emergencyContext,
+  emergencyCandidates,
+  engineFirePhase,
+} from "~/domain/emergency";
 import { emergencyReferences, operationalProcedure } from "~/data/emergency";
 
 /** Shared selection context, independent of the panel's mount lifetime. */
@@ -26,7 +30,8 @@ export function useEmergencyContext() {
     store.session?.scope === scope && store.session.endedAt === null
       ? store.session
       : null;
-  const references = emergencyReferences(plan.aircraft?.type);
+  const allReferences = emergencyReferences(plan.aircraft?.type);
+  const references = allReferences.filter((p) => p.family === "failure");
   const procedures = (plan.aircraft?.emergencyProcedures ?? []).filter(
     (p) =>
       operationalProcedure(p) &&
@@ -57,21 +62,27 @@ export function useEmergencyContext() {
         ? (emergencyCandidates(airports, fix, fix.groundSpeedKt, 1)[0]
             ?.target ?? null)
         : null;
-    store.open(
-      scope,
-      family,
-      context.phase,
-      navigation.route,
-      requested,
-      target,
-    );
+    const phase =
+      family === "fire" ? engineFirePhase(navigation.phase) : context.phase;
+    store.open(scope, family, phase, navigation.route, requested, target);
     const selected = procedures.find(
       (p) =>
         p.family === family &&
-        (family !== "failure" || p.phase === context.phase),
+        (family === "fire"
+          ? p.phase === phase || p.phase === null
+          : family !== "failure" || p.phase === phase),
     );
-    if (selected && !useEmergency.getState().session?.procedure)
+    if (
+      selected &&
+      (family === "fire" || !useEmergency.getState().session?.procedure)
+    )
       store.select(selected);
+    else if (family === "fire" && !selected) {
+      const source = allReferences.find(
+        (p) => p.family === "fire" && p.phase === phase,
+      );
+      if (source) store.select(source, true);
+    }
   }
   return {
     ...plan,

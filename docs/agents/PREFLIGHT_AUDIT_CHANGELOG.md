@@ -5,6 +5,18 @@ Reference: <https://nordsweet-performance-calculator.mrnordsweet.chatgpt.site/> 
 `5265bc5de9510aa3d83cc469860a730962b96c78`. Starting develop: `2f289ed6dc8d7b7c3186b100577c787c64df1de2`.
 Branch: `codex/preflight-parity-audit`.
 
+## FR172H Engine Fire source checklists (2026-10-18)
+
+- Import the two owner-supplied Engine Fire excerpts with all 14 actions, introductions, source speed
+  units, the ground note after step 5, post-fire inspection and the in-flight prohibition on restart.
+- Engine Fire opens the ground-start source for Taxi-in/out and the in-flight source for Take-off,
+  Climb, Cruise, Descent and Landing. Keep source applicability visibly unverified and do not publish
+  an operating speed or trigger an emergency navigation route.
+- Preserve per-variant progress across phase selection, closing and reload. Add optional introduction
+  and per-action notes without invalidating older aircraft definitions or saved sessions.
+- Record original screenshots and update [EMER documentation](EMERGENCY.md). Check all seven phase
+  mappings, source completeness, reference gating and independent progress in unit/browser tests.
+
 ## FPL flight rail tile (2026-10-18)
 
 - Add FPL directly below EMER in every flight phase, using the existing square rail styling and
