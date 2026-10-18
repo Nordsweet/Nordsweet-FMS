@@ -35,7 +35,7 @@ export function MapWorkspace({ embedded = false }: { embedded?: boolean }) {
     flight = useFlight((s) => s.flight),
     update = useFlight((s) => s.update),
     navigation = useInFlight();
-  const { route } = usePlan();
+  const { route, aircraft } = usePlan();
   const { fix, error: gpsError } = useGps(
     settings.gpsEnabled || navigation.startedAt !== null,
   );
@@ -400,7 +400,12 @@ export function MapWorkspace({ embedded = false }: { embedded?: boolean }) {
                 navigation.startedAt
                   ? navigation.end()
                   : (settings.setGps(true),
-                    navigation.start(route, flight.trafficPattern))
+                    navigation.start(
+                      route,
+                      flight.trafficPattern,
+                      null,
+                      aircraft?.type,
+                    ))
               }
             >
               {t(navigation.startedAt ? "maptools.end" : "maptools.start")}

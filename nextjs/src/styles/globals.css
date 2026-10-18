@@ -737,6 +737,9 @@
   --head: #7af3d3;
   width: min(1040px, calc(100vw - 7rem));
 }
+.fly-popover[data-debrief="true"] {
+  width: min(960px, calc(100vw - 2rem));
+}
 .fly-popover[data-panel="options"] {
   --pad: 0.9rem;
   --head: #7af3d3;

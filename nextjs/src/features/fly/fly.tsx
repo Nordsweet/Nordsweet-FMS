@@ -20,7 +20,7 @@ import {
 } from "~/domain/flight-phase";
 import { magneticVariationDeg, trueToMagneticDeg } from "~/domain/magnetic";
 import { navigationProgress } from "~/domain/holding";
-import { type TrackPoint, summarizeTrack, toGpx } from "~/domain/track";
+import { summarizeTrack } from "~/domain/track";
 import { ChecklistsPage } from "~/features/checklists/checklists";
 import { fmt, fmtMinutes } from "~/features/plan/fields";
 import { PerformanceSection } from "~/features/plan/performance";
@@ -46,7 +46,7 @@ import { useGps } from "./use-gps";
 import { useTurnPerformance } from "./use-turn-performance";
 import { PositionSourcePanel } from "./position-source-panel";
 import { FlightStatusBar } from "./flight-status-bar";
-import { useWindowDrag } from "./use-window-drag";
+import { Debrief } from "./debrief";
 import { NotificationBell, NotificationHistory } from "./notification-history";
 import { usePositionSource } from "~/stores/position-source";
 
@@ -128,6 +128,7 @@ export function FlyPage() {
   const turns = useTurnPerformance(flying ? fix : null);
   const [now, setNow] = useState(() => Date.now());
   const [debrief, setDebrief] = useState(false);
+  const debriefOpen = debrief || inFlight.debrief?.endedAt != null;
   // shortcut: the phase is picked by hand; legacy also switched it automatically.
   const { phase, setPhase, config } = inFlight;
   const comms = useCommsPlan(phase, fix, now, flying);
@@ -415,6 +416,7 @@ export function FlyPage() {
                     planRoute,
                     flight.trafficPattern,
                     departurePattern,
+                    aircraft?.type,
                   );
                   inFlight.setHolding(flight.holding);
                   setPhase("taxiout");
@@ -483,12 +485,13 @@ export function FlyPage() {
           </nav>
         )}
 
-        {(open ?? (!flying && (debrief || planRoute.length < 2))) && (
+        {(open ?? (!flying && (debriefOpen || planRoute.length < 2))) && (
           <section
             role="dialog"
             aria-label={open ? panelLabel(open) : t("fly.title")}
             className="fly-popover"
             data-panel={open ?? "none"}
+            data-debrief={!open && debriefOpen ? "true" : undefined}
             style={
               {
                 "--top": `calc(5.15rem + ${rail.findIndex((r) => r.id === open)} * 3.93rem)`,
@@ -518,8 +521,9 @@ export function FlyPage() {
                 )}
                 {content[open]}
               </>
-            ) : debrief ? (
+            ) : debriefOpen ? (
               <Debrief
+                key={inFlight.debrief?.endedAt ?? "legacy"}
                 summary={summary}
                 track={inFlight.track}
                 name={flight.name}
@@ -533,61 +537,5 @@ export function FlyPage() {
         )}
       </div>
     </div>
-  );
-}
-
-function Debrief({
-  summary,
-  track,
-  name,
-}: {
-  summary: ReturnType<typeof summarizeTrack>;
-  track: TrackPoint[];
-  name: string;
-}) {
-  const t = useT();
-  const drag = useWindowDrag();
-  return (
-    <>
-      <h2 className="text-primary font-semibold tracking-[0.08em] uppercase">
-        <span
-          role="button"
-          tabIndex={0}
-          aria-label={t("fly.status.dragDebrief")}
-          className="block cursor-grab touch-none select-none active:cursor-grabbing"
-          {...drag}
-        >
-          {t("fly.debrief")}
-        </span>
-      </h2>
-      <p data-testid="debrief" className="text-sm">
-        {t("fly.debriefSummary", {
-          time: fmtMinutes(summary.minutes),
-          distance: fmt(summary.distanceNm, 1),
-          altitude:
-            summary.maxAltitudeFt === null ? "—" : fmt(summary.maxAltitudeFt),
-          points: track.length,
-        })}
-      </p>
-      <div>
-        <Button
-          variant="outline"
-          disabled={track.length === 0}
-          onClick={() => {
-            const file = name.trim() === "" ? "flight" : name;
-            const url = URL.createObjectURL(
-              new Blob([toGpx(track, file)], { type: "application/gpx+xml" }),
-            );
-            Object.assign(document.createElement("a"), {
-              href: url,
-              download: `${file}.gpx`,
-            }).click();
-            URL.revokeObjectURL(url);
-          }}
-        >
-          {t("fly.exportGpx")}
-        </Button>
-      </div>
-    </>
   );
 }

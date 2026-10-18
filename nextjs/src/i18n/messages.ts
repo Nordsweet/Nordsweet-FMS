@@ -10,8 +10,10 @@ import { emergencyEn, emergencyPl } from "./emergency";
 import { connectorEn, connectorPl } from "./connector";
 import { flightPopupsEn, flightPopupsPl } from "./flight-popups";
 import { aircraftReferenceEn, aircraftReferencePl } from "./aircraft-reference";
+import { debriefEn, debriefPl } from "./debrief";
 
 const pl = {
+  ...debriefPl,
   ...aircraftReferencePl,
   ...flightPopupsPl,
   ...connectorPl,
@@ -830,6 +832,7 @@ const pl = {
 export type MessageKey = keyof typeof pl;
 
 const en: Record<MessageKey, string> = {
+  ...debriefEn,
   ...aircraftReferenceEn,
   ...flightPopupsEn,
   ...connectorEn,
