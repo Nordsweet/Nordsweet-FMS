@@ -9,6 +9,7 @@ import {
 } from "~/domain/flight-phase";
 import { usePlan } from "~/features/plan/use-plan";
 import { useT } from "~/i18n/use-t";
+import { EmergencyChecklists } from "~/features/emergency/emergency-checklists";
 
 export function Row({ label, value }: { label: string; value: string }) {
   return (
@@ -104,16 +105,16 @@ export function EmergencyPanel({ phase }: { phase: FlightPhase }) {
   const pair = (label: string, iasKt: number, rateFpm: number) =>
     `${label} ${Math.round(iasKt)} KIAS / ROC ${Math.round(rateFpm)} ft/min`;
 
+  // The existing one-engine-inoperative climb aid is not a single-engine failure procedure.
+  if ((aircraft?.engineCount ?? 0) < 2 || (!tables.vyse && !tables.vxse))
+    return <EmergencyChecklists />;
+
   return (
     <>
+      <EmergencyChecklists />
       <p className="text-muted-foreground -mt-2 text-sm">
         {t("fly.emer.subtitle")}
       </p>
-      <Group title={t("fly.emer.checklist")}>
-        <p className="text-muted-foreground text-sm">
-          {t("fly.emer.checklistNote")}
-        </p>
-      </Group>
       <Group title={t("fly.emer.basis")}>
         <Row label={t("fly.emer.phase")} value={t(`fly.phase.${phase}`)} />
         <Row label={t("fly.emer.altitude")} value={altitudeLabel} />

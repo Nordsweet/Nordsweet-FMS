@@ -15,6 +15,8 @@ import { useMapSettings } from "~/stores/map";
 
 import { playChime } from "./chime";
 import { Group, Row } from "./emergency-panel";
+import { PositionSourcePanel } from "./position-source-panel";
+import { usePositionSource } from "~/stores/position-source";
 
 const time = (at: number) =>
   new Date(at).toLocaleTimeString([], {
@@ -124,6 +126,7 @@ function UtilityCard({ index, now }: { index: 0 | 1; now: number }) {
 
 /** Legacy OPTIONS: GPS and map options, Block/Air Time with GPS detection, the event log. */
 export function OptionsPanel() {
+  const source = usePositionSource((s) => s.source);
   const t = useT();
   const settings = useMapSettings();
   const timers = useInFlight((s) => s.timers);
@@ -141,6 +144,7 @@ export function OptionsPanel() {
 
   return (
     <>
+      <PositionSourcePanel />
       <div className="flex flex-wrap gap-2">
         <Button
           aria-pressed={settings.gpsEnabled}
@@ -182,6 +186,7 @@ export function OptionsPanel() {
       <label className="flex items-center gap-2 text-sm">
         <input
           type="checkbox"
+          disabled={source === "connector"}
           checked={replayEnabled}
           onChange={(e) => setReplayEnabled(e.target.checked)}
         />

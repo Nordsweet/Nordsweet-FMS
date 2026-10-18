@@ -5,6 +5,170 @@ Reference: <https://nordsweet-performance-calculator.mrnordsweet.chatgpt.site/> 
 `5265bc5de9510aa3d83cc469860a730962b96c78`. Starting develop: `2f289ed6dc8d7b7c3186b100577c787c64df1de2`.
 Branch: `codex/preflight-parity-audit`.
 
+## C172S from owner-supplied Carenado PDFs — 2026-10-18
+
+- Added independent C172S (ICAO C172) selection, operating/stall reference speeds, all 111 cruise
+  cells with US-gallon conversion, 20 normal phase checklists and 26 emergency reference variants.
+- Added a source/limitations card and simulator-only labels. Missing W&B, distance/climb tables
+  and fuel capacities stay unavailable; no values borrowed from another Cessna model.
+- Added fixed-pitch RPM lookup, enforced the supplied lean-mixture 75% power constraint and
+  generalized emergency source browsing to the selected aircraft/family. Existing FR172H remains
+  separately scoped. Details and page inventory: [C172S_CARENADO.md](C172S_CARENADO.md).
+
+## Resumed flight display and traffic advisories (2026-10-18)
+
+- Add a 96px instrument strip above the Fly phase selector: altitude, ground speed, magnetic track
+  and desired track, vertical speed, next-fix distance/ETE, UTC clock, GPS accuracy, device network
+  and battery status, and height above terrain. Optional/stale data stays unavailable. Connector
+  AGL/VS take precedence; device VS reuses the validated GNSS trend and DEM AGL uses EGM96 correction.
+- Reserve map space below the strip and constrain tool popovers to that remaining height; the
+  map and Layers panel remain within the phone viewport. Put the bell directly below FPL.
+- Make the Flight Debrief title draggable by pointer/touch and movable with keyboard arrows,
+  clamped to the map container and re-clamped on window resize. GPX export remains available.
+- Replace live legacy CPA icon colouring with yellow TA / red close-region outlines around the
+  intruder, plus matching warning borders in the shared popup system. Both warning levels enter
+  bell history; dismissing TA does not suppress an escalation. No resolution maneuver is computed.
+- Use the owner's fixed diagram thresholds: TA 40s/850ft, close region 25s/600ft, with 0.75/0.55 NM
+  slow-closure DMOD. Time-align fresh reports, require conflicting CPA/vertical separation, and
+  exclude stale, ground, paused and identified own-aircraft reports. Re-arm after 60 seconds clear.
+- Reference: [FAA Introduction to TCAS II v7.1, Table 2](https://www.faa.gov/documentLibrary/media/Advisory_Circular/TCAS%20II%20V7.1%20Intro%20booklet.pdf).
+  This is an informational public-feed model using fixed illustrative thresholds, not coordinated
+  TCAS/ACAS logic; feed latency and GNSS/reported altitude datum differences remain limitations.
+- Local coverage: traffic geometry/guard tests; browser checks for yellow-to-red escalation after
+  dismissal and both history entries, live connector instruments, debrief movement/export and
+  responsive map/terrain/basemap scenarios.
+
+## Bell notification history (2026-10-18)
+
+- Add a bell tile to the Fly rail and standalone Map. Its panel lists all five categories of
+  displayed flight popups with the original message, category and local date/time to the second,
+  newest first. An unread badge clears when the history is opened.
+- Record through the shared popup component, once per notification ID per flight. Closing or
+  expiring a popup does not delete its history or change its original timestamp.
+- Persist the current flight history across Map/Fly changes and reload, offline. Retain it after
+  ending the flight until another flight begins; validate restored entries before displaying them.
+- Verify all-category deduplication and new-flight isolation in store tests; extend the phone
+  popup scenario to inspect the bell, retained dismissed commands and timestamps after navigation
+  and reload. Existing flight navigation scenarios remain green locally.
+
+## Unified flight notifications (2026-10-18)
+
+- Share one accessible popup card and responsive stack across Map and Fly: Heading, Altitude,
+  Comms, Frequency and System Info. Use explicit foreground contrast, matching icons, category
+  labels and consistent close buttons; simultaneous notices no longer overlap. Keep passive wind tiles
+  below notifications and interactive map details above them so HOLD and other actions stay clickable.
+  Reuse map guidance inputs and memoize geometry; expiry timers do not rebuild the flight planner.
+- Add automatic route heading and climb/descent guidance. Headings use wind correction and magnetic
+  variation, with connector heading preferred to inferred heading; vertical targets use active-fix
+  restrictions, circuit/holding level and the planner's TOC/TOD profile events.
+- Suppress guidance on ground, paused or stale/missing samples, and inside the 10-degree/150-ft
+  capture bands. Show commands for up to 12 seconds and remember dismissal per target and leg
+  while navigating between Map and Fly. No aircraft controls or plan values are changed.
+- Preserve two-minute radio suggestions, one-time circuit report reminders and recorded-event
+  timestamps. Guidance requires a started flight; emergency navigation keeps its dedicated UI.
+- Add calculation coverage for wind, magnetic north, turn direction, altitude capture and invalid
+  fixes, plus a phone regression for stacked categories, independent dismissal and leg sequencing.
+
+## Layers summary tabs (2026-10-18)
+
+- Remove the Route tab and waypoint list from the Map/Fly Layers summary, as clarified by the owner
+  after adding FPL. Default to Radio and retain the Airspace summary and route visibility checkbox.
+- Keep unresolved-route validation messages above the remaining tabs rather than dropping them
+  with the removed waypoint-list panel.
+- Verify the remaining tabs, default selection and independent route visibility control in the
+  desktop Map and phone Fly views; run the existing map appearance scenarios.
+
+## FR172H Engine Fire source checklists (2026-10-18)
+
+- Import the two owner-supplied Engine Fire excerpts with all 14 actions, introductions, source speed
+  units, the ground note after step 5, post-fire inspection and the in-flight prohibition on restart.
+- Engine Fire opens the ground-start source for Taxi-in/out and the in-flight source for Take-off,
+  Climb, Cruise, Descent and Landing. Keep source applicability visibly unverified and do not publish
+  an operating speed or trigger an emergency navigation route.
+- Preserve per-variant progress across phase selection, closing and reload. Add optional introduction
+  and per-action notes without invalidating older aircraft definitions or saved sessions.
+- Record original screenshots and update [EMER documentation](EMERGENCY.md). Check all seven phase
+  mappings, source completeness, reference gating and independent progress in unit/browser tests.
+
+## FPL flight rail tile (2026-10-18)
+
+- Add FPL directly below EMER in every flight phase, using the existing square rail styling and
+  toggleable popover. Show the active flight route in order and highlight the next waypoint as GPS
+  sequencing advances; this reads live navigation state rather than the preparation draft.
+- Add PL/EN labels and extend the existing flight browser scenario for rail order, opening/closing,
+  route contents, active-fix updates and availability after changing phase.
+
+## Remove map footer status strip (2026-10-18)
+
+- Remove the bottom route, next-fix/distance and GPS pills from Fly and the corresponding
+  route/cursor/GPS readout from Map, as requested. Navigation, GPS recording and Info remain available.
+- Remove the unused mousemove state/listener and footer styles. Update the existing Map/Fly browser
+  scenarios to require absence of these readouts while still checking route editing and GPS sequencing.
+
+## Dark Matter basemap (2026-10-18)
+
+- Add **Dark Matter** to Map/Fly Layers → Base map, persisted alongside the existing styles.
+- Adapt the official OpenMapTiles style to the shared deck.gl vector renderer and public OpenFreeMap
+  tiles, without a MapTiler key. Preserve main colours, layer order, zoom/filter and width/opacity stops.
+  Support terrain draping in 3D, the existing offline tile cache and local MVT decoding.
+- Ship source style, licence and map attribution. Renderer limits are documented in
+  [Dark Matter](../maps/dark-matter/README.md): system font and no line-following labels/sprites/patterns.
+- Verify source TileJSON and a real Polish vector tile; add rule tests and a browser test for selection,
+  persistence, vector rendering and 3D compatibility.
+
+## Terrain 3D and terrain/wind glide footprint (2026-10-18)
+
+- Add deck.gl TerrainLayer with real public Mapzen/AWS Terrarium elevation, local image/mesh parsers,
+  3D camera, terrain-fitted chart overlays and ground-aware point interaction. Keep 2D selectable.
+- Replace the emergency circle with independent terrain/wind-aware turning reach, preserving blocked
+  ridges, peak holes and missing-data barriers. Use full wind triangle, measured descent, explicit
+  terrain clearance and heading/turn costs. Check full approaches before outlining an airport green.
+- Add optional GNSS/EGM96 AMSL correction and quality-gated descent trend; retain manual instrument
+  input priority. Require a valid live or explicitly supplied wind (including confirmed calm).
+  Remove guidance when inputs expire; never manufacture missing DEM or aircraft polar performance.
+- Add route DEM preparation, bounded IndexedDB/raw tile caches, offline local workers and shipped
+  source/data licence attribution. Avoid JSON-persisting decoded Float32 terrain arrays.
+- Research XCSoar fan reach and reuse only its attributed EGM96 dataset; no GPL executable code or
+  glider performance polars copied. Differences/limits: [Terrain and glide reach](TERRAIN_GLIDE_REACH.md).
+- Validation (including Dark Matter): format, ESLint, typecheck, 403 unit tests and production static
+  build passed. All 81 browser scenarios verified: 79 passed in the full run; the EMER scenario passed
+  after increasing its total timeout, and Dark Matter passed after correcting its terrain DOM selector.
+  Visual checks confirmed 2D/3D layers. GitHub CI runs the complete suite again before merge.
+
+## EMER / Engine Out (2026-10-18)
+
+- Add Engine Out / Engine Fire shortcuts, aircraft procedure categories, manual phase selection,
+  explicit runway-ahead confirmation and one shared, offline, revision-scoped emergency session
+  in Fly and after normal Checklists. Closing preserves progress; ending requires confirmation.
+- Import all 22 Reims Rocket Engine Failure reference actions and warnings/notes for owner-assigned
+  FR172H, including the unsuccessful-restart branch. Preserve original source language and keep
+  reference material separate from verified operational guidance. Engine Fire and other missing
+  procedures show explicit unavailable states. Full applicable AFM/POH review remains outstanding.
+- Airborne Engine Out creates a separate threshold-based approach overlay with a full 0.5 NM final,
+  tangent rate-one joining, a stable target and explicit alternate/recalculation controls.
+  Preserve the original FPL; retain phase restrictions as an unvalidated preview.
+- Add current-trend range and green estimated-reachable airport outlines using complete approach
+  length and each threshold's elevation. No wind correction. Browser altitude is not silently
+  treated as AMSL: current instrument altitude/descent can be entered explicitly and expire after
+  20 seconds. Missing verified best-glide speed remains unavailable.
+- Keep routine report popups out of an active emergency session; keep map/target status visible.
+  Prevent horizontal clipping of long emergency text; omit twin-only climb data on single engines.
+- Validation: format, ESLint, types, build, **387 unit tests**, **75 E2E scenarios** (74-suite plus final 4-case EMER rerun) pass. Four EMER scenarios
+  also pass on the final build, including phone bounds, instrument readings and unavailable range after reload.
+  Source status, assumptions and release dependencies: [EMERGENCY.md](EMERGENCY.md).
+
+## Live wind estimate and map tile (2026-10-17)
+
+- Import the Future Features/XCSoar wind plan's GPS-only display stage into the T3
+  architecture. Add an independent velocity-circle estimator fed by the shared
+  GPS stream during confirmed flight, with quality/freshness checks and session
+  resets. Planned TAS, derived GPS vectors and replay are not live measurements.
+- Add an 80 px lower-left Map/Fly tile: downwind arrow, camera-bearing correction
+  and meteorological FROM/kt readout such as `270°/012`. Show placeholders while
+  collecting or stale, and no invented direction in calm. PL/EN descriptions.
+- Keep airport weather, planning wind and navigation calculations independent.
+  See [model, thresholds and imported scope](WIND_ESTIMATION.md).
+
 ## Smooth HOLD exit (2026-10-17)
 
 - Exit HOLD retains the current ground track before joining the next remaining

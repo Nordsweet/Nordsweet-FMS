@@ -1,11 +1,23 @@
+import { terrainEn, terrainPl } from "./terrain";
 import { trafficPatternEn, trafficPatternPl } from "./traffic-pattern";
 import { type Language } from "~/stores/settings";
 import { atisConsensusEn, atisConsensusPl } from "./atis-consensus";
 import { aircraftEditorEn, aircraftEditorPl } from "./aircraft-editor";
 import { mapToolsEn, mapToolsPl } from "./map-tools";
 import { holdingEn, holdingPl } from "./holding";
+import { windEn, windPl } from "./wind";
+import { emergencyEn, emergencyPl } from "./emergency";
+import { connectorEn, connectorPl } from "./connector";
+import { flightPopupsEn, flightPopupsPl } from "./flight-popups";
+import { aircraftReferenceEn, aircraftReferencePl } from "./aircraft-reference";
 
 const pl = {
+  ...aircraftReferencePl,
+  ...flightPopupsPl,
+  ...connectorPl,
+  ...terrainPl,
+  ...emergencyPl,
+  ...windPl,
   ...holdingPl,
   ...trafficPatternPl,
   ...atisConsensusPl,
@@ -237,6 +249,7 @@ const pl = {
   "map.basemapDark": "Ciemne tło",
   "map.basemapNight": "Ciemna mapa",
   "map.basemapFjord": "Fjord",
+  "map.basemapDarkMatter": "Dark Matter",
   "map.plan": "Plan przestrzeni",
   "map.planCurrent": "Dziś (AUP/UUP)",
   "map.planNext": "Jutro (AUP)",
@@ -308,6 +321,7 @@ const pl = {
   "fly.panel.options": "Opcje",
   "fly.routeChip": "Trasa: {route}",
   "fly.panel.emer": "EMER",
+  "fly.panel.fpl": "FPL",
   "fly.emer.subtitle": "Wznoszenie / klapy schowane / jeden silnik niesprawny",
   "fly.emer.checklist": "Checklista",
   "fly.emer.checklistNote":
@@ -816,6 +830,12 @@ const pl = {
 export type MessageKey = keyof typeof pl;
 
 const en: Record<MessageKey, string> = {
+  ...aircraftReferenceEn,
+  ...flightPopupsEn,
+  ...connectorEn,
+  ...terrainEn,
+  ...emergencyEn,
+  ...windEn,
   ...holdingEn,
   ...trafficPatternEn,
   ...atisConsensusEn,
@@ -1047,6 +1067,7 @@ const en: Record<MessageKey, string> = {
   "map.basemapDark": "Dark background",
   "map.basemapNight": "Dark map",
   "map.basemapFjord": "Fjord",
+  "map.basemapDarkMatter": "Dark Matter",
   "map.plan": "Airspace plan",
   "map.planCurrent": "Today (AUP/UUP)",
   "map.planNext": "Tomorrow (AUP)",
@@ -1117,6 +1138,7 @@ const en: Record<MessageKey, string> = {
   "fly.panel.options": "Options",
   "fly.routeChip": "Route: {route}",
   "fly.panel.emer": "EMER",
+  "fly.panel.fpl": "FPL",
   "fly.emer.subtitle": "Climb / Flaps Up / One engine INOP",
   "fly.emer.checklist": "Checklist",
   "fly.emer.checklistNote":

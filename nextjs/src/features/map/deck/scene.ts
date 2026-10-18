@@ -1,8 +1,13 @@
 import {
   PathStyleExtension,
+  _TerrainExtension as TerrainExtension,
   type PathStyleExtensionProps,
 } from "@deck.gl/extensions";
-import { TileLayer } from "@deck.gl/geo-layers";
+import { TileLayer, TerrainLayer } from "@deck.gl/geo-layers";
+import { TERRAIN_URL, TERRARIUM_DECODER } from "~/data/terrain";
+import { loadTerrainTile } from "~/api/terrain";
+import { TerrainLoader } from "@loaders.gl/terrain";
+import { ImageLoader } from "@loaders.gl/images";
 import { MVTLoader } from "@loaders.gl/mvt";
 import {
   BitmapLayer,
@@ -18,10 +23,17 @@ import { LayerExtension, type Layer } from "@deck.gl/core";
 import { type AirspaceFeature } from "~/api/aviation/schemas";
 import { type Basemap, type LayerId } from "~/stores/map";
 import { iconAtlas, type IconName } from "./atlas";
-import { type Rgba } from "./color";
+import { cssColor, type Rgba } from "./color";
+import {
+  darkMatterRules,
+  darkMatterRulesByLayer,
+  DARK_MATTER_BACKGROUND,
+} from "./dark-matter";
 import { palettes, type Theme } from "./theme";
 import { type DeckMap } from "./deck-map";
 import {
+  FJORD_BACKGROUND,
+  type Rule,
   FJORD_MAX_TILE_ZOOM,
   FJORD_TILES,
   fjordRules,
@@ -52,6 +64,7 @@ export type ZoneDatum = {
   lineWidth: number;
 };
 export type TrafficDatum = {
+  advisory?: "ta" | "close";
   position: Pos;
   hex: string;
   icon: IconName;
@@ -69,6 +82,8 @@ export type TextDatum = {
 export type ParachuteDatum = { position: Pos; offset: Pos };
 
 export type Scene = {
+  terrain3d: boolean;
+  emergencyBoundary: Path[];
   basemap: Basemap;
   theme: Theme;
   /** The view zoom in quarter steps: what the vector basemap's widths and zoom ranges follow. */
@@ -89,6 +104,10 @@ export type Scene = {
   gpsVector: Path[];
   gpsTicks: Path[];
   gpsAccuracy: { polygon: Pos[] }[];
+  emergencyRoute: Path[];
+  emergencyPreview: Path[];
+  emergencyRange: { polygon: Pos[] }[];
+  emergencyAirports: Pos[];
   trafficTrail: Path[];
   trafficGap: Path[];
   trafficVector: Path[];
@@ -110,6 +129,8 @@ export type Scene = {
 };
 
 export const emptyScene = (): Scene => ({
+  terrain3d: false,
+  emergencyBoundary: [],
   basemap: "osm",
   theme: "light",
   zoom: 0,
@@ -137,6 +158,10 @@ export const emptyScene = (): Scene => ({
   gpsVector: [],
   gpsTicks: [],
   gpsAccuracy: [],
+  emergencyRoute: [],
+  emergencyPreview: [],
+  emergencyRange: [],
+  emergencyAirports: [],
   trafficTrail: [],
   trafficGap: [],
   trafficVector: [],
@@ -200,6 +225,7 @@ class NightTiles extends LayerExtension {
   }
 }
 const night = [new NightTiles()];
+const terrainExtension = new TerrainExtension();
 const DASH: Pos = [4, 3];
 
 function paths(
@@ -315,9 +341,35 @@ function basemap(dark: boolean) {
   });
 }
 
-/** One Fjord fill or line rule's share of a tile, as a deck layer. */
-function fjordLayer(id: string, i: number, features: Feature[], zoom: number) {
-  const rule = fjordRules[i]!;
+/** Shared OpenMapTiles rules, used by both bundled vector styles. */
+type VectorStyle = {
+  id: string;
+  rules: Rule[];
+  index: Map<string, number[]>;
+  background: string;
+};
+const fjordStyle: VectorStyle = {
+  id: "fjord",
+  rules: fjordRules,
+  index: fjordRulesByLayer,
+  background: FJORD_BACKGROUND,
+};
+const darkMatterStyle: VectorStyle = {
+  id: "dark-matter",
+  rules: darkMatterRules,
+  index: darkMatterRulesByLayer,
+  background: DARK_MATTER_BACKGROUND,
+};
+function vectorLayer(
+  id: string,
+  i: number,
+  features: Feature[],
+  zoom: number,
+  style: VectorStyle,
+  extensions: LayerExtension[] = [],
+  parameters: Layer["props"]["parameters"] = {},
+) {
+  const rule = style.rules[i]!;
   const color = ruleColor(rule, zoom);
   if (rule.kind === "text")
     throw new Error("place labels are drawn by fjordLabels");
@@ -325,6 +377,8 @@ function fjordLayer(id: string, i: number, features: Feature[], zoom: number) {
     id,
     data: features as never,
     pickable: false,
+    extensions,
+    parameters,
     lineWidthUnits: "pixels",
   } as const;
   if (rule.kind === "fill")
@@ -341,13 +395,17 @@ function fjordLayer(id: string, i: number, features: Feature[], zoom: number) {
     getLineColor: color,
     getLineWidth: stopsAt(rule.width ?? 1, zoom),
     ...(rule.dash
-      ? { extensions: dashed, getDashArray: rule.dash, dashJustified: false }
+      ? {
+          extensions: [...extensions, ...dashed],
+          getDashArray: rule.dash,
+          dashJustified: false,
+        }
       : {}),
   });
 }
 
 /**
- * The Fjord map: OpenMapTiles vector tiles drawn with the Fjord style's rules. Each tile's features
+ * OpenMapTiles vector tiles drawn with the selected style's rules. Each tile's features
  * are sorted into the style's layers (bottom to top), re-sorted when the zoom moves a quarter step.
  */
 /** Place features of the tiles on screen; labels are chosen across all of them, not per tile. */
@@ -357,20 +415,24 @@ const places = {
   cached: "",
   layers: [] as Layer[],
 };
-function fjordLabels(zoom: number) {
-  const key = `${places.version}|${zoom}`;
+function vectorLabels(zoom: number, style: VectorStyle) {
+  const key = `${style.id}|${places.version}|${zoom}`;
   if (places.cached === key) return places.layers;
   const byRule = new Map<number, Label[]>();
-  for (const label of declutter(placeLabels(places.features, zoom), zoom))
+  for (const label of declutter(
+    placeLabels(places.features, zoom, style.rules, style.index),
+    zoom,
+    style.rules,
+  ))
     (
       byRule.get(label.rule) ?? byRule.set(label.rule, []).get(label.rule)!
     ).push(label);
   places.cached = key;
   places.layers = [...byRule].map(([i, labels]) => {
-    const rule = fjordRules[i]!;
+    const rule = style.rules[i]!;
     if (rule.kind !== "text") throw new Error("not a label rule");
     return new TextLayer<Label>({
-      id: `fjord-places-${i}`,
+      id: `${style.id}-places-${i}`,
       data: labels,
       getPosition: (l) => l.position,
       getText: (l) => l.text,
@@ -395,7 +457,7 @@ const tilejson = {
   loading: false,
   retryAt: 0,
 };
-function fjordTemplate(refresh: () => void) {
+function vectorTemplate(refresh: () => void) {
   if (
     !tilejson.template &&
     !tilejson.loading &&
@@ -415,10 +477,16 @@ function fjordTemplate(refresh: () => void) {
   return tilejson.template;
 }
 
-function fjordBasemap(zoom: number, template: string, refresh: () => void) {
+function vectorBasemap(
+  zoom: number,
+  template: string,
+  refresh: () => void,
+  style: VectorStyle,
+) {
   // `null` while a tile is still loading.
   return new TileLayer<Feature[] | null>({
-    id: "fjord",
+    id: style.id,
+    maxRequests: 4,
     data: template,
     maxZoom: FJORD_MAX_TILE_ZOOM,
     // Parsed here, on the main thread: the stock MVT layer fetches a worker script from a CDN.
@@ -448,38 +516,93 @@ function fjordBasemap(zoom: number, template: string, refresh: () => void) {
       refresh();
     },
     updateTriggers: { renderSubLayers: [zoom] },
-    renderSubLayers: ({ id, data }) => {
+    renderSubLayers: ({ id, data, extensions, parameters }) => {
       const byRule = new Map<number, Feature[]>();
       for (const feature of data ?? [])
-        for (const i of fjordRulesByLayer.get(
-          String(feature.properties.layerName),
-        ) ?? [])
+        for (const i of style.index.get(String(feature.properties.layerName)) ??
+          [])
           if (
-            fjordRules[i]!.kind !== "text" &&
-            ruleMatches(fjordRules[i]!, feature, zoom)
+            style.rules[i]!.kind !== "text" &&
+            ruleMatches(style.rules[i]!, feature, zoom)
           )
             (byRule.get(i) ?? byRule.set(i, []).get(i)!).push(feature);
       return [...byRule]
         .sort(([a], [b]) => a - b)
-        .map(([i, features]) => fjordLayer(`${id}-${i}`, i, features, zoom));
+        .map(([i, features]) =>
+          vectorLayer(
+            `${id}-${i}`,
+            i,
+            features,
+            zoom,
+            style,
+            extensions,
+            parameters,
+          ),
+        );
     },
   });
 }
 
 /** One flat stack, bottom to top, in the order the chart has always been drawn. */
-export function buildLayers(s: Scene, refresh: () => void): Layer[] {
+export function buildLayers(
+  s: Scene,
+  refresh: () => void,
+  onTerrainError: () => void,
+): Layer[] {
   const { airspace, airports, vfr, ifr, navaids, route, traffic } = s.visible;
-  const fjord = s.basemap === "fjord" ? fjordTemplate(refresh) : null;
+  const vector =
+    s.basemap === "fjord"
+      ? fjordStyle
+      : s.basemap === "dark-matter"
+        ? darkMatterStyle
+        : null;
+  const template = vector ? vectorTemplate(refresh) : null;
+  const vectorLayers =
+    vector && template
+      ? [
+          vectorBasemap(s.zoom, template, refresh, vector),
+          ...vectorLabels(s.zoom, vector),
+        ]
+      : [];
   const atlas = iconAtlas(s.theme),
     { halo, ownship, trailHalo } = palettes[s.theme];
-  return [
-    ...(s.basemap === "dark"
-      ? []
-      : s.basemap === "fjord"
-        ? fjord
-          ? [fjordBasemap(s.zoom, fjord, refresh), ...fjordLabels(s.zoom)]
-          : []
-        : [basemap(s.basemap === "night")]),
+  const layers: Layer[] = [
+    ...(s.terrain3d
+      ? [
+          new TerrainLayer({
+            id: "terrain",
+            loaders: [TerrainLoader, ImageLoader],
+            elevationData: TERRAIN_URL,
+            elevationDecoder: TERRARIUM_DECODER,
+            texture: vector ? undefined : OSM_TILES,
+            minZoom: 0,
+            maxZoom: 13,
+            tileSize: 256,
+            meshMaxError: 4,
+            operation: "terrain+draw",
+            pickable: true,
+            color: vector ? cssColor(vector.background) : [160, 177, 142],
+            loadOptions: {
+              worker: false,
+              imagebitmap: { colorSpaceConversion: "none" },
+            },
+            onTileError: () => {
+              onTerrainError();
+            },
+            onTileLoad: (tile) => {
+              void loadTerrainTile(tile.index)
+                .then(() => refresh())
+                .catch(() => undefined);
+            },
+            parameters: { depthCompare: "less-equal", depthWriteEnabled: true },
+          }),
+          ...vectorLayers,
+        ]
+      : s.basemap === "dark"
+        ? []
+        : vector
+          ? vectorLayers
+          : [basemap(s.basemap === "night")]),
     new PolygonLayer<ZoneDatum>({
       id: "airspace",
       data: s.zones,
@@ -509,12 +632,70 @@ export function buildLayers(s: Scene, refresh: () => void): Layer[] {
       extensions: dashed,
       getDashArray: DASH,
     }),
+    paths("emergency-route", s.emergencyRoute, [255, 80, 60, 255], 3, true, {
+      round: true,
+    }),
+    paths(
+      "emergency-preview",
+      s.emergencyPreview,
+      [255, 160, 40, 255],
+      3,
+      true,
+      { dash: true },
+    ),
+    new PolygonLayer<{ polygon: Pos[] }>({
+      id: "emergency-range",
+      data: s.emergencyRange,
+      getPolygon: (d) => d.polygon,
+      getFillColor: [40, 220, 100, 20],
+      getLineColor: [40, 220, 100, 210],
+      getLineWidth: 2,
+      lineWidthUnits: "pixels",
+      stroked: false,
+      filled: true,
+    }),
+    paths(
+      "emergency-boundary",
+      s.emergencyBoundary,
+      [40, 220, 100, 255],
+      2,
+      true,
+    ),
+    new ScatterplotLayer<Pos>({
+      id: "emergency-airports",
+      data: s.emergencyAirports,
+      getPosition: (d) => d,
+      getRadius: 16,
+      radiusUnits: "pixels",
+      getLineColor: [40, 240, 100, 255],
+      getLineWidth: 3,
+      lineWidthUnits: "pixels",
+      stroked: true,
+      filled: false,
+    }),
     paths("pattern-preview", s.patternPreview, MAGENTA, 2.5, true, {
       dash: true,
     }),
     paths("holding", s.holding, MAGENTA, 2, route, { round: true }),
     paths("holding-preview", s.holdingPreview, MAGENTA, 2.5, true, {
       dash: true,
+    }),
+    new ScatterplotLayer<TrafficDatum>({
+      id: "traffic-advisory-outlines",
+      data: s.traffic.filter((d) => d.advisory),
+      visible: traffic,
+      getPosition: (d) => d.position,
+      getRadius: 18,
+      radiusUnits: "pixels",
+      filled: false,
+      stroked: true,
+      lineWidthUnits: "pixels",
+      getLineWidth: 2.5,
+      getLineColor: (d) =>
+        d.advisory === "close"
+          ? [239, 68, 68, Math.round(d.alpha * 255)]
+          : [250, 204, 21, Math.round(d.alpha * 255)],
+      pickable: false,
     }),
     new IconLayer<TrafficDatum>({
       id: "traffic",
@@ -671,6 +852,22 @@ export function buildLayers(s: Scene, refresh: () => void): Layer[] {
       baseline: "center",
     }),
   ];
+  return s.terrain3d
+    ? layers.map((layer) =>
+        layer.id === "terrain"
+          ? layer
+          : (layer.clone({
+              // Different ids rebuild GPU models when changing the shader extensions.
+              id: `${layer.id}-terrain`,
+              extensions: [...(layer.props.extensions ?? []), terrainExtension],
+              parameters: {
+                ...layer.props.parameters,
+                depthCompare: "always",
+                depthWriteEnabled: false,
+              },
+            }) as Layer),
+      )
+    : layers;
 }
 
 /**
@@ -682,7 +879,10 @@ export class DeckScene {
   private queued = false;
   private destroyed = false;
 
-  constructor(private readonly map: DeckMap) {}
+  constructor(
+    private readonly map: DeckMap,
+    private readonly onTerrainError: () => void,
+  ) {}
 
   set(patch: Partial<Scene>) {
     Object.assign(this.state, patch);
@@ -691,7 +891,16 @@ export class DeckScene {
     queueMicrotask(() => {
       this.queued = false;
       if (!this.destroyed)
-        this.map.setLayers(buildLayers(this.state, () => this.set({})));
+        this.map.setLayers(
+          buildLayers(
+            this.state,
+            () => {
+              this.map.terrainChanged();
+              this.set({});
+            },
+            this.onTerrainError,
+          ),
+        );
     });
   }
 

@@ -192,6 +192,33 @@ export function AircraftSection() {
               powerplant: t(`plan.aircraft.powerplant.${aircraft.powerplant}`),
             })}
           </p>
+          {aircraft.referenceData && (
+            <details
+              className="rounded-xl border p-3 text-sm"
+              data-testid="aircraft-reference"
+            >
+              <summary>{t("aircraft.reference.title")}</summary>
+              {aircraft.referenceData.simulationOnly && (
+                <p className="my-2 text-amber-400">
+                  {t("aircraft.reference.simulation")}
+                </p>
+              )}
+              <dl className="grid gap-2 py-2 sm:grid-cols-2" lang="en">
+                {aircraft.referenceData.values.map((row) => (
+                  <div key={row.label}>
+                    <dt className="text-muted-foreground">{row.label}</dt>
+                    <dd>{row.value}</dd>
+                  </div>
+                ))}
+              </dl>
+              <p>{t("aircraft.reference.missing")}</p>
+              <ul className="mt-2 text-xs" lang="en">
+                {aircraft.referenceData.sources.map((source) => (
+                  <li key={source}>{source}</li>
+                ))}
+              </ul>
+            </details>
+          )}
           <LastKnownState
             key={stateKey}
             mth={lastState?.mth ?? ""}

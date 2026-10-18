@@ -32,7 +32,11 @@ import {
 import { flyByRoute } from "~/domain/fly-by";
 import { ownRegistration } from "~/domain/traffic-identity";
 import { useTurnPerformance } from "~/features/fly/use-turn-performance";
-import { TrafficPatternPopup } from "~/features/fly/traffic-pattern-popup";
+import { FlightNotifications } from "~/features/fly/flight-notifications";
+import {
+  NotificationBell,
+  NotificationHistory,
+} from "~/features/fly/notification-history";
 import { HoldingStatus } from "~/features/fly/holding-status";
 import { type Holding } from "~/data/holding";
 import { holdingGeometry } from "~/domain/holding";
@@ -68,6 +72,8 @@ import { useTrafficSession } from "~/stores/traffic-session";
 import { useInFlight } from "~/stores/inflight";
 import { useMapSettings, type Basemap, type LayerId } from "~/stores/map";
 import { useGps } from "~/features/fly/use-gps";
+import { GlideStatus } from "~/features/emergency/glide-status";
+import { useEmergencyMap } from "~/features/emergency/use-emergency-map";
 import { MapSummary } from "./map-summary";
 import { PointDetails } from "./point-details";
 import { TrafficCard } from "./traffic-card";
@@ -80,9 +86,11 @@ import { coordinatePaths, toPaths, toPoints, zoneDatum } from "./deck/data";
 import { airportLabels, minuteLabels, pointNameLabels } from "./deck/labels";
 import { MarkerLayer } from "./deck/markers";
 import { FJORD_BACKGROUND } from "./deck/fjord";
+import { DARK_MATTER_BACKGROUND } from "./deck/dark-matter";
 import { palettes, themeOf } from "./deck/theme";
 import { mapLabelVisibility } from "~/domain/map-labels";
 import { MapScale } from "./map-scale";
+import { WindTile } from "./wind-tile";
 import { FloatingDetails } from "./floating-details";
 import { AirspaceDetails } from "./airspace-details";
 import { useT } from "~/i18n/use-t";
@@ -147,11 +155,8 @@ export function MapView({
   const sceneRef = useRef<DeckScene | null>(null);
   const markers = useRef<MarkerLayer | null>(null);
   const captions = useRef(new AirspaceCaptions());
-  const [cursorPosition, setCursorPosition] = useState<{
-    lat: number;
-    lon: number;
-  } | null>(null);
   const [ready, setReady] = useState(false);
+  const [notificationHistoryOpen, setNotificationHistoryOpen] = useState(false);
   const [click, setClick] = useState<Click | null>(null);
   const [holdingPreview, setHoldingPreview] = useState<Holding | null>(null);
   const [patternPreview, setPatternPreview] = useState<TrafficPattern | null>(
@@ -281,6 +286,7 @@ export function MapView({
   useEffect(() => {
     routeRef.current = route;
   }, [route]);
+  const [terrainError, setTerrainError] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000);
@@ -297,6 +303,25 @@ export function MapView({
   });
 
   const airports = useQuery(api.airports.list.queryOptions(undefined));
+  const emergencyMap = useEmergencyMap(airports.data ?? [], fix, gpsError, now);
+  useEffect(() => {
+    sceneRef.current?.set({
+      emergencyRoute: emergencyMap.preview ? [] : toPaths([emergencyMap.path]),
+      emergencyPreview: emergencyMap.preview
+        ? toPaths([emergencyMap.path])
+        : [],
+      emergencyRange: emergencyMap.footprint.map((polygon) => ({ polygon })),
+      emergencyBoundary: emergencyMap.boundary.map((path) => ({ path })),
+      emergencyAirports: emergencyMap.reachable.map((a) => [a.lon, a.lat]),
+    });
+  }, [
+    ready,
+    emergencyMap.path,
+    emergencyMap.preview,
+    emergencyMap.footprint,
+    emergencyMap.boundary,
+    emergencyMap.reachable,
+  ]);
   const navpoints = useQuery(api.navpoints.list.queryOptions(undefined));
   const procedures = useQuery(api.procedures.all.queryOptions(undefined));
   const activeEndpoint = navigation.startedAt
@@ -462,7 +487,7 @@ export function MapView({
           if (!cancelled) setReady(true);
         },
       });
-      const scene = new DeckScene(map);
+      const scene = new DeckScene(map, () => setTerrainError(true));
       mapRef.current = map;
       sceneRef.current = scene;
       const syncZoom = () => {
@@ -476,12 +501,6 @@ export function MapView({
       map.on("moveend", syncZoom);
       markers.current = new MarkerLayer(map, root);
       map.on("dragstart", () => useMapSettings.getState().follow(false));
-      let lastCursorUpdate = 0;
-      map.on("mousemove", ({ lngLat }) => {
-        if (Date.now() - lastCursorUpdate < 100) return;
-        lastCursorUpdate = Date.now();
-        setCursorPosition({ lat: lngLat.lat, lon: lngLat.lng });
-      });
       let lastViewportUpdate = 0;
       map.on("moveend", () => {
         if (Date.now() - lastViewportUpdate < 1100) return;
@@ -512,7 +531,9 @@ export function MapView({
             return {
               info,
               band: Math.floor(d / 2),
-              rank: PICK_LAYERS.indexOf(info.layer?.id ?? ""),
+              rank: PICK_LAYERS.indexOf(
+                info.layer?.id.replace(/-terrain$/, "") ?? "",
+              ),
               d,
             };
           })
@@ -520,7 +541,7 @@ export function MapView({
             (a, b) => a.band - b.band || a.rank - b.rank || a.d - b.d,
           )[0]?.info;
         const object = hit?.object as (PointDatum & TrafficDatum) | undefined;
-        if (hit?.layer?.id === "traffic") {
+        if (hit?.layer?.id.replace(/-terrain$/, "") === "traffic") {
           const aircraft = trafficByHex.current.get(object!.hex);
           if (aircraft) {
             setClick({ kind: "traffic", lngLat, hex: aircraft.hex });
@@ -566,6 +587,7 @@ export function MapView({
       const camera = () => {
         root.dataset.centerLon = String(map.getCenter().lng);
         root.dataset.centerLat = String(map.getCenter().lat);
+        root.dataset.centerElevationM = String(map.getCenter().elevationM);
         root.dataset.zoom = String(map.getZoom());
       };
       camera();
@@ -586,9 +608,15 @@ export function MapView({
 
   const theme = themeOf(basemap);
   useEffect(() => {
-    sceneRef.current?.set({ basemap, theme, visible: layers });
+    sceneRef.current?.set({
+      basemap,
+      theme,
+      visible: layers,
+      terrain3d: settings.terrain3d,
+    });
+    mapRef.current?.setTerrain(settings.terrain3d);
     markers.current?.setVisible(layers.route);
-  }, [ready, basemap, theme, layers]);
+  }, [ready, basemap, theme, layers, settings.terrain3d]);
 
   useEffect(() => {
     sceneRef.current?.set({
@@ -1102,9 +1130,39 @@ export function MapView({
       )}
       data-pattern-preview={patternPreview ? "true" : "false"}
       data-holding-preview={holdingPreview ? "true" : "false"}
+      data-terrain-3d={settings.terrain3d ? "true" : "false"}
+      data-glide-cells={emergencyMap.footprint.length}
     >
-      {navigation.startedAt && <TrafficPatternPopup />}
-      {navigation.startedAt && <HoldingStatus />}
+      {navigation.startedAt && !emergencyMap.active && (
+        <FlightNotifications
+          plan={routePlan}
+          cruiseAltitudeFt={flight.cruiseAltitudeFt}
+          fix={fix}
+          turns={turnPerformance}
+          aircraft={layers.traffic ? traffic.data?.aircraft : undefined}
+          identity={ownIdentity}
+        />
+      )}
+      {navigation.startedAt && !emergencyMap.active && <HoldingStatus />}
+      {emergencyMap.active && (
+        <div
+          role="status"
+          data-testid="emergency-map-status"
+          className="bg-card/95 text-card-foreground absolute bottom-56 left-3 z-10 max-w-[calc(100%-6rem)] rounded-lg border border-red-500 p-2 text-xs shadow sm:bottom-44 sm:max-w-xs"
+        >
+          <strong>
+            EMER ·{" "}
+            {emergencyMap.target
+              ? `${emergencyMap.target.airport} RW${emergencyMap.target.runway}`
+              : t("emer.noRoute")}
+          </strong>
+          <p>{emergencyMap.preview ? t("emer.preview") : t("emer.final")}</p>
+          <GlideStatus />
+          {emergencyMap.glide.reach && emergencyMap.reachable.length === 0 && (
+            <p>{t("emer.noReachable")}</p>
+          )}
+        </div>
+      )}
       {layers.route && turnIssues.length > 0 && (
         <div
           role="status"
@@ -1163,10 +1221,42 @@ export function MapView({
           className="legacy-flight-tool bg-card/90 absolute top-3 left-3 z-30 backdrop-blur"
           variant="outline"
           disabled={!ready}
-          onClick={() => settings.setSearchOpen(!settings.searchOpen)}
+          onClick={() => {
+            setNotificationHistoryOpen(false);
+            settings.setSearchOpen(!settings.searchOpen);
+          }}
         >
           <SearchIcon className="size-6 text-white" />
         </Button>
+      )}
+      {!embedded && (
+        <NotificationBell
+          open={notificationHistoryOpen}
+          className="absolute top-20 left-3 z-30"
+          onClick={() => {
+            settings.setSearchOpen(false);
+            setNotificationHistoryOpen(!notificationHistoryOpen);
+          }}
+        />
+      )}
+      {!embedded && notificationHistoryOpen && (
+        <section
+          role="dialog"
+          aria-label={t("fly.history.title")}
+          className="bg-card/95 text-card-foreground absolute top-36 right-20 left-3 z-40 grid max-h-[calc(100%-10rem)] gap-3 overflow-y-auto rounded-2xl border p-4 shadow-lg backdrop-blur sm:right-auto sm:w-96"
+        >
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-sm font-bold">{t("fly.history.title")}</h2>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setNotificationHistoryOpen(false)}
+            >
+              {t("map.close")}
+            </Button>
+          </div>
+          <NotificationHistory />
+        </section>
       )}
       {settings.searchOpen && (
         <MapSearch
@@ -1180,7 +1270,11 @@ export function MapView({
         className="relative h-full w-full overflow-hidden"
         style={{
           backgroundColor:
-            basemap === "fjord" ? FJORD_BACKGROUND : palettes[theme].background,
+            basemap === "fjord"
+              ? FJORD_BACKGROUND
+              : basemap === "dark-matter"
+                ? DARK_MATTER_BACKGROUND
+                : palettes[theme].background,
         }}
         data-testid="map"
         data-map-ready={ready}
@@ -1196,17 +1290,66 @@ export function MapView({
         }
       />
       <MapScale mapRef={mapRef} ready={ready} />
-      {basemap !== "dark" && (
+      {(settings.terrain3d || emergencyMap.glide.reach) && (
         <a
-          className="legacy-map-attribution"
-          href="https://www.openstreetmap.org/copyright"
+          className="bg-card/90 text-muted-foreground absolute right-20 bottom-8 z-10 max-w-[65%] rounded px-1 text-right text-[10px]"
+          href="/terrain-attribution.html"
           target="_blank"
           rel="noreferrer"
         >
-          {basemap === "fjord"
-            ? "© OpenMapTiles © OpenStreetMap contributors · OpenFreeMap"
-            : "© OpenStreetMap contributors"}
+          {t("terrain.source")}
         </a>
+      )}
+      {(basemap !== "dark" || settings.terrain3d) && (
+        <div className="legacy-map-attribution">
+          {basemap === "dark-matter" && (
+            <>
+              <a
+                href="/dark-matter-attribution.html"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Dark Matter
+              </a>
+              {" · "}
+            </>
+          )}
+          {(basemap === "fjord" || basemap === "dark-matter") && (
+            <>
+              <a
+                href="https://openmaptiles.org/"
+                target="_blank"
+                rel="noreferrer"
+              >
+                © OpenMapTiles
+              </a>
+              {" · "}
+              <a
+                href="https://openfreemap.org/"
+                target="_blank"
+                rel="noreferrer"
+              >
+                OpenFreeMap
+              </a>
+              {" · "}
+            </>
+          )}
+          <a
+            href="https://www.openstreetmap.org/copyright"
+            target="_blank"
+            rel="noreferrer"
+          >
+            © OpenStreetMap contributors
+          </a>
+        </div>
+      )}
+      {settings.terrain3d && terrainError && (
+        <div
+          role="status"
+          className="bg-card/90 absolute bottom-20 left-3 z-10 max-w-xs rounded border p-2 text-xs"
+        >
+          {t("terrain.error3d")}
+        </div>
       )}
       {toolsContainer &&
         createPortal(
@@ -1312,31 +1455,7 @@ export function MapView({
           </div>,
           toolsContainer,
         )}
-      {!embedded && (
-        <div className="legacy-map-readout">
-          <span>
-            {t("maptools.route")}:{" "}
-            {route.map((p) => p.ident).join(" - ") || "--"}
-          </span>
-          <span>
-            {cursorPosition
-              ? `${cursorPosition.lat.toFixed(5)}, ${cursorPosition.lon.toFixed(5)}`
-              : "--"}
-          </span>
-          <span data-testid="map-gps-status">
-            {!settings.gpsEnabled && !navigation.startedAt
-              ? "GPS off"
-              : gpsError
-                ? t(`fly.gps.${gpsError}`)
-                : fix
-                  ? t("fly.gps.fix", {
-                      accuracy: Math.round(fix.accuracyM),
-                      time: fix.time.slice(11, 16) + "Z",
-                    })
-                  : t("fly.gps.waiting")}
-          </span>
-        </div>
-      )}
+      <WindTile mapRef={mapRef} ready={ready} />
       {click &&
         (click.kind !== "traffic" || selectedAircraft) &&
         (click.kind !== "segment" || selectedSegment) && (

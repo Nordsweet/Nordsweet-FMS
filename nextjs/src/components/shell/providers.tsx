@@ -1,7 +1,10 @@
 "use client";
 
 import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
-import { QueryClient } from "@tanstack/react-query";
+import {
+  QueryClient,
+  defaultShouldDehydrateQuery,
+} from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { del, get, set } from "idb-keyval";
 import { useEffect, useState, useSyncExternalStore } from "react";
@@ -72,6 +75,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
       // A new release discards data cached by the previous one (its shapes may have changed).
       persistOptions={{
         persister,
+        dehydrateOptions: {
+          // DEM Float32Arrays have their own structured-clone IndexedDB cache.
+          shouldDehydrateQuery: (query) =>
+            query.queryKey[0] !== "terrain.region" &&
+            defaultShouldDehydrateQuery(query),
+        },
         maxAge: DAY_MS,
         buster: process.env.BUILD_ID ?? "dev",
       }}

@@ -10,6 +10,8 @@ import { useMapSettings } from "~/stores/map";
 import { playChime } from "./chime";
 import { useGps } from "./use-gps";
 import { useTurnPerformance } from "./use-turn-performance";
+import { useWindEstimation } from "./use-wind-estimation";
+import { useEmergencyTelemetry } from "~/features/emergency/use-emergency-telemetry";
 
 const useAirport = (code: string | undefined) =>
   useQuery({
@@ -19,6 +21,8 @@ const useAirport = (code: string | undefined) =>
 
 /** Mounted once above routes: leg sequencing, recording and flight timers continue across screens. */
 export function FlightRuntime() {
+  useWindEstimation();
+  useEmergencyTelemetry();
   const flight = useInFlight();
   const plan = useFlight((s) => s.flight);
   const observeGps = useMapSettings((s) => s.observeGps);
@@ -37,7 +41,13 @@ export function FlightRuntime() {
     return () => clearInterval(id);
   }, [flying, tick]);
   useEffect(() => {
-    if (!fix || error || Date.now() - Date.parse(fix.time) > 20000) return;
+    if (
+      !fix ||
+      fix.paused ||
+      error ||
+      Date.now() - Date.parse(fix.time) > 20000
+    )
+      return;
     observeGps(fix);
     if (!flight.startedAt) return;
     flight.observePattern(fix, turns);

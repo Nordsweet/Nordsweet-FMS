@@ -25,7 +25,12 @@ function pickManual(
 ): Entry | undefined {
   const withSetting = entries.flatMap((e) => {
     const s = rpmMap(e.setting);
-    return s ? [{ e, ...s }] : [];
+    const fixedPitch = /^(\d+)\s*RPM$/i.exec(e.setting);
+    return s
+      ? [{ e, ...s }]
+      : fixedPitch
+        ? [{ e, rpm: Number(fixedPitch[1]), mapInHg: target.mapInHg }]
+        : [];
   });
   const exact = withSetting.find(
     (x) =>
@@ -33,6 +38,20 @@ function pickManual(
       Math.abs(x.mapInHg - target.mapInHg) < 0.01,
   );
   if (exact) return exact.e;
+  // Fixed-pitch tables have RPM only; do not invent manifold pressure or extrapolate past lean-mixture settings.
+  if (entries.length && entries.every((e) => /^\d+\s*RPM$/i.test(e.setting))) {
+    const sorted = withSetting.sort((a, b) => a.rpm - b.rpm);
+    const lo = [...sorted].reverse().find((e) => e.rpm < target.rpm);
+    const hi = sorted.find((e) => e.rpm > target.rpm);
+    if (!lo || !hi) return undefined;
+    const ratio = (target.rpm - lo.rpm) / (hi.rpm - lo.rpm);
+    return {
+      setting: `${target.rpm} RPM`,
+      ktas: lerp(lo.e.ktas, hi.e.ktas, ratio),
+      fuelFlowLph: lerp(lo.e.fuelFlowLph, hi.e.fuelFlowLph, ratio),
+      powerPct: lerpOptional(lo.e.powerPct, hi.e.powerPct, ratio),
+    };
+  }
   const nearest = withSetting
     .map((x) => ({
       x,
@@ -115,11 +134,12 @@ function entriesAt(cruise: Cruise, altitudeFt: number, isaDeltaC: number) {
     const lo = rows.find((r) => r.isaDeltaC === isa.lower);
     const hi = rows.find((r) => r.isaDeltaC === isa.upper);
     if (!lo || !hi) continue;
+    const powerPct = lerpOptional(lo.powerPct, hi.powerPct, isa.ratio);
     entries.push({
       setting,
       ktas: lerp(lo.ktas, hi.ktas, isa.ratio),
       fuelFlowLph: lerp(lo.fuelFlowLph, hi.fuelFlowLph, isa.ratio),
-      powerPct: lerpOptional(lo.powerPct, hi.powerPct, isa.ratio),
+      powerPct,
     });
   }
   return entries;
@@ -129,18 +149,33 @@ function pick(
   entries: Entry[],
   mode: CruiseMode | ManualSetting,
   windKt: number,
+  maximumLeanPowerPct?: number,
 ) {
-  if (typeof mode === "object") return pickManual(entries, mode);
+  if (typeof mode === "object") {
+    const selected = pickManual(entries, mode);
+    return selected &&
+      (maximumLeanPowerPct === undefined ||
+        selected.powerPct === null ||
+        selected.powerPct <= maximumLeanPowerPct)
+      ? selected
+      : undefined;
+  }
+  const operating = entries.filter(
+    (e) =>
+      maximumLeanPowerPct === undefined ||
+      e.powerPct === null ||
+      e.powerPct <= maximumLeanPowerPct,
+  );
   if (mode === "eco-distance") {
     const range = (e: Entry) =>
       Math.max(0, e.ktas + windKt) / Math.max(e.fuelFlowLph, 0.001);
-    return [...entries].sort((a, b) =>
+    return [...operating].sort((a, b) =>
       Math.abs(range(b) - range(a)) > 0.0001
         ? range(b) - range(a)
         : a.fuelFlowLph - b.fuelFlowLph,
     )[0];
   }
-  return [...entries].sort((a, b) =>
+  return [...operating].sort((a, b) =>
     Math.abs(a.fuelFlowLph - b.fuelFlowLph) > 0.001
       ? a.fuelFlowLph - b.fuelFlowLph
       : b.ktas - a.ktas,
@@ -161,11 +196,13 @@ export function cruisePerformance(
     entriesAt(cruise, alt.lower, isaDeltaC),
     mode,
     windComponentKt,
+    cruise.maximumLeanPowerPct,
   );
   const upper = pick(
     entriesAt(cruise, alt.upper, isaDeltaC),
     mode,
     windComponentKt,
+    cruise.maximumLeanPowerPct,
   );
   if (!lower || !upper) return null;
   const ktas = lerp(lower.ktas, upper.ktas, alt.ratio);
@@ -226,6 +263,11 @@ export function fuelFlowAtPower(
   oatC: number,
   powerPct: number,
 ): number | null {
+  if (
+    cruise.maximumLeanPowerPct !== undefined &&
+    powerPct > cruise.maximumLeanPowerPct
+  )
+    return null;
   const alt = bracket(altitudes(cruise), pressureAltitudeFt);
   const at = (altitudeFt: number) => {
     const t = lapseTemperatureC(oatC, pressureAltitudeFt, altitudeFt);
@@ -276,6 +318,7 @@ export function cruiseTableRead(
       })),
     mode,
     windComponentKt,
+    cruise.maximumLeanPowerPct,
   );
   return entry
     ? {

@@ -542,32 +542,6 @@
   }
 }
 
-.legacy-map-readout {
-  position: absolute;
-  bottom: 10px;
-  left: 10px;
-  right: 5.4rem;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  pointer-events: none;
-  color: var(--foreground);
-  font:
-    12px system-ui,
-    sans-serif;
-}
-.legacy-map-readout > * {
-  border: 1px solid var(--border);
-  background: var(--card);
-  padding: 6px 10px;
-  border-radius: 999px;
-  box-shadow: 0 8px 24px rgba(26, 34, 45, 0.12);
-  max-width: 70%;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
 .legacy-map-info small {
   color: var(--muted-foreground);
   font-size: 10px;
@@ -722,14 +696,18 @@
 .fly-popover[data-panel="rwy"] {
   top: var(--top);
   right: 4.85rem;
-  max-height: calc(100dvh - var(--top) - 1rem);
+  max-height: calc(100% - var(--top) - 1rem);
 }
 .fly-popover[data-panel="emer"] {
+  grid-template-columns: minmax(0, 1fr);
   --head: #fff;
-  width: min(380px, calc(100vw - 2rem));
-  max-height: min(560px, calc(100dvh - var(--top) - 1rem));
+  width: min(380px, calc(100vw - 6rem));
+  max-height: min(560px, calc(100% - var(--top) - 1rem));
   border-color: rgba(255, 117, 143, 0.35);
   background: rgba(10, 18, 30, 0.99);
+}
+.fly-popover[data-panel="emer"] > * {
+  min-width: 0;
 }
 .fly-popover[data-panel="config"] {
   width: min(560px, calc(100vw - 2rem));
@@ -746,13 +724,13 @@
 .fly-popover[data-panel="none"] {
   top: 5.35rem;
   left: 1rem;
-  max-height: calc(100dvh - 6.35rem);
+  max-height: calc(100% - 6.35rem);
 }
 .fly-popover[data-panel="route"],
 .fly-popover[data-panel="chart"],
 .fly-popover[data-panel="none"] {
   width: min(560px, calc(100vw - 2rem));
-  max-height: min(620px, calc(100dvh - 7rem));
+  max-height: min(620px, calc(100% - 7rem));
 }
 .fly-popover[data-panel="comms"] {
   --pad: 0.9rem;
@@ -778,12 +756,19 @@
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.34);
 }
 /* Top right, beside the rail. */
+.fly-popover[data-panel="fpl"] {
+  --head: #5dc1ff;
+  top: var(--top);
+  right: 5.5rem;
+  width: min(430px, calc(100vw - 6.5rem));
+  max-height: calc(100% - var(--top) - 1rem);
+}
 .fly-popover[data-panel="wx"] {
   --head: #5dc1ff;
   top: clamp(4.2rem, 8vh, 5.6rem);
   right: max(1rem, calc((100vw - 1180px) / 2));
   width: min(820px, calc(100vw - 2rem));
-  max-height: min(720px, calc(100dvh - 7rem));
+  max-height: min(720px, calc(100% - 7rem));
   border-color: rgba(141, 190, 255, 0.24);
   border-radius: 22px;
   background: rgba(7, 17, 31, 0.98);
@@ -793,7 +778,7 @@
   top: clamp(4rem, 8vh, 5.5rem);
   right: max(1rem, calc((100vw - min(1180px, 100vw - 2rem)) / 2));
   width: min(430px, calc(100vw - 2rem));
-  max-height: min(620px, calc(100dvh - 7rem));
+  max-height: min(620px, calc(100% - 7rem));
   border-color: rgba(118, 242, 164, 0.26);
   background: rgba(10, 18, 30, 0.99);
 }

@@ -7,6 +7,7 @@ import {
   type MapViewState,
   type PickingInfo,
 } from "@deck.gl/core";
+import { cachedTerrainElevation } from "~/api/terrain";
 
 export type LngLat = { lng: number; lat: number };
 export type Point = { x: number; y: number };
@@ -178,9 +179,18 @@ export class DeckMap {
 
   private setView(view: MapViewState, keepFit = false) {
     if (!keepFit) this.fitted = null;
-    this.view = view;
+    const height =
+      (view.maxPitch ?? 0) > 0
+        ? (cachedTerrainElevation({
+            lat: view.latitude,
+            lon: view.longitude,
+          }) ??
+          view.position?.[2] ??
+          0)
+        : 0;
+    this.view = { ...view, position: [0, 0, height] };
     this.viewport = null;
-    this.deck.setProps({ viewState: view });
+    this.deck.setProps({ viewState: this.view });
     this.emit("move", undefined);
     clearTimeout(this.settle);
     this.settle = window.setTimeout(
@@ -204,17 +214,36 @@ export class DeckMap {
   }
 
   project(position: [number, number]): Point {
-    const [x, y] = this.current().project(position);
+    const height =
+      (this.view.maxPitch ?? 0) > 0
+        ? (cachedTerrainElevation({ lon: position[0], lat: position[1] }) ?? 0)
+        : 0;
+    const [x, y] = this.current().project([position[0], position[1], height]);
     return { x: x!, y: y! };
   }
 
   unproject(point: Point): LngLat {
-    const [lng, lat] = this.current().unproject([point.x, point.y]);
+    if ((this.view.maxPitch ?? 0) > 0) {
+      const picked = this.deck.pickObject({
+        ...point,
+        layerIds: ["terrain"],
+        unproject3D: true,
+      });
+      if (picked?.coordinate)
+        return { lng: picked.coordinate[0]!, lat: picked.coordinate[1]! };
+    }
+    const [lng, lat] = this.current().unproject([point.x, point.y], {
+      targetZ: this.view.position?.[2] ?? 0,
+    });
     return { lng: lng!, lat: lat! };
   }
 
-  getCenter(): LngLat {
-    return { lng: this.view.longitude, lat: this.view.latitude };
+  getCenter(): LngLat & { elevationM: number } {
+    return {
+      lng: this.view.longitude,
+      lat: this.view.latitude,
+      elevationM: this.view.position?.[2] ?? 0,
+    };
   }
   getZoom() {
     return this.view.zoom;
@@ -222,12 +251,40 @@ export class DeckMap {
   getBearing() {
     return this.view.bearing ?? 0;
   }
+  setTerrain(enabled: boolean) {
+    if ((this.view.maxPitch ?? 0) === (enabled ? 60 : 0)) return;
+    this.deck.setProps({
+      parameters: {
+        depthCompare: enabled ? "less-equal" : "always",
+        depthWriteEnabled: enabled,
+      },
+    });
+    this.setView({
+      ...this.view,
+      pitch: enabled ? 45 : 0,
+      maxPitch: enabled ? 60 : 0,
+    });
+  }
+  terrainChanged() {
+    if ((this.view.maxPitch ?? 0) > 0) {
+      const height = cachedTerrainElevation({
+        lat: this.view.latitude,
+        lon: this.view.longitude,
+      });
+      if (
+        height !== null &&
+        Math.abs(height - (this.view.position?.[2] ?? 0)) > 1
+      )
+        this.setView(this.view);
+      else this.emit("move", undefined);
+    }
+  }
   getSize() {
     return this.size;
   }
   /** West, south, east, north of the visible area. */
   getBounds() {
-    return this.current().getBounds();
+    return this.current().getBounds({ z: this.view.position?.[2] ?? 0 });
   }
 
   private fit(bounds: Bounds, options: { padding?: number; maxZoom?: number }) {
@@ -299,10 +356,19 @@ export class DeckMap {
       ...this.size,
       bearing,
     });
-    const { longitude, latitude } = next.panByPosition(position, [
-      width * anchor[0],
-      height * anchor[1],
-    ]);
+    const pixel = [width * anchor[0], height * anchor[1]];
+    const { longitude, latitude } =
+      (this.view.maxPitch ?? 0) > 0
+        ? next.panByPosition3D(
+            [
+              ...position,
+              cachedTerrainElevation({ lon: position[0], lat: position[1] }) ??
+                this.view.position?.[2] ??
+                0,
+            ],
+            pixel,
+          )
+        : next.panByPosition(position, pixel);
     this.jumpTo({ longitude, latitude, bearing });
   }
 
@@ -313,7 +379,15 @@ export class DeckMap {
   /** The objects within `radius` px of a point on the given layers. */
   pick(point: Point, layerIds: string[], radius = PICK_RADIUS) {
     return this.deck
-      .pickMultipleObjects({ ...point, radius, layerIds, depth: 8 })
+      .pickMultipleObjects({
+        ...point,
+        radius,
+        layerIds:
+          (this.view.maxPitch ?? 0) > 0
+            ? layerIds.map((id) => `${id}-terrain`)
+            : layerIds,
+        depth: 8,
+      })
       .filter((info) => info.object);
   }
 

@@ -54,7 +54,7 @@ function phaseTitle(title: string, rows: Row[]) {
 const tag = (r: Row) =>
   SERVICE_TAG[r.service ?? r.serviceId ?? ""] ?? r.zone ?? "";
 
-/** Legacy map sidebar: zone/route/crossed counts and the Route / Radio / Zones tabs. */
+/** Map sidebar metrics and Radio / Zones summaries; waypoint lists live in FPL. */
 export function MapSummary({
   route,
   zones,
@@ -158,45 +158,21 @@ export function MapSummary({
           </div>
         ))}
       </div>
-      <Tabs defaultValue="route">
+      {!!routePlan?.warnings.length && (
+        <div className="legacy-card">
+          <div className="legacy-card-title">{t("maptools.unresolved")}</div>
+          <div className="legacy-muted">
+            {routePlan.warnings
+              .map((w) => ("token" in w ? w.token : w.code))
+              .join(", ")}
+          </div>
+        </div>
+      )}
+      <Tabs defaultValue="radio">
         <TabsList>
-          <TabsTrigger value="route">{t("maptools.route")}</TabsTrigger>
           <TabsTrigger value="radio">{t("maptools.radio")}</TabsTrigger>
           <TabsTrigger value="zones">{t("map.layer.airspace")}</TabsTrigger>
         </TabsList>
-        <TabsContent value="route">
-          <div className="legacy-card">
-            <div className="legacy-card-title">
-              {t("mapplanner.points")}
-              <span className="legacy-tag">{route.length}</span>
-            </div>
-            {route.length ? (
-              route.map((p, i) => (
-                <div key={i} className="legacy-line">
-                  <span className="legacy-tag">{i + 1}</span>
-                  <span>{p.ident}</span>
-                  <span className="legacy-muted">
-                    {p.lat.toFixed(4)}, {p.lon.toFixed(4)}
-                  </span>
-                </div>
-              ))
-            ) : (
-              <div className="legacy-muted">{t("maptools.noRoute")}</div>
-            )}
-          </div>
-          {!!routePlan?.warnings.length && (
-            <div className="legacy-card">
-              <div className="legacy-card-title">
-                {t("maptools.unresolved")}
-              </div>
-              <div className="legacy-muted">
-                {routePlan.warnings
-                  .map((w) => ("token" in w ? w.token : w.code))
-                  .join(", ")}
-              </div>
-            </div>
-          )}
-        </TabsContent>
         <TabsContent value="radio">
           {!route.length
             ? empty(t("maptools.buildFirst"))
