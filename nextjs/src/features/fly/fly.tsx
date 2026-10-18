@@ -334,7 +334,10 @@ export function FlyPage() {
             variant="outline"
             className="max-w-48 shrink-0"
             title={t(`connector.${connectorStatus}`)}
-            onClick={() => setPanel(open === "options" ? null : "options")}
+            onClick={() => {
+              setSearchOpen(false);
+              setPanel(open === "options" ? null : "options");
+            }}
           >
             <span className="truncate">
               {t(`connector.${connectorStatus}`)}

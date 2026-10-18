@@ -110,9 +110,7 @@ test("Connector source feeds Fly, survives reload and clears stale fixes without
   await expect(page.getByTestId("connector-status")).toHaveText(
     "No current data from Prepar3D",
   );
-  await expect(page.getByTestId("connector-telemetry")).not.toContainText(
-    "110",
-  );
+  await expect(page.getByTestId("connector-telemetry")).toHaveCount(0);
   await page.evaluate(() =>
     (
       window as unknown as { __emitDevicePosition: () => void }

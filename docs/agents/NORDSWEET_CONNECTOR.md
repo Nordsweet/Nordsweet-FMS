@@ -31,3 +31,10 @@ Acceptance: Vitest transport/schema tests and `e2e/connector.spec.ts` cover conn
 DEMO, pause, stale-data clearing, reload, disconnect and returning to Device GPS. The browser test
 also checks the controls at 1024×768. End-to-end testing with a real Prepar3D v5 installation and a
 tablet in the owner's tailnet remains necessary; mocked browser frames do not validate that network.
+
+Validation: format, lint, typecheck, static export and 406 unit tests passed. All 82 browser cases
+passed across the full run and 10 isolated reruns (the initial run had timing failures, including
+the corrected one-frame Connector fixture). After merging the latest develop footer removal, all
+12 affected Connector/Fly/map appearance/migration cases passed again with one worker. The source
+panel was visually checked at desktop and tablet sizes. The removed footer stays removed; during
+flight a Connector status button in the phase bar opens Options.
