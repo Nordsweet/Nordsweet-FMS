@@ -56,6 +56,11 @@ test("flies the route: sequencing, direct-to and debrief", async ({
     "CCCC",
   ]);
   await expect(fpl.locator("[aria-current='step']")).toContainText("BBBB");
+  const fplBox = (await fpl.boundingBox())!;
+  expect(fplBox.x).toBeGreaterThan(0);
+  expect(fplBox.x + fplBox.width).toBeLessThanOrEqual(
+    (await rail.boundingBox())!.x,
+  );
   await page.screenshot({ path: "test-results/fpl.png" });
   await rail.getByRole("button", { name: "FPL", exact: true }).click();
   await expect(fpl).toHaveCount(0);
