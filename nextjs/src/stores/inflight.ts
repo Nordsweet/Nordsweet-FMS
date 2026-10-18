@@ -1,5 +1,18 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import { debriefSchema, type Debrief } from "~/data/debrief";
+import {
+  validateDebrief,
+  debriefStatistics,
+  type DebriefError,
+} from "~/domain/debrief";
+import { normalizeRegistration, formatMth } from "~/domain/aircraft";
+import { useFlight } from "./flight";
+import {
+  useAircraftState,
+  selectAircraftState,
+  aircraftStateKey,
+} from "./aircraft-state";
 
 import {
   type CruiseMode,
@@ -73,6 +86,8 @@ const DEFAULT_CONFIG: FlightConfig = {
 };
 
 type InFlight = {
+  debrief: Debrief | null;
+  acceptDebrief: (mth: string, fuel: string) => DebriefError | null;
   holding: HoldingRuntime | null;
   setHolding: (config: Holding | null) => void;
   observeHolding: (fix: HoldFix, now: number) => void;
@@ -136,6 +151,7 @@ type InFlight = {
     route: NavPoint[],
     pattern?: TrafficPattern | null,
     departurePattern?: TrafficPattern | null,
+    aircraftType?: string | null,
   ) => void;
   end: () => void;
   setActiveLeg: (leg: number) => void;
@@ -162,6 +178,35 @@ type InFlight = {
 export const useInFlight = create<InFlight>()(
   persist(
     (set, get) => ({
+      debrief: null,
+      acceptDebrief: (mth, fuel) => {
+        const debrief = get().debrief;
+        if (debrief?.endedAt == null) return null;
+        const result = validateDebrief(debrief, mth, fuel);
+        if (!result.ok) return result.error;
+        const accepted = {
+          ...debrief,
+          accepted: {
+            mthAfter: result.mthAfter,
+            fuelAfterL: result.fuelAfterL,
+            at: Date.now(),
+          },
+        };
+        set({ debrief: accepted });
+        if (debrief.aircraftType)
+          useAircraftState
+            .getState()
+            .record(
+              aircraftStateKey(debrief.aircraftType, debrief.registration),
+              {
+                mth: formatMth(String(result.mthAfter))!,
+                fuelRemainingL: result.fuelAfterL,
+                fuelUsedL: debriefStatistics(accepted).fuelUsedL,
+                fuelAddedL: 0,
+              },
+            );
+        return null;
+      },
       startedAt: null,
       holding: null,
       setHolding: (config) =>
@@ -435,9 +480,42 @@ export const useInFlight = create<InFlight>()(
       addEvent: (name) =>
         set((s) => ({ timers: addEvent(s.timers, name, Date.now()) })),
       configure: (patch) => set((s) => ({ config: { ...s.config, ...patch } })),
-      start: (route, trafficPattern = null, departurePattern = null) => {
+      start: (
+        route,
+        trafficPattern = null,
+        departurePattern = null,
+        aircraftType = null,
+      ) => {
         const now = new Date().toISOString();
+        const flight = useFlight.getState().flight;
+        const registration = normalizeRegistration(flight.registration);
+        const mth = aircraftType
+          ? selectAircraftState(
+              useAircraftState.getState().states,
+              aircraftType,
+              registration,
+            ).mth
+          : "";
         set({
+          debrief: {
+            flightId: flight.id,
+            name: flight.name,
+            aircraftType,
+            registration,
+            mthBefore:
+              mth.trim() !== "" && Number.isFinite(Number(mth))
+                ? Number(mth)
+                : null,
+            fuelBeforeL: flight.fuel.blockL > 0 ? flight.fuel.blockL : null,
+            endedAt: null,
+            times: {
+              offBlockAt: null,
+              onBlockAt: null,
+              takeoffAt: null,
+              landingAt: null,
+            },
+            accepted: null,
+          },
           startedAt: now,
           holding: null,
           trafficPattern,
@@ -456,7 +534,30 @@ export const useInFlight = create<InFlight>()(
         });
       },
       end: () =>
-        set({
+        set((s) => ({
+          debrief:
+            s.debrief?.endedAt != null
+              ? s.debrief
+              : {
+                  ...(s.debrief ?? {
+                    flightId: useFlight.getState().flight.id,
+                    name: useFlight.getState().flight.name,
+                    aircraftType: null,
+                    registration: normalizeRegistration(
+                      useFlight.getState().flight.registration,
+                    ),
+                    mthBefore: null,
+                    fuelBeforeL: null,
+                    accepted: null,
+                  }),
+                  endedAt: Date.now(),
+                  times: {
+                    offBlockAt: s.timers.offBlock.startedAt,
+                    onBlockAt: s.timers.offBlock.stoppedAt,
+                    takeoffAt: s.timers.airTime.startedAt,
+                    landingAt: s.timers.airTime.stoppedAt,
+                  },
+                },
           holding: null,
           startedAt: null,
           departurePattern: null,
@@ -464,7 +565,7 @@ export const useInFlight = create<InFlight>()(
           trafficPattern: null,
           patternNotice: null,
           patternPreviousFix: null,
-        }),
+        })),
       setActiveLeg: (activeLeg) => set({ activeLeg }),
       goDirect: (targetIndex, position) =>
         set((s) => ({
@@ -711,6 +812,9 @@ export const useInFlight = create<InFlight>()(
         return {
           ...current,
           ...p,
+          debrief: debriefSchema.safeParse(p.debrief).success
+            ? debriefSchema.parse(p.debrief)
+            : null,
           // Regenerate derived vertices when fixed pattern dimensions change between releases.
           route,
           activeLeg:
@@ -725,6 +829,7 @@ export const useInFlight = create<InFlight>()(
         };
       },
       partialize: ({
+        debrief,
         holding,
         startedAt,
         trafficPattern,
@@ -741,6 +846,7 @@ export const useInFlight = create<InFlight>()(
         config,
         timers,
       }) => ({
+        debrief,
         holding,
         startedAt,
         trafficPattern,

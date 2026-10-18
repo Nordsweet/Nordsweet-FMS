@@ -5,6 +5,23 @@ Reference: <https://nordsweet-performance-calculator.mrnordsweet.chatgpt.site/> 
 `5265bc5de9510aa3d83cc469860a730962b96c78`. Starting develop: `2f289ed6dc8d7b7c3186b100577c787c64df1de2`.
 Branch: `codex/preflight-parity-audit`.
 
+## Postflight readings and debrief statistics (2026-10-18)
+
+- Debrief now accepts actual ending MTH and remaining fuel (litres). Accept switches to four
+  responsive groups: MTH used/after, fuel used/after, Off-block→On-block UTC/Block Time,
+  Take-off→Landing UTC/Air Time. Editing, window dragging and GPX export remain available.
+- Capture the preflight airframe/MTH and planned starting block fuel at Start flight (both controls).
+  These baselines remain immutable even if the planner or last-state record changes during flight.
+  Accept records the ending state for the captured registration, clears the consumed fuel-added
+  amount, and keeps the debrief and its accepted statistics through reload until the next flight.
+- Actual stopped timers determine operational times, including midnight crossings. Closing a
+  flight does not fabricate landing/on-block events. Unknown baselines or incomplete event pairs
+  show unavailable consumption/duration; legacy sessions without a snapshot are supported.
+- Validate required decimal readings, decreasing MTH and remaining fuel above starting fuel;
+  preserve genuine zero values. Source fuel is the preflight block-fuel entry, not an estimated burn.
+- Tests cover snapshots/airframe isolation, validation, missing and zero readings, midnight timing,
+  accepted-statistic reload/editing, recorded remaining fuel and phone overflow.
+
 ## C172S from owner-supplied Carenado PDFs — 2026-10-18
 
 - Added independent C172S (ICAO C172) selection, operating/stall reference speeds, all 111 cruise
