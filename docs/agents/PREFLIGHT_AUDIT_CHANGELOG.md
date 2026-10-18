@@ -5,6 +5,13 @@ Reference: <https://nordsweet-performance-calculator.mrnordsweet.chatgpt.site/> 
 `5265bc5de9510aa3d83cc469860a730962b96c78`. Starting develop: `2f289ed6dc8d7b7c3186b100577c787c64df1de2`.
 Branch: `codex/preflight-parity-audit`.
 
+## Remove map footer status strip (2026-10-18)
+
+- Remove the bottom route, next-fix/distance and GPS pills from Fly and the corresponding
+  route/cursor/GPS readout from Map, as requested. Navigation, GPS recording and Info remain available.
+- Remove the unused mousemove state/listener and footer styles. Update the existing Map/Fly browser
+  scenarios to require absence of these readouts while still checking route editing and GPS sequencing.
+
 ## Dark Matter basemap (2026-10-18)
 
 - Add **Dark Matter** to Map/Fly Layers → Base map, persisted alongside the existing styles.

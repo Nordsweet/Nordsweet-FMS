@@ -542,32 +542,6 @@
   }
 }
 
-.legacy-map-readout {
-  position: absolute;
-  bottom: 10px;
-  left: 10px;
-  right: 5.4rem;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  pointer-events: none;
-  color: var(--foreground);
-  font:
-    12px system-ui,
-    sans-serif;
-}
-.legacy-map-readout > * {
-  border: 1px solid var(--border);
-  background: var(--card);
-  padding: 6px 10px;
-  border-radius: 999px;
-  box-shadow: 0 8px 24px rgba(26, 34, 45, 0.12);
-  max-width: 70%;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
 .legacy-map-info small {
   color: var(--muted-foreground);
   font-size: 10px;

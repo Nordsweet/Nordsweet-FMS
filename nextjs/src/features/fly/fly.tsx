@@ -116,7 +116,7 @@ export function FlyPage() {
   const { flight, route: planRoute, departurePattern, aircraft } = usePlan();
   const inFlight = useInFlight();
   const flying = inFlight.startedAt !== null;
-  const { fix, error } = useGps(true);
+  const { fix } = useGps(true);
   const turns = useTurnPerformance(flying ? fix : null);
   const [now, setNow] = useState(() => Date.now());
   const [debrief, setDebrief] = useState(false);
@@ -308,17 +308,6 @@ export function FlyPage() {
     options: <OptionsPanel />,
   };
 
-  const gpsText = error
-    ? t(`fly.gps.${error === "denied" ? "denied" : "unavailable"}`)
-    : fix
-      ? t("fly.gps.fix", {
-          accuracy: fmt(fix.accuracyM),
-          time: utc(new Date(fix.time)),
-        })
-      : t("fly.gps.waiting");
-  const chip =
-    "bg-card/90 rounded-full border px-3 py-1.5 text-xs backdrop-blur";
-
   // Legacy flight view: the airspace map full screen, the phase bar on top, the phase's tools on
   // the right; each tool opens its panel beside the rail.
   return (
@@ -475,27 +464,6 @@ export function FlyPage() {
           )}
         </section>
       )}
-
-      <div className="absolute bottom-8 left-3 z-30 flex max-w-[calc(100%-8rem)] flex-wrap gap-2">
-        <span className={chip}>
-          {t("fly.routeChip", {
-            route: (flying ? inFlight.route : planRoute)
-              .map((p) => p.ident)
-              .join(" - "),
-          })}
-        </span>
-        <span className={chip}>
-          {progress
-            ? `${progress.next.ident} ${fmt(progress.distanceToNextNm, 1)} NM`
-            : "--"}
-        </span>
-        <span
-          className={cn(chip, error && "text-destructive")}
-          data-testid="gps-status"
-        >
-          {gpsText}
-        </span>
-      </div>
     </div>
   );
 }
