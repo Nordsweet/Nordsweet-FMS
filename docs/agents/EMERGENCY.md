@@ -15,8 +15,20 @@ The owner assigned the supplied Reims Rocket screenshots to **FR172H** on 2026-1
 - These definitions therefore remain **reference**, available only by explicit source-reference
   browsing. Assigning a model does not assert that the source is reviewed operating guidance.
   Reference speed values are not published as best-glide profile data.
-- No Engine Fire, Electric, Hydraulic, Pax or Fuel operating steps were supplied. Their UI
-  distinguishes missing procedure/equipment documentation; no substitute instructions are generated.
+- The owner supplied two additional Engine Fire excerpts on 2026-10-18: **6 ground-start actions**
+  (including the extinguisher-unavailable note after step 5 and inspection before another flight)
+  and **8 in-flight actions** (193 km/h - 104 kts - 120 MPH, including no engine restart).
+  Originals: `docs/aircraft/FR172H/engine-fire-{ground,flight}-reference.png`.
+  No page/edition/applicability or airspeed basis is visible; they remain **reference** with no
+  published performance speed. The referenced Emergency Landing Without Engine Power section
+  was not supplied and is not invented here.
+- Clicking Engine Fire explicitly opens the applicable source with the reference banner: Taxi-in/out
+  select the ground-start excerpt; Take-off, Climb, Cruise, Descent and Landing select the in-flight
+  excerpt, as requested by the owner. This mapping does not require GPS or assert airborne status.
+  A selected procedure stays fixed until Engine Fire is clicked again for the current phase.
+  Ground/flight revision snapshots retain separate check states across closing and reload.
+- Electric, Hydraulic, Pax and Fuel still distinguish missing procedure/equipment documentation;
+  no substitute instructions are generated.
 - Aircraft profiles can supply `emergencyProcedures`, validated by Zod. Operational publication
   requires status `verified`, reviewer/date, edition, serial range and equipment, matching exact
   aircraft type and any registration restriction. Qualified review and the complete applicable

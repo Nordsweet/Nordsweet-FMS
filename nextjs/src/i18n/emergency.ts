@@ -25,6 +25,7 @@ export const emergencyEn = {
   "emer.runway": "During Take-Off — sufficient runway ahead",
   "emer.after-takeoff": "After Take-Off",
   "emer.flight": "During Flight",
+  "emer.ground": "On ground — engine start",
   "emer.confirmRunway": "I confirm sufficient runway ahead",
   "emer.speedUnavailable":
     "Best glide speed unavailable — consult aircraft AFM/POH",
@@ -96,6 +97,7 @@ export const emergencyPl: Record<keyof typeof emergencyEn, string> = {
   "emer.runway": "Podczas startu — wystarczający pas przed samolotem",
   "emer.after-takeoff": "Po starcie",
   "emer.flight": "W locie",
+  "emer.ground": "Na ziemi — uruchamianie silnika",
   "emer.confirmRunway": "Potwierdzam wystarczający pas przed samolotem",
   "emer.speedUnavailable":
     "Brak zweryfikowanej prędkości szybowania — sprawdź AFM/POH",

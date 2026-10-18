@@ -3,6 +3,7 @@ import { airportSchema } from "~/data/schemas";
 import {
   emergencyReferences,
   fr172hEmergencyReference,
+  fr172hEngineFireReference,
   operationalProcedure,
 } from "~/data/emergency";
 import { useEmergency, emergencyScope } from "~/stores/emergency";
@@ -13,6 +14,7 @@ import {
   emergencyApproach,
   emergencyCandidates,
   emergencyContext,
+  engineFirePhase,
   emergencyRange,
   emergencyTarget,
   type EmergencyMeasurement,
@@ -227,7 +229,7 @@ test("phase requires fresh position plus running air time and phase; climb is no
 test("FR172H reference is not reused for C172/twins; all 22 source actions and switch distinctions retained", () => {
   expect(emergencyReferences("C172")).toEqual([]);
   expect(emergencyReferences("P2006T")).toEqual([]);
-  expect(emergencyReferences("FR172H")).toHaveLength(4);
+  expect(emergencyReferences("FR172H")).toHaveLength(6);
   expect(
     fr172hEmergencyReference.reduce((sum, p) => sum + p.items.length, 0),
   ).toBe(22);
@@ -245,6 +247,75 @@ test("FR172H reference is not reused for C172/twins; all 22 source actions and s
   expect(fr172hEmergencyReference[2]!.branchKey).toBe(
     fr172hEmergencyReference[3]!.key,
   );
+});
+
+test.each([
+  ["taxiout", "ground"],
+  ["taxiin", "ground"],
+  ["takeoff", "flight"],
+  ["climb", "flight"],
+  ["cruise", "flight"],
+  ["descent", "flight"],
+  ["landing", "flight"],
+] as const)(
+  "Engine Fire in %s uses the owner-requested %s excerpt without needing GPS",
+  (phase, expected) => {
+    expect(engineFirePhase(phase)).toBe(expected);
+  },
+);
+
+test("Fire retains every source action, the note after step five, exact source speed and no-restart warning", () => {
+  const [ground, flight] = fr172hEngineFireReference;
+  expect(ground!.items).toHaveLength(6);
+  expect(ground!.items[4]!.notes?.[0]).toContain(
+    "pushing rearward on the leading edge of the horizontal tail",
+  );
+  expect(ground!.items[5]!.text).toContain("before conducting another flight");
+  expect(ground!.introduction).toContain("pushed away from the fuel puddle");
+  expect(flight!.items).toHaveLength(8);
+  expect(flight!.items[3]!.text).toBe(
+    "Establish a 193 km/h - 104 kts - 120 MPH glide.",
+  );
+  expect(flight!.items[7]!.text).toContain(
+    "Do not attempt to restart the engine.",
+  );
+  expect(
+    fr172hEngineFireReference.every(
+      (p) =>
+        p.status === "reference" &&
+        !operationalProcedure(p) &&
+        p.speed === null &&
+        p.edition === null,
+    ),
+  ).toBe(true);
+});
+
+test("Fire source snapshots keep ground and flight progress separate without publishing operating guidance", () => {
+  const store = useEmergency.getState();
+  const [ground, flight] = fr172hEngineFireReference;
+  store.open("fire-scope", "fire", "ground", [], false, null);
+  store.select(ground!);
+  expect(useEmergency.getState().session?.procedure).toBeNull();
+  store.select(ground!, true);
+  store.toggle(ground!.items[0]!.id);
+  store.select(flight!, true);
+  expect(
+    useEmergency.getState().session?.variants[
+      `${flight!.key}@${flight!.revision}`
+    ]?.checked,
+  ).toEqual({});
+  store.select(ground!, true);
+  expect(
+    useEmergency.getState().session?.variants[
+      `${ground!.key}@${ground!.revision}`
+    ]?.checked[ground!.items[0]!.id],
+  ).toBe(true);
+  expect(useEmergency.getState().session).toMatchObject({
+    routeRequested: false,
+    target: null,
+    previewOnly: true,
+    outcome: "unresolved",
+  });
 });
 
 test("shared revision snapshots retain variant-specific checks; completion never sets outcome", () => {

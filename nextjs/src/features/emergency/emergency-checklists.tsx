@@ -212,84 +212,104 @@ export function EmergencyChecklists() {
                 ))}
             </div>
           )}
-          {p && (operationalProcedure(p) || reference) && (
-            <div
-              ref={procedureView}
-              className="grid scroll-mt-20 gap-3"
-              data-testid="emergency-procedure"
-            >
-              {!operationalProcedure(p) && (
-                <div className="rounded border border-amber-500 p-3">
-                  <strong>{t("emer.reference")}</strong>
-                  <p className="text-sm">{t("emer.referenceInfo")}</p>
-                </div>
-              )}
-              <h3 className="font-semibold">{p.title}</h3>
-              {p.warnings.map((warning) => (
-                <p
-                  key={warning}
-                  role="note"
-                  className="rounded border border-red-500 p-2 font-semibold"
-                  lang="en"
-                >
-                  {warning}
-                </p>
-              ))}
-              <p className="text-xs">
-                {t("emer.progress", {
-                  done: p.items.filter((item) => checked[item.id]).length,
-                  total: p.items.length,
-                })}
-              </p>
-              <ol className="grid gap-2">
-                {p.items.map((item, index) => (
-                  <li key={item.id}>
-                    <label
-                      className="flex min-h-12 items-start gap-3 rounded border p-2"
-                      lang="en"
-                    >
-                      <input
-                        type="checkbox"
-                        className="mt-1 size-5 shrink-0"
-                        checked={!!checked[item.id]}
-                        onChange={() => store.toggle(item.id)}
-                      />
-                      <span>
-                        {index + 1}. {item.text}
-                      </span>
-                    </label>
-                  </li>
+          {p &&
+            (operationalProcedure(p) ||
+              reference ||
+              (p.family === "fire" && p.status === "reference")) && (
+              <div
+                ref={procedureView}
+                className="grid scroll-mt-20 gap-3"
+                data-testid="emergency-procedure"
+              >
+                {!operationalProcedure(p) && (
+                  <div className="rounded border border-amber-500 p-3">
+                    <strong>{t("emer.reference")}</strong>
+                    <p className="text-sm">{t("emer.referenceInfo")}</p>
+                  </div>
+                )}
+                <h3 className="font-semibold">{p.title}</h3>
+                {p.introduction && (
+                  <p className="text-sm" lang="en">
+                    {p.introduction}
+                  </p>
+                )}
+                {p.warnings.map((warning) => (
+                  <p
+                    key={warning}
+                    role="note"
+                    className="rounded border border-red-500 p-2 font-semibold"
+                    lang="en"
+                  >
+                    {warning}
+                  </p>
                 ))}
-              </ol>
-              {p.notes.map((note) => (
-                <p
-                  key={note}
-                  role="note"
-                  className="rounded border p-2 text-sm"
-                  lang="en"
-                >
-                  {note}
+                <p className="text-xs">
+                  {t("emer.progress", {
+                    done: p.items.filter((item) => checked[item.id]).length,
+                    total: p.items.length,
+                  })}
                 </p>
-              ))}
-              {p.branchKey && (
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    const branch = available.find((x) => x.key === p.branchKey);
-                    if (branch) store.select(branch, reference);
-                  }}
-                >
-                  {t("emer.restartFailed")}
-                </Button>
-              )}
-              <details className="text-xs">
-                <summary>{t("emer.source")}</summary>
-                <p>
-                  {p.source} · {p.pages} · {p.edition} · {p.revision}
-                </p>
-              </details>
-            </div>
-          )}
+                <ol className="grid gap-2">
+                  {p.items.map((item, index) => (
+                    <li key={item.id}>
+                      <label
+                        className="flex min-h-12 items-start gap-3 rounded border p-2"
+                        lang="en"
+                      >
+                        <input
+                          type="checkbox"
+                          className="mt-1 size-5 shrink-0"
+                          checked={!!checked[item.id]}
+                          onChange={() => store.toggle(item.id)}
+                        />
+                        <span>
+                          {index + 1}. {item.text}
+                        </span>
+                      </label>
+                      {item.notes?.map((note) => (
+                        <p
+                          key={note}
+                          role="note"
+                          className="mt-2 rounded border p-2 text-sm"
+                          lang="en"
+                        >
+                          {note}
+                        </p>
+                      ))}
+                    </li>
+                  ))}
+                </ol>
+                {p.notes.map((note) => (
+                  <p
+                    key={note}
+                    role="note"
+                    className="rounded border p-2 text-sm"
+                    lang="en"
+                  >
+                    {note}
+                  </p>
+                ))}
+                {p.branchKey && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      const branch = available.find(
+                        (x) => x.key === p.branchKey,
+                      );
+                      if (branch) store.select(branch, reference);
+                    }}
+                  >
+                    {t("emer.restartFailed")}
+                  </Button>
+                )}
+                <details className="text-xs">
+                  <summary>{t("emer.source")}</summary>
+                  <p>
+                    {p.source} · {p.pages} · {p.edition} · {p.revision}
+                  </p>
+                </details>
+              </div>
+            )}
           {session.family === "failure" && references.length > 0 && (
             <>
               <Button

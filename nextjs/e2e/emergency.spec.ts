@@ -143,13 +143,75 @@ test("FR172H reference variants share progress across EMER/library and reload wi
     panel.getByTestId("emergency-procedure").getByRole("checkbox").first(),
   ).toBeChecked();
   await panel.getByRole("button", { name: "Engine Fire", exact: true }).click();
-  await expect(panel).toContainText(
-    "Verified Engine Fire procedure unavailable for this aircraft",
+  await expect(panel).toContainText("Engine Fire in Flight");
+  await expect(panel.getByTestId("emergency-procedure")).toContainText(
+    "REFERENCE ONLY",
   );
-  await expect(panel.getByTestId("emergency-procedure")).toHaveCount(0);
   await expect(
     panel.getByText("Best glide speed unavailable", { exact: false }),
   ).toHaveCount(0);
+});
+
+test("Engine Fire selects ground and flight excerpts for all seven phases and retains checks after reload", async ({
+  page,
+}) => {
+  test.setTimeout(90000);
+  await seed(page, true);
+  await page.goto("/fly");
+  for (const phase of [
+    "Taxi-Out",
+    "Take-off",
+    "Climb",
+    "Cruise",
+    "Descent",
+    "Landing",
+    "Taxi-In",
+  ]) {
+    await page.getByRole("button", { name: phase, exact: true }).click();
+    await page.getByRole("button", { name: "EMER", exact: true }).click();
+    const panel = page.getByRole("region", {
+      name: "Emergency Checklists",
+      exact: true,
+    });
+    await expect(panel).toContainText("FR172H");
+    await panel
+      .getByRole("button", { name: "Engine Fire", exact: true })
+      .click();
+    const procedure = panel.getByTestId("emergency-procedure");
+    const ground = phase === "Taxi-Out" || phase === "Taxi-In";
+    await expect(procedure.getByRole("heading")).toHaveText(
+      ground ? "Engine Fire During Start on Ground" : "Engine Fire in Flight",
+    );
+    await expect(procedure.getByRole("checkbox")).toHaveCount(ground ? 6 : 8);
+    await expect(procedure).toContainText("REFERENCE ONLY");
+    if (ground) {
+      await expect(
+        procedure.getByRole("listitem").nth(4).getByRole("note"),
+      ).toContainText("If fire extinguisher is not available");
+      if (phase === "Taxi-Out")
+        await procedure.getByRole("checkbox").first().check();
+      else await expect(procedure.getByRole("checkbox").first()).toBeChecked();
+    } else {
+      await expect(procedure).toContainText("193 km/h - 104 kts - 120 MPH");
+      await expect(procedure).toContainText(
+        "Do not attempt to restart the engine.",
+      );
+      await expect(procedure.getByRole("checkbox").first()).not.toBeChecked();
+    }
+    await expect(page.getByTestId("emergency-map-status")).toHaveCount(0);
+    await page
+      .getByRole("dialog", { name: "EMER", exact: true })
+      .getByRole("button", { name: "Close", exact: true })
+      .click();
+  }
+  await page.reload();
+  await page.getByRole("button", { name: "EMER", exact: true }).click();
+  const procedure = page.getByTestId("emergency-procedure");
+  await expect(procedure.getByRole("heading")).toHaveText(
+    "Engine Fire During Start on Ground",
+  );
+  await expect(procedure.getByRole("checkbox").first()).toBeChecked();
+  await page.screenshot({ path: "test-results/engine-fire-ground.png" });
 });
 
 test("Engine Out alone requests automatic threshold plan; closing preserves it and ending explicitly removes it", async ({
