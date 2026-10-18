@@ -238,6 +238,57 @@ function departureExitGuides(
 }
 
 /** Replace the destination arrival with the selected pattern, retaining the preceding route. */
+export function trafficPatternEntryPoints(
+  pattern: TrafficPattern,
+  inbound: readonly NavPoint[],
+) {
+  const points = trafficPatternGeometry(pattern).points;
+  if (
+    pattern.operation === "leave" ||
+    pattern.join !== "base" ||
+    !inbound.length
+  )
+    return points;
+  const entry = points[0]!,
+    next = points[1]!;
+  const performance = entry.turnPerformance ?? {
+    tasKt: pattern.speedKias ?? 100,
+  };
+  const boundary = inbound.length;
+  const fits = (route: readonly NavPoint[]) =>
+    !flyByRoute(route, performance).issues.some(
+      (issue) => issue.index >= boundary - 1 && issue.index <= boundary + 2,
+    );
+  if (fits([...inbound, ...points])) return points;
+  // Reverse the established Base course to solve its incoming connector. The forward
+  // validation keeps the real wind and full rate-one radii, including adjacent arcs.
+  for (const direction of [
+    pattern.direction === "left" ? "right" : "left",
+    pattern.direction,
+  ] as const) {
+    const guides = courseExitGuides(
+      [...points]
+        .reverse()
+        .map((p, i) => (i === points.length - 1 ? { ...p, flyOver: true } : p)),
+      initialBearingDeg(entry, next) + 180,
+      [...inbound].reverse(),
+      performance,
+      direction,
+    );
+    const joining: NavPoint[] = [...guides].reverse().map((p, i) => ({
+      ...p,
+      ident: `TPJ${i + 1}/${pattern.airport.ident}`,
+      patternId: pattern.id,
+      patternOperation: "join",
+      altitudeFt: pattern.airport.elevationFt + pattern.altitudeAalFt,
+      turnPerformance: performance,
+    }));
+    if (joining.length && fits([...inbound, ...joining, ...points]))
+      return [...joining, ...points];
+  }
+  return points;
+}
+
 export function routeWithTrafficPattern(
   route: NavPoint[],
   pattern: TrafficPattern,
@@ -267,10 +318,8 @@ export function routeWithTrafficPattern(
         p.ident.startsWith(pattern.airport.ident + " THR"),
     );
   const at = reverseIndex < 0 ? -1 : clean.length - reverseIndex - 1;
-  return [
-    ...(at >= 0 ? clean.slice(0, at) : clean),
-    ...trafficPatternGeometry(pattern).points,
-  ];
+  const prefix = at >= 0 ? clean.slice(0, at) : clean;
+  return [...prefix, ...trafficPatternEntryPoints(pattern, prefix)];
 }
 
 /** Retain remaining en-route fixes; only an airport/pattern direct becomes a new direct to entry. */
@@ -304,7 +353,9 @@ export function activeRouteWithTrafficPattern(
     ? {
         route: [
           { ident: "DCT", lat: position.lat, lon: position.lon },
-          ...trafficPatternGeometry(pattern).points,
+          ...trafficPatternEntryPoints(pattern, [
+            { ident: "DCT", ...position },
+          ]),
         ],
         activeLeg: 0,
       }

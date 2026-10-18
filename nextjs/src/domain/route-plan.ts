@@ -1,6 +1,9 @@
 import { type Airport, type Procedure, type Runway } from "~/data/schemas";
 import { type TrafficPattern } from "~/data/traffic-pattern";
-import { trafficPatternGeometry } from "./traffic-pattern";
+import {
+  trafficPatternGeometry,
+  trafficPatternEntryPoints,
+} from "./traffic-pattern";
 import type { TurnPerformance } from "./fly-by";
 import { type FlightPoint } from "~/data/flight";
 
@@ -1566,9 +1569,15 @@ export function buildRoutePlan(data: RouteData, input: RoutePlanInput) {
   );
   if (input.trafficPattern?.airport.ident === destination.ident) {
     const pattern = input.trafficPattern;
+    const inbound = withUserPoints
+      .slice(0, -1)
+      .filter((p) => !isArrivalPoint(p));
     withUserPoints = [
-      ...withUserPoints.slice(0, -1).filter((p) => !isArrivalPoint(p)),
-      ...trafficPatternGeometry(pattern).points.map((p) => ({
+      ...inbound,
+      ...trafficPatternEntryPoints(
+        pattern,
+        inbound.map((p) => ({ ...p, ident: p.id })),
+      ).map((p) => ({
         id: p.ident,
         kind: "waypoint" as const,
         lat: p.lat,

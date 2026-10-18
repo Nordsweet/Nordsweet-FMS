@@ -35,6 +35,7 @@ import { useFlight } from "~/stores/flight";
 import { useSettings } from "~/stores/settings";
 
 import { Section } from "./fields";
+import { PositionSourcePanel } from "~/features/fly/position-source-panel";
 import { usePlan } from "./use-plan";
 
 /** A new profile starts from its POH/W&B defaults, with the pilot weight from settings. */
@@ -179,6 +180,7 @@ export function AircraftSection() {
       >
         {t("aircraft.manage")}
       </Link>
+      <PositionSourcePanel />
       {aircraft && (
         <>
           <p className="text-muted-foreground text-[0.82rem] leading-snug">

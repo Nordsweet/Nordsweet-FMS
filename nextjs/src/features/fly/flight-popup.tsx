@@ -33,6 +33,8 @@ export function FlightPopup({
   message,
   recordedAt,
   severity,
+  recordHistory = true,
+  historyMessage,
 }: {
   category: PopupCategory;
   children?: ReactNode;
@@ -42,17 +44,28 @@ export function FlightPopup({
   message: string;
   recordedAt?: number;
   severity?: "warning" | "danger";
+  recordHistory?: boolean;
+  historyMessage?: string;
 }) {
   const t = useT();
   const session = useInFlight((s) => s.startedAt);
   useEffect(() => {
+    if (!recordHistory) return;
     useFlightNotificationHistory.getState().record(session, {
       id: notificationId,
       category,
-      message,
+      message: historyMessage ?? message,
       createdAt: recordedAt ?? Date.now(),
     });
-  }, [session, notificationId, category, message, recordedAt]);
+  }, [
+    session,
+    notificationId,
+    category,
+    message,
+    recordedAt,
+    recordHistory,
+    historyMessage,
+  ]);
   const Icon = icons[category];
   return (
     <section

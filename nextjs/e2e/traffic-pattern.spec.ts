@@ -609,6 +609,7 @@ test("accepting a Base join during flight preserves the flight and reports halfw
   await page.goto("/fly");
   const panel = await open(page);
   await choose(page, "Join position", "Base");
+  await page.screenshot({ path: "test-results/base-entry-preview.png" });
   await panel
     .getByRole("button", { name: "Accept traffic pattern", exact: true })
     .click();
@@ -619,7 +620,7 @@ test("accepting a Base join during flight preserves the flight and reports halfw
           state: {
             startedAt: string;
             phase: string;
-            route: { ident: string }[];
+            route: { ident: string; lat: number; lon: number }[];
             trafficPattern: TrafficPattern;
           };
         }
@@ -629,7 +630,30 @@ test("accepting a Base join during flight preserves the flight and reports halfw
   expect(active.phase).toBe("cruise");
   expect(active.route[0]?.ident).toBe("DCT");
   expect(active.trafficPattern.join).toBe("base");
+  await page.screenshot({ path: "test-results/base-entry-accepted.png" });
   const g = trafficPatternGeometry(active.trafficPattern);
+  // Fly the added rate-one entry guides before reaching the beginning of Base.
+  const baseIndex = active.route.findIndex((p) => p.ident === "TP1/EPNT");
+  for (let i = 1; i < baseIndex; i++) {
+    const point = active.route[i]!;
+    await context.setGeolocation({
+      latitude: point.lat,
+      longitude: point.lon,
+      accuracy: 5,
+    });
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () =>
+            (
+              JSON.parse(localStorage.getItem("nordsweet.inflight.v1")!) as {
+                state: { activeLeg: number };
+              }
+            ).state.activeLeg,
+        ),
+      )
+      .toBeGreaterThanOrEqual(i);
+  }
   await context.setGeolocation({
     latitude: g.positions.base.lat,
     longitude: g.positions.base.lon,
@@ -646,7 +670,7 @@ test("accepting a Base join during flight preserves the flight and reports halfw
           ).state.activeLeg,
       ),
     )
-    .toBe(1);
+    .toBe(baseIndex);
   await context.setGeolocation({
     latitude: (g.positions.base.lat + g.positions.final.lat) / 2,
     longitude: (g.positions.base.lon + g.positions.final.lon) / 2,

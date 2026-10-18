@@ -18,7 +18,7 @@ export function plannedGuidanceAltitude(
   } | null,
   cruiseAltitudeFt: number,
 ) {
-  if (next.altitudeFt !== undefined) return next.altitudeFt;
+  if (next.altitudeFt !== undefined && !next.patternId) return next.altitudeFt;
   const target = plan?.points.find(
     (p) =>
       !p.isProfilePoint &&
@@ -37,7 +37,10 @@ export function plannedGuidanceAltitude(
         )
       : null;
   return (
-    plan?.pointAltitudeByKey[pointKey(profile ?? target)] ?? cruiseAltitudeFt
+    (profile
+      ? plan?.pointAltitudeByKey[pointKey(profile)]
+      : (next.altitudeFt ?? plan?.pointAltitudeByKey[pointKey(target)])) ??
+    cruiseAltitudeFt
   );
 }
 
@@ -48,6 +51,25 @@ export type GuidanceCommand =
       direction: "climb" | "descend";
       altitudeFt: number;
     };
+
+export function flightGuidanceAvailable(input: {
+  now: number;
+  phase: FlightPhase;
+  fix: { time: string; paused?: boolean; groundSpeedKt: number | null } | null;
+}) {
+  const age = input.fix ? input.now - Date.parse(input.fix.time) : Infinity;
+  return (
+    !!input.fix &&
+    !input.fix.paused &&
+    Number.isFinite(age) &&
+    age >= -5000 &&
+    age <= 20000 &&
+    Number.isFinite(input.fix.groundSpeedKt) &&
+    (input.fix.groundSpeedKt ?? 0) >= 30 &&
+    input.phase !== "taxiout" &&
+    input.phase !== "taxiin"
+  );
+}
 
 /** Plan guidance uses fresh moving-aircraft samples; track and heading share the same wind correction. */
 export function flightGuidance(input: {
@@ -67,20 +89,8 @@ export function flightGuidance(input: {
   tasKt: number;
   wind: Wind;
 }): GuidanceCommand[] {
-  const { fix, now } = input;
-  const age = fix ? now - Date.parse(fix.time) : Infinity;
-  if (
-    !fix ||
-    fix.paused ||
-    !Number.isFinite(age) ||
-    age < -5000 ||
-    age > 20000 ||
-    !Number.isFinite(fix.groundSpeedKt) ||
-    (fix.groundSpeedKt ?? 0) < 30 ||
-    input.phase === "taxiout" ||
-    input.phase === "taxiin"
-  )
-    return [];
+  const { fix } = input;
+  if (!fix || !flightGuidanceAvailable(input)) return [];
   const result: GuidanceCommand[] = [];
   if (
     input.courseTrueDeg !== null &&

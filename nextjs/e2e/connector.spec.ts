@@ -6,6 +6,11 @@ test("Connector source feeds Fly, survives reload and clears stale fixes without
   await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => route.abort());
   await page.addInitScript(() => {
     localStorage.setItem("nordsweet.language.v1", "en");
+    // A fresh Connector-only page need not register a native GPS watch at all.
+    Object.defineProperty(window, "__emitDevicePosition", {
+      configurable: true,
+      value: () => undefined,
+    });
     Object.defineProperty(navigator, "geolocation", {
       value: {
         watchPosition: (success: (position: unknown) => void) => {
@@ -41,7 +46,7 @@ test("Connector source feeds Fly, survives reload and clears stale fixes without
     route.onClose(() => clearInterval(heartbeat));
     page.once("close", () => clearInterval(heartbeat));
   });
-  await page.goto("/fly");
+  await page.goto("/");
   await page
     .getByRole("combobox", { name: "Position source", exact: true })
     .selectOption("connector");
@@ -84,6 +89,11 @@ test("Connector source feeds Fly, survives reload and clears stale fixes without
   await expect(page.getByTestId("connector-status")).toHaveText(
     "Prepar3D — connected",
   );
+  // Select and connect the source in preparation, before starting a flight.
+  expect(
+    await page.evaluate(() => localStorage.getItem("nordsweet.inflight.v1")),
+  ).not.toContain('"startedAt":"');
+  await page.goto("/fly");
   await expect(page.getByTestId("status-altitude")).toHaveText("2500 ft");
   await expect(page.getByTestId("status-gs")).toHaveText("110 kt");
   await expect(page.getByTestId("status-vs")).toHaveText("-300");

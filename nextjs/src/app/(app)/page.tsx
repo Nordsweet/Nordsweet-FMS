@@ -129,7 +129,7 @@ export default function PlanPage() {
 /** Legacy "Start a flight": starts the flight (unless one is in progress) and opens the flight view. */
 function StartFlightButton() {
   const t = useT();
-  const { route } = usePlan();
+  const { route, flight, departurePattern, aircraft } = usePlan();
   const flying = useInFlight((s) => s.startedAt !== null);
   const start = useInFlight((s) => s.start);
   return (
@@ -140,7 +140,13 @@ function StartFlightButton() {
       <Link
         href="/fly"
         onClick={() => {
-          if (!flying && route.length >= 2) start(route);
+          if (!flying && route.length >= 2)
+            start(
+              route,
+              flight.trafficPattern,
+              departurePattern,
+              aircraft?.type,
+            );
         }}
       >
         {t("plan.startFlight")}

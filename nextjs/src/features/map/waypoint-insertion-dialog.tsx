@@ -8,11 +8,14 @@ import {
   DialogTitle,
 } from "~/components/ui/dialog";
 import { type FlightPoint } from "~/data/flight";
-import { distanceNm, initialBearingDeg } from "~/domain/geo";
-import { magneticVariationDeg, trueToMagneticDeg } from "~/domain/magnetic";
+
 import { optimalWaypointIndex } from "~/domain/waypoint-insertion";
 import { useT } from "~/i18n/use-t";
-import { cn } from "~/lib/utils";
+import {
+  FlightPlanTable,
+  FlightPlanCells,
+  flightPlanRowClass,
+} from "~/features/fly/flight-plan-table";
 
 /** Flight-plan insertion preview: clicking a row selects the slot immediately before it. */
 export function WaypointInsertionDialog({
@@ -54,79 +57,40 @@ export function WaypointInsertionDialog({
           {t("mapinsert.title", { point: point.ident })}
         </DialogTitle>
         <DialogDescription>{t("mapinsert.hint")}</DialogDescription>
-        <div className="bg-background/60 overflow-hidden rounded-2xl border">
-          <div className="text-muted-foreground grid grid-cols-[minmax(0,1fr)_3rem_4rem_4rem] gap-2 border-b px-3 py-2 font-mono text-xs font-semibold sm:grid-cols-[minmax(0,1fr)_4rem_5rem_6rem]">
-            <span>FPL</span>
-            <span className="text-right">DTK °M</span>
-            <span className="text-right">DIS NM</span>
-            <span className="text-right">ALT FT</span>
-          </div>
-          <div
-            role="listbox"
-            aria-label={t("mapinsert.plan")}
-            className="max-h-[48dvh] overflow-y-auto"
-          >
-            {preview.map((p, i) => {
-              const pending = i === index;
-              const before = preview[i - 1];
-              const heading = before
-                ? Math.round(
-                    trueToMagneticDeg(
-                      initialBearingDeg(before, p),
-                      magneticVariationDeg(before),
-                    ),
-                  ) % 360
-                : null;
-              const altitude = altitudeFt(p);
-              return (
-                <button
-                  ref={pending ? pendingRef : undefined}
-                  type="button"
-                  role="option"
-                  aria-selected={pending}
-                  aria-label={
-                    pending
-                      ? t("mapinsert.new", { point: p.ident })
-                      : t("mapinsert.before", { point: p.ident })
-                  }
-                  key={`${i}|${p.ident}`}
-                  onClick={() => {
-                    if (!pending) setIndex(i < index ? i : i - 1);
-                  }}
-                  className={cn(
-                    "grid w-full grid-cols-[minmax(0,1fr)_3rem_4rem_4rem] items-center gap-2 border-b px-3 py-3 text-left font-mono text-sm last:border-0 hover:bg-white/5 sm:grid-cols-[minmax(0,1fr)_4rem_5rem_6rem]",
-                    pending
-                      ? "bg-primary/15 text-primary border-l-4 border-l-fuchsia-400 font-bold"
-                      : "border-l-4 border-l-transparent",
-                  )}
-                  data-insertion-row={p.ident}
-                  data-insertion-pending={pending}
-                >
-                  <span className="flex min-w-0 items-center gap-2">
-                    {pending && (
-                      <CornerDownRight className="size-4 shrink-0 text-fuchsia-400" />
-                    )}
-                    <span className="truncate">{p.ident}</span>
-                    {pending && (
-                      <span className="text-[10px]">
-                        {t("mapinsert.pending")}
-                      </span>
-                    )}
-                  </span>
-                  <span className="text-right">
-                    {heading === null ? "—" : String(heading).padStart(3, "0")}
-                  </span>
-                  <span className="text-right">
-                    {before ? distanceNm(before, p).toFixed(1) : "—"}
-                  </span>
-                  <span className="text-right">
-                    {altitude === null ? "—" : Math.round(altitude)}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        <FlightPlanTable interactive label={t("mapinsert.plan")}>
+          {preview.map((p, i) => {
+            const pending = i === index;
+            const before = preview[i - 1];
+            return (
+              <button
+                ref={pending ? pendingRef : undefined}
+                type="button"
+                role="option"
+                aria-selected={pending}
+                aria-label={
+                  pending
+                    ? t("mapinsert.new", { point: p.ident })
+                    : t("mapinsert.before", { point: p.ident })
+                }
+                key={`${i}|${p.ident}`}
+                onClick={() => {
+                  if (!pending) setIndex(i < index ? i : i - 1);
+                }}
+                className={flightPlanRowClass(pending)}
+                data-insertion-row={p.ident}
+                data-insertion-pending={pending}
+              >
+                <FlightPlanCells
+                  point={p}
+                  previous={before}
+                  altitudeFt={altitudeFt(p)}
+                  selected={pending}
+                  pendingLabel={pending ? t("mapinsert.pending") : undefined}
+                />
+              </button>
+            );
+          })}
+        </FlightPlanTable>
         <p role="status" className="text-muted-foreground text-sm">
           {t(
             index === suggested ? "mapinsert.suggested" : "mapinsert.selected",
