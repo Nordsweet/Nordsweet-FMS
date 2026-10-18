@@ -5,6 +5,9 @@ import { newTimers } from "../src/domain/flight-timers";
 test("flight commands share one popup system, dismiss independently and do not repeat on every GPS update", async ({
   page,
 }) => {
+  const time = new Date();
+  await page.clock.install({ time });
+  await page.clock.pauseAt(new Date(time.getTime() + 1000));
   await page.setViewportSize({ width: 390, height: 844 });
   await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => route.abort());
   const route = [
@@ -97,6 +100,16 @@ test("flight commands share one popup system, dismiss independently and do not r
     const box = (await card.boundingBox())!;
     expect(box.x).toBeGreaterThanOrEqual(0);
     expect(box.x + box.width).toBeLessThan(320);
+    expect(
+      await card.evaluate((element) => {
+        const box = element.getBoundingClientRect();
+        const hit = document.elementFromPoint(
+          box.x + 12,
+          box.y + box.height / 2,
+        );
+        return element.contains(hit);
+      }),
+    ).toBe(true);
   }
   await page.screenshot({
     path: "test-results/unified-flight-popups-phone.png",
@@ -107,9 +120,10 @@ test("flight commands share one popup system, dismiss independently and do not r
   await expect(heading).toHaveCount(0);
   await expect(altitude).toBeVisible();
   // A new sample on the same leg must not redisplay the dismissed heading.
-  await page.waitForTimeout(1500);
+  await page.clock.fastForward(1500);
   await expect(heading).toHaveCount(0);
   await page.evaluate(() => localStorage.setItem("test.next-leg", "yes"));
+  await page.clock.fastForward(1000);
   await expect(heading).toContainText(/Turn Left Heading \d{3}°/);
   await expect(altitude).toContainText("Climb 4000 ft");
 });

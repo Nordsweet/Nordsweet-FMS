@@ -1128,7 +1128,14 @@ export function MapView({
       data-terrain-3d={settings.terrain3d ? "true" : "false"}
       data-glide-cells={emergencyMap.footprint.length}
     >
-      {navigation.startedAt && !emergencyMap.active && <FlightNotifications />}
+      {navigation.startedAt && !emergencyMap.active && (
+        <FlightNotifications
+          plan={routePlan}
+          cruiseAltitudeFt={flight.cruiseAltitudeFt}
+          fix={fix}
+          turns={turnPerformance}
+        />
+      )}
       {navigation.startedAt && !emergencyMap.active && <HoldingStatus />}
       {emergencyMap.active && (
         <div

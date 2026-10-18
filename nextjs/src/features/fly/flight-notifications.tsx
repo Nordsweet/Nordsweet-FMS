@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import { create } from "zustand";
 import {
   flightGuidance,
@@ -11,7 +11,9 @@ import { initialBearingDeg } from "~/domain/geo";
 import { navigationProgress } from "~/domain/holding";
 import { magneticVariationDeg } from "~/domain/magnetic";
 import { angleDiffDeg } from "~/domain/angles";
-import { usePlan } from "~/features/plan/use-plan";
+import { type buildRoutePlan } from "~/domain/route-plan";
+import { type TurnPerformance } from "~/domain/fly-by";
+import { type FlightPhase } from "~/domain/flight-phase";
 import { useInFlight } from "~/stores/inflight";
 import { useT } from "~/i18n/use-t";
 import { CommsChangePopup } from "./comms-change-popup";
@@ -19,8 +21,7 @@ import { EventToast } from "./event-toast";
 import { FlightPopup } from "./flight-popup";
 import { TrafficPatternPopup } from "./traffic-pattern-popup";
 import { useCommsPlan } from "./use-comms-plan";
-import { useGps } from "./use-gps";
-import { useTurnPerformance } from "./use-turn-performance";
+import { type GpsFix } from "./use-gps";
 
 type Notice = { key: string; command: GuidanceCommand; expiresAt: number };
 // Transient commands are shared between Map and Fly, but never restored as instructions after reload.
@@ -70,22 +71,54 @@ const useGuidanceNotices = create<{
     }),
 }));
 
-/** One stack for route guidance, circuit reports, radio hand-offs and recorded flight events. */
-export function FlightNotifications() {
+// Radio estimates retain their own slow clock; transient-popup expiry must not
+// rebuild the flight planner and radio geography every second.
+const FrequencyNotification = memo(function FrequencyNotification({
+  phase,
+  fix,
+}: {
+  phase: FlightPhase;
+  fix: GpsFix | null;
+}) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 15000);
+    return () => clearInterval(id);
+  }, []);
+  const comms = useCommsPlan(phase, fix, now, true);
+  return <CommsChangePopup phase={phase} estimate={comms.estimate} />;
+});
+
+/** One stack reuses map guidance inputs instead of rebuilding the planner on its expiry clock. */
+export function FlightNotifications({
+  plan,
+  cruiseAltitudeFt,
+  fix,
+  turns,
+}: {
+  plan: ReturnType<typeof buildRoutePlan> | null;
+  cruiseAltitudeFt: number;
+  fix: GpsFix | null;
+  turns: TurnPerformance;
+}) {
   const t = useT();
   const navigation = useInFlight();
-  const { flight, plan } = usePlan();
-  const { fix } = useGps(true);
-  const turns = useTurnPerformance(fix);
   const [now, setNow] = useState(() => Date.now());
   const notices = useGuidanceNotices((s) => s.notices);
   const session = useGuidanceNotices((s) => s.session);
   const dismiss = useGuidanceNotices((s) => s.dismiss);
-  const comms = useCommsPlan(
-    navigation.phase,
-    fix,
-    now,
-    !!navigation.startedAt,
+  const progress = useMemo(
+    () =>
+      fix
+        ? navigationProgress(
+            navigation.route,
+            fix,
+            navigation.activeLeg,
+            turns,
+            navigation.holding,
+          )
+        : null,
+    [fix, navigation.route, navigation.activeLeg, navigation.holding, turns],
   );
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
@@ -93,15 +126,6 @@ export function FlightNotifications() {
   }, []);
   useEffect(() => {
     if (!navigation.startedAt) return;
-    const progress = fix
-      ? navigationProgress(
-          navigation.route,
-          fix,
-          navigation.activeLeg,
-          turns,
-          navigation.holding,
-        )
-      : null;
     const next = progress?.next;
     const from = progress ? navigation.route[progress.activeLeg] : null;
     const holding = navigation.holding;
@@ -133,7 +157,7 @@ export function FlightNotifications() {
             progress.next,
             progress.distanceToNextNm,
             plan,
-            flight.cruiseAltitudeFt,
+            cruiseAltitudeFt,
           ),
           variationDeg: fix ? magneticVariationDeg(fix) : 0,
           tasKt: turns.tasKt,
@@ -149,10 +173,10 @@ export function FlightNotifications() {
     useGuidanceNotices
       .getState()
       .observe(navigation.startedAt, context, commands, now);
-  }, [navigation, fix, turns, plan, flight.cruiseAltitudeFt, now]);
+  }, [navigation, fix, turns, plan, cruiseAltitudeFt, progress, now]);
   return (
     <div
-      className="pointer-events-none absolute right-20 bottom-24 left-3 z-50 flex max-h-[45vh] flex-col items-center gap-2 overflow-y-auto sm:right-24 sm:left-24"
+      className="pointer-events-none absolute right-20 bottom-24 left-3 z-10 flex max-h-[45vh] flex-col items-center gap-2 overflow-y-auto sm:right-24 sm:left-24"
       data-testid="flight-notifications"
     >
       <div className="pointer-events-auto flex w-full max-w-md flex-col gap-2">
@@ -173,7 +197,7 @@ export function FlightNotifications() {
             </FlightPopup>
           ))}
         <TrafficPatternPopup />
-        <CommsChangePopup phase={navigation.phase} estimate={comms.estimate} />
+        <FrequencyNotification phase={navigation.phase} fix={fix} />
         <EventToast />
       </div>
     </div>

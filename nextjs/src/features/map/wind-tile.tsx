@@ -56,7 +56,7 @@ export function WindTile({
       data-wind-state={status}
       aria-label={`${t("wind.title")}: ${description}`}
       title={description}
-      className="bg-card/95 text-foreground absolute bottom-32 left-3 z-20 flex size-20 flex-col items-center justify-center gap-1 rounded-xl border shadow-lg backdrop-blur sm:bottom-20"
+      className="bg-card/95 text-foreground absolute bottom-32 left-3 z-[5] flex size-20 flex-col items-center justify-center gap-1 rounded-xl border shadow-lg backdrop-blur sm:bottom-20"
     >
       {direction !== null ? (
         <ArrowUp

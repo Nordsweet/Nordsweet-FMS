@@ -9,7 +9,9 @@ Branch: `codex/preflight-parity-audit`.
 
 - Share one accessible popup card and responsive stack across Map and Fly: Heading, Altitude,
   Comms, Frequency and System Info. Use explicit foreground contrast, matching icons, category
-  labels and consistent close buttons; simultaneous notices no longer overlap.
+  labels and consistent close buttons; simultaneous notices no longer overlap. Keep passive wind tiles
+  below notifications and interactive map details above them so HOLD and other actions stay clickable.
+  Reuse map guidance inputs and memoize geometry; expiry timers do not rebuild the flight planner.
 - Add automatic route heading and climb/descent guidance. Headings use wind correction and magnetic
   variation, with connector heading preferred to inferred heading; vertical targets use active-fix
   restrictions, circuit/holding level and the planner's TOC/TOD profile events.
