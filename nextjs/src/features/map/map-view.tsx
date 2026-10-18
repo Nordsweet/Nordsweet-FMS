@@ -33,6 +33,10 @@ import { flyByRoute } from "~/domain/fly-by";
 import { ownRegistration } from "~/domain/traffic-identity";
 import { useTurnPerformance } from "~/features/fly/use-turn-performance";
 import { FlightNotifications } from "~/features/fly/flight-notifications";
+import {
+  NotificationBell,
+  NotificationHistory,
+} from "~/features/fly/notification-history";
 import { HoldingStatus } from "~/features/fly/holding-status";
 import { type Holding } from "~/data/holding";
 import { holdingGeometry } from "~/domain/holding";
@@ -152,6 +156,7 @@ export function MapView({
   const markers = useRef<MarkerLayer | null>(null);
   const captions = useRef(new AirspaceCaptions());
   const [ready, setReady] = useState(false);
+  const [notificationHistoryOpen, setNotificationHistoryOpen] = useState(false);
   const [click, setClick] = useState<Click | null>(null);
   const [holdingPreview, setHoldingPreview] = useState<Holding | null>(null);
   const [patternPreview, setPatternPreview] = useState<TrafficPattern | null>(
@@ -1134,6 +1139,8 @@ export function MapView({
           cruiseAltitudeFt={flight.cruiseAltitudeFt}
           fix={fix}
           turns={turnPerformance}
+          aircraft={layers.traffic ? traffic.data?.aircraft : undefined}
+          identity={ownIdentity}
         />
       )}
       {navigation.startedAt && !emergencyMap.active && <HoldingStatus />}
@@ -1214,10 +1221,42 @@ export function MapView({
           className="legacy-flight-tool bg-card/90 absolute top-3 left-3 z-30 backdrop-blur"
           variant="outline"
           disabled={!ready}
-          onClick={() => settings.setSearchOpen(!settings.searchOpen)}
+          onClick={() => {
+            setNotificationHistoryOpen(false);
+            settings.setSearchOpen(!settings.searchOpen);
+          }}
         >
           <SearchIcon className="size-6 text-white" />
         </Button>
+      )}
+      {!embedded && (
+        <NotificationBell
+          open={notificationHistoryOpen}
+          className="absolute top-20 left-3 z-30"
+          onClick={() => {
+            settings.setSearchOpen(false);
+            setNotificationHistoryOpen(!notificationHistoryOpen);
+          }}
+        />
+      )}
+      {!embedded && notificationHistoryOpen && (
+        <section
+          role="dialog"
+          aria-label={t("fly.history.title")}
+          className="bg-card/95 text-card-foreground absolute top-36 right-20 left-3 z-40 grid max-h-[calc(100%-10rem)] gap-3 overflow-y-auto rounded-2xl border p-4 shadow-lg backdrop-blur sm:right-auto sm:w-96"
+        >
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-sm font-bold">{t("fly.history.title")}</h2>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setNotificationHistoryOpen(false)}
+            >
+              {t("map.close")}
+            </Button>
+          </div>
+          <NotificationHistory />
+        </section>
       )}
       {settings.searchOpen && (
         <MapSearch

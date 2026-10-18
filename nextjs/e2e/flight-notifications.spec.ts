@@ -18,40 +18,42 @@ test("flight commands share one popup system, dismiss independently and do not r
   await page.addInitScript(
     ({ flight, route, timers }) => {
       localStorage.setItem("nordsweet.language.v1", "en");
-      localStorage.setItem(
-        "nordsweet.flight.v2",
-        JSON.stringify({ version: 1, state: { flight } }),
-      );
-      localStorage.setItem(
-        "nordsweet.inflight.v1",
-        JSON.stringify({
-          version: 1,
-          state: {
-            startedAt: new Date().toISOString(),
-            phase: "cruise",
-            route,
-            activeLeg: 0,
-            patternNotice: {
-              report: "downwind",
-              expiresAt: Date.now() + 60000,
+      if (!localStorage.getItem("nordsweet.flight.v2"))
+        localStorage.setItem(
+          "nordsweet.flight.v2",
+          JSON.stringify({ version: 1, state: { flight } }),
+        );
+      if (!localStorage.getItem("nordsweet.inflight.v1"))
+        localStorage.setItem(
+          "nordsweet.inflight.v1",
+          JSON.stringify({
+            version: 1,
+            state: {
+              startedAt: new Date().toISOString(),
+              phase: "cruise",
+              route,
+              activeLeg: 0,
+              patternNotice: {
+                report: "downwind",
+                expiresAt: Date.now() + 60000,
+              },
+              timers: {
+                ...timers,
+                events: [
+                  {
+                    name: "Landing",
+                    at: Date.now(),
+                    notedAt: Date.now(),
+                    source: "manual",
+                    lat: null,
+                    lon: null,
+                    altitudeFt: null,
+                  },
+                ],
+              },
             },
-            timers: {
-              ...timers,
-              events: [
-                {
-                  name: "Landing",
-                  at: Date.now(),
-                  notedAt: Date.now(),
-                  source: "manual",
-                  lat: null,
-                  lon: null,
-                  altitudeFt: null,
-                },
-              ],
-            },
-          },
-        }),
-      );
+          }),
+        );
       navigator.geolocation.watchPosition = (success) => {
         const sample = () => {
           const changed = localStorage.getItem("test.next-leg") === "yes";
@@ -126,4 +128,43 @@ test("flight commands share one popup system, dismiss independently and do not r
   await page.clock.fastForward(1000);
   await expect(heading).toContainText(/Turn Left Heading \d{3}°/);
   await expect(altitude).toContainText("Climb 4000 ft");
+  const bell = page.getByRole("button", { name: "Notifications", exact: true });
+  await bell.click();
+  const history = page.getByRole("dialog", {
+    name: "Notifications",
+    exact: true,
+  });
+  const entries = history.getByRole("listitem");
+  await expect(history).toContainText("Turn Right Heading");
+  await expect(history).toContainText("Climb 3000 ft");
+  await expect(history).toContainText("Report downwind");
+  await expect(history.locator('[data-category="system"]')).toHaveCount(1);
+  const dates = await history
+    .locator("time")
+    .evaluateAll((nodes) => nodes.map((node) => node.getAttribute("datetime")));
+  expect(dates.length).toBeGreaterThanOrEqual(6);
+  expect(
+    dates.every((date) => date !== null && Number.isFinite(Date.parse(date))),
+  ).toBe(true);
+  await expect(bell.locator('[aria-label^="New notifications"]')).toHaveCount(
+    0,
+  );
+  const count = await entries.count();
+  await page.screenshot({
+    path: "test-results/notification-history-phone.png",
+  });
+  await page.goto("/map");
+  await bell.click();
+  await expect(entries).toHaveCount(count);
+  await expect(history).toContainText("Climb 3000 ft");
+  await page.reload();
+  await bell.click();
+  await expect(entries).toHaveCount(count);
+  expect(
+    await history
+      .locator("time")
+      .evaluateAll((nodes) =>
+        nodes.map((node) => node.getAttribute("datetime")),
+      ),
+  ).toEqual(dates);
 });

@@ -14,6 +14,9 @@ test("animation keeps own traffic visible with a normal icon and another aircraf
   });
   const set = vi.fn();
   const map = {
+    project: ([x, y]: [number, number]) => ({ x, y }),
+    unproject: ({ x, y }: { x: number; y: number }) => ({ lng: x, lat: y }),
+    getBearing: () => 0,
     getZoom: () => 8,
     getSize: () => ({ width: 1000, height: 800 }),
   };
@@ -46,7 +49,7 @@ test("animation keeps own traffic visible with a normal icon and another aircraf
       lat: 0,
       lon: 0,
       altitudeFt: 3000,
-      groundSpeedKt: 0,
+      groundSpeedKt: 60,
       trackDeg: 0,
       accuracyM: 0,
       time: now,
@@ -61,8 +64,16 @@ test("animation keeps own traffic visible with a normal icon and another aircraf
   expect(set).toHaveBeenCalledWith(
     expect.objectContaining({
       traffic: [
-        expect.objectContaining({ hex: "48e9fa", icon: "aircraft" }),
-        expect.objectContaining({ hex: "48e9fb", icon: "aircraft-red" }),
+        expect.objectContaining({
+          hex: "48e9fa",
+          icon: "aircraft",
+          advisory: undefined,
+        }),
+        expect.objectContaining({
+          hex: "48e9fb",
+          icon: "aircraft",
+          advisory: "close",
+        }),
       ],
     }),
   );

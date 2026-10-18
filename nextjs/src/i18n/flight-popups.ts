@@ -1,4 +1,24 @@
 export const flightPopupsEn = {
+  "fly.traffic.ta":
+    "Traffic advisory: {callsign}, {clock} o'clock, {distance} NM, {altitude} ft",
+  "fly.traffic.close":
+    "Traffic close: {callsign}, {clock} o'clock, {distance} NM, {altitude} ft",
+  "fly.status.title": "Flight instruments",
+  "fly.status.altitude": "Altitude",
+  "fly.status.gs": "Ground speed",
+  "fly.status.vs": "VS ft/min",
+  "fly.status.distance": "Distance NM",
+  "fly.status.utc": "Time (UTC)",
+  "fly.status.gps": "Position accuracy",
+  "fly.status.network": "Device network connection",
+  "fly.status.battery": "Device battery",
+  "fly.status.agl": "Height above terrain",
+  "fly.status.noPosition": "No current position",
+  "fly.status.dragDebrief": "Move flight debrief (drag or arrow keys)",
+  "fly.history.title": "Notifications",
+  "fly.panel.notifications": "Notifications",
+  "fly.history.unread": "New notifications: {count}",
+  "fly.history.empty": "No notifications in this flight yet.",
   "fly.popup.heading": "Heading",
   "fly.popup.altitude": "Altitude",
   "fly.popup.comms": "Comms",
@@ -11,6 +31,27 @@ export const flightPopupsEn = {
   "fly.popup.descend": "Descend {altitude} ft",
 };
 export const flightPopupsPl: typeof flightPopupsEn = {
+  "fly.traffic.ta":
+    "Traffic advisory: {callsign}, godzina {clock}, {distance} NM, {altitude} ft",
+  "fly.traffic.close":
+    "Traffic blisko: {callsign}, godzina {clock}, {distance} NM, {altitude} ft",
+  "fly.status.title": "Parametry lotu",
+  "fly.status.altitude": "Wysokość",
+  "fly.status.gs": "Prędkość względem ziemi",
+  "fly.status.vs": "V/S ft/min",
+  "fly.status.distance": "Odległość NM",
+  "fly.status.utc": "Czas (UTC)",
+  "fly.status.gps": "Dokładność pozycji",
+  "fly.status.network": "Połączenie sieciowe urządzenia",
+  "fly.status.battery": "Bateria urządzenia",
+  "fly.status.agl": "Wysokość nad terenem",
+  "fly.status.noPosition": "Brak aktualnej pozycji",
+  "fly.status.dragDebrief":
+    "Przesuń podsumowanie lotu (przeciągnij lub użyj strzałek)",
+  "fly.history.title": "Powiadomienia",
+  "fly.panel.notifications": "Powiadomienia",
+  "fly.history.unread": "Nowe powiadomienia: {count}",
+  "fly.history.empty": "Brak powiadomień w tym locie.",
   "fly.popup.heading": "Kurs",
   "fly.popup.altitude": "Wysokość",
   "fly.popup.comms": "Łączność",

@@ -28,6 +28,9 @@ export function EventToast() {
   return (
     <FlightPopup
       category="system"
+      notificationId={`event:${latest.notedAt}:${latest.at}:${latest.name}`}
+      recordedAt={latest.notedAt}
+      message={`${latest.name} ${new Date(latest.at).toLocaleTimeString([], { hour: "2-digit", hour12: false, minute: "2-digit", second: "2-digit" })}`}
       onDismiss={() => setDismissed(latest.notedAt!)}
     >
       <strong>{latest.name}</strong>{" "}

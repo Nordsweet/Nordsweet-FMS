@@ -18,8 +18,12 @@ export function TrafficPatternPopup() {
   }, [notice, dismiss]);
   if (!notice) return null;
   return (
-    <FlightPopup category="comms" testId="pattern-report" onDismiss={dismiss}>
-      {t(`pattern.report.${notice.report}`)}
-    </FlightPopup>
+    <FlightPopup
+      category="comms"
+      testId="pattern-report"
+      onDismiss={dismiss}
+      notificationId={`pattern:${notice.report}:${notice.expiresAt}`}
+      message={t(`pattern.report.${notice.report}`)}
+    />
   );
 }

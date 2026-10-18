@@ -1,4 +1,8 @@
 import { type ReactNode } from "react";
+import { useEffect } from "react";
+import { type PopupCategory } from "~/data/flight-notification";
+import { useFlightNotificationHistory } from "~/stores/flight-notifications";
+import { useInFlight } from "~/stores/inflight";
 import {
   ArrowUpDown,
   Info,
@@ -8,9 +12,9 @@ import {
   X,
 } from "lucide-react";
 import { useT } from "~/i18n/use-t";
+import { cn } from "~/lib/utils";
 
-export type PopupCategory =
-  "heading" | "altitude" | "comms" | "frequency" | "system";
+export type { PopupCategory } from "~/data/flight-notification";
 const icons = {
   heading: Navigation,
   altitude: ArrowUpDown,
@@ -25,13 +29,30 @@ export function FlightPopup({
   children,
   onDismiss,
   testId,
+  notificationId,
+  message,
+  recordedAt,
+  severity,
 }: {
   category: PopupCategory;
-  children: ReactNode;
+  children?: ReactNode;
   onDismiss: () => void;
   testId?: string;
+  notificationId: string;
+  message: string;
+  recordedAt?: number;
+  severity?: "warning" | "danger";
 }) {
   const t = useT();
+  const session = useInFlight((s) => s.startedAt);
+  useEffect(() => {
+    useFlightNotificationHistory.getState().record(session, {
+      id: notificationId,
+      category,
+      message,
+      createdAt: recordedAt ?? Date.now(),
+    });
+  }, [session, notificationId, category, message, recordedAt]);
   const Icon = icons[category];
   return (
     <section
@@ -40,7 +61,11 @@ export function FlightPopup({
       aria-label={t(`fly.popup.${category}`)}
       data-category={category}
       data-testid={testId}
-      className="bg-card/95 text-card-foreground flex w-full items-start gap-3 rounded-2xl border p-3 shadow-lg backdrop-blur sm:p-4"
+      className={cn(
+        "bg-card/95 text-card-foreground flex w-full items-start gap-3 rounded-2xl border p-3 shadow-lg backdrop-blur sm:p-4",
+        severity === "warning" && "border-yellow-400 ring-1 ring-yellow-400",
+        severity === "danger" && "border-red-500 ring-1 ring-red-500",
+      )}
     >
       <Icon
         className="text-primary mt-0.5 size-5 shrink-0"
@@ -50,8 +75,8 @@ export function FlightPopup({
         <span className="text-primary text-[10px] font-bold tracking-wider uppercase">
           {t(`fly.popup.${category}`)}
         </span>
-        <div className="text-sm leading-snug font-semibold break-words">
-          {children}
+        <div className="text-sm leading-snug font-semibold break-words whitespace-pre-line">
+          {children ?? message}
         </div>
       </div>
       <button

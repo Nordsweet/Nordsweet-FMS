@@ -2,7 +2,8 @@ import { useEffect, type RefObject } from "react";
 import { type TrafficAircraft } from "~/api/aviation/schemas";
 import { destinationPoint } from "~/domain/geo";
 import { mapLabelVisibility } from "~/domain/map-labels";
-import { projectedPosition, trafficAlertLevel } from "~/domain/map-navigation";
+import { projectedPosition } from "~/domain/map-navigation";
+import { trafficAdvisory } from "~/domain/traffic-advisory";
 import { type GpsFix } from "~/features/fly/use-gps";
 import type { AircraftIdentity } from "~/domain/traffic-identity";
 import type { DeckMap, DeckScene, Scene } from "./deck";
@@ -94,33 +95,12 @@ export function useMapAnimation({
             if (!position) continue;
             const at: [number, number] = [position.lon, position.lat];
             estimates.push({ path: [[a.lon, a.lat], at] });
-            const alert = trafficAlertLevel(
-              own && fix
-                ? {
-                    ...own,
-                    altitudeFt: fix.altitudeFt,
-                    speedKt: fix.groundSpeedKt,
-                    trackDeg: fix.trackDeg,
-                  }
-                : null,
-              {
-                ...position,
-                hex: a.hex,
-                registration: a.registration,
-                callsign: a.callsign,
-                altitudeFt: a.altitude_ft,
-                speedKt: a.ground_speed_kt,
-                trackDeg: a.track_deg,
-              },
-              ownIdentity,
-            );
+            const alert = trafficAdvisory(fix, a, now, ownIdentity);
             traffic.push({
               position: at,
               hex: a.hex,
-              icon:
-                alert === "red" || alert === "amber" || alert === "caution"
-                  ? `aircraft-${alert}`
-                  : "aircraft",
+              icon: "aircraft",
+              advisory: alert?.level,
               alpha: position.alpha,
               track: a.track_deg ?? 0,
             });

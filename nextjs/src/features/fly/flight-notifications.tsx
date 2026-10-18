@@ -22,6 +22,9 @@ import { FlightPopup } from "./flight-popup";
 import { TrafficPatternPopup } from "./traffic-pattern-popup";
 import { useCommsPlan } from "./use-comms-plan";
 import { type GpsFix } from "./use-gps";
+import { TrafficAdvisoryPopups } from "./traffic-advisory-popup";
+import { type TrafficAircraft } from "~/api/aviation/schemas";
+import { type AircraftIdentity } from "~/domain/traffic-identity";
 
 type Notice = { key: string; command: GuidanceCommand; expiresAt: number };
 // Transient commands are shared between Map and Fly, but never restored as instructions after reload.
@@ -95,11 +98,15 @@ export function FlightNotifications({
   cruiseAltitudeFt,
   fix,
   turns,
+  aircraft,
+  identity,
 }: {
   plan: ReturnType<typeof buildRoutePlan> | null;
   cruiseAltitudeFt: number;
   fix: GpsFix | null;
   turns: TurnPerformance;
+  aircraft?: TrafficAircraft[];
+  identity: AircraftIdentity;
 }) {
   const t = useT();
   const navigation = useInFlight();
@@ -180,21 +187,32 @@ export function FlightNotifications({
       data-testid="flight-notifications"
     >
       <div className="pointer-events-auto flex w-full max-w-md flex-col gap-2">
+        {navigation.startedAt && (
+          <TrafficAdvisoryPopups
+            session={navigation.startedAt}
+            fix={fix}
+            aircraft={aircraft}
+            identity={identity}
+            now={now}
+          />
+        )}
         {session === navigation.startedAt &&
           notices.map(({ key, command }) => (
             <FlightPopup
               key={key}
               category={command.category}
+              notificationId={`guidance:${key}`}
+              message={
+                command.category === "heading"
+                  ? t(`fly.popup.turn.${command.direction}`, {
+                      heading: String(command.headingDeg).padStart(3, "0"),
+                    })
+                  : t(`fly.popup.${command.direction}`, {
+                      altitude: command.altitudeFt,
+                    })
+              }
               onDismiss={() => dismiss(key)}
-            >
-              {command.category === "heading"
-                ? t(`fly.popup.turn.${command.direction}`, {
-                    heading: String(command.headingDeg).padStart(3, "0"),
-                  })
-                : t(`fly.popup.${command.direction}`, {
-                    altitude: command.altitudeFt,
-                  })}
-            </FlightPopup>
+            />
           ))}
         <TrafficPatternPopup />
         <FrequencyNotification phase={navigation.phase} fix={fix} />

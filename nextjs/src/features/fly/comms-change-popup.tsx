@@ -20,29 +20,27 @@ export function CommsChangePopup({
   );
   const suggestion = commsChangeSuggestion(phase, estimate, dismissed);
   if (!suggestion) return null;
+  const message = suggestion.rows
+    .map((r) =>
+      t("fly.comms.suggestion", {
+        frequency: r.frequencyMhz,
+        callsign: r.callsign || t("fly.comms.noCallsign"),
+        service:
+          /^(fis|fiss|fir)$/i.test(r.serviceId ?? "") ||
+          (!r.serviceId && /informacja|information|\bFIS\b/i.test(r.callsign))
+            ? " (FIS)"
+            : "",
+      }),
+    )
+    .join("\n");
   return (
     <FlightPopup
       category="frequency"
+      notificationId={`frequency:${suggestion.key}`}
+      message={message}
       onDismiss={() =>
         setDismissed((previous) => new Set([...previous, suggestion.key]))
       }
-    >
-      <div className="grid flex-1 gap-1 text-sm font-semibold">
-        {suggestion.rows.map((r, i) => (
-          <p key={i}>
-            {t("fly.comms.suggestion", {
-              frequency: r.frequencyMhz,
-              callsign: r.callsign || t("fly.comms.noCallsign"),
-              service:
-                /^(fis|fiss|fir)$/i.test(r.serviceId ?? "") ||
-                (!r.serviceId &&
-                  /informacja|information|\bFIS\b/i.test(r.callsign))
-                  ? " (FIS)"
-                  : "",
-            })}
-          </p>
-        ))}
-      </div>
-    </FlightPopup>
+    />
   );
 }
