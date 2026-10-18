@@ -118,7 +118,7 @@ export function FlyPage() {
   const { flight, route: planRoute, departurePattern, aircraft } = usePlan();
   const inFlight = useInFlight();
   const flying = inFlight.startedAt !== null;
-  const { fix, error, connectorStatus } = useGps(true);
+  const { fix, connectorStatus } = useGps(true);
   const positionSource = usePositionSource((s) => s.source);
   const turns = useTurnPerformance(flying ? fix : null);
   const [now, setNow] = useState(() => Date.now());
@@ -311,20 +311,6 @@ export function FlyPage() {
     options: <OptionsPanel />,
   };
 
-  const gpsText =
-    positionSource === "connector"
-      ? `${t(`connector.${connectorStatus}`)}${fix ? ` · ${fix.source === "demo" ? t("connector.demo") + " · " : ""}${fmt(fix.groundSpeedKt)} kt / ${fmt(fix.altitudeFt)} ft` : ""}`
-      : error
-        ? t(`fly.gps.${error === "denied" ? "denied" : "unavailable"}`)
-        : fix
-          ? t("fly.gps.fix", {
-              accuracy: fmt(fix.accuracyM),
-              time: utc(new Date(fix.time)),
-            })
-          : t("fly.gps.waiting");
-  const chip =
-    "bg-card/90 rounded-full border px-3 py-1.5 text-xs backdrop-blur";
-
   // Legacy flight view: the airspace map full screen, the phase bar on top, the phase's tools on
   // the right; each tool opens its panel beside the rail.
   return (
@@ -343,6 +329,18 @@ export function FlyPage() {
       {flying && !emergencyActive && <FredaDialog fix={fix} now={now} />}
       {flying && inFlight.replayEnabled && <GpxReplayDock />}
       <div className="bg-card/90 absolute top-3 left-1/2 z-30 flex max-w-[calc(100%-1.5rem)] -translate-x-1/2 gap-2 overflow-x-auto rounded-3xl border p-2 backdrop-blur">
+        {flying && positionSource === "connector" && (
+          <Button
+            variant="outline"
+            className="max-w-48 shrink-0"
+            title={t(`connector.${connectorStatus}`)}
+            onClick={() => setPanel(open === "options" ? null : "options")}
+          >
+            <span className="truncate">
+              {t(`connector.${connectorStatus}`)}
+            </span>
+          </Button>
+        )}
         {flying ? (
           <>
             {PHASES.map((p) => (
@@ -486,27 +484,6 @@ export function FlyPage() {
           )}
         </section>
       )}
-
-      <div className="absolute bottom-8 left-3 z-30 flex max-w-[calc(100%-8rem)] flex-wrap gap-2">
-        <span className={chip}>
-          {t("fly.routeChip", {
-            route: (flying ? inFlight.route : planRoute)
-              .map((p) => p.ident)
-              .join(" - "),
-          })}
-        </span>
-        <span className={chip}>
-          {progress
-            ? `${progress.next.ident} ${fmt(progress.distanceToNextNm, 1)} NM`
-            : "--"}
-        </span>
-        <span
-          className={cn(chip, error && "text-destructive")}
-          data-testid="gps-status"
-        >
-          {gpsText}
-        </span>
-      </div>
     </div>
   );
 }

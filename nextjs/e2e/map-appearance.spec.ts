@@ -28,7 +28,7 @@ test("legacy chart controls use the app palette and proportional zoom", async ({
   await expect
     .poll(async () => Number(await map.getAttribute("data-zoom")))
     .toBeCloseTo(initialZoom + Math.log2(1.3 * 0.77));
-  await expect(page.getByTestId("map-gps-status")).toHaveText("GPS off");
+  await expect(page.getByTestId("map-gps-status")).toHaveCount(0);
 });
 
 test("embedded map fills the screen and its legacy Layers panel stays inside a phone viewport", async ({

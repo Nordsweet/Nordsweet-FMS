@@ -1,4 +1,5 @@
 export const connectorPl = {
+  "connector.fix": "GS {speed} kt · MSL {altitude} ft",
   "connector.title": "Źródło pozycji",
   "connector.device": "GPS urządzenia",
   "connector.name": "Nordsweet Connector (Prepar3D)",
@@ -18,6 +19,7 @@ export const connectorPl = {
   "connector.demo": "DEMO — dane symulowane",
 };
 export const connectorEn: Record<keyof typeof connectorPl, string> = {
+  "connector.fix": "GS {speed} kt · MSL {altitude} ft",
   "connector.title": "Position source",
   "connector.device": "Device GPS",
   "connector.name": "Nordsweet Connector (Prepar3D)",

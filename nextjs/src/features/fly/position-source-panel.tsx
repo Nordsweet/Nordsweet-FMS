@@ -87,6 +87,17 @@ export function PositionSourcePanel() {
           <p className="text-sm" role="status" data-testid="connector-status">
             {t(`connector.${connectorStatus}`)}
           </p>
+          {fix && (
+            <output
+              className="font-mono text-sm"
+              data-testid="connector-telemetry"
+            >
+              {t("connector.fix", {
+                speed: Math.round(fix.groundSpeedKt ?? 0),
+                altitude: Math.round(fix.altitudeFt ?? 0),
+              })}
+            </output>
+          )}
           {fix?.source === "demo" && (
             <p className="text-sm text-amber-500">{t("connector.demo")}</p>
           )}

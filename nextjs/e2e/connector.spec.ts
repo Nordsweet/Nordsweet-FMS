@@ -91,13 +91,13 @@ test("Connector source feeds Fly, survives reload and clears stale fixes without
     page.getByRole("button", { name: "Disconnect", exact: true }),
   ).toBeInViewport();
   await page.screenshot({ path: "test-results/connector-tablet.png" });
-  await expect(page.getByTestId("gps-status")).toContainText("110");
+  await expect(page.getByTestId("connector-telemetry")).toContainText("110");
   await page.evaluate(() =>
     (
       window as unknown as { __emitDevicePosition: () => void }
     ).__emitDevicePosition(),
   );
-  await expect(page.getByTestId("gps-status")).toContainText("110");
+  await expect(page.getByTestId("connector-telemetry")).toContainText("110");
   send(false, true);
   await expect(
     page.getByText("DEMO — simulated data", { exact: true }),
@@ -110,7 +110,9 @@ test("Connector source feeds Fly, survives reload and clears stale fixes without
   await expect(page.getByTestId("connector-status")).toHaveText(
     "No current data from Prepar3D",
   );
-  await expect(page.getByTestId("gps-status")).not.toContainText("110");
+  await expect(page.getByTestId("connector-telemetry")).not.toContainText(
+    "110",
+  );
   await page.evaluate(() =>
     (
       window as unknown as { __emitDevicePosition: () => void }
@@ -137,5 +139,5 @@ test("Connector source feeds Fly, survives reload and clears stale fixes without
       window as unknown as { __emitDevicePosition: () => void }
     ).__emitDevicePosition(),
   );
-  await expect(page.getByTestId("gps-status")).toContainText("5 m");
+  await expect(page.getByTestId("connector-telemetry")).toHaveCount(0);
 });
