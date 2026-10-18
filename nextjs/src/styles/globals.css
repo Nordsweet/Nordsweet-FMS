@@ -756,6 +756,13 @@
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.34);
 }
 /* Top right, beside the rail. */
+.fly-popover[data-panel="fpl"] {
+  --head: #5dc1ff;
+  top: var(--top);
+  right: 5.5rem;
+  width: min(430px, calc(100vw - 6.5rem));
+  max-height: calc(100dvh - var(--top) - 1rem);
+}
 .fly-popover[data-panel="wx"] {
   --head: #5dc1ff;
   top: clamp(4.2rem, 8vh, 5.6rem);

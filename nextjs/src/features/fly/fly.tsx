@@ -53,6 +53,7 @@ const PHASES = FLIGHT_PHASES;
 type Phase = FlightPhase;
 type Panel =
   | "emer"
+  | "fpl"
   | "route"
   | "comms"
   | "wx"
@@ -65,6 +66,7 @@ type Panel =
 /** Legacy rail per phase, in legacy order. */
 const RAIL: { id: Panel; phases?: Phase[] }[] = [
   { id: "emer" },
+  { id: "fpl" },
   { id: "route", phases: ["taxiout", "taxiin"] },
   { id: "comms" },
   { id: "wx", phases: ["cruise"] },
@@ -276,6 +278,31 @@ export function FlyPage() {
       ) && emergency.endedAt === null;
   const content: Record<Panel, React.ReactNode> = {
     emer: <EmergencyPanel phase={phase} />,
+    fpl: inFlight.route.length ? (
+      <ol
+        aria-label={t("mapplanner.points")}
+        className="grid max-h-[60vh] gap-2 overflow-y-auto"
+      >
+        {inFlight.route.map((point, index) => (
+          <li
+            key={`${index}-${point.ident}`}
+            aria-current={index === inFlight.activeLeg + 1 ? "step" : undefined}
+            className={cn(
+              "flex items-center gap-3 rounded-lg border p-3 text-sm",
+              index === inFlight.activeLeg + 1 &&
+                "border-primary bg-primary/10 text-primary",
+            )}
+          >
+            <span className="text-muted-foreground w-6 text-right tabular-nums">
+              {index + 1}
+            </span>
+            <strong className="min-w-0 break-words">{point.ident}</strong>
+          </li>
+        ))}
+      </ol>
+    ) : (
+      <p className="text-muted-foreground text-sm">{t("plan.navlog.empty")}</p>
+    ),
     route: (flying
       ? phase === "taxiin"
         ? flight.destination
