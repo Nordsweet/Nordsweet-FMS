@@ -43,14 +43,12 @@ export function FlightPopup({
   const t = useT();
   const session = useInFlight((s) => s.startedAt);
   useEffect(() => {
-    useFlightNotificationHistory
-      .getState()
-      .record(session, {
-        id: notificationId,
-        category,
-        message,
-        createdAt: recordedAt ?? Date.now(),
-      });
+    useFlightNotificationHistory.getState().record(session, {
+      id: notificationId,
+      category,
+      message,
+      createdAt: recordedAt ?? Date.now(),
+    });
   }, [session, notificationId, category, message, recordedAt]);
   const Icon = icons[category];
   return (
