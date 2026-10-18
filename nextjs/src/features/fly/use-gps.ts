@@ -6,10 +6,12 @@ export type GpsFix = {
   lat: number;
   lon: number;
   altitudeFt: number | null;
+  altitudeAccuracyM?: number | null;
   groundSpeedKt: number | null;
   trackDeg: number | null;
   accuracyM: number;
   time: string;
+  receivedAt?: number;
 };
 type Snapshot = { fix: GpsFix | null; error: "denied" | "unavailable" | null };
 const empty: Snapshot = { fix: null, error: null };
@@ -67,10 +69,12 @@ function subscribe(listener: () => void) {
               lon: coords.longitude,
               altitudeFt:
                 coords.altitude === null ? null : mToFt(coords.altitude),
+              altitudeAccuracyM: coords.altitudeAccuracy,
               groundSpeedKt: speed,
               trackDeg: heading,
               accuracyM: coords.accuracy,
               time: new Date(timestamp).toISOString(),
+              receivedAt: Date.now(),
             },
           });
         },

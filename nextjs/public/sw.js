@@ -7,7 +7,7 @@ self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=
 self.addEventListener('fetch',event=>{
  if(event.request.method!=='GET')return;
  const url=new URL(event.request.url);
- if(url.hostname==='tile.openstreetmap.org'||url.hostname==='tiles.openfreemap.org'){
+ if(url.hostname==='tile.openstreetmap.org'||url.hostname==='tiles.openfreemap.org'||(url.hostname==='s3.amazonaws.com'&&url.pathname.startsWith('/elevation-tiles-prod/terrarium/'))){
    event.respondWith(caches.open('map-osm-tiles-v1').then(async cache=>{
      // The vector basemap's TileJSON names the current planet build: take it fresh, keep the last for offline.
      if(url.hostname==='tiles.openfreemap.org'&&!url.pathname.endsWith('.pbf')){

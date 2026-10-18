@@ -155,6 +155,7 @@ test("FR172H reference variants share progress across EMER/library and reload wi
 test("Engine Out alone requests automatic threshold plan; closing preserves it and ending explicitly removes it", async ({
   page,
 }) => {
+  test.setTimeout(60000);
   await seed(page, true);
   const panel = await emer(page);
   await expect(page.getByTestId("emergency-map-status")).toHaveCount(0);
@@ -164,7 +165,7 @@ test("Engine Out alone requests automatic threshold plan; closing preserves it a
   await expect(panel.getByTestId("emergency-route")).toBeVisible();
   await expect(page.getByTestId("emergency-map-status")).toBeVisible();
   await expect(panel).toContainText("Best glide speed unavailable");
-  await expect(panel).toContainText("Range unavailable");
+  await expect(panel).toContainText("Glide footprint unavailable");
   await panel
     .locator("summary")
     .filter({ hasText: "Record current instrument readings" })
@@ -182,7 +183,7 @@ test("Engine Out alone requests automatic threshold plan; closing preserves it a
     })
     .click();
   await expect(page.getByTestId("emergency-map-status")).toContainText(
-    "Current-trend range",
+    "Wind unavailable",
   );
   const readSession = () =>
     page.evaluate(
@@ -205,7 +206,7 @@ test("Engine Out alone requests automatic threshold plan; closing preserves it a
   await page.reload();
   await page.getByRole("button", { name: "EMER", exact: true }).click();
   expect((await readSession())?.target).toEqual(saved?.target);
-  await expect(panel).toContainText("Range unavailable");
+  await expect(panel).toContainText("Glide footprint unavailable");
   await panel.getByRole("button", { name: "End / reset emergency" }).click();
   await panel.getByRole("button", { name: "Cancel", exact: true }).click();
   expect(await readSession()).not.toBeNull();

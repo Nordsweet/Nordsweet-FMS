@@ -41,6 +41,7 @@ export function MapWorkspace({ embedded = false }: { embedded?: boolean }) {
   );
   const turns = useTurnPerformance(navigation.startedAt ? fix : null);
   const client = useQueryClient();
+  const terrainCache = useMutation(api.terrain.prepare.mutationOptions());
   const imported = useMutation(api.map.importAirspace.mutationOptions());
   const [notice, setNotice] = useState<string | null>(null);
   const [toolsOpen, setToolsOpen] = useState(!embedded);
@@ -220,6 +221,48 @@ export function MapWorkspace({ embedded = false }: { embedded?: boolean }) {
           </Button>
         </div>
         <div className="legacy-tool-section legacy-basemap-tools">
+          <Label>
+            <input
+              type="checkbox"
+              checked={settings.terrain3d}
+              onChange={(e) => settings.update({ terrain3d: e.target.checked })}
+            />
+            {t("terrain.3d")}
+          </Label>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={terrainCache.isPending}
+            onClick={async () => {
+              const points = route.length ? route : fix ? [fix] : [];
+              if (!points.length) {
+                setNotice(t("terrain.noRoute"));
+                return;
+              }
+              try {
+                const result = await terrainCache.mutateAsync(points);
+                setNotice(
+                  t("terrain.cached", {
+                    count: result.count,
+                    missing: result.missing,
+                  }) + (result.limited ? " · " + t("terrain.limited") : ""),
+                );
+              } catch {
+                setNotice(t("terrain.missing"));
+              }
+            }}
+          >
+            {t("terrain.prepare")}
+          </Button>
+          <a
+            href="/terrain-attribution.html"
+            target="_blank"
+            rel="noreferrer"
+            className="text-xs underline"
+          >
+            {t("terrain.attribution")}
+          </a>
+
           <MapSelect
             label={t("map.basemap")}
             value={settings.basemap}
@@ -227,6 +270,7 @@ export function MapWorkspace({ embedded = false }: { embedded?: boolean }) {
               { value: "osm", label: "OpenStreetMap" },
               { value: "night", label: t("map.basemapNight") },
               { value: "fjord", label: t("map.basemapFjord") },
+              { value: "dark-matter", label: t("map.basemapDarkMatter") },
               { value: "dark", label: t("maplegacy.black") },
             ]}
             onChange={(basemap) => settings.update({ basemap })}

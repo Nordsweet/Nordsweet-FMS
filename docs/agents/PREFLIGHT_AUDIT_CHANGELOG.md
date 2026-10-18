@@ -5,6 +5,36 @@ Reference: <https://nordsweet-performance-calculator.mrnordsweet.chatgpt.site/> 
 `5265bc5de9510aa3d83cc469860a730962b96c78`. Starting develop: `2f289ed6dc8d7b7c3186b100577c787c64df1de2`.
 Branch: `codex/preflight-parity-audit`.
 
+## Dark Matter basemap (2026-10-18)
+
+- Add **Dark Matter** to Map/Fly Layers → Base map, persisted alongside the existing styles.
+- Adapt the official OpenMapTiles style to the shared deck.gl vector renderer and public OpenFreeMap
+  tiles, without a MapTiler key. Preserve main colours, layer order, zoom/filter and width/opacity stops.
+  Support terrain draping in 3D, the existing offline tile cache and local MVT decoding.
+- Ship source style, licence and map attribution. Renderer limits are documented in
+  [Dark Matter](../maps/dark-matter/README.md): system font and no line-following labels/sprites/patterns.
+- Verify source TileJSON and a real Polish vector tile; add rule tests and a browser test for selection,
+  persistence, vector rendering and 3D compatibility.
+
+## Terrain 3D and terrain/wind glide footprint (2026-10-18)
+
+- Add deck.gl TerrainLayer with real public Mapzen/AWS Terrarium elevation, local image/mesh parsers,
+  3D camera, terrain-fitted chart overlays and ground-aware point interaction. Keep 2D selectable.
+- Replace the emergency circle with independent terrain/wind-aware turning reach, preserving blocked
+  ridges, peak holes and missing-data barriers. Use full wind triangle, measured descent, explicit
+  terrain clearance and heading/turn costs. Check full approaches before outlining an airport green.
+- Add optional GNSS/EGM96 AMSL correction and quality-gated descent trend; retain manual instrument
+  input priority. Require a valid live or explicitly supplied wind (including confirmed calm).
+  Remove guidance when inputs expire; never manufacture missing DEM or aircraft polar performance.
+- Add route DEM preparation, bounded IndexedDB/raw tile caches, offline local workers and shipped
+  source/data licence attribution. Avoid JSON-persisting decoded Float32 terrain arrays.
+- Research XCSoar fan reach and reuse only its attributed EGM96 dataset; no GPL executable code or
+  glider performance polars copied. Differences/limits: [Terrain and glide reach](TERRAIN_GLIDE_REACH.md).
+- Validation (including Dark Matter): format, ESLint, typecheck, 403 unit tests and production static
+  build passed. All 81 browser scenarios verified: 79 passed in the full run; the EMER scenario passed
+  after increasing its total timeout, and Dark Matter passed after correcting its terrain DOM selector.
+  Visual checks confirmed 2D/3D layers. GitHub CI runs the complete suite again before merge.
+
 ## EMER / Engine Out (2026-10-18)
 
 - Add Engine Out / Engine Fire shortcuts, aircraft procedure categories, manual phase selection,

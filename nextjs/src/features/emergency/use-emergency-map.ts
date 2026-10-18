@@ -6,12 +6,10 @@ import { useEmergency, emergencyScope } from "~/stores/emergency";
 import { useFlight } from "~/stores/flight";
 import { useInFlight } from "~/stores/inflight";
 import { usePlan } from "~/features/plan/use-plan";
-import {
-  emergencyApproach,
-  emergencyCandidates,
-  emergencyRange,
-} from "~/domain/emergency";
-import { destinationPoint, distanceNm } from "~/domain/geo";
+import { emergencyApproach, emergencyCandidates } from "~/domain/emergency";
+import { distanceNm } from "~/domain/geo";
+import { useGlideReach } from "./use-glide-reach";
+import { glideApproachClear } from "~/domain/glide-reach";
 
 /** Live overlays are recomputed from fresh inputs; persisted targets never reactivate stale guidance. */
 export function useEmergencyMap(
@@ -35,6 +33,7 @@ export function useEmergencyMap(
     session.family === "failure" &&
     session.routeRequested &&
     session.endedAt === null;
+  now = Math.max(now, fix?.receivedAt ?? now);
   const fresh =
     !!fix &&
     !error &&
@@ -47,56 +46,55 @@ export function useEmergencyMap(
       target && fix ? emergencyApproach(fix, target, fix.groundSpeedKt) : null,
     [fix, target],
   );
-  const range =
-    active && fresh
-      ? emergencyRange(measurements, target?.threshold.elevationFt ?? null, now)
-      : null;
+  const glide = useGlideReach(
+    active && fresh,
+    active ? session.id : null,
+    fix,
+    measurements,
+    now,
+  );
   const reachable = useMemo(() => {
-    if (!active || !fix || !fresh) return [];
-    // A straight-line lower bound avoids solving curves for obviously unreachable distant airports.
+    if (!active || !fix || !fresh || !glide.reach || !glide.input) return [];
     const nearby = airports.filter((a) =>
-      a.runways.some((r) => {
-        const candidateRange = emergencyRange(
-          measurements,
-          r.threshold?.elevationFt ?? null,
-          now,
-        );
-        return (
+      a.runways.some(
+        (r) =>
           r.threshold &&
-          candidateRange &&
-          candidateRange.heightFt > 0 &&
-          distanceNm(fix, r.threshold) <= candidateRange.radiusNm
-        );
-      }),
+          distanceNm(fix, r.threshold) * 1852 <= glide.input!.radiusM,
+      ),
     );
-    return emergencyCandidates(nearby, fix, fix.groundSpeedKt)
-      .filter((c) => {
-        const candidateRange = emergencyRange(
-          measurements,
-          c.target.threshold.elevationFt,
-          now,
-        );
-        return (
-          candidateRange &&
-          candidateRange.heightFt > 0 &&
-          c.approach.distanceNm <= candidateRange.radiusNm
-        );
-      })
-      .map((c) => airports.find((a) => a.ident === c.target.airport)!)
+    return emergencyCandidates(nearby, fix, glide.input.tasKt)
+      .filter((candidate) =>
+        glideApproachClear(
+          glide.reach!,
+          glide.input!,
+          candidate.approach.points,
+          candidate.target.threshold,
+        ),
+      )
+      .map((candidate) =>
+        airports.find((a) => a.ident === candidate.target.airport)!,
+      )
       .filter((a, i, all) => all.findIndex((b) => b.ident === a.ident) === i);
-  }, [active, airports, fix, fresh, measurements, now]);
+  }, [active, airports, fix, fresh, glide.reach, glide.input]);
   return {
     active,
     target,
-    range,
     path: active && fresh && approach ? approach.points : [],
-    preview: !!session?.previewOnly,
-    circle:
-      range && fix
-        ? Array.from({ length: 97 }, (_, i) =>
-            destinationPoint(fix, (i * 360) / 96, range.radiusNm),
-          )
-        : [],
+    preview:
+      !!session?.previewOnly ||
+      !approach ||
+      !target ||
+      !glide.reach ||
+      !glide.input ||
+      !glideApproachClear(
+        glide.reach,
+        glide.input,
+        approach.points,
+        target.threshold,
+      ),
+    footprint: glide.reach?.polygons ?? [],
+    boundary: glide.reach?.paths ?? [],
+    glide,
     reachable: active && fresh ? reachable : [],
   };
 }

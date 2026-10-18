@@ -11,6 +11,7 @@ import {
   aviationApi,
 } from "./aviation/client";
 import { loadAircraft, readCustomDrafts, writeCustomDrafts } from "./aircraft";
+import { loadGeoid, loadTerrainRegion, prepareTerrain } from "./terrain";
 import { loadDataset } from "./datasets";
 import {
   listFlights,
@@ -92,6 +93,16 @@ type Search = { query: string; limit?: number };
 type Icao = { icao: string };
 
 export const api = {
+  terrain: {
+    prepare: mutation("terrain.prepare", prepareTerrain),
+    region: query("terrain.region", loadTerrainRegion, {
+      staleTime: 5 * MINUTE,
+      gcTime: MINUTE,
+    }),
+    geoid: query("terrain.geoid", async (_: undefined) => loadGeoid(), {
+      staleTime: Infinity,
+    }),
+  },
   map: {
     importedAirspace: query("map.importedAirspace", loadMapAirspace, {
       staleTime: 0,
