@@ -243,6 +243,26 @@ export function ChecklistsPage({
               ))}
           </nav>
           <h2 className="font-semibold">{current.name}</h2>
+          {aircraft.referenceData?.simulationOnly && (
+            <p className="text-sm text-amber-400">
+              {t("aircraft.reference.simulation")}
+            </p>
+          )}
+          {current.notes?.map((note) => (
+            <p
+              key={note}
+              role="note"
+              className="rounded border border-amber-500/50 p-2 text-sm"
+              lang="en"
+            >
+              {note}
+            </p>
+          ))}
+          {current.source && (
+            <p className="text-muted-foreground text-xs" lang="en">
+              {current.source}
+            </p>
+          )}
           <ChecklistItems
             key={current.id}
             checklist={current}

@@ -50,7 +50,10 @@ export function EmergencyChecklists() {
         : [],
     [airports, fix, fresh, routeRequested],
   );
-  const available = reference ? references : procedures;
+  const familyReferences = references.filter(
+    (variant) => variant.family === session?.family,
+  );
+  const available = reference ? familyReferences : procedures;
   const systemNotInstalled =
     session?.family === "hydraulic" &&
     aircraft?.emergencyEquipment.hydraulic === false;
@@ -224,7 +227,14 @@ export function EmergencyChecklists() {
                 {!operationalProcedure(p) && (
                   <div className="rounded border border-amber-500 p-3">
                     <strong>{t("emer.reference")}</strong>
-                    <p className="text-sm">{t("emer.referenceInfo")}</p>
+                    <p className="text-sm">
+                      {t("emer.referenceInfo", { type: aircraft?.type ?? "—" })}
+                    </p>
+                    {aircraft?.referenceData?.simulationOnly && (
+                      <p className="text-sm">
+                        {t("aircraft.reference.simulation")}
+                      </p>
+                    )}
                   </div>
                 )}
                 <h3 className="font-semibold">{p.title}</h3>
@@ -310,13 +320,15 @@ export function EmergencyChecklists() {
                 </details>
               </div>
             )}
-          {session.family === "failure" && references.length > 0 && (
+          {familyReferences.length > 0 && (
             <>
               <Button
                 variant="outline"
                 onClick={() => setReference(!reference)}
               >
-                {t(reference ? "emer.referenceExit" : "emer.showReference")}
+                {t(reference ? "emer.referenceExit" : "emer.showReference", {
+                  type: aircraft?.type ?? "—",
+                })}
               </Button>
               {reference && (
                 <div
@@ -324,7 +336,7 @@ export function EmergencyChecklists() {
                   aria-label={t("emer.selectReference")}
                 >
                   <p>{t("emer.reference")}</p>
-                  {references.map((variant) => (
+                  {familyReferences.map((variant) => (
                     <Button
                       className="h-auto justify-start py-3 text-left whitespace-normal"
                       key={variant.key}

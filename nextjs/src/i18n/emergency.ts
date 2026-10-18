@@ -12,8 +12,8 @@ export const emergencyEn = {
   "emer.fuel": "Fuel",
   "emer.reference": "REFERENCE ONLY — APPLICABILITY NOT VERIFIED",
   "emer.referenceInfo":
-    "FR172H model assigned by owner. Registration, serial range, equipment, complete manual edition and airspeed basis still require verification. This reference is not an operational checklist.",
-  "emer.showReference": "Browse source reference (FR172H)",
+    "Source reference for {type}. Applicability to the registration, serial range, equipment, manual edition and airspeed basis requires verification. This reference is not an operational checklist.",
+  "emer.showReference": "Browse source reference ({type})",
   "emer.unavailable":
     "Verified procedure unavailable for this aircraft — consult aircraft AFM/POH",
   "emer.fireUnavailable":
@@ -85,8 +85,8 @@ export const emergencyPl: Record<keyof typeof emergencyEn, string> = {
   "emer.fuel": "Paliwo",
   "emer.reference": "MATERIAŁ REFERENCYJNY — NIEZWERYFIKOWANA STOSOWALNOŚĆ",
   "emer.referenceInfo":
-    "Użytkownik przypisał materiał do FR172H. Rejestracja, zakres numerów seryjnych, wyposażenie, pełne wydanie instrukcji i podstawa prędkości wymagają weryfikacji. To nie jest checklista operacyjna.",
-  "emer.showReference": "Przeglądaj materiał źródłowy (FR172H)",
+    "Materiał źródłowy dla {type}. Zastosowanie do rejestracji, zakresu numerów seryjnych, wyposażenia, wydania instrukcji i podstawy prędkości wymaga weryfikacji. To nie jest checklista operacyjna.",
+  "emer.showReference": "Przeglądaj materiał źródłowy ({type})",
   "emer.unavailable":
     "Brak zweryfikowanej procedury dla tego samolotu — sprawdź AFM/POH",
   "emer.fireUnavailable":
