@@ -44,6 +44,8 @@ export function useEmergencyTelemetry() {
       age = Date.now() - at;
     if (
       fix.source === "replay" ||
+      fix.source === "connector" ||
+      fix.source === "demo" ||
       age < -1000 ||
       age > 20_000 ||
       fix.altitudeFt === null ||

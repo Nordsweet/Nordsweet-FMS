@@ -61,7 +61,13 @@ export function useMapAnimation({
       lastFrame = frame;
       const now = Date.now();
       const own = fix
-        ? projectedPosition(fix, fix.time, fix.groundSpeedKt, fix.trackDeg, now)
+        ? projectedPosition(
+            fix,
+            fix.time,
+            fix.paused ? 0 : fix.groundSpeedKt,
+            fix.trackDeg,
+            now,
+          )
         : null;
       // Traffic moves well under a pixel per 24 FPS frame; 8 Hz keeps it smooth at a third of the cost.
       const trafficDue = frame - lastTraffic >= 1000 / 8;

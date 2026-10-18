@@ -46,6 +46,8 @@ import { OptionsPanel } from "./options-panel";
 import { WxPanel } from "./wx-panel";
 import { useGps } from "./use-gps";
 import { useTurnPerformance } from "./use-turn-performance";
+import { PositionSourcePanel } from "./position-source-panel";
+import { usePositionSource } from "~/stores/position-source";
 
 const PHASES = FLIGHT_PHASES;
 type Phase = FlightPhase;
@@ -116,7 +118,8 @@ export function FlyPage() {
   const { flight, route: planRoute, departurePattern, aircraft } = usePlan();
   const inFlight = useInFlight();
   const flying = inFlight.startedAt !== null;
-  const { fix, error } = useGps(true);
+  const { fix, error, connectorStatus } = useGps(true);
+  const positionSource = usePositionSource((s) => s.source);
   const turns = useTurnPerformance(flying ? fix : null);
   const [now, setNow] = useState(() => Date.now());
   const [debrief, setDebrief] = useState(false);
@@ -308,14 +311,17 @@ export function FlyPage() {
     options: <OptionsPanel />,
   };
 
-  const gpsText = error
-    ? t(`fly.gps.${error === "denied" ? "denied" : "unavailable"}`)
-    : fix
-      ? t("fly.gps.fix", {
-          accuracy: fmt(fix.accuracyM),
-          time: utc(new Date(fix.time)),
-        })
-      : t("fly.gps.waiting");
+  const gpsText =
+    positionSource === "connector"
+      ? `${t(`connector.${connectorStatus}`)}${fix ? ` · ${fix.source === "demo" ? t("connector.demo") + " · " : ""}${fmt(fix.groundSpeedKt)} kt / ${fmt(fix.altitudeFt)} ft` : ""}`
+      : error
+        ? t(`fly.gps.${error === "denied" ? "denied" : "unavailable"}`)
+        : fix
+          ? t("fly.gps.fix", {
+              accuracy: fmt(fix.accuracyM),
+              time: utc(new Date(fix.time)),
+            })
+          : t("fly.gps.waiting");
   const chip =
     "bg-card/90 rounded-full border px-3 py-1.5 text-xs backdrop-blur";
 
@@ -324,6 +330,11 @@ export function FlyPage() {
   return (
     <div className="bg-background fixed inset-0 z-40">
       <MapWorkspace embedded />
+      {!flying && (
+        <div className="bg-card/95 absolute top-40 left-3 z-30 max-h-[calc(100%-15rem)] w-[min(25rem,calc(100%-1.5rem))] overflow-y-auto rounded-xl backdrop-blur">
+          <PositionSourcePanel />
+        </div>
+      )}
       <div className="fly-scrim" aria-hidden="true" data-open={open !== null} />
       {flying && <EventToast />}
       {flying && !emergencyActive && (

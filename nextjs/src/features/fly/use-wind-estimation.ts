@@ -14,6 +14,9 @@ export function useWindEstimation() {
       session,
       airborne,
       fix &&
+        !fix.paused &&
+        fix.source !== "connector" &&
+        fix.source !== "demo" &&
         !error &&
         fix.groundSpeedKt !== null &&
         fix.trackDeg !== null &&

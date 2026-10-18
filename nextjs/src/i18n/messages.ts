@@ -7,8 +7,10 @@ import { mapToolsEn, mapToolsPl } from "./map-tools";
 import { holdingEn, holdingPl } from "./holding";
 import { windEn, windPl } from "./wind";
 import { emergencyEn, emergencyPl } from "./emergency";
+import { connectorEn, connectorPl } from "./connector";
 
 const pl = {
+  ...connectorPl,
   ...terrainPl,
   ...emergencyPl,
   ...windPl,
@@ -823,6 +825,7 @@ const pl = {
 export type MessageKey = keyof typeof pl;
 
 const en: Record<MessageKey, string> = {
+  ...connectorEn,
   ...terrainEn,
   ...emergencyEn,
   ...windEn,

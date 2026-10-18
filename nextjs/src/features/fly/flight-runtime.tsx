@@ -41,7 +41,13 @@ export function FlightRuntime() {
     return () => clearInterval(id);
   }, [flying, tick]);
   useEffect(() => {
-    if (!fix || error || Date.now() - Date.parse(fix.time) > 20000) return;
+    if (
+      !fix ||
+      fix.paused ||
+      error ||
+      Date.now() - Date.parse(fix.time) > 20000
+    )
+      return;
     observeGps(fix);
     if (!flight.startedAt) return;
     flight.observePattern(fix, turns);
