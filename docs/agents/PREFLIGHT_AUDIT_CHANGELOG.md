@@ -5,6 +5,19 @@ Reference: <https://nordsweet-performance-calculator.mrnordsweet.chatgpt.site/> 
 `5265bc5de9510aa3d83cc469860a730962b96c78`. Starting develop: `2f289ed6dc8d7b7c3186b100577c787c64df1de2`.
 Branch: `codex/preflight-parity-audit`.
 
+## Bell notification history (2026-10-18)
+
+- Add a bell tile to the Fly rail and standalone Map. Its panel lists all five categories of
+  displayed flight popups with the original message, category and local date/time to the second,
+  newest first. An unread badge clears when the history is opened.
+- Record through the shared popup component, once per notification ID per flight. Closing or
+  expiring a popup does not delete its history or change its original timestamp.
+- Persist the current flight history across Map/Fly changes and reload, offline. Retain it after
+  ending the flight until another flight begins; validate restored entries before displaying them.
+- Verify all-category deduplication and new-flight isolation in store tests; extend the phone
+  popup scenario to inspect the bell, retained dismissed commands and timestamps after navigation
+  and reload. Existing flight navigation scenarios remain green locally.
+
 ## Unified flight notifications (2026-10-18)
 
 - Share one accessible popup card and responsive stack across Map and Fly: Heading, Altitude,

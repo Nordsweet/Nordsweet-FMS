@@ -45,6 +45,7 @@ import { WxPanel } from "./wx-panel";
 import { useGps } from "./use-gps";
 import { useTurnPerformance } from "./use-turn-performance";
 import { PositionSourcePanel } from "./position-source-panel";
+import { NotificationBell, NotificationHistory } from "./notification-history";
 import { usePositionSource } from "~/stores/position-source";
 
 const PHASES = FLIGHT_PHASES;
@@ -60,7 +61,8 @@ type Panel =
   | "rwy"
   | "checklist"
   | "info"
-  | "options";
+  | "options"
+  | "notifications";
 /** Legacy rail per phase, in legacy order. */
 const RAIL: { id: Panel; phases?: Phase[] }[] = [
   { id: "emer" },
@@ -78,6 +80,7 @@ const RAIL: { id: Panel; phases?: Phase[] }[] = [
   { id: "checklist" },
   { id: "info" },
   { id: "options" },
+  { id: "notifications" },
 ];
 
 function Tile({
@@ -334,6 +337,7 @@ export function FlyPage() {
       </>
     ),
     options: <OptionsPanel />,
+    notifications: <NotificationHistory />,
   };
 
   // Legacy flight view: the airspace map full screen, the phase bar on top, the phase's tools on
@@ -420,30 +424,41 @@ export function FlyPage() {
           aria-label={t("fly.title")}
           className="absolute top-[5.15rem] right-3 z-30 grid max-h-[calc(100%-6.15rem)] gap-[0.48rem] overflow-y-auto"
         >
-          {rail.map((r) => (
-            <Button
-              key={r.id}
-              variant={r.id === "emer" ? "destructive" : "outline"}
-              aria-expanded={open === r.id}
-              aria-label={panelLabel(r.id)}
-              className="legacy-flight-tool backdrop-blur"
-              onClick={() => {
-                setSearchOpen(false);
-                setPanel(open === r.id ? null : r.id);
-              }}
-            >
-              {/* Legacy wraps the long label onto two lines: CHECK / LIST. */}
-              {r.id === "checklist" ? (
-                <span>
-                  {panelLabel(r.id).slice(0, 5)}
-                  <br />
-                  {panelLabel(r.id).slice(5)}
-                </span>
-              ) : (
-                panelLabel(r.id)
-              )}
-            </Button>
-          ))}
+          {rail.map((r) =>
+            r.id === "notifications" ? (
+              <NotificationBell
+                key={r.id}
+                open={open === r.id}
+                onClick={() => {
+                  setSearchOpen(false);
+                  setPanel(open === r.id ? null : r.id);
+                }}
+              />
+            ) : (
+              <Button
+                key={r.id}
+                variant={r.id === "emer" ? "destructive" : "outline"}
+                aria-expanded={open === r.id}
+                aria-label={panelLabel(r.id)}
+                className="legacy-flight-tool backdrop-blur"
+                onClick={() => {
+                  setSearchOpen(false);
+                  setPanel(open === r.id ? null : r.id);
+                }}
+              >
+                {/* Legacy wraps the long label onto two lines: CHECK / LIST. */}
+                {r.id === "checklist" ? (
+                  <span>
+                    {panelLabel(r.id).slice(0, 5)}
+                    <br />
+                    {panelLabel(r.id).slice(5)}
+                  </span>
+                ) : (
+                  panelLabel(r.id)
+                )}
+              </Button>
+            ),
+          )}
           <Button
             aria-label={t("mapsearch.title")}
             title={t("mapsearch.title")}

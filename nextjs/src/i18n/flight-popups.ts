@@ -1,4 +1,8 @@
 export const flightPopupsEn = {
+  "fly.history.title": "Notifications",
+  "fly.panel.notifications": "Notifications",
+  "fly.history.unread": "New notifications: {count}",
+  "fly.history.empty": "No notifications in this flight yet.",
   "fly.popup.heading": "Heading",
   "fly.popup.altitude": "Altitude",
   "fly.popup.comms": "Comms",
@@ -11,6 +15,10 @@ export const flightPopupsEn = {
   "fly.popup.descend": "Descend {altitude} ft",
 };
 export const flightPopupsPl: typeof flightPopupsEn = {
+  "fly.history.title": "Powiadomienia",
+  "fly.panel.notifications": "Powiadomienia",
+  "fly.history.unread": "Nowe powiadomienia: {count}",
+  "fly.history.empty": "Brak powiadomień w tym locie.",
   "fly.popup.heading": "Kurs",
   "fly.popup.altitude": "Wysokość",
   "fly.popup.comms": "Łączność",

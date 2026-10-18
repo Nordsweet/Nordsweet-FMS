@@ -1,4 +1,8 @@
 import { type ReactNode } from "react";
+import { useEffect } from "react";
+import { type PopupCategory } from "~/data/flight-notification";
+import { useFlightNotificationHistory } from "~/stores/flight-notifications";
+import { useInFlight } from "~/stores/inflight";
 import {
   ArrowUpDown,
   Info,
@@ -9,8 +13,7 @@ import {
 } from "lucide-react";
 import { useT } from "~/i18n/use-t";
 
-export type PopupCategory =
-  "heading" | "altitude" | "comms" | "frequency" | "system";
+export type { PopupCategory } from "~/data/flight-notification";
 const icons = {
   heading: Navigation,
   altitude: ArrowUpDown,
@@ -25,13 +28,30 @@ export function FlightPopup({
   children,
   onDismiss,
   testId,
+  notificationId,
+  message,
+  recordedAt,
 }: {
   category: PopupCategory;
-  children: ReactNode;
+  children?: ReactNode;
   onDismiss: () => void;
   testId?: string;
+  notificationId: string;
+  message: string;
+  recordedAt?: number;
 }) {
   const t = useT();
+  const session = useInFlight((s) => s.startedAt);
+  useEffect(() => {
+    useFlightNotificationHistory
+      .getState()
+      .record(session, {
+        id: notificationId,
+        category,
+        message,
+        createdAt: recordedAt ?? Date.now(),
+      });
+  }, [session, notificationId, category, message, recordedAt]);
   const Icon = icons[category];
   return (
     <section
@@ -50,8 +70,8 @@ export function FlightPopup({
         <span className="text-primary text-[10px] font-bold tracking-wider uppercase">
           {t(`fly.popup.${category}`)}
         </span>
-        <div className="text-sm leading-snug font-semibold break-words">
-          {children}
+        <div className="text-sm leading-snug font-semibold break-words whitespace-pre-line">
+          {children ?? message}
         </div>
       </div>
       <button

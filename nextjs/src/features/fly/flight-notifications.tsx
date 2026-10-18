@@ -185,16 +185,18 @@ export function FlightNotifications({
             <FlightPopup
               key={key}
               category={command.category}
+              notificationId={`guidance:${key}`}
+              message={
+                command.category === "heading"
+                  ? t(`fly.popup.turn.${command.direction}`, {
+                      heading: String(command.headingDeg).padStart(3, "0"),
+                    })
+                  : t(`fly.popup.${command.direction}`, {
+                      altitude: command.altitudeFt,
+                    })
+              }
               onDismiss={() => dismiss(key)}
-            >
-              {command.category === "heading"
-                ? t(`fly.popup.turn.${command.direction}`, {
-                    heading: String(command.headingDeg).padStart(3, "0"),
-                  })
-                : t(`fly.popup.${command.direction}`, {
-                    altitude: command.altitudeFt,
-                  })}
-            </FlightPopup>
+            />
           ))}
         <TrafficPatternPopup />
         <FrequencyNotification phase={navigation.phase} fix={fix} />
