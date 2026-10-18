@@ -25,6 +25,9 @@ test("the dark map is a stored basemap choice; unknown ones fall back to the def
   expect(mapPreferencesSchema.safeParse({ basemap: "satellite" }).success).toBe(
     false,
   );
+  expect(mapPreferencesSchema.parse({ basemap: "dark-matter" }).basemap).toBe(
+    "dark-matter",
+  );
   expect(mapPreferencesSchema.parse({}).basemap).toBe("osm");
 });
 

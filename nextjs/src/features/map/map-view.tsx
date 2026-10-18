@@ -68,6 +68,7 @@ import { useTrafficSession } from "~/stores/traffic-session";
 import { useInFlight } from "~/stores/inflight";
 import { useMapSettings, type Basemap, type LayerId } from "~/stores/map";
 import { useGps } from "~/features/fly/use-gps";
+import { GlideStatus } from "~/features/emergency/glide-status";
 import { useEmergencyMap } from "~/features/emergency/use-emergency-map";
 import { MapSummary } from "./map-summary";
 import { PointDetails } from "./point-details";
@@ -81,6 +82,7 @@ import { coordinatePaths, toPaths, toPoints, zoneDatum } from "./deck/data";
 import { airportLabels, minuteLabels, pointNameLabels } from "./deck/labels";
 import { MarkerLayer } from "./deck/markers";
 import { FJORD_BACKGROUND } from "./deck/fjord";
+import { DARK_MATTER_BACKGROUND } from "./deck/dark-matter";
 import { palettes, themeOf } from "./deck/theme";
 import { mapLabelVisibility } from "~/domain/map-labels";
 import { MapScale } from "./map-scale";
@@ -283,6 +285,7 @@ export function MapView({
   useEffect(() => {
     routeRef.current = route;
   }, [route]);
+  const [terrainError, setTerrainError] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000);
@@ -306,16 +309,16 @@ export function MapView({
       emergencyPreview: emergencyMap.preview
         ? toPaths([emergencyMap.path])
         : [],
-      emergencyRange: emergencyMap.circle.length
-        ? [{ polygon: emergencyMap.circle.map((p) => [p.lon, p.lat]) }]
-        : [],
+      emergencyRange: emergencyMap.footprint.map((polygon) => ({ polygon })),
+      emergencyBoundary: emergencyMap.boundary.map((path) => ({ path })),
       emergencyAirports: emergencyMap.reachable.map((a) => [a.lon, a.lat]),
     });
   }, [
     ready,
     emergencyMap.path,
     emergencyMap.preview,
-    emergencyMap.circle,
+    emergencyMap.footprint,
+    emergencyMap.boundary,
     emergencyMap.reachable,
   ]);
   const navpoints = useQuery(api.navpoints.list.queryOptions(undefined));
@@ -483,7 +486,7 @@ export function MapView({
           if (!cancelled) setReady(true);
         },
       });
-      const scene = new DeckScene(map);
+      const scene = new DeckScene(map, () => setTerrainError(true));
       mapRef.current = map;
       sceneRef.current = scene;
       const syncZoom = () => {
@@ -533,7 +536,9 @@ export function MapView({
             return {
               info,
               band: Math.floor(d / 2),
-              rank: PICK_LAYERS.indexOf(info.layer?.id ?? ""),
+              rank: PICK_LAYERS.indexOf(
+                info.layer?.id.replace(/-terrain$/, "") ?? "",
+              ),
               d,
             };
           })
@@ -541,7 +546,7 @@ export function MapView({
             (a, b) => a.band - b.band || a.rank - b.rank || a.d - b.d,
           )[0]?.info;
         const object = hit?.object as (PointDatum & TrafficDatum) | undefined;
-        if (hit?.layer?.id === "traffic") {
+        if (hit?.layer?.id.replace(/-terrain$/, "") === "traffic") {
           const aircraft = trafficByHex.current.get(object!.hex);
           if (aircraft) {
             setClick({ kind: "traffic", lngLat, hex: aircraft.hex });
@@ -587,6 +592,7 @@ export function MapView({
       const camera = () => {
         root.dataset.centerLon = String(map.getCenter().lng);
         root.dataset.centerLat = String(map.getCenter().lat);
+        root.dataset.centerElevationM = String(map.getCenter().elevationM);
         root.dataset.zoom = String(map.getZoom());
       };
       camera();
@@ -607,9 +613,15 @@ export function MapView({
 
   const theme = themeOf(basemap);
   useEffect(() => {
-    sceneRef.current?.set({ basemap, theme, visible: layers });
+    sceneRef.current?.set({
+      basemap,
+      theme,
+      visible: layers,
+      terrain3d: settings.terrain3d,
+    });
+    mapRef.current?.setTerrain(settings.terrain3d);
     markers.current?.setVisible(layers.route);
-  }, [ready, basemap, theme, layers]);
+  }, [ready, basemap, theme, layers, settings.terrain3d]);
 
   useEffect(() => {
     sceneRef.current?.set({
@@ -1123,6 +1135,8 @@ export function MapView({
       )}
       data-pattern-preview={patternPreview ? "true" : "false"}
       data-holding-preview={holdingPreview ? "true" : "false"}
+      data-terrain-3d={settings.terrain3d ? "true" : "false"}
+      data-glide-cells={emergencyMap.footprint.length}
     >
       {navigation.startedAt && !emergencyMap.active && <TrafficPatternPopup />}
       {navigation.startedAt && !emergencyMap.active && <HoldingStatus />}
@@ -1139,16 +1153,8 @@ export function MapView({
               : t("emer.noRoute")}
           </strong>
           <p>{emergencyMap.preview ? t("emer.preview") : t("emer.final")}</p>
-          <p>
-            {emergencyMap.range
-              ? t("emer.range", {
-                  range: emergencyMap.range.radiusNm.toFixed(1),
-                  minutes: emergencyMap.range.minutes.toFixed(1),
-                  reference: emergencyMap.range.referenceFt,
-                })
-              : t("emer.rangeUnavailable")}
-          </p>
-          {emergencyMap.range && emergencyMap.reachable.length === 0 && (
+          <GlideStatus />
+          {emergencyMap.glide.reach && emergencyMap.reachable.length === 0 && (
             <p>{t("emer.noReachable")}</p>
           )}
         </div>
@@ -1228,7 +1234,11 @@ export function MapView({
         className="relative h-full w-full overflow-hidden"
         style={{
           backgroundColor:
-            basemap === "fjord" ? FJORD_BACKGROUND : palettes[theme].background,
+            basemap === "fjord"
+              ? FJORD_BACKGROUND
+              : basemap === "dark-matter"
+                ? DARK_MATTER_BACKGROUND
+                : palettes[theme].background,
         }}
         data-testid="map"
         data-map-ready={ready}
@@ -1244,17 +1254,66 @@ export function MapView({
         }
       />
       <MapScale mapRef={mapRef} ready={ready} />
-      {basemap !== "dark" && (
+      {(settings.terrain3d || emergencyMap.glide.reach) && (
         <a
-          className="legacy-map-attribution"
-          href="https://www.openstreetmap.org/copyright"
+          className="bg-card/90 text-muted-foreground absolute right-20 bottom-8 z-10 max-w-[65%] rounded px-1 text-right text-[10px]"
+          href="/terrain-attribution.html"
           target="_blank"
           rel="noreferrer"
         >
-          {basemap === "fjord"
-            ? "© OpenMapTiles © OpenStreetMap contributors · OpenFreeMap"
-            : "© OpenStreetMap contributors"}
+          {t("terrain.source")}
         </a>
+      )}
+      {(basemap !== "dark" || settings.terrain3d) && (
+        <div className="legacy-map-attribution">
+          {basemap === "dark-matter" && (
+            <>
+              <a
+                href="/dark-matter-attribution.html"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Dark Matter
+              </a>
+              {" · "}
+            </>
+          )}
+          {(basemap === "fjord" || basemap === "dark-matter") && (
+            <>
+              <a
+                href="https://openmaptiles.org/"
+                target="_blank"
+                rel="noreferrer"
+              >
+                © OpenMapTiles
+              </a>
+              {" · "}
+              <a
+                href="https://openfreemap.org/"
+                target="_blank"
+                rel="noreferrer"
+              >
+                OpenFreeMap
+              </a>
+              {" · "}
+            </>
+          )}
+          <a
+            href="https://www.openstreetmap.org/copyright"
+            target="_blank"
+            rel="noreferrer"
+          >
+            © OpenStreetMap contributors
+          </a>
+        </div>
+      )}
+      {settings.terrain3d && terrainError && (
+        <div
+          role="status"
+          className="bg-card/90 absolute bottom-20 left-3 z-10 max-w-xs rounded border p-2 text-xs"
+        >
+          {t("terrain.error3d")}
+        </div>
       )}
       {toolsContainer &&
         createPortal(

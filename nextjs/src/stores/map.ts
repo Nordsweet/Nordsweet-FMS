@@ -21,10 +21,13 @@ export const trafficNetworks = [
   "ogn",
 ] as const;
 export type LayerId = (typeof mapLayers)[number];
-export type Basemap = "osm" | "dark" | "night" | "fjord";
+export type Basemap = "osm" | "dark" | "night" | "fjord" | "dark-matter";
 export const mapPreferencesSchema = z.object({
+  terrain3d: z.boolean().default(false),
   gpsEnabled: z.boolean().default(false),
-  basemap: z.enum(["osm", "dark", "night", "fjord"]).default("osm"),
+  basemap: z
+    .enum(["osm", "dark", "night", "fjord", "dark-matter"])
+    .default("osm"),
   plan: z.enum(["current", "next", "none"]).default("current"),
   layers: z
     .object({

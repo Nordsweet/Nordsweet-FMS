@@ -51,14 +51,12 @@ The owner assigned the supplied Reims Rocket screenshots to **FR172H** on 2026-1
 - Phase/reference restrictions produce a dashed, unvalidated preview; after-takeoff source warnings
   remain present. The emergency overlay is separate from ordinary FPL navigation: it does not
   manipulate aircraft controls or replace stored route/holding/pattern state.
-- Live measured GS/descent are averaged over 10 seconds, expiring after 20 seconds. Threshold
-  elevation is the AMSL reference. Each green airport uses its own threshold height and complete
-  modeled approach length, not ARP proximity. The nearest target can remain outside the circle.
-- Browser geolocation altitude is ellipsoidal ([W3C Geolocation §9.2](https://www.w3.org/TR/geolocation/#altitude-and-altitudeaccuracy-attributes)), not a verified AMSL instrument feed. The initial
-  UI explicitly accepts current QNH-corrected AMSL altitude and measured vertical speed with fresh
-  GPS GS. These readings expire after 20 seconds and are not persisted across reloads. No circle
-  is guessed from GNSS height, sea level, nominal glide performance or the separate wind estimator.
-  Zero GS gives zero range; non-descent/less than 50 fpm descent yields unavailable range.
+- Terrain/wind-aware reach supersedes the original horizontal current-trend circle. Inputs,
+  DEM/geoid sources, freshness, no-data rules, model limitations, caching and verification are
+  specified in [Terrain and glide reach](TERRAIN_GLIDE_REACH.md). Green airports require their full
+  displayed approach to pass DEM/wind checks. Unvalidated approaches remain previews. Browser
+  ellipsoidal height is only usable after the documented coarse EGM96 correction and trend/accuracy
+  checks; current instrument AMSL/V/S entry remains available and takes priority for 20 seconds.
 - Routine COMMs/FREDA and holding/pattern report popups are suppressed while the matching emergency
   session is active. Map, target and range status remain accessible when the panel is closed.
 

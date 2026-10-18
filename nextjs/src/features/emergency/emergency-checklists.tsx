@@ -1,14 +1,11 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "~/components/ui/button";
+import { GlideControls } from "./glide-controls";
 import { Input } from "~/components/ui/input";
 import { useT } from "~/i18n/use-t";
 import { type EmergencyPhase, operationalProcedure } from "~/data/emergency";
-import {
-  emergencyCandidates,
-  emergencyContext,
-  emergencyRange,
-} from "~/domain/emergency";
+import { emergencyCandidates, emergencyContext } from "~/domain/emergency";
 import { useEmergencyContext } from "./use-emergency-context";
 
 /** The same session and source definition render in the flight rail and the checklist library. */
@@ -52,11 +49,6 @@ export function EmergencyChecklists() {
         ? emergencyCandidates(airports, fix, fix.groundSpeedKt, 24)
         : [],
     [airports, fix, fresh, routeRequested],
-  );
-  const range = emergencyRange(
-    store.measurements,
-    session?.target?.threshold.elevationFt ?? null,
-    now,
   );
   const available = reference ? references : procedures;
   const systemNotInstalled =
@@ -400,15 +392,7 @@ export function EmergencyChecklists() {
                   </option>
                 ))}
               </select>
-              <p className="text-sm" role="status">
-                {range
-                  ? t("emer.range", {
-                      range: range.radiusNm.toFixed(1),
-                      minutes: range.minutes.toFixed(1),
-                      reference: range.referenceFt,
-                    })
-                  : t("emer.rangeUnavailable")}
-              </p>
+              <GlideControls />
               <details>
                 <summary className="text-sm">{t("emer.record")}</summary>
                 <div className="grid gap-2 py-2">
@@ -443,6 +427,10 @@ export function EmergencyChecklists() {
                       if (fix)
                         store.measure({
                           at: Date.now(),
+                          source: "instrument",
+                          trackDeg: fix.trackDeg,
+                          lat: fix.lat,
+                          lon: fix.lon,
                           altitudeAmslFt: Number(altitude),
                           altitudeDatum: "AMSL",
                           groundSpeedKt: fix.groundSpeedKt,
@@ -454,7 +442,6 @@ export function EmergencyChecklists() {
                   </Button>
                 </div>
               </details>
-              <p className="text-xs">{t("emer.rangeLimit")}</p>
               <p className="text-xs">{t("emer.original")}</p>
             </div>
           )}

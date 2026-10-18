@@ -1,3 +1,4 @@
+import { terrainEn, terrainPl } from "./terrain";
 import { trafficPatternEn, trafficPatternPl } from "./traffic-pattern";
 import { type Language } from "~/stores/settings";
 import { atisConsensusEn, atisConsensusPl } from "./atis-consensus";
@@ -8,6 +9,7 @@ import { windEn, windPl } from "./wind";
 import { emergencyEn, emergencyPl } from "./emergency";
 
 const pl = {
+  ...terrainPl,
   ...emergencyPl,
   ...windPl,
   ...holdingPl,
@@ -241,6 +243,7 @@ const pl = {
   "map.basemapDark": "Ciemne tło",
   "map.basemapNight": "Ciemna mapa",
   "map.basemapFjord": "Fjord",
+  "map.basemapDarkMatter": "Dark Matter",
   "map.plan": "Plan przestrzeni",
   "map.planCurrent": "Dziś (AUP/UUP)",
   "map.planNext": "Jutro (AUP)",
@@ -820,6 +823,7 @@ const pl = {
 export type MessageKey = keyof typeof pl;
 
 const en: Record<MessageKey, string> = {
+  ...terrainEn,
   ...emergencyEn,
   ...windEn,
   ...holdingEn,
@@ -1053,6 +1057,7 @@ const en: Record<MessageKey, string> = {
   "map.basemapDark": "Dark background",
   "map.basemapNight": "Dark map",
   "map.basemapFjord": "Fjord",
+  "map.basemapDarkMatter": "Dark Matter",
   "map.plan": "Airspace plan",
   "map.planCurrent": "Today (AUP/UUP)",
   "map.planNext": "Tomorrow (AUP)",

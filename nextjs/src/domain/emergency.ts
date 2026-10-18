@@ -15,6 +15,10 @@ export type EmergencyTarget = {
   suitability: "unknown";
 };
 export type EmergencyMeasurement = {
+  source?: "instrument" | "gnss-egm96";
+  trackDeg?: number | null;
+  lat?: number;
+  lon?: number;
   at: number;
   altitudeAmslFt: number | null;
   altitudeDatum: "AMSL" | "ellipsoid" | "unknown";

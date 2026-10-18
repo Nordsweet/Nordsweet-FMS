@@ -34,13 +34,14 @@ export function interpolate({ base, stops }: Stops, zoom: number) {
   return v0 + t * (v1 - v0);
 }
 
-type Rule = {
+export type Rule = {
   layer: string;
   geometry?: "Polygon" | "LineString" | "Point";
   minzoom?: number;
   maxzoom?: number;
   where?: (p: Props, zoom: number) => boolean;
   color: Rgba;
+  colorStops?: { base: number; stops: [number, Rgba][] };
   opacity?: number | Stops;
 } & (
   | { kind: "fill" }
@@ -445,27 +446,38 @@ export function ruleColor(rule: Rule, zoom: number): Rgba {
       : typeof rule.opacity === "number"
         ? rule.opacity
         : interpolate(rule.opacity, zoom);
-  return [
-    rule.color[0],
-    rule.color[1],
-    rule.color[2],
-    Math.round(rule.color[3] * opacity),
-  ];
+  const color = rule.colorStops
+    ? ([0, 1, 2, 3].map((channel) =>
+        Math.round(
+          interpolate(
+            {
+              base: rule.colorStops!.base,
+              stops: rule.colorStops!.stops.map(
+                ([z, c]) => [z, c[channel]!] as [number, number],
+              ),
+            },
+            zoom,
+          ),
+        ),
+      ) as Rgba)
+    : rule.color;
+  return [color[0], color[1], color[2], Math.round(color[3] * opacity)];
 }
 
 export const stopsAt = (value: number | Stops, zoom: number) =>
   typeof value === "number" ? value : interpolate(value, zoom);
 
 /** Rules indexed by tile layer, so a tile's features are tested only against their own rules. */
-export const fjordRulesByLayer = (() => {
+export function indexRules(rules: readonly Rule[]) {
   const index = new Map<string, number[]>();
-  fjordRules.forEach((rule, i) => {
+  rules.forEach((rule, i) => {
     const list = index.get(rule.layer) ?? [];
     list.push(i);
     index.set(rule.layer, list);
   });
   return index;
-})();
+}
+export const fjordRulesByLayer = indexRules(fjordRules);
 
 export type Label = {
   rule: number;
@@ -477,15 +489,20 @@ export type Label = {
 };
 
 /** The place labels the style shows for these features at this zoom. */
-export function placeLabels(features: Feature[], zoom: number): Label[] {
+export function placeLabels(
+  features: Feature[],
+  zoom: number,
+  rules: readonly Rule[] = fjordRules,
+  index = fjordRulesByLayer,
+): Label[] {
   const labels: Label[] = [];
   for (const feature of features) {
     if (feature.properties.layerName !== "place") continue;
     const name = feature.properties["name:latin"] ?? feature.properties.name;
     const text = typeof name === "string" ? name.toUpperCase() : "";
     if (!text) continue;
-    for (const i of fjordRulesByLayer.get("place") ?? []) {
-      const rule = fjordRules[i]!;
+    for (const i of index.get("place") ?? []) {
+      const rule = rules[i]!;
       if (rule.kind === "text" && ruleMatches(rule, feature, zoom))
         labels.push({
           rule: i,
@@ -517,7 +534,11 @@ const CELL_PX = 128;
  * Keep the most important labels and drop any whose box overlaps one already kept (labels are
  * centred on their point). Boxes are measured in world pixels, so panning never changes the result.
  */
-export function declutter(labels: Label[], zoom: number): Label[] {
+export function declutter(
+  labels: Label[],
+  zoom: number,
+  rules: readonly Rule[] = fjordRules,
+): Label[] {
   const grid = new Map<string, [number, number, number, number][]>();
   const kept: Label[] = [];
   const sorted = [...labels].sort(
@@ -525,7 +546,7 @@ export function declutter(labels: Label[], zoom: number): Label[] {
       b.priority - a.priority || a.rank - b.rank || (a.text < b.text ? -1 : 1),
   );
   for (const label of sorted) {
-    const rule = fjordRules[label.rule]!;
+    const rule = rules[label.rule]!;
     if (rule.kind !== "text") continue;
     const size = stopsAt(rule.size, zoom);
     const [x, y] = toPixels(zoom, label.position);
