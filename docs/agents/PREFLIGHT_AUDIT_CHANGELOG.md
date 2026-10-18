@@ -5,6 +5,24 @@ Reference: <https://nordsweet-performance-calculator.mrnordsweet.chatgpt.site/> 
 `5265bc5de9510aa3d83cc469860a730962b96c78`. Starting develop: `2f289ed6dc8d7b7c3186b100577c787c64df1de2`.
 Branch: `codex/preflight-parity-audit`.
 
+## Unified flight notifications (2026-10-18)
+
+- Share one accessible popup card and responsive stack across Map and Fly: Heading, Altitude,
+  Comms, Frequency and System Info. Use explicit foreground contrast, matching icons, category
+  labels and consistent close buttons; simultaneous notices no longer overlap. Keep passive wind tiles
+  below notifications and interactive map details above them so HOLD and other actions stay clickable.
+  Reuse map guidance inputs and memoize geometry; expiry timers do not rebuild the flight planner.
+- Add automatic route heading and climb/descent guidance. Headings use wind correction and magnetic
+  variation, with connector heading preferred to inferred heading; vertical targets use active-fix
+  restrictions, circuit/holding level and the planner's TOC/TOD profile events.
+- Suppress guidance on ground, paused or stale/missing samples, and inside the 10-degree/150-ft
+  capture bands. Show commands for up to 12 seconds and remember dismissal per target and leg
+  while navigating between Map and Fly. No aircraft controls or plan values are changed.
+- Preserve two-minute radio suggestions, one-time circuit report reminders and recorded-event
+  timestamps. Guidance requires a started flight; emergency navigation keeps its dedicated UI.
+- Add calculation coverage for wind, magnetic north, turn direction, altitude capture and invalid
+  fixes, plus a phone regression for stacked categories, independent dismissal and leg sequencing.
+
 ## Layers summary tabs (2026-10-18)
 
 - Remove the Route tab and waypoint list from the Map/Fly Layers summary, as clarified by the owner

@@ -32,7 +32,7 @@ import {
 import { flyByRoute } from "~/domain/fly-by";
 import { ownRegistration } from "~/domain/traffic-identity";
 import { useTurnPerformance } from "~/features/fly/use-turn-performance";
-import { TrafficPatternPopup } from "~/features/fly/traffic-pattern-popup";
+import { FlightNotifications } from "~/features/fly/flight-notifications";
 import { HoldingStatus } from "~/features/fly/holding-status";
 import { type Holding } from "~/data/holding";
 import { holdingGeometry } from "~/domain/holding";
@@ -1128,7 +1128,14 @@ export function MapView({
       data-terrain-3d={settings.terrain3d ? "true" : "false"}
       data-glide-cells={emergencyMap.footprint.length}
     >
-      {navigation.startedAt && !emergencyMap.active && <TrafficPatternPopup />}
+      {navigation.startedAt && !emergencyMap.active && (
+        <FlightNotifications
+          plan={routePlan}
+          cruiseAltitudeFt={flight.cruiseAltitudeFt}
+          fix={fix}
+          turns={turnPerformance}
+        />
+      )}
       {navigation.startedAt && !emergencyMap.active && <HoldingStatus />}
       {emergencyMap.active && (
         <div
