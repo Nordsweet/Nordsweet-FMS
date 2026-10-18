@@ -5,6 +5,15 @@ Reference: <https://nordsweet-performance-calculator.mrnordsweet.chatgpt.site/> 
 `5265bc5de9510aa3d83cc469860a730962b96c78`. Starting develop: `2f289ed6dc8d7b7c3186b100577c787c64df1de2`.
 Branch: `codex/preflight-parity-audit`.
 
+## Layers summary tabs (2026-10-18)
+
+- Remove the Route tab and waypoint list from the Map/Fly Layers summary, as clarified by the owner
+  after adding FPL. Default to Radio and retain the Airspace summary and route visibility checkbox.
+- Keep unresolved-route validation messages above the remaining tabs rather than dropping them
+  with the removed waypoint-list panel.
+- Verify the remaining tabs, default selection and independent route visibility control in the
+  desktop Map and phone Fly views; run the existing map appearance scenarios.
+
 ## FR172H Engine Fire source checklists (2026-10-18)
 
 - Import the two owner-supplied Engine Fire excerpts with all 14 actions, introductions, source speed
