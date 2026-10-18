@@ -200,6 +200,10 @@ test("Overhead departure completes the circuit before runway overflight and surv
     .getByRole("button", { name: "Accept traffic pattern", exact: true })
     .click();
   await expect(page.getByTestId("turn-constraint")).toHaveCount(0);
+  await page.goto("/fly");
+  await page.getByRole("button", { name: "Start flight", exact: true }).click();
+  await page.getByRole("button", { name: "FPL", exact: true }).click();
+  const fpl = page.getByRole("dialog", { name: "FPL", exact: true });
   for (const leg of [
     "TPD1/EPKK",
     "TPD2/EPKK",
@@ -207,7 +211,8 @@ test("Overhead departure completes the circuit before runway overflight and surv
     "TPD4/EPKK",
     "TPD5/EPKK",
   ])
-    await expect(page.getByText(leg, { exact: true })).toBeVisible();
+    await expect(fpl.getByText(leg, { exact: true })).toBeVisible();
+  await page.goto("/map");
   for (let i = 0; i < 8; i++)
     await page.getByRole("button", { name: "Zoom in", exact: true }).click();
   await page.getByRole("button", { name: "Layers", exact: true }).click();
@@ -215,7 +220,9 @@ test("Overhead departure completes the circuit before runway overflight and surv
     path: testInfo.outputPath("overhead-full-circuit.png"),
   });
   await page.reload();
-  await expect(page.getByText("TPD5/EPKK", { exact: true })).toBeVisible();
+  await page.goto("/fly");
+  await page.getByRole("button", { name: "FPL", exact: true }).click();
+  await expect(fpl.getByText("TPD5/EPKK", { exact: true })).toBeVisible();
   await expect(page.getByTestId("turn-constraint")).toHaveCount(0);
 });
 
