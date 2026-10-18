@@ -1,6 +1,7 @@
 import { useCallback, useSyncExternalStore } from "react";
 import { distanceNm, initialBearingDeg } from "~/domain/geo";
 import { mToFt, mpsToKt } from "~/domain/units";
+import { gnssAltitudeTrend } from "~/domain/terrain";
 import { connectTelemetry, type ConnectorStatus } from "~/api/connector";
 import { usePositionSource } from "~/stores/position-source";
 export type GpsFix = {
@@ -31,6 +32,7 @@ let snapshot: Snapshot = empty;
 let watchId: number | null = null;
 /** True while a GPX replay drives the fixes; device positions are ignored. */
 let simulating = false;
+let heightSamples: { at: number; altitudeM: number }[] = [];
 const listeners = new Set<() => void>();
 function publish(
   value: Omit<Snapshot, "connectorStatus"> & {
@@ -77,6 +79,17 @@ function startDevice() {
               heading ??= initialBearingDeg(previous, position);
             }
           }
+          heightSamples = heightSamples.filter(
+            (s) => timestamp - s.at <= 10000 && s.at < timestamp,
+          );
+          if (
+            coords.altitude !== null &&
+            (coords.altitudeAccuracy ?? Infinity) <= 30 &&
+            coords.accuracy <= 100
+          )
+            heightSamples.push({ at: timestamp, altitudeM: coords.altitude });
+          else heightSamples = [];
+          const trend = gnssAltitudeTrend(heightSamples);
           publish({
             error: null,
             fix: {
@@ -86,6 +99,7 @@ function startDevice() {
               altitudeFt:
                 coords.altitude === null ? null : mToFt(coords.altitude),
               altitudeAccuracyM: coords.altitudeAccuracy,
+              verticalSpeedFpm: trend?.verticalSpeedFpm,
               groundSpeedKt: speed,
               trackDeg: heading,
               accuracyM: coords.accuracy,
@@ -117,6 +131,7 @@ function stopSource() {
 }
 function startSource() {
   stopSource();
+  heightSamples = [];
   simulating = false;
   publish(empty);
   const settings = usePositionSource.getState();

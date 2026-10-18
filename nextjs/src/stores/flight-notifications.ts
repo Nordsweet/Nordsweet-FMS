@@ -20,7 +20,7 @@ type History = z.infer<typeof savedHistory> & {
 /** History records each displayed popup once per flight, surviving dismissal, view changes and reload. */
 export const useFlightNotificationHistory = create<History>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       session: null,
       entries: [],
       readCount: 0,
@@ -30,21 +30,21 @@ export const useFlightNotificationHistory = create<History>()(
             ? s
             : { session, entries: [], readCount: 0 },
         ),
-      record: (session, entry) =>
-        set((s) => {
-          if (!session || !flightNotificationSchema.safeParse(entry).success)
-            return s;
-          if (
-            session === s.session &&
-            s.entries.some((item) => item.id === entry.id)
-          )
-            return s;
-          return {
-            session,
-            entries: [...(session === s.session ? s.entries : []), entry],
-            readCount: session === s.session ? s.readCount : 0,
-          };
-        }),
+      record: (session, entry) => {
+        const s = get();
+        if (!session || !flightNotificationSchema.safeParse(entry).success)
+          return s;
+        if (
+          session === s.session &&
+          s.entries.some((item) => item.id === entry.id)
+        )
+          return s;
+        set({
+          session,
+          entries: [...(session === s.session ? s.entries : []), entry],
+          readCount: session === s.session ? s.readCount : 0,
+        });
+      },
       markRead: () =>
         set((s) =>
           s.readCount === s.entries.length

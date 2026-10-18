@@ -45,6 +45,8 @@ import { WxPanel } from "./wx-panel";
 import { useGps } from "./use-gps";
 import { useTurnPerformance } from "./use-turn-performance";
 import { PositionSourcePanel } from "./position-source-panel";
+import { FlightStatusBar } from "./flight-status-bar";
+import { useWindowDrag } from "./use-window-drag";
 import { NotificationBell, NotificationHistory } from "./notification-history";
 import { usePositionSource } from "~/stores/position-source";
 
@@ -67,6 +69,7 @@ type Panel =
 const RAIL: { id: Panel; phases?: Phase[] }[] = [
   { id: "emer" },
   { id: "fpl" },
+  { id: "notifications" },
   { id: "route", phases: ["taxiout", "taxiin"] },
   { id: "comms" },
   { id: "wx", phases: ["cruise"] },
@@ -80,7 +83,6 @@ const RAIL: { id: Panel; phases?: Phase[] }[] = [
   { id: "checklist" },
   { id: "info" },
   { id: "options" },
-  { id: "notifications" },
 ];
 
 function Tile({
@@ -344,185 +346,192 @@ export function FlyPage() {
   // the right; each tool opens its panel beside the rail.
   return (
     <div className="bg-background fixed inset-0 z-40">
-      <MapWorkspace embedded />
-      {!flying && (
-        <div className="bg-card/95 absolute top-40 left-3 z-30 max-h-[calc(100%-15rem)] w-[min(25rem,calc(100%-1.5rem))] overflow-y-auto rounded-xl backdrop-blur">
-          <PositionSourcePanel />
-        </div>
-      )}
-      <div className="fly-scrim" aria-hidden="true" data-open={open !== null} />
-      {flying && !emergencyActive && <FredaDialog fix={fix} now={now} />}
-      {flying && inFlight.replayEnabled && <GpxReplayDock />}
-      <div className="bg-card/90 absolute top-3 left-1/2 z-30 flex max-w-[calc(100%-1.5rem)] -translate-x-1/2 gap-2 overflow-x-auto rounded-3xl border p-2 backdrop-blur">
-        {flying && positionSource === "connector" && (
-          <Button
-            variant="outline"
-            className="max-w-48 shrink-0"
-            title={t(`connector.${connectorStatus}`)}
-            onClick={() => {
-              setSearchOpen(false);
-              setPanel(open === "options" ? null : "options");
-            }}
-          >
-            <span className="truncate">
-              {t(`connector.${connectorStatus}`)}
-            </span>
-          </Button>
+      <FlightStatusBar fix={fix} progress={progress} />
+      <div className="absolute inset-x-0 top-24 bottom-0">
+        <MapWorkspace embedded />
+        {!flying && (
+          <div className="bg-card/95 absolute top-40 left-3 z-30 max-h-[calc(100%-15rem)] w-[min(25rem,calc(100%-1.5rem))] overflow-y-auto rounded-xl backdrop-blur">
+            <PositionSourcePanel />
+          </div>
         )}
-        {flying ? (
-          <>
-            {PHASES.map((p) => (
-              <Button
-                key={p}
-                variant={p === phase ? "default" : "outline"}
-                aria-pressed={p === phase}
-                className="shrink-0"
-                onClick={() => setPhase(p)}
-              >
-                {t(`fly.phase.${p}`)}
-              </Button>
-            ))}
+        <div
+          className="fly-scrim"
+          aria-hidden="true"
+          data-open={open !== null}
+        />
+        {flying && !emergencyActive && <FredaDialog fix={fix} now={now} />}
+        {flying && inFlight.replayEnabled && <GpxReplayDock />}
+        <div className="bg-card/90 absolute top-3 left-1/2 z-30 flex max-w-[calc(100%-1.5rem)] -translate-x-1/2 gap-2 overflow-x-auto rounded-3xl border p-2 backdrop-blur">
+          {flying && positionSource === "connector" && (
             <Button
               variant="outline"
-              className="border-primary shrink-0"
+              className="max-w-48 shrink-0"
+              title={t(`connector.${connectorStatus}`)}
               onClick={() => {
-                inFlight.end();
-                setPanel(null);
-                setDebrief(true);
+                setSearchOpen(false);
+                setPanel(open === "options" ? null : "options");
               }}
             >
-              {t("fly.end")}
+              <span className="truncate">
+                {t(`connector.${connectorStatus}`)}
+              </span>
             </Button>
-          </>
-        ) : (
-          <>
-            <Button variant="outline" className="shrink-0" asChild>
-              <Link href="/">{t("nav.plan")}</Link>
-            </Button>
-            <Button
-              className="shrink-0"
-              disabled={planRoute.length < 2}
-              onClick={() => {
-                inFlight.start(
-                  planRoute,
-                  flight.trafficPattern,
-                  departurePattern,
-                );
-                inFlight.setHolding(flight.holding);
-                setPhase("taxiout");
-                setDebrief(false);
-              }}
-            >
-              {t("fly.start")}
-            </Button>
-          </>
-        )}
-      </div>
-
-      {flying && (
-        <nav
-          aria-label={t("fly.title")}
-          className="absolute top-[5.15rem] right-3 z-30 grid max-h-[calc(100%-6.15rem)] gap-[0.48rem] overflow-y-auto"
-        >
-          {rail.map((r) =>
-            r.id === "notifications" ? (
-              <NotificationBell
-                key={r.id}
-                open={open === r.id}
-                onClick={() => {
-                  setSearchOpen(false);
-                  setPanel(open === r.id ? null : r.id);
-                }}
-              />
-            ) : (
+          )}
+          {flying ? (
+            <>
+              {PHASES.map((p) => (
+                <Button
+                  key={p}
+                  variant={p === phase ? "default" : "outline"}
+                  aria-pressed={p === phase}
+                  className="shrink-0"
+                  onClick={() => setPhase(p)}
+                >
+                  {t(`fly.phase.${p}`)}
+                </Button>
+              ))}
               <Button
-                key={r.id}
-                variant={r.id === "emer" ? "destructive" : "outline"}
-                aria-expanded={open === r.id}
-                aria-label={panelLabel(r.id)}
-                className="legacy-flight-tool backdrop-blur"
+                variant="outline"
+                className="border-primary shrink-0"
                 onClick={() => {
-                  setSearchOpen(false);
-                  setPanel(open === r.id ? null : r.id);
+                  inFlight.end();
+                  setPanel(null);
+                  setDebrief(true);
                 }}
               >
-                {/* Legacy wraps the long label onto two lines: CHECK / LIST. */}
-                {r.id === "checklist" ? (
-                  <span>
-                    {panelLabel(r.id).slice(0, 5)}
-                    <br />
-                    {panelLabel(r.id).slice(5)}
-                  </span>
-                ) : (
-                  panelLabel(r.id)
-                )}
+                {t("fly.end")}
               </Button>
-            ),
-          )}
-          <Button
-            aria-label={t("mapsearch.title")}
-            title={t("mapsearch.title")}
-            aria-expanded={searchOpen}
-            className="legacy-flight-tool bg-card/90 backdrop-blur"
-            variant="outline"
-            onClick={() => {
-              setPanel(null);
-              setSearchOpen(!searchOpen);
-            }}
-          >
-            <SearchIcon className="size-6 text-white" />
-          </Button>
-        </nav>
-      )}
-
-      {(open ?? (!flying && (debrief || planRoute.length < 2))) && (
-        <section
-          role="dialog"
-          aria-label={open ? panelLabel(open) : t("fly.title")}
-          className="fly-popover"
-          data-panel={open ?? "none"}
-          style={
-            {
-              "--top": `calc(5.15rem + ${rail.findIndex((r) => r.id === open)} * 3.93rem)`,
-            } as React.CSSProperties
-          }
-        >
-          {open ? (
-            <>
-              {open !== "config" && open !== "rwy" && (
-                <div className="fly-popover-head">
-                  <div>
-                    <h2>{panelLabel(open)}</h2>
-                    {open === "wx" && (
-                      <p className="text-muted-foreground text-xs">
-                        {t("fly.wx.subtitle")}
-                      </p>
-                    )}
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPanel(null)}
-                  >
-                    {t("map.close")}
-                  </Button>
-                </div>
-              )}
-              {content[open]}
             </>
-          ) : debrief ? (
-            <Debrief
-              summary={summary}
-              track={inFlight.track}
-              name={flight.name}
-            />
           ) : (
-            <p className="text-muted-foreground text-sm">
-              {t("plan.navlog.empty")}
-            </p>
+            <>
+              <Button variant="outline" className="shrink-0" asChild>
+                <Link href="/">{t("nav.plan")}</Link>
+              </Button>
+              <Button
+                className="shrink-0"
+                disabled={planRoute.length < 2}
+                onClick={() => {
+                  inFlight.start(
+                    planRoute,
+                    flight.trafficPattern,
+                    departurePattern,
+                  );
+                  inFlight.setHolding(flight.holding);
+                  setPhase("taxiout");
+                  setDebrief(false);
+                }}
+              >
+                {t("fly.start")}
+              </Button>
+            </>
           )}
-        </section>
-      )}
+        </div>
+
+        {flying && (
+          <nav
+            aria-label={t("fly.title")}
+            className="absolute top-[5.15rem] right-3 z-30 grid max-h-[calc(100%-6.15rem)] gap-[0.48rem] overflow-y-auto"
+          >
+            {rail.map((r) =>
+              r.id === "notifications" ? (
+                <NotificationBell
+                  key={r.id}
+                  open={open === r.id}
+                  onClick={() => {
+                    setSearchOpen(false);
+                    setPanel(open === r.id ? null : r.id);
+                  }}
+                />
+              ) : (
+                <Button
+                  key={r.id}
+                  variant={r.id === "emer" ? "destructive" : "outline"}
+                  aria-expanded={open === r.id}
+                  aria-label={panelLabel(r.id)}
+                  className="legacy-flight-tool backdrop-blur"
+                  onClick={() => {
+                    setSearchOpen(false);
+                    setPanel(open === r.id ? null : r.id);
+                  }}
+                >
+                  {/* Legacy wraps the long label onto two lines: CHECK / LIST. */}
+                  {r.id === "checklist" ? (
+                    <span>
+                      {panelLabel(r.id).slice(0, 5)}
+                      <br />
+                      {panelLabel(r.id).slice(5)}
+                    </span>
+                  ) : (
+                    panelLabel(r.id)
+                  )}
+                </Button>
+              ),
+            )}
+            <Button
+              aria-label={t("mapsearch.title")}
+              title={t("mapsearch.title")}
+              aria-expanded={searchOpen}
+              className="legacy-flight-tool bg-card/90 backdrop-blur"
+              variant="outline"
+              onClick={() => {
+                setPanel(null);
+                setSearchOpen(!searchOpen);
+              }}
+            >
+              <SearchIcon className="size-6 text-white" />
+            </Button>
+          </nav>
+        )}
+
+        {(open ?? (!flying && (debrief || planRoute.length < 2))) && (
+          <section
+            role="dialog"
+            aria-label={open ? panelLabel(open) : t("fly.title")}
+            className="fly-popover"
+            data-panel={open ?? "none"}
+            style={
+              {
+                "--top": `calc(5.15rem + ${rail.findIndex((r) => r.id === open)} * 3.93rem)`,
+              } as React.CSSProperties
+            }
+          >
+            {open ? (
+              <>
+                {open !== "config" && open !== "rwy" && (
+                  <div className="fly-popover-head">
+                    <div>
+                      <h2>{panelLabel(open)}</h2>
+                      {open === "wx" && (
+                        <p className="text-muted-foreground text-xs">
+                          {t("fly.wx.subtitle")}
+                        </p>
+                      )}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPanel(null)}
+                    >
+                      {t("map.close")}
+                    </Button>
+                  </div>
+                )}
+                {content[open]}
+              </>
+            ) : debrief ? (
+              <Debrief
+                summary={summary}
+                track={inFlight.track}
+                name={flight.name}
+              />
+            ) : (
+              <p className="text-muted-foreground text-sm">
+                {t("plan.navlog.empty")}
+              </p>
+            )}
+          </section>
+        )}
+      </div>
     </div>
   );
 }
@@ -537,10 +546,19 @@ function Debrief({
   name: string;
 }) {
   const t = useT();
+  const drag = useWindowDrag();
   return (
     <>
       <h2 className="text-primary font-semibold tracking-[0.08em] uppercase">
-        {t("fly.debrief")}
+        <span
+          role="button"
+          tabIndex={0}
+          aria-label={t("fly.status.dragDebrief")}
+          className="block cursor-grab touch-none select-none active:cursor-grabbing"
+          {...drag}
+        >
+          {t("fly.debrief")}
+        </span>
       </h2>
       <p data-testid="debrief" className="text-sm">
         {t("fly.debriefSummary", {

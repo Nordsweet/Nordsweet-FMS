@@ -84,6 +84,13 @@ test("Connector source feeds Fly, survives reload and clears stale fixes without
   await expect(page.getByTestId("connector-status")).toHaveText(
     "Prepar3D — connected",
   );
+  await expect(page.getByTestId("status-altitude")).toHaveText("2500 ft");
+  await expect(page.getByTestId("status-gs")).toHaveText("110 kt");
+  await expect(page.getByTestId("status-vs")).toHaveText("-300");
+  await expect(page.getByTestId("status-agl")).toHaveText("2100 ft");
+  await expect(page.getByTestId("status-utc")).toHaveText(
+    /^\d{2}:\d{2}:\d{2}$/,
+  );
   await page.screenshot({ path: "test-results/connector-desktop.png" });
   await page.setViewportSize({ width: 1024, height: 768 });
   await expect(page.getByLabel("Connector token")).toBeInViewport();

@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { useT } from "~/i18n/use-t";
+import { cn } from "~/lib/utils";
 
 export type { PopupCategory } from "~/data/flight-notification";
 const icons = {
@@ -31,6 +32,7 @@ export function FlightPopup({
   notificationId,
   message,
   recordedAt,
+  severity,
 }: {
   category: PopupCategory;
   children?: ReactNode;
@@ -39,6 +41,7 @@ export function FlightPopup({
   notificationId: string;
   message: string;
   recordedAt?: number;
+  severity?: "warning" | "danger";
 }) {
   const t = useT();
   const session = useInFlight((s) => s.startedAt);
@@ -58,7 +61,11 @@ export function FlightPopup({
       aria-label={t(`fly.popup.${category}`)}
       data-category={category}
       data-testid={testId}
-      className="bg-card/95 text-card-foreground flex w-full items-start gap-3 rounded-2xl border p-3 shadow-lg backdrop-blur sm:p-4"
+      className={cn(
+        "bg-card/95 text-card-foreground flex w-full items-start gap-3 rounded-2xl border p-3 shadow-lg backdrop-blur sm:p-4",
+        severity === "warning" && "border-yellow-400 ring-1 ring-yellow-400",
+        severity === "danger" && "border-red-500 ring-1 ring-red-500",
+      )}
     >
       <Icon
         className="text-primary mt-0.5 size-5 shrink-0"

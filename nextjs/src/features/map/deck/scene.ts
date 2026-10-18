@@ -64,6 +64,7 @@ export type ZoneDatum = {
   lineWidth: number;
 };
 export type TrafficDatum = {
+  advisory?: "ta" | "close";
   position: Pos;
   hex: string;
   icon: IconName;
@@ -678,6 +679,23 @@ export function buildLayers(
     paths("holding", s.holding, MAGENTA, 2, route, { round: true }),
     paths("holding-preview", s.holdingPreview, MAGENTA, 2.5, true, {
       dash: true,
+    }),
+    new ScatterplotLayer<TrafficDatum>({
+      id: "traffic-advisory-outlines",
+      data: s.traffic.filter((d) => d.advisory),
+      visible: traffic,
+      getPosition: (d) => d.position,
+      getRadius: 18,
+      radiusUnits: "pixels",
+      filled: false,
+      stroked: true,
+      lineWidthUnits: "pixels",
+      getLineWidth: 2.5,
+      getLineColor: (d) =>
+        d.advisory === "close"
+          ? [239, 68, 68, Math.round(d.alpha * 255)]
+          : [250, 204, 21, Math.round(d.alpha * 255)],
+      pickable: false,
     }),
     new IconLayer<TrafficDatum>({
       id: "traffic",

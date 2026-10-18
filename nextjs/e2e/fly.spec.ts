@@ -108,6 +108,24 @@ test("flies the route: sequencing, direct-to and debrief", async ({
 
   await page.getByRole("button", { name: "Close flight" }).click();
   await expect(page.getByTestId("debrief")).toContainText("track points");
+  const debrief = page.locator('.fly-popover[data-panel="none"]');
+  const before = (await debrief.boundingBox())!;
+  const title = page.getByRole("button", {
+    name: "Move flight debrief (drag or arrow keys)",
+    exact: true,
+  });
+  const handle = (await title.boundingBox())!;
+  await page.mouse.move(handle.x + 30, handle.y + 8);
+  await page.mouse.down();
+  await page.mouse.move(handle.x + 110, handle.y + 88, { steps: 5 });
+  await page.mouse.up();
+  const after = (await debrief.boundingBox())!;
+  expect(after.x).toBeGreaterThan(before.x + 30);
+  expect(after.y).toBeGreaterThan(before.y + 30);
+  await expect(
+    page.getByRole("button", { name: "Export GPX track", exact: true }),
+  ).toBeVisible();
+  await page.screenshot({ path: "test-results/debrief-drag.png" });
 });
 
 test("WX conditions are editable and survive a reload", async ({ page }) => {

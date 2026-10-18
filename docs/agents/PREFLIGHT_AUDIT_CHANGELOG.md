@@ -5,6 +5,29 @@ Reference: <https://nordsweet-performance-calculator.mrnordsweet.chatgpt.site/> 
 `5265bc5de9510aa3d83cc469860a730962b96c78`. Starting develop: `2f289ed6dc8d7b7c3186b100577c787c64df1de2`.
 Branch: `codex/preflight-parity-audit`.
 
+## Resumed flight display and traffic advisories (2026-10-18)
+
+- Add a 96px instrument strip above the Fly phase selector: altitude, ground speed, magnetic track
+  and desired track, vertical speed, next-fix distance/ETE, UTC clock, GPS accuracy, device network
+  and battery status, and height above terrain. Optional/stale data stays unavailable. Connector
+  AGL/VS take precedence; device VS reuses the validated GNSS trend and DEM AGL uses EGM96 correction.
+- Reserve map space below the strip and constrain tool popovers to that remaining height; the
+  map and Layers panel remain within the phone viewport. Put the bell directly below FPL.
+- Make the Flight Debrief title draggable by pointer/touch and movable with keyboard arrows,
+  clamped to the map container and re-clamped on window resize. GPX export remains available.
+- Replace live legacy CPA icon colouring with yellow TA / red close-region outlines around the
+  intruder, plus matching warning borders in the shared popup system. Both warning levels enter
+  bell history; dismissing TA does not suppress an escalation. No resolution maneuver is computed.
+- Use the owner's fixed diagram thresholds: TA 40s/850ft, close region 25s/600ft, with 0.75/0.55 NM
+  slow-closure DMOD. Time-align fresh reports, require conflicting CPA/vertical separation, and
+  exclude stale, ground, paused and identified own-aircraft reports. Re-arm after 60 seconds clear.
+- Reference: [FAA Introduction to TCAS II v7.1, Table 2](https://www.faa.gov/documentLibrary/media/Advisory_Circular/TCAS%20II%20V7.1%20Intro%20booklet.pdf).
+  This is an informational public-feed model using fixed illustrative thresholds, not coordinated
+  TCAS/ACAS logic; feed latency and GNSS/reported altitude datum differences remain limitations.
+- Local coverage: traffic geometry/guard tests; browser checks for yellow-to-red escalation after
+  dismissal and both history entries, live connector instruments, debrief movement/export and
+  responsive map/terrain/basemap scenarios.
+
 ## Bell notification history (2026-10-18)
 
 - Add a bell tile to the Fly rail and standalone Map. Its panel lists all five categories of

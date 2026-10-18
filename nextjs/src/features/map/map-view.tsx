@@ -1139,6 +1139,8 @@ export function MapView({
           cruiseAltitudeFt={flight.cruiseAltitudeFt}
           fix={fix}
           turns={turnPerformance}
+          aircraft={layers.traffic ? traffic.data?.aircraft : undefined}
+          identity={ownIdentity}
         />
       )}
       {navigation.startedAt && !emergencyMap.active && <HoldingStatus />}

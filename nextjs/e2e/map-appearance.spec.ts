@@ -44,7 +44,12 @@ test("embedded map fills the screen and its legacy Layers panel stays inside a p
   await expect(map).toHaveAttribute("data-map-ready", "true", {
     timeout: 20000,
   });
-  expect((await map.boundingBox())!.height).toBeGreaterThan(800);
+  const status = page.getByTestId("flight-status-bar");
+  await expect(status).toBeVisible();
+  const mapBox = (await map.boundingBox())!;
+  const statusBox = (await status.boundingBox())!;
+  expect(mapBox.height).toBeGreaterThan(700);
+  expect(mapBox.y).toBeGreaterThanOrEqual(statusBox.y + statusBox.height);
   await page.getByRole("button", { name: "Layers", exact: true }).click();
   const panel = page.locator(".legacy-map-tools");
   await expect(panel).toBeVisible();
