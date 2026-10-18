@@ -25,8 +25,8 @@ the same piece of work.
 ## Tooling in this repo
 
 Ponytail, Karpathy guidelines and Superpowers are declared for the team in `.claude/settings.json`;
-Claude Code offers to install them when the folder is first trusted. At the start of a thread run
-`claude plugin list`, use what is enabled, install only what is missing:
+Claude Code offers to install them when the folder is first trusted. At the start of a Claude Code
+thread run `claude plugin list`, use what is enabled, install only what is missing:
 
 ```
 claude plugin marketplace add obra/superpowers-marketplace
@@ -37,15 +37,24 @@ claude plugin install ponytail@ponytail
 claude plugin install andrej-karpathy-skills@karpathy-skills
 ```
 
+These plugins are Claude Code only; Codex follows the rules below by hand.
+
 - Ponytail: shortest working solution first, no speculative abstractions.
 - Karpathy guidelines: think before coding, simplicity, surgical changes, goal-driven execution.
 - Superpowers: use its skills for planning, TDD and debugging.
-- CodeGraph: in every thread call `codegraph_explore` (or `codegraph explore "<question>"`) before
-  grep/find/Read to locate code and see the blast radius before editing. Rebuild the index with
-  `codegraph init -y`.
+
+## CodeGraph
+
+The index lives in `.codegraph/` (gitignored). In every thread, in any agent, call `codegraph_explore`
+(MCP tool) or `codegraph explore "<question>"` (shell) BEFORE grep/find/reading files, to find or
+understand code, and again before editing to see the blast radius. Name files or symbols in the query.
+`codegraph impact <symbol>` and `codegraph affected <files>` show what a change touches and which tests
+to run. If `codegraph` is missing or the index is empty: `npm install -g @colbymchenry/codegraph`,
+`codegraph install -y -t claude,codex`, `codegraph init -y`; update with `codegraph upgrade`; refresh
+with `codegraph sync`.
 
 ## Finishing work
 
 After every change, without asking: run the gates from `nextjs/` (`pnpm format:write && pnpm check`,
 which is lint + typecheck + unit tests; add `pnpm build && pnpm test:e2e` as in the gates above), then
-commit and push to `develop`. Never push red.
+commit and push to `develop`, which auto-deploys to dev.fms.lab.vibecde.com. Never push red.
