@@ -315,6 +315,7 @@ const pl = {
   "fly.panel.options": "Opcje",
   "fly.routeChip": "Trasa: {route}",
   "fly.panel.emer": "EMER",
+  "fly.panel.fpl": "FPL",
   "fly.emer.subtitle": "Wznoszenie / klapy schowane / jeden silnik niesprawny",
   "fly.emer.checklist": "Checklista",
   "fly.emer.checklistNote":
@@ -1128,6 +1129,7 @@ const en: Record<MessageKey, string> = {
   "fly.panel.options": "Options",
   "fly.routeChip": "Route: {route}",
   "fly.panel.emer": "EMER",
+  "fly.panel.fpl": "FPL",
   "fly.emer.subtitle": "Climb / Flaps Up / One engine INOP",
   "fly.emer.checklist": "Checklist",
   "fly.emer.checklistNote":

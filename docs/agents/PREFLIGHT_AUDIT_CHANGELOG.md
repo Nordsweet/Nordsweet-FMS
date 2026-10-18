@@ -5,6 +5,14 @@ Reference: <https://nordsweet-performance-calculator.mrnordsweet.chatgpt.site/> 
 `5265bc5de9510aa3d83cc469860a730962b96c78`. Starting develop: `2f289ed6dc8d7b7c3186b100577c787c64df1de2`.
 Branch: `codex/preflight-parity-audit`.
 
+## FPL flight rail tile (2026-10-18)
+
+- Add FPL directly below EMER in every flight phase, using the existing square rail styling and
+  toggleable popover. Show the active flight route in order and highlight the next waypoint as GPS
+  sequencing advances; this reads live navigation state rather than the preparation draft.
+- Add PL/EN labels and extend the existing flight browser scenario for rail order, opening/closing,
+  route contents, active-fix updates and availability after changing phase.
+
 ## Remove map footer status strip (2026-10-18)
 
 - Remove the bottom route, next-fix/distance and GPS pills from Fly and the corresponding

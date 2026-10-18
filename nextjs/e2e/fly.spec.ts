@@ -24,6 +24,7 @@ test("flies the route: sequencing, direct-to and debrief", async ({
   page,
   context,
 }) => {
+  test.setTimeout(60000);
   await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => route.abort());
   await page.addInitScript((f) => {
     if (!localStorage.getItem("nordsweet.flight.v2")) {
@@ -44,12 +45,29 @@ test("flies the route: sequencing, direct-to and debrief", async ({
   await expect(page.getByTestId("gps-status")).toHaveCount(0);
   await expect(page.getByTestId("map-gps-status")).toHaveCount(0);
 
+  const rail = page.getByRole("navigation", { name: "In flight", exact: true });
+  await expect(rail.getByRole("button").nth(0)).toHaveText("EMER");
+  await expect(rail.getByRole("button").nth(1)).toHaveText("FPL");
+  await rail.getByRole("button", { name: "FPL", exact: true }).click();
+  const fpl = page.getByRole("dialog", { name: "FPL", exact: true });
+  await expect(fpl.getByRole("listitem")).toContainText([
+    "AAAA",
+    "BBBB",
+    "CCCC",
+  ]);
+  await expect(fpl.locator("[aria-current='step']")).toContainText("BBBB");
+  await page.screenshot({ path: "test-results/fpl.png" });
+  await rail.getByRole("button", { name: "FPL", exact: true }).click();
+  await expect(fpl).toHaveCount(0);
+
   await page.getByRole("button", { name: "Info", exact: true }).click();
   await expect(page.getByTestId("fly-next")).toHaveText("BBBB");
   await expect(page.getByTestId("fly-xte")).toHaveText(/^1\.\d L$/); // 0.02° north of the (great-circle) track
 
   await context.setGeolocation({ latitude: 50, longitude: 20.05, accuracy: 5 }); // abeam BBBB
   await expect(page.getByTestId("fly-next")).toHaveText("CCCC");
+  await rail.getByRole("button", { name: "FPL", exact: true }).click();
+  await expect(fpl.locator("[aria-current='step']")).toContainText("CCCC");
   await page.reload(); // in-flight state survives a reload
   await page.getByRole("button", { name: "Info", exact: true }).click();
   await expect(page.getByTestId("fly-next")).toHaveText("CCCC");
@@ -60,6 +78,7 @@ test("flies the route: sequencing, direct-to and debrief", async ({
 
   // OPTIONS: manual Block Time, the event log and the phase survive a reload.
   await page.getByRole("button", { name: "Cruise", exact: true }).click();
+  await expect(rail.getByRole("button").nth(1)).toHaveText("FPL");
   await page.getByRole("button", { name: "Options", exact: true }).click();
   await page.getByRole("button", { name: "OFF-BLOCK" }).click();
   await expect(page.getByTestId("timer-offBlock")).not.toHaveText("--:--:--");
