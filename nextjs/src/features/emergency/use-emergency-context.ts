@@ -30,8 +30,16 @@ export function useEmergencyContext() {
     store.session?.scope === scope && store.session.endedAt === null
       ? store.session
       : null;
-  const allReferences = emergencyReferences(plan.aircraft?.type);
-  const references = allReferences.filter((p) => p.family === "failure");
+  const allReferences = [
+    ...emergencyReferences(plan.aircraft?.type),
+    ...(plan.aircraft?.emergencyProcedures ?? []).filter(
+      (p) =>
+        p.status === "reference" &&
+        p.aircraftType === plan.aircraft?.type &&
+        (!p.registration || p.registration === plan.flight.registration),
+    ),
+  ];
+  const references = allReferences;
   const procedures = (plan.aircraft?.emergencyProcedures ?? []).filter(
     (p) =>
       operationalProcedure(p) &&

@@ -169,6 +169,8 @@ export const weightBalanceSchema = z.object({
 export const cruiseSchema = z.object({
   source: z.string(),
   draft: z.boolean(),
+  /** Above this power the supplied lean-mixture table is not an operating fuel-flow model. */
+  maximumLeanPowerPct: z.number().positive().optional(),
   rows: z
     .array(
       z.object({
@@ -199,6 +201,8 @@ export const checklistSchema = z.object({
   id: z.string(),
   name: z.string(),
   phase: z.enum(checklistPhases),
+  source: z.string().optional(),
+  notes: z.array(z.string()).optional(),
   sections: z.array(
     z.object({
       title: z.string(),
@@ -224,6 +228,14 @@ export const aircraftSchema = z.object({
   icaoType: z.string(),
   /** Position in the aircraft type list. */
   order: z.number(),
+  /** Published reference values which do not constitute a complete performance/W&B model. */
+  referenceData: z
+    .object({
+      simulationOnly: z.boolean(),
+      sources: z.array(z.string()),
+      values: z.array(z.object({ label: z.string(), value: z.string() })),
+    })
+    .optional(),
   powerplant: z.enum(["reciprocating", "turbine", "jet"]),
   engineCount: z.number().int().min(1).max(4).nullable(),
   usableFuelL: z.number().positive().nullable(),

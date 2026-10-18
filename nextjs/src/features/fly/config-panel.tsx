@@ -133,6 +133,9 @@ export function ConfigPanel({ phase }: { phase: FlightPhase }) {
       )?.setting
     : null;
   const manual = config.cruiseMode === "manual";
+  const fixedPitch =
+    aircraft?.cruise?.rows.every((row) => /^\d+\s*RPM$/i.test(row.setting)) ??
+    false;
   const { rpm, mapInHg } = config.manual;
   const digits = {
     rpmThousands: Math.floor(rpm / 1000),
@@ -194,26 +197,28 @@ export function ConfigPanel({ phase }: { phase: FlightPhase }) {
           </Button>
         ))}
       </div>
-      {rows.map(([key, label, values, text]) => (
-        <div key={key} className="flex flex-wrap items-center gap-1">
-          <span className="text-muted-foreground w-28 text-xs uppercase">
-            {t(label as MessageKey)}
-          </span>
-          {values.map((v) => (
-            <Button
-              key={v}
-              size="sm"
-              className="min-w-10 px-2"
-              variant={manual && digits[key] === v ? "default" : "outline"}
-              aria-pressed={manual && digits[key] === v}
-              aria-label={`${t(label as MessageKey)} ${text(v)}`}
-              onClick={() => setDigit(key, v)}
-            >
-              {text(v)}
-            </Button>
-          ))}
-        </div>
-      ))}
+      {rows
+        .filter(([key]) => !fixedPitch || !key.startsWith("map"))
+        .map(([key, label, values, text]) => (
+          <div key={key} className="flex flex-wrap items-center gap-1">
+            <span className="text-muted-foreground w-28 text-xs uppercase">
+              {t(label as MessageKey)}
+            </span>
+            {values.map((v) => (
+              <Button
+                key={v}
+                size="sm"
+                className="min-w-10 px-2"
+                variant={manual && digits[key] === v ? "default" : "outline"}
+                aria-pressed={manual && digits[key] === v}
+                aria-label={`${t(label as MessageKey)} ${text(v)}`}
+                onClick={() => setDigit(key, v)}
+              >
+                {text(v)}
+              </Button>
+            ))}
+          </div>
+        ))}
     </div>
   );
 }

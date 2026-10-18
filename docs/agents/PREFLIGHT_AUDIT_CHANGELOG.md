@@ -5,6 +5,16 @@ Reference: <https://nordsweet-performance-calculator.mrnordsweet.chatgpt.site/> 
 `5265bc5de9510aa3d83cc469860a730962b96c78`. Starting develop: `2f289ed6dc8d7b7c3186b100577c787c64df1de2`.
 Branch: `codex/preflight-parity-audit`.
 
+## C172S from owner-supplied Carenado PDFs — 2026-10-18
+
+- Added independent C172S (ICAO C172) selection, operating/stall reference speeds, all 111 cruise
+  cells with US-gallon conversion, 20 normal phase checklists and 26 emergency reference variants.
+- Added a source/limitations card and simulator-only labels. Missing W&B, distance/climb tables
+  and fuel capacities stay unavailable; no values borrowed from another Cessna model.
+- Added fixed-pitch RPM lookup, enforced the supplied lean-mixture 75% power constraint and
+  generalized emergency source browsing to the selected aircraft/family. Existing FR172H remains
+  separately scoped. Details and page inventory: [C172S_CARENADO.md](C172S_CARENADO.md).
+
 ## Resumed flight display and traffic advisories (2026-10-18)
 
 - Add a 96px instrument strip above the Fly phase selector: altitude, ground speed, magnetic track
