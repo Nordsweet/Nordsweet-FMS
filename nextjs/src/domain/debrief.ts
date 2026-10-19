@@ -1,3 +1,4 @@
+import { fuelUnit, fuelToLitres, formatFuel } from "./fuel-units";
 import { type Debrief } from "~/data/debrief";
 
 export type DebriefError =
@@ -17,7 +18,15 @@ export function validateDebrief(
   | { ok: true; mthAfter: number; fuelAfterL: number }
   | { ok: false; error: DebriefError } {
   const mthAfter = decimal(mthText),
-    fuelAfterL = decimal(fuelText);
+    fuelReading = decimal(fuelText);
+  const unit = fuelUnit(record.aircraftType, record.fuelDisplayUnit);
+  const fuelAfterL =
+    record.accepted &&
+    fuelText.trim() === formatFuel(record.accepted.fuelAfterL, unit)
+      ? record.accepted.fuelAfterL
+      : fuelReading === null
+        ? null
+        : fuelToLitres(fuelReading, unit);
   if (mthAfter === null || mthAfter > 99999.99)
     return { ok: false, error: "mthRequired" };
   if (fuelAfterL === null) return { ok: false, error: "fuelRequired" };

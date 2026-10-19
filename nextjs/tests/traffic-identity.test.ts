@@ -21,6 +21,7 @@ test("database lookup verifies registration and resolves compact country separat
     registration: "G-EUUU",
     hex: "405455",
     icaoType: "A320",
+    model: null,
   });
   expect(fetch.mock.calls.map((call) => call[0])).toEqual([
     "https://api.adsbdb.com/v0/aircraft/GEUUU",

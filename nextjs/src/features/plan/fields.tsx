@@ -134,6 +134,7 @@ export function OverrideInput({
       key={`${shown}|${suggested}`}
       onBlur={(e) => {
         const text = e.target.value.trim();
+        if (text === shown) return;
         if (text === "") return onCommit(null);
         const parsed = parse(text);
         if (parsed === null || parsed < 0) e.target.value = shown;

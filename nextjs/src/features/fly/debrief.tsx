@@ -1,4 +1,5 @@
 "use client";
+import { fuelUnit, formatFuel } from "~/domain/fuel-units";
 import { useState } from "react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -38,9 +39,12 @@ export function Debrief({
     drag = useWindowDrag();
   const record = useInFlight((s) => s.debrief),
     accept = useInFlight((s) => s.acceptDebrief);
+  const unit = fuelUnit(record?.aircraftType, record?.fuelDisplayUnit);
+  const fuelValue = (value: number | null | undefined) =>
+    value == null ? "—" : `${formatFuel(value, unit)} ${unit}`;
   const [mth, setMth] = useState(record?.accepted?.mthAfter.toFixed(2) ?? "");
   const [fuel, setFuel] = useState(
-    record?.accepted ? String(record.accepted.fuelAfterL) : "",
+    record?.accepted ? formatFuel(record.accepted.fuelAfterL, unit) : "",
   );
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<DebriefError | null>(null);
@@ -94,7 +98,9 @@ export function Debrief({
                   />
                 </div>
                 <div className="grid gap-1">
-                  <Label htmlFor="debrief-fuel">{t("debrief.fuelAfter")}</Label>
+                  <Label htmlFor="debrief-fuel">
+                    {t("debrief.fuelAfter", { unit })}
+                  </Label>
                   <Input
                     id="debrief-fuel"
                     inputMode="decimal"
@@ -108,7 +114,7 @@ export function Debrief({
               <p id="debrief-before" className="text-muted-foreground text-xs">
                 {t("debrief.before", {
                   mth: value(record.mthBefore, "MTH"),
-                  fuel: value(record.fuelBeforeL, "L"),
+                  fuel: fuelValue(record.fuelBeforeL),
                 })}
               </p>
               {error && (
@@ -145,13 +151,13 @@ export function Debrief({
                     {t("debrief.fuelUsed")}
                   </span>
                   <strong data-testid="debrief-fuel-used">
-                    {value(stats?.fuelUsedL, "L")}
+                    {fuelValue(stats?.fuelUsedL)}
                   </strong>
                   <span className="text-muted-foreground text-xs">
-                    {t("debrief.fuelAfter")}
+                    {t("debrief.fuelAfter", { unit })}
                   </span>
                   <span data-testid="debrief-fuel-after">
-                    {value(record.accepted.fuelAfterL, "L")}
+                    {fuelValue(record.accepted.fuelAfterL)}
                   </span>
                 </div>
                 <div className="grid content-start gap-2 rounded-xl border p-3">

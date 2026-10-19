@@ -4,7 +4,7 @@ export const debriefEn = {
   "debrief.blockTime": "Block Time",
   "debrief.airTime": "Air Time",
   "debrief.mthAfter": "MTH after flight",
-  "debrief.fuelAfter": "Fuel after flight (L)",
+  "debrief.fuelAfter": "Fuel after flight ({unit})",
   "debrief.mthUsed": "MTH used",
   "debrief.fuelUsed": "Fuel used",
   "debrief.before": "Before flight: {mth} · {fuel}",
@@ -15,7 +15,7 @@ export const debriefEn = {
   "debrief.error.mthRequired":
     "Enter valid MTH (0–99999.99, up to two decimal places).",
   "debrief.error.fuelRequired":
-    "Enter nonnegative fuel in litres, up to two decimal places.",
+    "Enter nonnegative fuel in the displayed unit, up to two decimal places.",
   "debrief.error.mthBefore":
     "MTH after flight cannot be lower than the preflight reading.",
   "debrief.error.fuelBefore":
@@ -27,7 +27,7 @@ export const debriefPl = {
   "debrief.blockTime": "Block Time",
   "debrief.airTime": "Air Time",
   "debrief.mthAfter": "MTH po locie",
-  "debrief.fuelAfter": "Paliwo po locie (L)",
+  "debrief.fuelAfter": "Paliwo po locie ({unit})",
   "debrief.mthUsed": "Zużyte MTH",
   "debrief.fuelUsed": "Zużyte paliwo",
   "debrief.before": "Przed lotem: {mth} · {fuel}",
@@ -38,7 +38,7 @@ export const debriefPl = {
   "debrief.error.mthRequired":
     "Wpisz poprawne MTH (0–99999,99, do dwóch miejsc po przecinku).",
   "debrief.error.fuelRequired":
-    "Wpisz nieujemną ilość paliwa w litrach, do dwóch miejsc po przecinku.",
+    "Wpisz nieujemną ilość paliwa w wyświetlanej jednostce, do dwóch miejsc po przecinku.",
   "debrief.error.mthBefore":
     "MTH po locie nie może być mniejsze niż odczyt początkowy.",
   "debrief.error.fuelBefore":

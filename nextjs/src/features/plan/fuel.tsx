@@ -2,6 +2,20 @@
 
 import { useId } from "react";
 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
+import {
+  fuelUnit,
+  formatFuel,
+  parseFuel,
+  fuelFromLitres,
+  type FuelUnit,
+} from "~/domain/fuel-units";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { normalizeRegistration } from "~/domain/aircraft";
@@ -23,7 +37,7 @@ import {
 } from "~/stores/aircraft-state";
 import { useFlight } from "~/stores/flight";
 
-import { OverrideCell, Section, fmt, litres, num } from "./fields";
+import { OverrideCell, Section, num } from "./fields";
 
 import { usePlan } from "./use-plan";
 
@@ -58,6 +72,9 @@ export function FuelSection() {
       </Section>
     );
 
+  const unit = fuelUnit(aircraft.type, flight.fuelDisplayUnit);
+  const shownFuel = (value: number) => formatFuel(value, unit);
+  const readFuel = (text: string) => parseFuel(text, unit);
   const capacityL = aircraft.fuelTankCapacityL ?? aircraft.usableFuelL;
   const lastState = selectAircraftState(states, aircraft.type, registration);
   const onBoardL = fuelOnBoardL(lastState, capacityL);
@@ -89,11 +106,15 @@ export function FuelSection() {
           />
         )}
         <OverrideCell
-          label={t("plan.fuel.fuelOf", { row: label })}
+          label={t(
+            unit === "L" ? "plan.fuel.fuelOf" : "plan.fuel.fuelOfGallons",
+            { row: label },
+          )}
           value={value.fuelL}
           suggested={value.suggested.fuelL}
-          format={String}
-          parse={litres}
+          key={unit}
+          format={shownFuel}
+          parse={readFuel}
           onCommit={(fuelL) => setOverride(row, { fuelL })}
         />
       </tr>
@@ -110,7 +131,7 @@ export function FuelSection() {
       <td className="px-2 py-2 font-semibold">{label}</td>
       <td className="px-2 text-center font-semibold">{time}</td>
       <td className="px-2 text-center font-semibold" data-testid={testId}>
-        {fuelL}
+        {shownFuel(fuelL)}
       </td>
     </tr>
   );
@@ -129,29 +150,41 @@ export function FuelSection() {
             className="bg-input/40 rounded-xl px-3 py-2 text-center text-sm"
             data-testid="fuel-on-board"
           >
-            {onBoardL === null ? "--" : `${fmt(onBoardL, 1)} L`}
+            {onBoardL === null ? "--" : `${shownFuel(onBoardL)} ${unit}`}
           </output>
           <Label
             htmlFor={fuelAddedId}
             className="text-foreground text-xs font-bold"
           >
-            {t("plan.fuel.added")}
+            {t("plan.fuel.added", { unit })}
           </Label>
           <Input
             id={fuelAddedId}
             type="number"
             inputMode="decimal"
             min={0}
-            max={capacityL ?? undefined}
-            step={0.1}
+            max={
+              capacityL == null ? undefined : fuelFromLitres(capacityL, unit)
+            }
+            step={1}
             className="h-9 rounded-xl text-center"
-            defaultValue={lastState.fuelAddedL ?? ""}
-            key={`${aircraft.type}|${registration}|${lastState.fuelAddedL}`}
+            defaultValue={
+              lastState.fuelAddedL == null
+                ? ""
+                : shownFuel(lastState.fuelAddedL)
+            }
+            key={`${aircraft.type}|${registration}|${lastState.fuelAddedL}|${unit}`}
             onBlur={(e) => {
               const text = e.target.value.trim();
-              const n = Number(text.replace(",", "."));
-              if (text !== "" && !(Number.isFinite(n) && n >= 0)) return;
-              const fuelAddedL = text === "" ? null : n;
+              if (
+                text ===
+                (lastState.fuelAddedL == null
+                  ? ""
+                  : shownFuel(lastState.fuelAddedL))
+              )
+                return;
+              const fuelAddedL = readFuel(text);
+              if (text !== "" && fuelAddedL === null) return;
               const key = aircraftStateKey(aircraft.type, registration);
               record(key, { fuelAddedL });
               // Fuel added also sets the block fuel (and so the W&B usable fuel).
@@ -159,8 +192,7 @@ export function FuelSection() {
                 { ...lastState, fuelAddedL },
                 capacityL,
               );
-              if (onBoard !== null)
-                update({ fuel: { blockL: Math.ceil(onBoard) } });
+              if (onBoard !== null) update({ fuel: { blockL: onBoard } });
             }}
           />
         </div>
@@ -181,7 +213,28 @@ export function FuelSection() {
                 <tr>
                   <th className="px-2 py-2">{t("plan.fuel.calculation")}</th>
                   <th className="px-2 py-2">{t("plan.fuel.flightTime")}</th>
-                  <th className="px-2 py-2">{t("plan.fuel.litres")}</th>
+                  <th className="px-2 py-2">
+                    <div className="flex items-center justify-center gap-2">
+                      <span>{t("plan.fuel.column")}</span>
+                      <Select
+                        value={unit}
+                        onValueChange={(value) =>
+                          update({ fuelDisplayUnit: value as FuelUnit })
+                        }
+                      >
+                        <SelectTrigger
+                          aria-label={t("plan.fuel.unit")}
+                          className="w-28"
+                        >
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="L">L</SelectItem>
+                          <SelectItem value="US gal">US gal</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -215,11 +268,17 @@ export function FuelSection() {
                   </td>
                   <NotApplicable />
                   <OverrideCell
-                    label={t("plan.fuel.fuelOf", { row: t("plan.fuel.block") })}
+                    label={t(
+                      unit === "L"
+                        ? "plan.fuel.fuelOf"
+                        : "plan.fuel.fuelOfGallons",
+                      { row: t("plan.fuel.block") },
+                    )}
                     value={plan.blockFuelL}
                     suggested={false}
-                    format={String}
-                    parse={litres}
+                    key={unit}
+                    format={shownFuel}
+                    parse={readFuel}
                     max={capacityL ?? undefined}
                     onCommit={(blockL) =>
                       update({ fuel: { blockL: blockL ?? 0 } })
@@ -243,24 +302,28 @@ export function FuelSection() {
             {outOfRange
               ? t("plan.fuel.outOfRange")
               : marginL >= 0
-                ? t("plan.fuel.margin", { litres: fmt(marginL) })
-                : t("plan.fuel.below", { litres: fmt(-marginL) })}
+                ? t("plan.fuel.margin", { litres: shownFuel(marginL), unit })
+                : t("plan.fuel.below", { litres: shownFuel(-marginL), unit })}
           </p>
           <div className="text-muted-foreground grid gap-1 text-xs">
             <p>
               {t("plan.fuel.note.contingency", {
+                unit,
                 basis: t(
                   plan.contingency.basis === "trip"
                     ? "plan.fuel.note.contingency.trip"
                     : "plan.fuel.note.contingency.hold",
                 ),
-                trip: plan.contingency.fivePercentL,
-                hold: plan.contingency.fiveMinuteHoldL,
-                base: num(plan.contingency.holdBaseLph),
-                buffered: num(plan.contingency.holdLph),
+                trip: shownFuel(plan.contingency.fivePercentL),
+                hold: shownFuel(plan.contingency.fiveMinuteHoldL),
+                base: shownFuel(plan.contingency.holdBaseLph),
+                buffered: shownFuel(plan.contingency.holdLph),
                 source: plan.contingency.fromTable
                   ? t("plan.fuel.note.contingency.table")
-                  : t("plan.fuel.note.contingency.fallback"),
+                  : t("plan.fuel.note.contingency.fallback", {
+                      flow: shownFuel(30),
+                      unit,
+                    }),
               })}
             </p>
             <p>
@@ -282,16 +345,18 @@ export function FuelSection() {
                       ? "plan.fuel.note.noAlternate"
                       : "plan.fuel.note.noAlternateTurbine",
                     {
+                      unit,
                       cruise: num(plan.alternateDetails.cruiseMinutes),
                       addition: num(plan.alternateDetails.additionMinutes),
-                      flow: num(plan.cruise.fuelFlowLph),
-                      total: plan.alternateDetails.totalL,
-                      reserve: plan.reserve.fuelL,
+                      flow: shownFuel(plan.cruise.fuelFlowLph),
+                      total: shownFuel(plan.alternateDetails.totalL),
+                      reserve: shownFuel(plan.reserve.fuelL),
                     },
                   )}
             </p>
             <p>
               {t("plan.fuel.note.reserve", {
+                unit,
                 powerplant: t(
                   `plan.aircraft.powerplant.${aircraft.powerplant}`,
                 ),
@@ -304,7 +369,7 @@ export function FuelSection() {
                   : t("plan.fuel.note.reserve.standard"),
                 airport: plan.reserve.airport,
                 holding: num(plan.reserve.holdingTempC),
-                flow: num(plan.reserve.fuelFlowLph),
+                flow: shownFuel(plan.reserve.fuelFlowLph),
               })}
             </p>
             <p>{t("plan.fuel.note.sync")}</p>

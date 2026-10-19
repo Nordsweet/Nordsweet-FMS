@@ -142,6 +142,8 @@ merged to `develop`. One owner per row.
 
 Registration-specific last state, automatic aircraft matching and selectable fuel units: in progress — Codex 2026-10-19. C172S defaults to US gallons; calculations and persisted readings stay in litres.
 
+Persistent Nord Connector credentials and editable registration suggestions: in progress — Codex 2026-10-19, explicitly requested by owner. Persist credentials on this device, outside saved/exported flights; registrations allow existing airframes and free text.
+
 Record every one you find here (and assert it in a test).
 
 - Route economy suggests "S.L." for every waypoint (below the airports) — don't copy.

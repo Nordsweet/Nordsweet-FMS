@@ -4,10 +4,22 @@ import {
   emptyAircraftState,
   fuelOnBoardL,
   readLegacyAircraftStates,
+  selectAircraftState,
+  aircraftStateKey,
 } from "./aircraft-state";
 
 const storage = (items: Record<string, string>) => ({
   getItem: (key: string) => items[key] ?? null,
+});
+
+it("isolates registration readings and never borrows a default or a different airframe", () => {
+  const known = { ...emptyAircraftState, mth: "00123.40", fuelRemainingL: 73 };
+  const states = { "C172S::DEFAULT": known, "C172S::SPABC": known };
+  expect(aircraftStateKey("C172S", " sp-abc ")).toBe("C172S::SPABC");
+  expect(selectAircraftState(states, "C172S", "SP-ABC")).toBe(known);
+  expect(selectAircraftState(states, "C172S", "SP-XYZ")).toBe(
+    emptyAircraftState,
+  );
 });
 
 describe("readLegacyAircraftStates", () => {

@@ -13,6 +13,7 @@ const identitySchema = z.object({
         .regex(/^[a-f0-9]{6}$/i)
         .refine((hex) => !["000000", "ffffff"].includes(hex.toLowerCase())),
       icao_type: z.string().nullish(),
+      type: z.string().nullish(),
     }),
   }),
 });
@@ -63,6 +64,7 @@ export async function trafficAircraftIdentity({
       registration: aircraft.registration,
       hex: aircraft.mode_s.toLowerCase(),
       icaoType: aircraft.icao_type ?? null,
+      model: aircraft.type ?? null,
     };
   }
   return null;
