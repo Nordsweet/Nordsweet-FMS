@@ -32,6 +32,7 @@ import { type GpsFix } from "./use-gps";
 import { TrafficAdvisoryPopups } from "./traffic-advisory-popup";
 import { type TrafficAircraft } from "~/api/aviation/schemas";
 import { type AircraftIdentity } from "~/domain/traffic-identity";
+import { CruiseAltitudePopup } from "./cruise-altitude-popup";
 
 // Shared across Map and Fly, deliberately transient after reload.
 const useGuidanceNotices = create<
@@ -188,6 +189,7 @@ export function FlightNotifications({
       data-testid="flight-notifications"
     >
       <div className="pointer-events-auto flex w-full max-w-md flex-col gap-2">
+        <CruiseAltitudePopup now={now} plan={plan} />
         {navigation.startedAt && (
           <TrafficAdvisoryPopups
             session={navigation.startedAt}

@@ -14,6 +14,8 @@ import { useGps } from "./use-gps";
 import { useTurnPerformance } from "./use-turn-performance";
 import { useWindEstimation } from "./use-wind-estimation";
 import { useEmergencyTelemetry } from "~/features/emergency/use-emergency-telemetry";
+import { useCruiseAltitude } from "~/stores/cruise-altitude";
+import { flightGuidanceAvailable } from "~/domain/flight-guidance";
 
 const useAirport = (code: string | undefined) =>
   useQuery({
@@ -41,6 +43,40 @@ export function FlightRuntime() {
   }).data;
   const airports = useQuery(api.airports.list.queryOptions(undefined)).data;
   const flying = flight.startedAt !== null;
+  useEffect(() => {
+    const now = Date.now();
+    const available =
+      !error && flightGuidanceAvailable({ now, phase: flight.phase, fix });
+    useCruiseAltitude.getState().observe(
+      {
+        session: flight.startedAt,
+        plannedFt: plan.cruiseAltitudeFt,
+        phase: flight.phase,
+        source: fix?.source ?? "gps",
+        blocked:
+          (!!flight.holding && flight.holding.phase !== "armed") ||
+          !!flight.route[flight.activeLeg + 1]?.patternId,
+        sample:
+          available && fix?.altitudeFt != null
+            ? {
+                at: Date.parse(fix.time),
+                altitudeFt: fix.altitudeFt,
+                verticalSpeedFpm: fix.verticalSpeedFpm,
+              }
+            : null,
+      },
+      now,
+    );
+  }, [
+    fix,
+    error,
+    flight.startedAt,
+    flight.phase,
+    flight.holding,
+    flight.route,
+    flight.activeLeg,
+    plan.cruiseAltitudeFt,
+  ]);
   useEffect(() => {
     if (!flying) return;
     const id = setInterval(() => {

@@ -1,4 +1,8 @@
 export const flightPopupsEn = {
+  "fly.popup.changeCruise":
+    "Do You want to change Cruise Altitude to {altitude}ft?",
+  "fly.popup.cruiseYes": "YES",
+  "fly.popup.cruiseNo": "No",
   "fly.fpl.remove": "Remove {point} from route",
   "fly.fpl.options": "Point options: {point}",
   "fly.traffic.ta":
@@ -35,6 +39,9 @@ export const flightPopupsEn = {
   "fly.popup.descend": "Descend {altitude} ft",
 };
 export const flightPopupsPl: typeof flightPopupsEn = {
+  "fly.popup.changeCruise": "Czy zmienić wysokość przelotową na {altitude}ft?",
+  "fly.popup.cruiseYes": "YES",
+  "fly.popup.cruiseNo": "No",
   "fly.fpl.remove": "Usuń {point} z trasy",
   "fly.fpl.options": "Opcje punktu: {point}",
   "fly.traffic.ta":

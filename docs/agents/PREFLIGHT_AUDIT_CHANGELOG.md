@@ -5,6 +5,23 @@ Reference: <https://nordsweet-performance-calculator.mrnordsweet.chatgpt.site/> 
 `5265bc5de9510aa3d83cc469860a730962b96c78`. Starting develop: `2f289ed6dc8d7b7c3186b100577c787c64df1de2`.
 Branch: `codex/preflight-parity-audit`.
 
+## Higher cruise altitude confirmation (2026-10-19)
+
+- While climbing/cruising above the planned cruise level, monitor fresh moving-aircraft readings
+  for two continuous minutes within a fixed ±100 ft band. Prefer full thousands within that
+  tolerance, otherwise round to the nearest hundred. Continued climb, stale/missing data, source
+  changes, other flight phases, an active hold or circuit legs restart the observation.
+- Show an Altitude popup with YES / No, using the shared notification style and bell history.
+  No/close suppresses that level for the current flight/cruise setting. Another level can be
+  suggested after its own full observation. Reload starts a new observation rather than counting
+  unobserved time; a stale prompt cannot change the plan.
+- YES saves the cruise altitude and recalculates the derived vertical profile. Cruise-based future
+  waypoint overrides and active navigation levels follow the change; passed readings, distinct
+  manual levels, published/user restrictions, airport thresholds and circuit altitudes are retained.
+- Validation: format/lint/typecheck/static build, 502 unit tests, and browser YES/No timing,
+  active-route/restriction preservation, repeat suppression and existing notification regression.
+  Full CI gates run on the latest integrated develop before merge.
+
 ## Registration state, fuel units and Connector persistence (2026-10-19)
 
 - Last known MTH/fuel readings belong to the normalized registration. An unknown registration no
