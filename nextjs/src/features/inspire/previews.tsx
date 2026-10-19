@@ -1,8 +1,8 @@
 import { routeOutline, tilePreview } from "~/domain/inspiration";
 
-// shortcut: straight from OSM like the map. Switch to the shared tile proxy when it lands (deploy/nginx.conf).
+/** The shared caching proxy in front of tile.openstreetmap.org (deploy/nginx.conf; rewritten in `next dev`). */
 const tileUrl = (z: number, x: number, y: number) =>
-  `https://tile.openstreetmap.org/${z}/${x}/${y}.png`;
+  `/tiles/${z}/${x}/${y}.png`;
 
 /** A 2x2 block of OSM tiles with the spot's marker in the middle of the frame. */
 export function MapPreview({
