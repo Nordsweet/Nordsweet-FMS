@@ -36,9 +36,13 @@ function Age({ minutes, stale }: { minutes: number | null; stale: boolean }) {
 export function AirportBriefing({
   role,
   point,
+  onInsertPirep,
+  showAtis = true,
 }: {
   role: "departure" | "destination" | "alternate" | "selected";
   point: FlightPoint;
+  onInsertPirep?: () => void;
+  showAtis?: boolean;
 }) {
   const t = useT();
   const autoscroll = useSettings((s) => s.atisAutoscroll);
@@ -46,6 +50,13 @@ export function AirportBriefing({
   const data = briefing.data;
   const [atisOpen, setAtisOpen] = useState(false);
   const openAtis = useAtis((s) => s.open);
+  const insertPirep = onInsertPirep && (
+    <div>
+      <Button size="sm" variant="outline" onClick={onInsertPirep}>
+        {t("maptools.insertPirep")}
+      </Button>
+    </div>
+  );
   return (
     <div className="grid gap-2" data-testid={`wx-${role}`}>
       <h3 className="font-medium">
@@ -62,18 +73,20 @@ export function AirportBriefing({
           </span>
         )}
       </h3>
-      <div>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => {
-            openAtis(point.ident);
-            setAtisOpen(true);
-          }}
-        >
-          {t("atis.insert")}
-        </Button>
-      </div>
+      {showAtis && (
+        <div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              openAtis(point.ident);
+              setAtisOpen(true);
+            }}
+          >
+            {t("atis.insert")}
+          </Button>
+        </div>
+      )}
       {atisOpen && (
         <AtisPadDialog point={point} open onOpenChange={setAtisOpen} />
       )}
@@ -119,6 +132,7 @@ export function AirportBriefing({
               {data.taf ?? t("plan.wx.none")}
             </pre>
           </div>
+          {insertPirep}
           {data.atis.filter(reliableAtis).map((atis, i) => (
             <details
               key={atis.id ?? i}
@@ -157,6 +171,7 @@ export function AirportBriefing({
           ))}
         </>
       )}
+      {(!station || briefing.isPending || !data) && insertPirep}
     </div>
   );
 }

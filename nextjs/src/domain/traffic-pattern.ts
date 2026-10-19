@@ -245,7 +245,9 @@ export function trafficPatternEntryPoints(
   const points = trafficPatternGeometry(pattern).points;
   if (
     pattern.operation === "leave" ||
-    (pattern.join !== "base" && pattern.join !== "downwind") ||
+    (pattern.join !== "base" &&
+      pattern.join !== "downwind" &&
+      pattern.join !== "crosswind") ||
     !inbound.length
   )
     return points;

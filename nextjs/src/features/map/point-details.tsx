@@ -213,11 +213,6 @@ export function PointDetails({
           </Button>
         )}
         {onRoute && (
-          <Button size="sm" variant="outline" onClick={() => setWxOpen(true)}>
-            WX
-          </Button>
-        )}
-        {onRoute && (
           <Button
             size="sm"
             variant="outline"
@@ -228,8 +223,17 @@ export function PointDetails({
             {t("maptools.restriction")}
           </Button>
         )}
+        {(airport || onRoute) && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setMode(mode === "weather" ? null : "weather")}
+          >
+            {t("maptools.weather")}
+          </Button>
+        )}
         {airport &&
-          (["weather", "notams", "charts"] as const).map((action) => (
+          (["notams", "charts"] as const).map((action) => (
             <Button
               size="sm"
               variant="outline"
@@ -354,8 +358,10 @@ export function PointDetails({
       )}
       {mode === "weather" && (
         <AirportBriefing
-          point={{ ...point, ident: airportCode }}
+          point={{ ...point, ident: airport ? airportCode : point.ident }}
           role="selected"
+          onInsertPirep={onRoute ? () => setWxOpen(true) : undefined}
+          showAtis={airport}
         />
       )}
       {mode === "notams" && <AirportNotams icao={airportCode} />}
