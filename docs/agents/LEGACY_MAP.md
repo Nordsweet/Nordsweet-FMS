@@ -140,6 +140,8 @@ merged to `develop`. One owner per row.
 
 ## 5. Known legacy bugs / intended differences
 
+Registration-specific last state, automatic aircraft matching and selectable fuel units: in progress — Codex 2026-10-19. C172S defaults to US gallons; calculations and persisted readings stay in litres.
+
 Record every one you find here (and assert it in a test).
 
 - Route economy suggests "S.L." for every waypoint (below the airports) — don't copy.
