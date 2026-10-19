@@ -45,6 +45,17 @@ describe("cruise altitude level-off", () => {
     for (let at = 0; at <= 180000; at += 5000)
       state = observe(state, input(at, 5200 + at / 120, 500));
     expect(state.offeredFt).toBeNull();
+    state = empty;
+    for (let at = 0; at <= 120000; at += 5000)
+      state = observe(state, input(at, 5920 + at / 750, 80));
+    expect(state.offeredFt).toBeNull();
+    state = empty;
+    for (let at = 0; at <= 120000; at += 5000)
+      state = observe(state, {
+        ...input(at),
+        sample: { at, altitudeFt: 5920 + at / 750 },
+      });
+    expect(state.offeredFt).toBeNull();
     state = hold(empty, 0, 115000);
     expect(observe(state, input(115000)).offeredFt).toBeNull();
   });

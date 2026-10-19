@@ -5,6 +5,8 @@ import { type NavPoint } from "./progress";
 export const CRUISE_LEVEL_HOLD_MS = 120000;
 const TOLERANCE_FT = 100;
 const MAX_SAMPLE_GAP_MS = 20000;
+// A slow climb can stay inside the altitude band for two minutes without being level.
+const LEVEL_RATE_FPM = 50;
 type Sample = { at: number; altitudeFt: number; verticalSpeedFpm?: number };
 export type CruiseAltitudeMonitor = {
   context: string | null;
@@ -89,11 +91,12 @@ export function observeCruiseAltitude(
   const climbing =
     sample.verticalSpeedFpm !== undefined &&
     (!Number.isFinite(sample.verticalSpeedFpm) ||
-      Math.abs(sample.verticalSpeedFpm) > 100);
+      Math.abs(sample.verticalSpeedFpm) > LEVEL_RATE_FPM);
   const trending =
     sample.verticalSpeedFpm === undefined &&
     elapsed >= 20000 &&
-    Math.abs(((sample.altitudeFt - oldest.altitudeFt) * 60000) / elapsed) > 100;
+    Math.abs(((sample.altitudeFt - oldest.altitudeFt) * 60000) / elapsed) >
+      LEVEL_RATE_FPM;
   if (climbing || trending) return { ...reset, last: sample, trend };
   const candidateFt =
     base.candidateFt !== null &&
