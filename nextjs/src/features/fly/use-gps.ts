@@ -16,6 +16,7 @@ export type GpsFix = {
   trueAirspeedKt?: number;
   altitudeAglFt?: number;
   verticalSpeedFpm?: number;
+  onGround?: boolean;
   lat: number;
   lon: number;
   altitudeFt: number | null;
@@ -179,6 +180,7 @@ function startSource() {
       altitudeAglFt: data.altitudeAglFt,
       verticalSpeedFpm: data.verticalSpeedFpm,
       headingTrueDeg: data.headingTrueDeg,
+      onGround: data.onGround !== 0,
     };
     const shown = snapshot.fix;
     // Nothing changed: re-rendering the page for it would only repeat the last picture.

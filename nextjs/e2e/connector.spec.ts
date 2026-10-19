@@ -56,7 +56,12 @@ test("Connector source feeds Fly, survives reload and clears stale fixes without
   await page.getByLabel("Connector token").fill("test-token");
   await page.getByRole("button", { name: "Connect", exact: true }).click();
   await expect.poll(() => !!socket).toBe(true);
-  const send = (stale = false, demo = false, paused = false) =>
+  const send = (
+    stale = false,
+    demo = false,
+    paused = false,
+    onGround = false,
+  ) =>
     socket!.send(
       (payload = JSON.stringify({
         schemaVersion: 1,
@@ -81,7 +86,7 @@ test("Connector source feeds Fly, survives reload and clears stale fixes without
           verticalSpeedFpm: -300,
           pitchDeg: 2,
           bankDeg: -10,
-          onGround: 0,
+          onGround: onGround ? 1 : 0,
         },
       })),
     );
@@ -94,6 +99,13 @@ test("Connector source feeds Fly, survives reload and clears stale fixes without
     await page.evaluate(() => localStorage.getItem("nordsweet.inflight.v1")),
   ).not.toContain('"startedAt":"');
   await page.goto("/fly");
+  await expect(page.getByTestId("wind-tile")).toContainText("308°/006");
+  await expect(page.getByTestId("wind-tile")).toHaveAttribute(
+    "data-wind-state",
+    "valid",
+  );
+  await expect(page.getByTestId("wind-tile")).toHaveAttribute("title", /P3D/);
+
   await expect(page.getByTestId("status-altitude")).toHaveText("2500 ft");
   await expect(page.getByTestId("status-gs")).toHaveText("110 kt");
   await expect(page.getByTestId("status-vs")).toHaveText("-300");
@@ -115,14 +127,20 @@ test("Connector source feeds Fly, survives reload and clears stale fixes without
     ).__emitDevicePosition(),
   );
   await expect(page.getByTestId("connector-telemetry")).toContainText("110");
+  send(false, false, false, true);
+  await expect(page.getByTestId("wind-tile")).toContainText("---°/---");
+  send();
+  await expect(page.getByTestId("wind-tile")).toContainText("308°/006");
   send(false, true);
   await expect(
     page.getByText("DEMO — simulated data", { exact: true }),
   ).toBeVisible();
+  await expect(page.getByTestId("wind-tile")).toContainText("---°/---");
   send(false, false, true);
   await expect(page.getByTestId("connector-status")).toHaveText(
     "Prepar3D — paused",
   );
+  await expect(page.getByTestId("wind-tile")).toContainText("---°/---");
   send(true);
   await expect(page.getByTestId("connector-status")).toHaveText(
     "No current data from Prepar3D",
