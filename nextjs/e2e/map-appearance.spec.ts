@@ -182,3 +182,21 @@ test("Dark Matter renders vector tiles, persists and works over 3D terrain", asy
   });
   expect(errors).toEqual([]);
 });
+
+test("a browser that stored the old OpenStreetMap default opens on Bright", async ({
+  page,
+}) => {
+  await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => route.abort());
+  await page.addInitScript(() =>
+    localStorage.setItem(
+      "nordsweet.map.v1",
+      JSON.stringify({ version: 1, state: { basemap: "osm" } }),
+    ),
+  );
+  await page.goto("/fly");
+  await expect(page.getByTestId("map")).toHaveCSS(
+    "background-color",
+    "rgb(242, 239, 233)",
+    { timeout: 20000 },
+  );
+});

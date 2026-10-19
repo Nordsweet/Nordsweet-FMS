@@ -1,8 +1,9 @@
-import { describe, expect, it, vi, afterEach } from "vitest";
+import { describe, expect, it, vi, afterEach, beforeEach } from "vitest";
 import {
   connectorWebSocketUrl,
   parseConnectorFrame,
   connectTelemetry,
+  throttleLatest,
 } from "./connector";
 
 const frame = {
@@ -116,5 +117,36 @@ describe("Connector transport", () => {
     stop();
     vi.advanceTimersByTime(10000);
     expect(Socket.instances.length).toBe(2);
+  });
+});
+
+describe("throttleLatest", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+  it("passes the first value at once, then only the newest once per interval", () => {
+    const send = vi.fn();
+    const throttled = throttleLatest(send, 500);
+    throttled(1);
+    expect(send).toHaveBeenCalledWith(1);
+    throttled(2);
+    throttled(3);
+    vi.advanceTimersByTime(499);
+    expect(send).toHaveBeenCalledTimes(1);
+    vi.advanceTimersByTime(1);
+    expect(send).toHaveBeenLastCalledWith(3);
+    expect(send).toHaveBeenCalledTimes(2);
+    vi.advanceTimersByTime(2000);
+    expect(send).toHaveBeenCalledTimes(2);
+    throttled(4);
+    expect(send).toHaveBeenLastCalledWith(4);
+  });
+  it("cancel drops the waiting value", () => {
+    const send = vi.fn();
+    const throttled = throttleLatest(send, 500);
+    throttled(1);
+    throttled(2);
+    throttled.cancel();
+    vi.advanceTimersByTime(1000);
+    expect(send).toHaveBeenCalledTimes(1);
   });
 });

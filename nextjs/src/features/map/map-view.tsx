@@ -88,6 +88,7 @@ import { AirspaceCaptions } from "./deck/captions";
 import { coordinatePaths, toPaths, toPoints, zoneDatum } from "./deck/data";
 import { airportLabels, minuteLabels, pointNameLabels } from "./deck/labels";
 import { MarkerLayer } from "./deck/markers";
+import { BRIGHT_BACKGROUND } from "./deck/bright";
 import { FJORD_BACKGROUND } from "./deck/fjord";
 import { DARK_MATTER_BACKGROUND } from "./deck/dark-matter";
 import { palettes, themeOf } from "./deck/theme";
@@ -1349,11 +1350,13 @@ export function MapView({
         className="relative h-full w-full overflow-hidden"
         style={{
           backgroundColor:
-            basemap === "fjord"
-              ? FJORD_BACKGROUND
-              : basemap === "dark-matter"
-                ? DARK_MATTER_BACKGROUND
-                : palettes[theme].background,
+            basemap === "bright"
+              ? BRIGHT_BACKGROUND
+              : basemap === "fjord"
+                ? FJORD_BACKGROUND
+                : basemap === "dark-matter"
+                  ? DARK_MATTER_BACKGROUND
+                  : palettes[theme].background,
         }}
         data-testid="map"
         data-map-ready={ready}
@@ -1381,6 +1384,18 @@ export function MapView({
       )}
       {(basemap !== "dark" || settings.terrain3d) && (
         <div className="legacy-map-attribution">
+          {basemap === "bright" && (
+            <>
+              <a
+                href="/bright-attribution.html"
+                target="_blank"
+                rel="noreferrer"
+              >
+                OSM OpenMapTiles
+              </a>
+              {" · "}
+            </>
+          )}
           {basemap === "dark-matter" && (
             <>
               <a
@@ -1393,7 +1408,9 @@ export function MapView({
               {" · "}
             </>
           )}
-          {(basemap === "fjord" || basemap === "dark-matter") && (
+          {(basemap === "bright" ||
+            basemap === "fjord" ||
+            basemap === "dark-matter") && (
             <>
               <a
                 href="https://openmaptiles.org/"

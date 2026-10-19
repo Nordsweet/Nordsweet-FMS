@@ -144,3 +144,33 @@ export function connectTelemetry(
     socket?.close();
   };
 }
+
+/**
+ * Pass on the newest value at most once per `ms`: the first goes through at once, later ones wait
+ * for the interval. A connector sends several frames a second and every one re-renders the Fly page.
+ */
+export function throttleLatest<T>(send: (value: T) => void, ms: number) {
+  let last = -Infinity,
+    pending: { value: T } | undefined,
+    timer: ReturnType<typeof setTimeout> | undefined;
+  const flush = () => {
+    timer = undefined;
+    if (!pending) return;
+    const { value } = pending;
+    pending = undefined;
+    last = Date.now();
+    send(value);
+  };
+  const throttled = (value: T) => {
+    pending = { value };
+    if (timer !== undefined) return;
+    const wait = last + ms - Date.now();
+    if (wait <= 0) flush();
+    else timer = setTimeout(flush, wait);
+  };
+  throttled.cancel = () => {
+    clearTimeout(timer);
+    timer = pending = undefined;
+  };
+  return throttled;
+}

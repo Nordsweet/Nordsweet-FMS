@@ -2,7 +2,12 @@ import { useCallback, useSyncExternalStore } from "react";
 import { distanceNm, initialBearingDeg } from "~/domain/geo";
 import { mToFt, mpsToKt } from "~/domain/units";
 import { gnssAltitudeTrend } from "~/domain/terrain";
-import { connectTelemetry, type ConnectorStatus } from "~/api/connector";
+import {
+  connectTelemetry,
+  throttleLatest,
+  type ConnectorFrame,
+  type ConnectorStatus,
+} from "~/api/connector";
 import { usePositionSource } from "~/stores/position-source";
 export type GpsFix = {
   source?: "gps" | "derived" | "replay" | "connector" | "demo";
@@ -119,6 +124,8 @@ function startDevice() {
       );
   }
 }
+/** The connector sends several frames a second; the page shows its position this often. */
+const CONNECTOR_PUBLISH_MS = 500;
 let stopConnector: (() => void) | undefined;
 let stopSettings: (() => void) | undefined;
 function stopSource() {
@@ -140,43 +147,49 @@ function startSource() {
     return;
   }
   if (!settings.enabled) return;
-  stopConnector = connectTelemetry(
+  const show = throttleLatest((frame: ConnectorFrame) => {
+    const data = frame.data;
+    if (!data || !frame.receivedAt) return;
+    publish({
+      error: null,
+      fix: {
+        source: frame.source === "demo" ? "demo" : "connector",
+        paused: frame.paused,
+        lat: data.latitude,
+        lon: data.longitude,
+        altitudeFt: data.altitudeMslFt,
+        groundSpeedKt: data.groundSpeedKt,
+        trackDeg: data.trackTrueDeg,
+        accuracyM: 0,
+        altitudeAccuracyM: null,
+        time: frame.receivedAt,
+        receivedAt: Date.now(),
+        indicatedAirspeedKt: data.indicatedAirspeedKt,
+        trueAirspeedKt: data.trueAirspeedKt,
+        altitudeAglFt: data.altitudeAglFt,
+        verticalSpeedFpm: data.verticalSpeedFpm,
+        headingTrueDeg: data.headingTrueDeg,
+      },
+    });
+  }, CONNECTOR_PUBLISH_MS);
+  const stop = connectTelemetry(
     settings.url,
     settings.token,
-    (frame) => {
-      const data = frame.data;
-      if (!data || !frame.receivedAt) return;
-      publish({
-        error: null,
-        fix: {
-          source: frame.source === "demo" ? "demo" : "connector",
-          paused: frame.paused,
-          lat: data.latitude,
-          lon: data.longitude,
-          altitudeFt: data.altitudeMslFt,
-          groundSpeedKt: data.groundSpeedKt,
-          trackDeg: data.trackTrueDeg,
-          accuracyM: 0,
-          altitudeAccuracyM: null,
-          time: frame.receivedAt,
-          receivedAt: Date.now(),
-          indicatedAirspeedKt: data.indicatedAirspeedKt,
-          trueAirspeedKt: data.trueAirspeedKt,
-          altitudeAglFt: data.altitudeAglFt,
-          verticalSpeedFpm: data.verticalSpeedFpm,
-          headingTrueDeg: data.headingTrueDeg,
-        },
-      });
-    },
+    show,
     (connectorStatus) => {
       const valid = connectorStatus === "live" || connectorStatus === "paused";
-      publish({
-        connectorStatus,
-        fix: valid ? snapshot.fix : null,
-        error: valid ? null : "unavailable",
-      });
+      const fix = valid ? snapshot.fix : null;
+      if (!valid) show.cancel();
+      // Every frame reports "live": only a change of state is news to the page.
+      if (connectorStatus === snapshot.connectorStatus && fix === snapshot.fix)
+        return;
+      publish({ connectorStatus, fix, error: valid ? null : "unavailable" });
     },
   );
+  stopConnector = () => {
+    stop();
+    show.cancel();
+  };
 }
 function subscribe(listener: () => void) {
   listeners.add(listener);
