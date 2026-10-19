@@ -8,10 +8,8 @@ import { TERRAIN_URL, TERRARIUM_DECODER } from "~/data/terrain";
 import { loadTerrainTile } from "~/api/terrain";
 import { TerrainLoader } from "@loaders.gl/terrain";
 import { ImageLoader } from "@loaders.gl/images";
-import { MVTLoader } from "@loaders.gl/mvt";
 import {
   BitmapLayer,
-  GeoJsonLayer,
   IconLayer,
   PathLayer,
   PolygonLayer,
@@ -24,29 +22,20 @@ import { type AirspaceFeature } from "~/api/aviation/schemas";
 import { type Basemap, type LayerId } from "~/stores/map";
 import { iconAtlas, type IconName } from "./atlas";
 import { cssColor, type Rgba } from "./color";
-import { BRIGHT_BACKGROUND, brightRules, brightRulesByLayer } from "./bright";
-import {
-  darkMatterRules,
-  darkMatterRulesByLayer,
-  DARK_MATTER_BACKGROUND,
-} from "./dark-matter";
 import { palettes, type Theme } from "./theme";
 import { type DeckMap } from "./deck-map";
 import {
-  FJORD_BACKGROUND,
-  type Rule,
   FJORD_MAX_TILE_ZOOM,
   FJORD_TILES,
-  fjordRules,
   declutter,
-  fjordRulesByLayer,
   type Label,
   placeLabels,
   ruleColor,
-  ruleMatches,
   stopsAt,
   type Feature,
 } from "./fjord";
+import type { BakeRequest, BakeResponse, WorkerMessage } from "./tile-worker";
+import { vectorStyles, type VectorStyle } from "./vector-styles";
 
 type Pos = [number, number];
 export type Path = { path: Pos[] };
@@ -345,79 +334,6 @@ function basemap(dark: boolean) {
   });
 }
 
-/** Shared OpenMapTiles rules, used by the bundled vector styles. */
-type VectorStyle = {
-  id: string;
-  rules: Rule[];
-  index: Map<string, number[]>;
-  background: string;
-};
-const fjordStyle: VectorStyle = {
-  id: "fjord",
-  rules: fjordRules,
-  index: fjordRulesByLayer,
-  background: FJORD_BACKGROUND,
-};
-const brightStyle: VectorStyle = {
-  id: "bright",
-  rules: brightRules,
-  index: brightRulesByLayer,
-  background: BRIGHT_BACKGROUND,
-};
-const darkMatterStyle: VectorStyle = {
-  id: "dark-matter",
-  rules: darkMatterRules,
-  index: darkMatterRulesByLayer,
-  background: DARK_MATTER_BACKGROUND,
-};
-function vectorLayer(
-  id: string,
-  i: number,
-  features: Feature[],
-  zoom: number,
-  style: VectorStyle,
-  extensions: LayerExtension[] = [],
-  parameters: Layer["props"]["parameters"] = {},
-) {
-  const rule = style.rules[i]!;
-  const color = ruleColor(rule, zoom);
-  if (rule.kind === "text")
-    throw new Error("place labels are drawn by fjordLabels");
-  const shared = {
-    id,
-    data: features as never,
-    pickable: false,
-    extensions,
-    parameters,
-    lineWidthUnits: "pixels",
-  } as const;
-  if (rule.kind === "fill")
-    return new GeoJsonLayer({
-      ...shared,
-      filled: true,
-      stroked: false,
-      getFillColor: color,
-    });
-  return new GeoJsonLayer<Feature, PathStyleExtensionProps<Feature>>({
-    ...shared,
-    filled: false,
-    stroked: true,
-    getLineColor: color,
-    getLineWidth: stopsAt(rule.width ?? 1, zoom),
-    ...(rule.dash
-      ? {
-          extensions: [...extensions, ...dashed],
-          getDashArray: rule.dash,
-          dashJustified: false,
-        }
-      : {}),
-  });
-}
-
-/**
- * OpenMapTiles vector tiles drawn with the selected style's rules. Each tile's features
- * are sorted into the style's layers (bottom to top), re-sorted when the zoom moves a quarter step.
- */
 /** Place features of the tiles on screen; labels are chosen across all of them, not per tile. */
 const places = {
   features: [] as Feature[],
@@ -487,103 +403,112 @@ function vectorTemplate(refresh: () => void) {
   return tilejson.template;
 }
 
-/**
- * What each rule draws from one tile, worked out once per tile (a zoom step only changes widths and
- * colours, not which features a rule takes): re-filtering would hand deck new arrays, and it would
- * tessellate every polygon of every tile again.
- */
-type TileRules = Map<number, Feature[]> & { layers: Map<string, Feature[]> };
-const tileCache = new WeakMap<Feature[], TileRules>();
-function tileRules(data: Feature[], style: VectorStyle) {
-  let tile = tileCache.get(data);
-  if (!tile) {
-    tile = Object.assign(new Map<number, Feature[]>(), {
-      layers: new Map<string, Feature[]>(),
-    });
-    for (const feature of data) {
-      const name = String(feature.properties.layerName);
-      if (style.index.has(name))
-        (tile.layers.get(name) ?? tile.layers.set(name, []).get(name)!).push(
-          feature,
-        );
-    }
-    tileCache.set(data, tile);
+type Baked = Extract<BakeResponse, { image: ImageBitmap }>;
+/** The tile-painting worker and the requests waiting on it. */
+const worker = {
+  instance: null as Worker | null,
+  next: 0,
+  pending: new Map<
+    number,
+    { resolve: (baked: Baked) => void; reject: (error: Error) => void }
+  >(),
+};
+function tileWorker() {
+  if (!worker.instance) {
+    worker.instance = new Worker(new URL("./tile-worker.ts", import.meta.url));
+    worker.instance.onmessage = ({ data }: MessageEvent<BakeResponse>) => {
+      const job = worker.pending.get(data.id);
+      worker.pending.delete(data.id);
+      if ("error" in data) job?.reject(new Error(data.error));
+      else job?.resolve(data);
+    };
   }
-  return tile;
+  return worker.instance;
+}
+function bake(request: Omit<BakeRequest, "id">, signal: AbortSignal) {
+  const id = worker.next++;
+  return new Promise<Baked>((resolve, reject) => {
+    worker.pending.set(id, { resolve, reject });
+    const instance = tileWorker();
+    instance.postMessage({ ...request, id } satisfies BakeRequest);
+    signal.addEventListener("abort", () => {
+      if (worker.pending.delete(id)) {
+        instance.postMessage({ cancel: id } satisfies WorkerMessage);
+        reject(new Error("cancelled"));
+      }
+    });
+  });
 }
 
+/**
+ * The OpenMapTiles vector tiles, painted into one bitmap per map tile by a web worker (bake.ts) and
+ * drawn like the OSM raster tiles: a few dozen textures that zooming only scales, instead of
+ * thousands of vector layers deck.gl would have to draw and re-tessellate. Past the server's
+ * zoom 14 each tile is painted from its zoom-14 ancestor, so lines stay sharp.
+ */
 function vectorBasemap(
-  zoom: number,
   template: string,
   refresh: () => void,
   style: VectorStyle,
 ) {
-  // `null` while a tile is still loading.
-  return new TileLayer<Feature[] | null>({
+  const scale = Math.min(2, window.devicePixelRatio || 1);
+  return new TileLayer<Baked>({
     id: style.id,
-    maxRequests: 4,
+    maxRequests: 6,
+    tileSize: 512,
+    minZoom: 0,
+    maxZoom: 18,
+    // The map keeps the last ~60 tiles (about 4 MB each at 2x), so panning back and zooming out
+    // again costs no painting.
+    maxCacheSize: 60,
     data: template,
-    maxZoom: FJORD_MAX_TILE_ZOOM,
-    // Parsed here, on the main thread: the stock MVT layer fetches a worker script from a CDN.
-    getTileData: async ({ url, index, signal }) => {
-      if (!url) return [];
-      const response = await fetch(url, { signal });
-      if (!response.ok) throw new Error(`Tile ${response.status}`);
-      return (await MVTLoader.parse(await response.arrayBuffer(), {
-        mvt: {
-          coordinates: "wgs84",
-          tileIndex: index,
-          shape: "geojson",
-          layerProperty: "layerName",
+    getTileData: ({ index, signal }) => {
+      const dz = Math.min(index.z, FJORD_MAX_TILE_ZOOM),
+        up = index.z - dz,
+        data = { z: dz, x: index.x >> up, y: index.y >> up };
+      return bake(
+        {
+          style: style.id,
+          url: template
+            .replace("{z}", String(data.z))
+            .replace("{x}", String(data.x))
+            .replace("{y}", String(data.y)),
+          tile: index,
+          data,
+          scale,
         },
-      })) as unknown as Feature[];
+        signal!,
+      );
     },
     onTileError: () => {
       // Offline or blocked tiles simply stay blank.
     },
+    onTileUnload: (tile) => tile.content?.image.close(),
     onViewportLoad: (tiles) => {
       // The newest zoom only: older levels stay on screen while their replacements load.
       const z = Math.max(...tiles.map((tile) => tile.index.z));
-      places.features = tiles
-        .filter((tile) => tile.index.z === z)
-        .flatMap((tile) => tile.content ?? []);
+      const byTile = new Map<string, Feature[]>();
+      for (const tile of tiles)
+        if (tile.index.z === z && tile.content)
+          byTile.set(tile.content.dataKey, tile.content.places);
+      places.features = [...byTile.values()].flat();
       places.version++;
       refresh();
     },
-    updateTriggers: { renderSubLayers: [zoom] },
-    renderSubLayers: ({ id, data, extensions, parameters }) => {
-      const tile = tileRules(data ?? [], style);
-      const layers: Layer[] = [];
-      style.rules.forEach((rule, i) => {
-        if (
-          rule.kind === "text" ||
-          (rule.minzoom !== undefined && zoom < rule.minzoom) ||
-          (rule.maxzoom !== undefined && zoom >= rule.maxzoom)
-        )
-          return;
-        // The same array every time: deck keeps a layer's tessellated geometry while `data` is unchanged.
-        let features =
-          rule.where && rule.where.length > 1 ? undefined : tile.get(i);
-        if (!features) {
-          features = (tile.layers.get(rule.layer) ?? []).filter((feature) =>
-            ruleMatches(rule, feature, zoom),
-          );
-          if (!(rule.where && rule.where.length > 1)) tile.set(i, features);
-        }
-        if (features.length)
-          layers.push(
-            vectorLayer(
-              `${id}-${i}`,
-              i,
-              features,
-              zoom,
-              style,
-              extensions,
-              parameters,
-            ),
-          );
+    renderSubLayers: ({ id, data, tile, extensions, parameters }) => {
+      const { west, south, east, north } = tile.bbox as {
+        west: number;
+        south: number;
+        east: number;
+        north: number;
+      };
+      return new BitmapLayer({
+        id,
+        image: data.image,
+        bounds: [west, south, east, north],
+        extensions,
+        parameters,
       });
-      return layers;
     },
   });
 }
@@ -596,18 +521,16 @@ export function buildLayers(
 ): Layer[] {
   const { airspace, airports, vfr, ifr, navaids, route, traffic } = s.visible;
   const vector =
-    s.basemap === "bright"
-      ? brightStyle
-      : s.basemap === "fjord"
-        ? fjordStyle
-        : s.basemap === "dark-matter"
-          ? darkMatterStyle
-          : null;
+    s.basemap === "bright" ||
+    s.basemap === "fjord" ||
+    s.basemap === "dark-matter"
+      ? vectorStyles[s.basemap]
+      : null;
   const template = vector ? vectorTemplate(refresh) : null;
   const vectorLayers =
     vector && template
       ? [
-          vectorBasemap(s.zoom, template, refresh, vector),
+          vectorBasemap(template, refresh, vector),
           ...vectorLabels(s.zoom, vector),
         ]
       : [];
