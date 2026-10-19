@@ -739,14 +739,13 @@ export function MapView({
     observe(traffic.data?.aircraft ?? []);
   }, [traffic.data, observe]);
 
+  const ownTrack = navigation.startedAt ? navigation.track : settings.gpsTrack;
+  const showOwnTrack = navigation.startedAt !== null || settings.gpsEnabled;
   useEffect(() => {
     sceneRef.current?.set({
-      gpsTrail:
-        settings.gpsEnabled && settings.gpsTrack.length >= 2
-          ? toPaths([settings.gpsTrack])
-          : [],
+      gpsTrail: showOwnTrack && ownTrack.length >= 2 ? toPaths([ownTrack]) : [],
     });
-  }, [ready, settings.gpsTrack, settings.gpsEnabled]);
+  }, [ready, ownTrack, showOwnTrack]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -1360,6 +1359,7 @@ export function MapView({
         }}
         data-testid="map"
         data-map-ready={ready}
+        data-track-points={showOwnTrack ? ownTrack.length : 0}
         data-selected-kind={click?.kind}
         data-selected-ident={
           click?.kind === "point"

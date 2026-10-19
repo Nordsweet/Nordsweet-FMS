@@ -5,6 +5,27 @@ Reference: <https://nordsweet-performance-calculator.mrnordsweet.chatgpt.site/> 
 `5265bc5de9510aa3d83cc469860a730962b96c78`. Starting develop: `2f289ed6dc8d7b7c3186b100577c787c64df1de2`.
 Branch: `codex/preflight-parity-audit`.
 
+## Server track and restart recovery (2026-10-20)
+
+- Persist each flight under registration + local DDMMYYHHmm (for example SPOKO1910262330), with a
+  separate UUID to prevent collisions. Keep ordered track and full flight/runtime checkpoints in
+  SQLite on a persistent Docker volume behind the app's same-origin API.
+- Upload new recorded positions during the flight, retry offline batches, persist the exact request
+  before sending, and replay lost acknowledgements without duplicate points. Attempt a final small
+  keepalive upload when the page hides/closes; crashes retain the last durable server acknowledgement.
+- On startup ask YES/No before advancing the saved flight. YES downloads the server prefix and restores
+  the plan, route/active leg, timers/events, holding/pattern/config and track, retaining an agreeing
+  unsent local tail. No and End flight archive the record without deleting its track. Offline final
+  checkpoints are not offered as active flights again.
+- The map now renders the active flight's full restored track, rather than the transient GPS buffer
+  collected only since opening the page.
+- An anonymous per-browser capability protects each browser's records; no global registration lookup.
+  Recovery requires the same browser profile/capability. Exclude this API from the service worker and
+  persisted query cache. Connector credentials/device settings never enter the upload.
+- Add backend storage/HTTP tests, frontend outbox/recovery tests and browser cases for live uploads,
+  remote-only recovery, offline catch-up and declining recovery. Existing flight regression fixtures
+  explicitly continue saved flights. See [contract, durability and limitations](FLIGHT_SYNC.md).
+
 ## P3D wind tile (2026-10-20)
 
 - Fix the missing Connector wind path: P3D readings were excluded from native GPS circle fitting,

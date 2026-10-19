@@ -1,4 +1,5 @@
 import { mutationOptions, queryOptions } from "@tanstack/react-query";
+import { flightSyncApi } from "./flight-sync";
 
 import { type Flight } from "~/data/flight";
 import { type AircraftDraft } from "~/domain/custom-aircraft";
@@ -93,6 +94,13 @@ type Search = { query: string; limit?: number };
 type Icao = { icao: string };
 
 export const api = {
+  flightSync: {
+    // Recovery includes a private capability: never place it in the persisted query cache.
+    latest: { call: flightSyncApi.latest },
+    get: { call: flightSyncApi.get },
+    save: mutation("flightSync.save", flightSyncApi.save),
+    close: mutation("flightSync.close", flightSyncApi.close),
+  },
   terrain: {
     prepare: mutation("terrain.prepare", prepareTerrain),
     region: query("terrain.region", loadTerrainRegion, {

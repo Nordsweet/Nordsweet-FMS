@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./test";
 import { airportSchema } from "../src/data/schemas";
 import { newFlight, type Flight } from "../src/data/flight";
 import {

@@ -2,7 +2,17 @@
 services:
   web:
     build: ../nextjs
+    depends_on:
+      - flight-store
     restart: unless-stopped
     # Localhost only; Caddy (host network) is the entry point and terminates TLS.
     ports:
       - "127.0.0.1:8020:80"
+  flight-store:
+    build: ../server
+    restart: unless-stopped
+    volumes:
+      - flight-data:/data
+
+volumes:
+  flight-data:

@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./test";
 import { newFlight } from "../src/data/flight";
 import { newTimers } from "../src/domain/flight-timers";
 

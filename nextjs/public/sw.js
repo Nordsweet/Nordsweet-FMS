@@ -40,7 +40,7 @@ self.addEventListener('fetch',event=>{
      return response;
    }));return;
  }
- if(url.origin!==self.location.origin||url.pathname.startsWith('/api/'))return;
+ if(url.origin!==self.location.origin||url.pathname.startsWith('/api/')||url.pathname.startsWith('/flight-sync/'))return;
  if(url.pathname.startsWith('/_next/static/')){
    event.respondWith(caches.match(event.request).then(cached=>cached||fetch(event.request)));return;
  }

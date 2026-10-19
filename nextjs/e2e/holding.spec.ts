@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./test";
 import { newFlight } from "../src/data/flight";
 import { type Holding } from "../src/data/holding";
 import { destinationPoint } from "../src/domain/geo";
