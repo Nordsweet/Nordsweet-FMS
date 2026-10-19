@@ -142,6 +142,8 @@ merged to `develop`. One owner per row.
 | Saved flights library (rename, route-only import, GPX/KML route export)                                                                         | done                            |                   | Immediate snapshot/download, rename, per-flight .nord/GPX/KML export, return-to-route load; existing route-only import retained. PR #3 merged into develop.                                                                                                                                                                                                                                                                                                                                                              |
 | PFD, chart viewer, editors, company flights                                                                                                     | out of scope                    |                   | only if the owner asks                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 
+P3D Connector wind calculation/tile: in progress — Codex 2026-10-20. Use actual simulator TAS/true heading and GS/track without feeding synthetic accuracy into native GPS circle fitting.
+
 ## 5. Known legacy bugs / intended differences
 
 Record every one you find here (and assert it in a test).
