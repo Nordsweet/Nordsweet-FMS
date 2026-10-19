@@ -89,13 +89,15 @@ test("accepts actual postflight readings, shows four statistic groups and retain
   await page.goto("/fly");
   await page.getByRole("button", { name: "Close flight", exact: true }).click();
   await page.getByLabel("MTH after flight", { exact: true }).fill("123.70");
-  await page.getByLabel("Fuel after flight (L)", { exact: true }).fill("72.5");
+  await page
+    .getByLabel("Fuel after flight (US gal)", { exact: true })
+    .fill("20");
   await page.getByRole("button", { name: "Accept", exact: true }).click();
   for (const [id, text] of [
     ["mth-used", "0.30 MTH"],
     ["mth-after", "123.70 MTH"],
-    ["fuel-used", "27.50 L"],
-    ["fuel-after", "72.50 L"],
+    ["fuel-used", "6 US gal"],
+    ["fuel-after", "20 US gal"],
     ["block-time", "01:30:00"],
     ["air-time", "01:10:00"],
   ])
@@ -122,7 +124,7 @@ test("accepts actual postflight readings, shows four statistic groups and retain
       ) as { state: { states: Record<string, { fuelRemainingL: number }> } };
       return saved.state.states["C172S::SPABC"]?.fuelRemainingL;
     }),
-  ).toBe(72.5);
+  ).toBeCloseTo(75.70823568, 9);
   await page.setViewportSize({ width: 390, height: 844 });
   const panel = page.locator('.fly-popover[data-debrief="true"]');
   expect(

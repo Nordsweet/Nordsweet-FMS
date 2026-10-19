@@ -5,6 +5,27 @@ Reference: <https://nordsweet-performance-calculator.mrnordsweet.chatgpt.site/> 
 `5265bc5de9510aa3d83cc469860a730962b96c78`. Starting develop: `2f289ed6dc8d7b7c3186b100577c787c64df1de2`.
 Branch: `codex/preflight-parity-audit`.
 
+## Registration state, fuel units and Connector persistence (2026-10-19)
+
+- Last known MTH/fuel readings belong to the normalized registration. An unknown registration no
+  longer inherits readings from the model's DEFAULT record. The last-state heading identifies the airframe.
+- Registration is an editable dropdown of profile and remembered airframes. Known registrations
+  automatically choose their model; the existing identity lookup can match supported models from
+  the database. Specific C172 variants require a matching model description rather than guessing
+  performance from the shared ICAO code. Manual model choices are remembered per registration.
+- C172S defaults to US gallons (1 US gal = 3.785411784 L). Fuel's column selector switches litres/US
+  gallons and converts quantities, inputs, notes, W&B, FREDA and postflight readings to whole numbers.
+  Calculation/storage fields retain litres, and switching units or blurring an unchanged rounded
+  input does not rewrite the exact quantity. The preference survives reload and .nord round trips.
+- Debrief captures the flight's unit alongside its immutable aircraft/start readings; accepted gallon
+  readings convert back to litres for consumption and the next flight's airframe state.
+- At the owner's explicit request, Connector address/token/preferences now persist in this browser's
+  localStorage after reopening. Existing session credentials migrate; credentials remain outside
+  saved/exported flights. Disconnect still retains the address/token for the next connection.
+- Pulled and read the current remote AGENTS.md and integrated the latest develop changes before
+  completing this work. Validation includes unit coverage, static export and affected browser flows;
+  the full browser suite runs in PR CI before merging develop.
+
 ## Point Weather / Insert PIREP and exact EPKC regression (2026-10-19)
 
 - Remove the separate WX action from point details. For route points, Weather now contains

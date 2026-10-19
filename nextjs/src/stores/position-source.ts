@@ -1,5 +1,9 @@
 import { create } from "zustand";
-import { createJSONStorage, persist } from "zustand/middleware";
+import {
+  createJSONStorage,
+  persist,
+  type StateStorage,
+} from "zustand/middleware";
 
 type PositionSettings = {
   source: "device" | "connector";
@@ -9,7 +13,29 @@ type PositionSettings = {
   update: (patch: Partial<Omit<PositionSettings, "update">>) => void;
 };
 
-// Keep the credential in this browser session, including reloads, never in saved flights.
+/** Keep connection details on this device, migrating the former session-only credential. */
+export const positionStorage: StateStorage = {
+  getItem: (name) => {
+    const saved = localStorage.getItem(name);
+    if (saved !== null) return saved;
+    const legacy = sessionStorage.getItem(name);
+    if (legacy !== null) {
+      localStorage.setItem(name, legacy);
+      sessionStorage.removeItem(name);
+    }
+    return legacy;
+  },
+  setItem: (name, value) => {
+    localStorage.setItem(name, value);
+    sessionStorage.removeItem(name);
+  },
+  removeItem: (name) => {
+    localStorage.removeItem(name);
+    sessionStorage.removeItem(name);
+  },
+};
+
+// Never include the credential in flight records or exported files.
 export const usePositionSource = create<PositionSettings>()(
   persist(
     (set) => ({
@@ -21,7 +47,7 @@ export const usePositionSource = create<PositionSettings>()(
     }),
     {
       name: "nordsweet.position-source.v1",
-      storage: createJSONStorage(() => sessionStorage),
+      storage: createJSONStorage(() => positionStorage),
     },
   ),
 );

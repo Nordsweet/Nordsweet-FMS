@@ -5,6 +5,7 @@ export const debriefSchema = z.object({
   flightId: z.string(),
   name: z.string(),
   aircraftType: z.string().nullable(),
+  fuelDisplayUnit: z.enum(["L", "US gal"]).optional(),
   registration: z.string(),
   mthBefore: reading,
   fuelBeforeL: reading,
