@@ -28,7 +28,7 @@ test("the dark map is a stored basemap choice; unknown ones fall back to the def
   expect(mapPreferencesSchema.parse({ basemap: "dark-matter" }).basemap).toBe(
     "dark-matter",
   );
-  expect(mapPreferencesSchema.parse({}).basemap).toBe("osm");
+  expect(mapPreferencesSchema.parse({}).basemap).toBe("fjord");
 });
 
 test("old flights gain defaults; map restrictions and anchors survive nord export/import", () => {

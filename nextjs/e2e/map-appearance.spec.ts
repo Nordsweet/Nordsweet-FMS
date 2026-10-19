@@ -71,6 +71,9 @@ test("the dark map darkens the basemap and its overlays and is remembered", asyn
   await expect(map).toHaveAttribute("data-map-ready", "true", {
     timeout: 20000,
   });
+  // Fjord is the default; the light OpenStreetMap map is a choice.
+  await page.getByRole("combobox", { name: "Base map" }).click();
+  await page.getByRole("option", { name: "OpenStreetMap" }).click();
   await expect(map).toHaveCSS("background-color", "rgb(250, 249, 244)");
   await expect(page.locator(".legacy-map--dark")).toHaveCount(0);
   await expect(page.getByText("© OpenStreetMap contributors")).toBeVisible();
