@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { SearchIcon } from "lucide-react";
+import { SearchIcon, Trash2, Ellipsis } from "lucide-react";
 import { useMapSettings } from "~/stores/map";
 import { useEffect, useState } from "react";
 
@@ -29,6 +29,8 @@ import { usePlan } from "~/features/plan/use-plan";
 import { useT } from "~/i18n/use-t";
 import { cn } from "~/lib/utils";
 import { MapWorkspace } from "~/features/map/map-workspace";
+import { useFlight } from "~/stores/flight";
+import { sameFlightPoint } from "~/domain/waypoint-insertion";
 import { useInFlight } from "~/stores/inflight";
 import { useEmergency, emergencyScope } from "~/stores/emergency";
 
@@ -132,10 +134,11 @@ export function FlyPage() {
     departurePattern,
     aircraft,
     plan,
+    routeData,
   } = usePlan();
   const inFlight = useInFlight();
   const flying = inFlight.startedAt !== null;
-  const { fix, connectorStatus } = useGps(true);
+  const { fix, connectorStatus, error: gpsError } = useGps(true);
   const positionSource = usePositionSource((s) => s.source);
   const turns = useTurnPerformance(flying ? fix : null);
   const [now, setNow] = useState(() => Date.now());
@@ -249,7 +252,7 @@ export function FlyPage() {
       <div className="flex flex-wrap items-center gap-2">
         <Select
           value=""
-          onValueChange={(v) => fix && inFlight.goDirect(Number(v), fix)}
+          onValueChange={(v) => fix && inFlight.goDirect(Number(v), fix, turns)}
           disabled={!fix}
         >
           <SelectTrigger className="w-48" aria-label={t("fly.directTo")}>
@@ -294,28 +297,82 @@ export function FlyPage() {
       ) && emergency.endedAt === null;
   const content: Record<Panel, React.ReactNode> = {
     emer: <EmergencyPanel phase={phase} />,
-    fpl: inFlight.route.length ? (
-      <FlightPlanTable label={t("mapplanner.points")}>
-        {inFlight.route.map((point, index) => (
-          <div
-            role="listitem"
-            key={`${index}-${point.ident}`}
-            aria-current={index === inFlight.activeLeg + 1 ? "step" : undefined}
-            className={flightPlanRowClass(index === inFlight.activeLeg + 1)}
-          >
-            <FlightPlanCells
-              point={point}
-              previous={inFlight.route[index - 1]}
-              altitudeFt={plannedGuidanceAltitude(
-                point,
-                0,
-                plan,
-                flight.cruiseAltitudeFt,
+    fpl: inFlight.route.some((p) => p.ident !== "DCT") ? (
+      <FlightPlanTable actions label={t("mapplanner.points")}>
+        {inFlight.route.map((point, index) =>
+          point.ident === "DCT" ? null : (
+            <div
+              role="listitem"
+              key={`${index}-${point.ident}`}
+              aria-current={
+                index === inFlight.activeLeg + 1 ? "step" : undefined
+              }
+              className={flightPlanRowClass(
+                index === inFlight.activeLeg + 1,
+                true,
               )}
-              selected={index === inFlight.activeLeg + 1}
-            />
-          </div>
-        ))}
+            >
+              <FlightPlanCells
+                point={point}
+                actions
+                previous={inFlight.route[index - 1]}
+                altitudeFt={plannedGuidanceAltitude(
+                  point,
+                  0,
+                  plan,
+                  flight.cruiseAltitudeFt,
+                )}
+                selected={index === inFlight.activeLeg + 1}
+              />
+              <div className="absolute top-1 right-2 flex justify-end gap-1 sm:static">
+                <button
+                  type="button"
+                  aria-label={t("fly.fpl.remove", { point: point.ident })}
+                  className="flex size-9 items-center justify-center rounded-lg text-red-500 hover:bg-red-500/15 focus-visible:ring-2"
+                  onClick={() => {
+                    const draft = useFlight.getState();
+                    const waypointIndex = draft.flight.waypoints.findIndex(
+                      (p) => sameFlightPoint(p, point),
+                    );
+                    if (waypointIndex >= 0)
+                      draft.update({
+                        waypoints: draft.flight.waypoints.filter(
+                          (_, i) => i !== waypointIndex,
+                        ),
+                      });
+                    inFlight.removeWaypoint(
+                      index,
+                      fix &&
+                        !gpsError &&
+                        !fix.paused &&
+                        Date.now() - Date.parse(fix.time) <= 20000
+                        ? fix
+                        : null,
+                    );
+                  }}
+                >
+                  <Trash2 className="size-4" aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  aria-label={t("fly.fpl.options", { point: point.ident })}
+                  className="flex size-9 items-center justify-center rounded-lg text-white hover:bg-white/10 focus-visible:ring-2"
+                  onClick={() => {
+                    const airport = routeData?.airport(point.ident);
+                    useMapSettings.getState().inspectPoint({
+                      ...point,
+                      name: airport?.name ?? point.ident,
+                      kind: airport ? "airport" : "point",
+                    });
+                    setPanel(null);
+                  }}
+                >
+                  <Ellipsis className="size-5" aria-hidden="true" />
+                </button>
+              </div>
+            </div>
+          ),
+        )}
       </FlightPlanTable>
     ) : (
       <p className="text-muted-foreground text-sm">{t("plan.navlog.empty")}</p>
@@ -508,6 +565,9 @@ export function FlyPage() {
             style={
               {
                 "--top": `calc(5.15rem + ${rail.findIndex((r) => r.id === open)} * 3.93rem)`,
+                ...(open === "fpl"
+                  ? { width: "min(42rem, calc(100vw - 6.5rem))" }
+                  : {}),
               } as React.CSSProperties
             }
           >

@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { retainPassedRoute, type RouteHistory } from "~/domain/route-history";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { debriefSchema, type Debrief } from "~/data/debrief";
 import {
@@ -99,6 +100,7 @@ type InFlight = {
   /** Airport selected with Divert, retained across direct-to fixes and reloads. */
   divertAirport: string | null;
   route: NavPoint[];
+  routeHistory: RouteHistory | null;
   trafficPattern: TrafficPattern | null;
   departurePattern: TrafficPattern | null;
   patternReports: PatternReport[];
@@ -155,10 +157,22 @@ type InFlight = {
   ) => void;
   end: () => void;
   setActiveLeg: (leg: number) => void;
-  goDirect: (targetIndex: number, position: LatLon) => void;
-  goToPoint: (target: NavPoint, position: LatLon) => void;
+  goDirect: (
+    targetIndex: number,
+    position: LatLon,
+    performance?: TurnPerformance,
+  ) => void;
+  goToPoint: (
+    target: NavPoint,
+    position: LatLon,
+    performance?: TurnPerformance,
+  ) => void;
   /** Replace the remaining route with the diversion airport, retaining flight timers and track. */
-  divertTo: (airport: NavPoint, position: LatLon) => void;
+  divertTo: (
+    airport: NavPoint,
+    position: LatLon,
+    performance?: TurnPerformance,
+  ) => void;
   insertWaypoint: (
     index: number,
     point: NavPoint,
@@ -257,6 +271,7 @@ export const useInFlight = create<InFlight>()(
         }),
       divertAirport: null,
       route: [],
+      routeHistory: null,
       trafficPattern: null,
       departurePattern: null,
       patternReports: [],
@@ -525,6 +540,7 @@ export const useInFlight = create<InFlight>()(
           patternPreviousFix: null,
           divertAirport: null,
           route,
+          routeHistory: null,
           activeLeg: 0,
           track: [],
           fredaDueAt: null,
@@ -567,13 +583,19 @@ export const useInFlight = create<InFlight>()(
           patternPreviousFix: null,
         })),
       setActiveLeg: (activeLeg) => set({ activeLeg }),
-      goDirect: (targetIndex, position) =>
+      goDirect: (targetIndex, position, performance) =>
         set((s) => ({
+          routeHistory: retainPassedRoute(
+            s.routeHistory,
+            s.route,
+            s.activeLeg,
+            performance,
+          ),
           holding: null,
           route: directTo(s.route, position, targetIndex),
           activeLeg: 0,
         })),
-      goToPoint: (target, position) =>
+      goToPoint: (target, position, performance) =>
         set((s) => {
           const index = s.route.findIndex(
             (p) =>
@@ -582,6 +604,12 @@ export const useInFlight = create<InFlight>()(
               p.lon === target.lon,
           );
           return {
+            routeHistory: retainPassedRoute(
+              s.routeHistory,
+              s.route,
+              s.activeLeg,
+              performance,
+            ),
             route: directTo(
               index >= 0 ? s.route : [target],
               position,
@@ -591,8 +619,14 @@ export const useInFlight = create<InFlight>()(
             holding: null,
           };
         }),
-      divertTo: (airport, position) =>
-        set({
+      divertTo: (airport, position, performance) =>
+        set((s) => ({
+          routeHistory: retainPassedRoute(
+            s.routeHistory,
+            s.route,
+            s.activeLeg,
+            performance,
+          ),
           holding: null,
           departurePattern: null,
           route: directTo([airport], position, 0),
@@ -602,7 +636,7 @@ export const useInFlight = create<InFlight>()(
           patternReports: [],
           patternPreviousFix: null,
           activeLeg: 0,
-        }),
+        })),
       insertWaypoint: (index, point, position) =>
         set((s) => {
           const route = [
@@ -613,6 +647,11 @@ export const useInFlight = create<InFlight>()(
           const present = position ?? s.track.at(-1);
           if (s.startedAt && present && index === s.activeLeg + 1)
             return {
+              routeHistory: retainPassedRoute(
+                s.routeHistory,
+                s.route,
+                s.activeLeg,
+              ),
               route: directTo(route, present, index),
               activeLeg: 0,
               holding: null,
@@ -637,6 +676,11 @@ export const useInFlight = create<InFlight>()(
               .slice(s.activeLeg + 1)
               .filter((_, i) => i + s.activeLeg + 1 !== index);
             return {
+              routeHistory: retainPassedRoute(
+                s.routeHistory,
+                s.route,
+                s.activeLeg,
+              ),
               route: directTo(remaining, present, 0),
               activeLeg: 0,
               holding: null,
@@ -837,6 +881,7 @@ export const useInFlight = create<InFlight>()(
         patternReports,
         divertAirport,
         route,
+        routeHistory,
         activeLeg,
         track,
         fredaDueAt,
@@ -854,6 +899,7 @@ export const useInFlight = create<InFlight>()(
         patternReports,
         divertAirport,
         route,
+        routeHistory,
         activeLeg,
         track,
         fredaDueAt,

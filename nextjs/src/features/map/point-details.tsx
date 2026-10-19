@@ -1,3 +1,4 @@
+import { type TurnPerformance } from "~/domain/fly-by";
 import { type TrafficPattern } from "~/data/traffic-pattern";
 import { TrafficPatternPanel } from "./traffic-pattern-panel";
 import { HoldingPanel } from "./holding-panel";
@@ -35,6 +36,7 @@ const KIND_LABEL: Record<string, MessageKey> = {
 
 export function PointDetails({
   point,
+  turnPerformance,
   addPoint,
   now,
   previewPattern,
@@ -46,6 +48,7 @@ export function PointDetails({
 }: {
   point: FlightPoint & { name: string; kind: string };
   now: number;
+  turnPerformance?: TurnPerformance;
   previewPattern: (pattern: TrafficPattern | null) => void;
   acceptPattern: (pattern: TrafficPattern) => void;
   removePattern: () => void;
@@ -140,7 +143,7 @@ export function PointDetails({
             variant="outline"
             disabled={!fix || !!error || now - Date.parse(fix.time) > 20000}
             onClick={() => {
-              if (fix) navigation.goToPoint(point, fix);
+              if (fix) navigation.goToPoint(point, fix, turnPerformance);
             }}
           >
             {t("fly.directTo")}
@@ -152,7 +155,7 @@ export function PointDetails({
             variant="outline"
             disabled={!fix || !!error || now - Date.parse(fix.time) > 20000}
             onClick={() => {
-              if (fix) navigation.divertTo(point, fix);
+              if (fix) navigation.divertTo(point, fix, turnPerformance);
             }}
           >
             {t("fly.divert")}

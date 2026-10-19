@@ -5,6 +5,29 @@ Reference: <https://nordsweet-performance-calculator.mrnordsweet.chatgpt.site/> 
 `5265bc5de9510aa3d83cc469860a730962b96c78`. Starting develop: `2f289ed6dc8d7b7c3186b100577c787c64df1de2`.
 Branch: `codex/preflight-parity-audit`.
 
+## FPL point actions and Direct/Divert continuity (2026-10-19)
+
+- Every actual FPL fix has a red remove action and white three-dot options action. Removal
+  updates the exact active row and matching manually inserted draft point; endpoint removal
+  is supported without discarding airport metadata used by flight phases and weather.
+- Options open the existing anchored point/airport inspector, including HOLD, Direct, Divert,
+  restrictions and weather. The FPL closes and the map centers on the selected fix. The request
+  is transient, while existing selection/close/map-click behavior is retained.
+- Desktop uses inline actions; phone rows keep readable identifiers and DTK/DIS/ALT values.
+  The synthetic DCT GPS origin remains internal rather than becoming a removable FPL fix.
+- Direct/Divert freeze completed FPL geometry in a separate persisted map history layer, with
+  the same solid route styling and a straight connector from the last passed fix to the DCT
+  origin. Remaining navigation retains its existing ownship-to-target behavior. Repeated
+  redirects before the next real fix replace that connector; passed DCT legs are retained once
+  the next fix is passed. Skipped future fixes are not restored as flown or navigation targets.
+- New-flight start clears history; reload restores it. Current-leg insertion/removal also retains
+  completed geometry. History is not a source of navigation leg indices or map segment editing.
+- Validation: formatting, lint, TypeScript/static export, 447 unit tests, 11 affected browser
+  scenarios and both new scenarios rechecked on the final build. Phone/desktop FPL screenshots
+  inspected; complete browser suite runs in PR CI before merge to develop.
+  Focused FPL scenarios disable reference layers (covered separately), allow a 60-second software
+  WebGL budget, and pass four parallel repeat runs; all functional assertions remain enabled.
+
 ## Circuit previews, flight phases and advance guidance (2026-10-19)
 
 - Preparation previews now use the same route planner and navigation conversion as the accepted
