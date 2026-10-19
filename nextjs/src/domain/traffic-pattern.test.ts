@@ -27,6 +27,9 @@ import {
   taxiDepartureRunway,
 } from "./departure-pattern";
 import type { Ground } from "~/data/schemas";
+import { anchoredWaypoint, waypointInsertionSlots } from "./waypoint-insertion";
+import { navigationRoute } from "./navigation-route";
+import type { FlightPoint } from "~/data/flight";
 
 const threshold = { lat: 50, lon: 20, elevationFt: 500 };
 const end = destinationPoint(threshold, 90, 1000 / 1852);
@@ -91,6 +94,80 @@ const middle = (
   lon: a.lon + (b.lon - a.lon) * fraction,
 });
 const original = useInFlight.getState();
+
+test("insertion between circuits preserves the selected side of an en-route fix after recalculation", () => {
+  const destination = { ...airport, ident: "EPBB", lat: 51 };
+  const departure = {
+    ...pattern,
+    id: "departure",
+    operation: "leave" as const,
+  };
+  const arrival = { ...pattern, id: "arrival", airport: destination };
+  const build = (insertedWaypoints: FlightPoint[]) =>
+    navigationRoute(
+      buildRoutePlan(
+        {
+          airport: () => null,
+          point: () => ({ lat: 50.5, lon: 20 }),
+          procedures: () => [],
+          airways: {},
+        },
+        {
+          departure: airport,
+          destination,
+          alternate: null,
+          altitudeFt: 6000,
+          routeText: "NEXT",
+          selections: { SID: null, STAR: null, APPROACH: null },
+          inlineSelections: {},
+          insertedWaypoints,
+          departurePattern: departure,
+          trafficPattern: arrival,
+          waypointAltitudes: {},
+          waypointWx: {},
+          conditionsWind: null,
+          runwayWind: () => null,
+          climbGradientFtPerNm: 500,
+        },
+      )!,
+    );
+  const route = build([]);
+  const next = route.findIndex((p) => p.ident === "NEXT");
+  const point = { ident: "NEW", lat: 50.4, lon: 20.1 };
+  expect(waypointInsertionSlots(route)).toEqual([next, next + 1]);
+  for (const index of [next, next + 1]) {
+    const saved = flightSchema.shape.waypoints.parse([
+      anchoredWaypoint(route, point, index),
+    ]);
+    const rebuilt = build(saved);
+    expect(
+      rebuilt.findIndex((p) => p.ident === "NEW") <
+        rebuilt.findIndex((p) => p.ident === "NEXT"),
+    ).toBe(index === next);
+    expect(
+      rebuilt.filter((p) => p.patternOperation === "leave").map((p) => p.ident),
+    ).toEqual(
+      route.filter((p) => p.patternOperation === "leave").map((p) => p.ident),
+    );
+    expect(
+      rebuilt.filter((p) => p.patternOperation === "join").map((p) => p.ident),
+    ).toEqual(
+      route.filter((p) => p.patternOperation === "join").map((p) => p.ident),
+    );
+  }
+  // Saved endpoint anchors created before protection must not discard the new fix.
+  for (const index of [0, 2]) {
+    const saved = anchoredWaypoint([airport, destination], point, index);
+    const rebuilt = build([saved]);
+    const at = rebuilt.findIndex((p) => p.ident === "NEW");
+    expect(at).toBeGreaterThan(
+      rebuilt.map((p) => p.patternOperation).lastIndexOf("leave"),
+    );
+    expect(at).toBeLessThan(
+      rebuilt.findIndex((p) => p.patternOperation === "join"),
+    );
+  }
+});
 
 test.each(["left", "right"] as const)(
   "%s Overhead departure completes all four circuit turns before flying over the runway",

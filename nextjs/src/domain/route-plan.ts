@@ -1561,12 +1561,14 @@ export function buildRoutePlan(data: RouteData, input: RoutePlanInput) {
   appendPoint(points, endAtArp ? { ...finalPoint, flyOver: true } : finalPoint);
   if (endAtArp) appendPoint(points, destinationPoint);
 
-  let withUserPoints = insertUserWaypoints(points, input.insertedWaypoints).map(
-    (p) => ({
-      ...p,
-      userRestriction: input.pointRestrictions?.[pointKey(p)],
-    }),
-  );
+  let withUserPoints = insertUserWaypoints(
+    points,
+    input.insertedWaypoints,
+    input,
+  ).map((p) => ({
+    ...p,
+    userRestriction: input.pointRestrictions?.[pointKey(p)],
+  }));
   if (input.trafficPattern?.airport.ident === destination.ident) {
     const pattern = input.trafficPattern;
     const inbound = withUserPoints
@@ -1689,6 +1691,7 @@ export function buildRoutePlan(data: RouteData, input: RoutePlanInput) {
 function insertUserWaypoints(
   points: RoutePoint[],
   inserted: RoutePlanInput["insertedWaypoints"],
+  patterns: Pick<RoutePlanInput, "departurePattern" | "trafficPattern">,
 ) {
   const out = [...points];
   const seen = new Set<string>();
@@ -1710,10 +1713,24 @@ function insertUserWaypoints(
       lat: w.lat,
       lon: w.lon,
     };
-    const route = out.map((p) => ({
+    const route = out.map((p, i) => ({
       ident: formatRoutePoint({ ...p, profileLabels: undefined }),
       lat: p.lat,
       lon: p.lon,
+      // These endpoints will be replaced by complete circuits after insertion.
+      ...(i === 0 &&
+      patterns.departurePattern?.airport.ident === (p.airportIcao ?? p.id)
+        ? {
+            patternId: patterns.departurePattern.id,
+            patternOperation: "leave" as const,
+          }
+        : i === out.length - 1 &&
+            patterns.trafficPattern?.airport.ident === (p.airportIcao ?? p.id)
+          ? {
+              patternId: patterns.trafficPattern.id,
+              patternOperation: "join" as const,
+            }
+          : {}),
     }));
     const at = waypointInsertionIndex(route, w);
     const next = out[at];

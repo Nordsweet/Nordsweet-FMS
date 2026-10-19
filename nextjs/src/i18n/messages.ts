@@ -267,6 +267,8 @@ const pl = {
   "mapinsert.hint":
     "Kliknij punkt, aby wstawić nowy punkt przed nim. Trasa zmieni się dopiero po Insert here.",
   "mapinsert.plan": "Kolejność punktów Flight Plan",
+  "mapinsert.patternProtected":
+    "Punkt można dodać tylko po kręgu odlotowym i przed kręgiem dolotowym.",
   "mapinsert.before": "Wstaw przed {point}",
   "mapinsert.new": "Nowy punkt {point}",
   "mapinsert.pending": "NOWY",
@@ -1085,6 +1087,8 @@ const en: Record<MessageKey, string> = {
   "mapinsert.hint":
     "Select a point to insert the new waypoint before it. The route changes only after Insert here.",
   "mapinsert.plan": "Flight Plan point order",
+  "mapinsert.patternProtected":
+    "Waypoints can only be added after the departure circuit and before the arrival circuit.",
   "mapinsert.before": "Insert before {point}",
   "mapinsert.new": "New waypoint {point}",
   "mapinsert.pending": "NEW",

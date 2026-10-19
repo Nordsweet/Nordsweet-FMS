@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { retainPassedRoute, type RouteHistory } from "~/domain/route-history";
+import { safeWaypointIndex } from "~/domain/waypoint-insertion";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { debriefSchema, type Debrief } from "~/data/debrief";
 import {
@@ -639,6 +640,9 @@ export const useInFlight = create<InFlight>()(
         })),
       insertWaypoint: (index, point, position) =>
         set((s) => {
+          const at = safeWaypointIndex(s.route, index);
+          if (at === null) return s;
+          index = at;
           const route = [
             ...s.route.slice(0, index),
             point,
