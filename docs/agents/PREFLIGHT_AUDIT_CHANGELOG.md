@@ -5,6 +5,19 @@ Reference: <https://nordsweet-performance-calculator.mrnordsweet.chatgpt.site/> 
 `5265bc5de9510aa3d83cc469860a730962b96c78`. Starting develop: `2f289ed6dc8d7b7c3186b100577c787c64df1de2`.
 Branch: `codex/preflight-parity-audit`.
 
+## Protect traffic-pattern insertion (2026-10-19)
+
+- Add waypoint treats the departure and arrival circuits as protected blocks, including their
+  threshold, exit guides and ARP. The first permitted slot is after the departure circuit;
+  the last is before the arrival circuit. With adjacent circuits this is a single slot.
+- Optimal insertion searches only permitted legs. Clicking protected rows is disabled;
+  Move up/down stops at the permitted boundaries. The dialog explains the restriction in EN/PL.
+- The active-flight store and persisted anchors apply the same rule. Recalculation preserves
+  the selected side of an en-route fix when generated circuit targets are temporarily absent,
+  and moves legacy endpoint anchors into the permitted en-route section.
+- Regression coverage includes adjacent circuits, independent departure/arrival protection,
+  legacy anchors, saved-plan recalculation, direct store calls, and browser acceptance/reload.
+
 ## FPL point actions and Direct/Divert continuity (2026-10-19)
 
 - Every actual FPL fix has a red remove action and white three-dot options action. Removal
