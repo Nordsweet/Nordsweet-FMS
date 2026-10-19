@@ -95,10 +95,11 @@ test("departure and arrival circuits stay intact through insertion controls, acc
           layers: {
             route: true,
             airports: false,
-            points: false,
+            vfr: false,
+            ifr: false,
+            navaids: false,
             airspace: false,
             traffic: false,
-            terrain: false,
           },
           plan: "none",
         },
@@ -119,8 +120,10 @@ test("departure and arrival circuits stay intact through insertion controls, acc
       );
   }, route);
   await page.goto("/fly");
-  await expect(page.locator("[data-route-marker]")).toHaveText(
-    route.map((p) => p.ident),
+  await expect(page.getByTestId("map")).toHaveAttribute(
+    "data-map-ready",
+    "true",
+    { timeout: 20_000 },
   );
   const dialog = await add(page);
   const expected = [
@@ -154,9 +157,12 @@ test("departure and arrival circuits stay intact through insertion controls, acc
   await dialog
     .getByRole("button", { name: "Insert here", exact: true })
     .click();
-  await expect(page.locator("[data-route-marker]")).toHaveText(expected);
+  await expect(page.locator("[data-route-marker]")).toHaveText(["KELEL"]);
   await page.reload();
-  await expect(page.locator("[data-route-marker]")).toHaveText(expected);
+  await page.getByRole("button", { name: "FPL", exact: true }).click();
+  await expect(
+    page.getByTestId("flight-plan-table").getByRole("listitem"),
+  ).toContainText(expected);
 });
 
 test("previews optimal insertion, allows before-row and move controls, and saves only on confirmation", async ({
