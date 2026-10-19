@@ -86,6 +86,14 @@ export function readLegacyMap(
       : {};
 }
 
+/** v1 stored the old "osm" default for everyone; the vector Fjord map is the default since v2. */
+export const migrateMap = (persisted: unknown, version: number) => {
+  const value = (persisted ?? {}) as Partial<Preferences>;
+  return version < 2 && value.basemap === "osm"
+    ? { ...value, basemap: "fjord" }
+    : value;
+};
+
 export const useMapSettings = create<MapState>()(
   persist(
     (set) => ({
@@ -120,7 +128,8 @@ export const useMapSettings = create<MapState>()(
     }),
     {
       name: "nordsweet.map.v1",
-      version: 1,
+      version: 2,
+      migrate: migrateMap,
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => mapPreferencesSchema.parse(state),
       merge: (persisted, current) => {

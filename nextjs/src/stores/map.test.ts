@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { mapPreferencesSchema, readLegacyMap } from "./map";
+import { mapPreferencesSchema, migrateMap, readLegacyMap } from "./map";
 import { flightSchema, newFlight } from "~/data/flight";
 import {
   flightFromNordRoute,
@@ -49,4 +49,13 @@ test("old flights gain defaults; map restrictions and anchors survive nord expor
   );
   expect(decoded.pointRestrictions).toEqual(original.pointRestrictions);
   expect(decoded.waypoints).toEqual(original.waypoints);
+});
+
+test("a stored v1 OpenStreetMap default moves to Fjord; later choices are kept", () => {
+  expect(migrateMap({ basemap: "osm", labels: false }, 1)).toEqual({
+    basemap: "fjord",
+    labels: false,
+  });
+  expect(migrateMap({ basemap: "osm" }, 2)).toEqual({ basemap: "osm" });
+  expect(migrateMap({ basemap: "night" }, 1)).toEqual({ basemap: "night" });
 });
