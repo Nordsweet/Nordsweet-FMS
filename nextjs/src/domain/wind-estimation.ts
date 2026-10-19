@@ -62,6 +62,71 @@ export const emptyWind = (): WindEstimation => ({
   altitudeM: null,
 });
 
+export type SimulatorWindSample = {
+  at: number;
+  altitudeFt: number;
+  groundSpeedKt: number;
+  trackTrueDeg: number;
+  trueAirspeedKt: number;
+  headingTrueDeg: number;
+  onGround: boolean;
+};
+
+/** P3D supplies measured TAS and true heading: W = Vground − Vair needs no circling fit. */
+export function simulatorWind(
+  sample: SimulatorWindSample | null,
+  now: number,
+): WindEstimate | null {
+  if (
+    !sample ||
+    sample.onGround ||
+    ![
+      sample.at,
+      sample.altitudeFt,
+      sample.groundSpeedKt,
+      sample.trackTrueDeg,
+      sample.trueAirspeedKt,
+      sample.headingTrueDeg,
+      now,
+    ].every(Number.isFinite) ||
+    sample.at > now + LIMITS.futureToleranceMs ||
+    now - sample.at > LIMITS.gpsAgeMs ||
+    sample.trueAirspeedKt <= 0 ||
+    sample.trueAirspeedKt > (LIMITS.maxSpeedMps * 3600) / 1852 ||
+    sample.groundSpeedKt < 0 ||
+    sample.groundSpeedKt > (LIMITS.maxSpeedMps * 3600) / 1852 ||
+    sample.altitudeFt * 0.3048 < LIMITS.minAltitudeM ||
+    sample.altitudeFt * 0.3048 > LIMITS.maxAltitudeM ||
+    sample.trackTrueDeg < 0 ||
+    sample.trackTrueDeg > 360 ||
+    sample.headingTrueDeg < 0 ||
+    sample.headingTrueDeg > 360
+  )
+    return null;
+  const knot = 1852 / 3600;
+  const eastMps =
+    knot *
+    (sample.groundSpeedKt * Math.sin(toRad(sample.trackTrueDeg)) -
+      sample.trueAirspeedKt * Math.sin(toRad(sample.headingTrueDeg)));
+  const northMps =
+    knot *
+    (sample.groundSpeedKt * Math.cos(toRad(sample.trackTrueDeg)) -
+      sample.trueAirspeedKt * Math.cos(toRad(sample.headingTrueDeg)));
+  const speedMps = Math.hypot(eastMps, northMps);
+  return {
+    at: sample.at,
+    altitudeM: sample.altitudeFt * 0.3048,
+    eastMps,
+    northMps,
+    speedMps,
+    residualMps: 0,
+    fromDeg:
+      speedMps < LIMITS.calmMps
+        ? null
+        : normalizeDeg(toDeg(Math.atan2(-eastMps, -northMps))),
+  };
+}
+
 /** Fit |Vground − W| = constant TAS, independently derived from a velocity-circle model. */
 function fitVelocityCircle(samples: WindSample[]): WindEstimate | null {
   const vectors = samples.map((p) => ({

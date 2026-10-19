@@ -5,6 +5,20 @@ Reference: <https://nordsweet-performance-calculator.mrnordsweet.chatgpt.site/> 
 `5265bc5de9510aa3d83cc469860a730962b96c78`. Starting develop: `2f289ed6dc8d7b7c3186b100577c787c64df1de2`.
 Branch: `codex/preflight-parity-audit`.
 
+## P3D wind tile (2026-10-20)
+
+- Fix the missing Connector wind path: P3D readings were excluded from native GPS circle fitting,
+  but no separate instrument calculation populated the tile.
+- Calculate wind immediately from actual TAS/true heading and GS/true track. Reuse FROM-direction,
+  whole-knot readout and map-rotation-aware downwind arrow. No circle or app air-time timer is needed
+  when the simulator itself confirms airborne state; no planned TAS/magnetic heading is substituted.
+- Expose the existing Connector `onGround` field, reject ground/taxi, pause, DEMO, invalid and stale
+  samples, and keep simulator results separate from GPS fitting when sources/sessions change.
+- Simulator tooltip identifies the P3D calculation and waits for current instrument data rather
+  than asking for a full GPS turn. Native GPS estimation and planning weather remain unchanged.
+- Unit coverage recovers cardinal/crosswinds at multiple headings and TAS values; Connector browser
+  regression checks the live tile before starting an app flight, FROM/knots and clearing on DEMO/pause.
+
 ## Higher cruise altitude confirmation (2026-10-19)
 
 - While climbing/cruising above the planned cruise level, monitor fresh moving-aircraft readings

@@ -21,7 +21,9 @@ Simulator altitude is already MSL in feet, and speed is GS in knots. It is not c
 ellipsoidal height or passed through EGM96 correction. IAS, TAS, AGL and vertical speed are carried
 as separate optional fields. `accuracyM: 0` is a sentinel for exact simulated position, not measured
 GNSS accuracy; Connector fixes are explicitly excluded from native-GPS wind estimation and GNSS
-emergency trend measurements. The Fly status uses a simulator label rather than claiming GNSS
+emergency trend measurements. The wind tile now has its own P3D path: actual TAS/true heading
+and GS/true track produce a horizontal wind-vector estimate in flight, without a GPS circle.
+The existing `onGround` flag is exposed to the position adapter to prevent taxi/ground estimates. The Fly status uses a simulator label rather than claiming GNSS
 accuracy. Demo packets retain a distinct source and display a DEMO label.
 
 Paused positions stay visible without extrapolation and do not drive automatic flight observations

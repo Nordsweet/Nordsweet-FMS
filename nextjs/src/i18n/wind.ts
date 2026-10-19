@@ -1,4 +1,8 @@
 export const windEn = {
+  "wind.simulatorCollecting":
+    "Waiting for current airborne P3D TAS, true heading, ground speed and track.",
+  "wind.simulatorValid":
+    "Estimated wind FROM {direction}° true at {speed} kt, calculated from P3D air/ground velocities. Arrow points downwind.",
   "wind.title": "Estimated wind",
   "wind.collecting":
     "Collecting in-flight GPS data: a full stable turn is needed.",
@@ -9,6 +13,10 @@ export const windEn = {
   "wind.calm": "Estimated calm wind (less than 1 kt).",
 };
 export const windPl = {
+  "wind.simulatorCollecting":
+    "Oczekiwanie na bieżące TAS, heading geograficzny, GS i track z P3D w locie.",
+  "wind.simulatorValid":
+    "Wiatr szacowany Z {direction}° geograficznego, {speed} kt, obliczony z wektorów prędkości P3D. Strzałka wskazuje, dokąd wieje.",
   "wind.title": "Wiatr szacowany",
   "wind.collecting":
     "Zbieranie danych GPS w locie: potrzebny pełny, stabilny zakręt.",
