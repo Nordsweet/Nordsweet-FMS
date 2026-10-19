@@ -25,6 +25,8 @@ Branch: `codex/preflight-parity-audit`.
 - Validation: formatting, lint, TypeScript/static export, 447 unit tests, 11 affected browser
   scenarios and both new scenarios rechecked on the final build. Phone/desktop FPL screenshots
   inspected; complete browser suite runs in PR CI before merge to develop.
+  Focused FPL scenarios disable reference layers (covered separately), allow a 60-second software
+  WebGL budget, and pass four parallel repeat runs; all functional assertions remain enabled.
 
 ## Circuit previews, flight phases and advance guidance (2026-10-19)
 

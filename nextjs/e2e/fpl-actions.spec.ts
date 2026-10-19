@@ -13,6 +13,26 @@ async function seed(page: Page) {
   await page.addInitScript(
     ({ route, flight, timers }) => {
       localStorage.setItem("nordsweet.language.v1", "en");
+      // These scenarios exercise FPL controls and route geometry. Reference-layer
+      // rendering has its own browser coverage; keep software WebGL work bounded.
+      localStorage.setItem(
+        "nordsweet.map.v1",
+        JSON.stringify({
+          version: 1,
+          state: {
+            plan: "none",
+            layers: {
+              airspace: false,
+              airports: false,
+              vfr: false,
+              ifr: false,
+              navaids: false,
+              traffic: false,
+              route: true,
+            },
+          },
+        }),
+      );
       if (!localStorage.getItem("nordsweet.flight.v2"))
         localStorage.setItem(
           "nordsweet.flight.v2",
@@ -86,6 +106,7 @@ const active = (page: Page) =>
 test("every FPL row has red remove and white options; options open the existing point dialog and deletion persists", async ({
   page,
 }, testInfo) => {
+  test.setTimeout(60000);
   await seed(page);
   await page.getByRole("button", { name: "FPL", exact: true }).click();
   const fpl = page.getByRole("dialog", { name: "FPL", exact: true });
@@ -152,6 +173,7 @@ test("every FPL row has red remove and white options; options open the existing 
 test("Direct and Divert keep passed route geometry and its straight connector after reload", async ({
   page,
 }) => {
+  test.setTimeout(60000);
   await seed(page);
   const before = await active(page);
   await page.getByRole("button", { name: "FPL", exact: true }).click();
