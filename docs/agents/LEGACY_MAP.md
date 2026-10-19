@@ -141,6 +141,8 @@ merged to `develop`. One owner per row.
 | Saved flights library (rename, route-only import, GPX/KML route export)                                                                         | done                            |                   | Immediate snapshot/download, rename, per-flight .nord/GPX/KML export, return-to-route load; existing route-only import retained. PR #3 merged into develop.                                                                                                                                                                                                                                                                                                                                                              |
 | PFD, chart viewer, editors, company flights                                                                                                     | out of scope                    |                   | only if the owner asks                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 
+Cruise altitude level-off confirmation: in progress — Codex 2026-10-19. Detect two minutes level above planned cruise, ask YES/No, recalculate unconstrained future levels after acceptance.
+
 ## 5. Known legacy bugs / intended differences
 
 Record every one you find here (and assert it in a test).
