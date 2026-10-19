@@ -35,6 +35,7 @@ import {
   type Feature,
 } from "./fjord";
 import type { BakeRequest, BakeResponse, WorkerMessage } from "./tile-worker";
+import { reuseLayers } from "./reuse-layers";
 import { vectorStyles, type VectorStyle } from "./vector-styles";
 
 type Pos = [number, number];
@@ -860,6 +861,7 @@ export class DeckScene {
 
   /** What each part of the scene last held, as JSON: unchanged data must not rebuild the map. */
   private readonly sent = new Map<string, string>();
+  private readonly shown = new Map<string, Layer>();
 
   /**
    * Patch the scene. Parts whose content is the same as before are dropped (callers re-send equal
@@ -882,13 +884,16 @@ export class DeckScene {
       this.queued = false;
       if (!this.destroyed)
         this.map.setLayers(
-          buildLayers(
-            this.state,
-            () => {
-              this.map.terrainChanged();
-              this.set({});
-            },
-            this.onTerrainError,
+          reuseLayers(
+            this.shown,
+            buildLayers(
+              this.state,
+              () => {
+                this.map.terrainChanged();
+                this.set({});
+              },
+              this.onTerrainError,
+            ),
           ),
         );
     });
