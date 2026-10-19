@@ -38,6 +38,7 @@ import { useSettings } from "~/stores/settings";
 import { Section } from "./fields";
 import { PositionSourcePanel } from "~/features/fly/position-source-panel";
 import { usePlan } from "./use-plan";
+import { RegistrationField } from "./registration-field";
 
 /** A new profile starts from its POH/W&B defaults, with the pilot weight from settings. */
 function profileDefaults(
@@ -169,51 +170,51 @@ export function AircraftSection() {
             </SelectContent>
           </Select>
         </div>
-        <div className="grid gap-1.5">
-          <Label htmlFor="aircraft-registration">
-            {t("plan.aircraft.registration")}
-          </Label>
-          <Input
-            id="aircraft-registration"
-            placeholder={t("plan.aircraft.registrationPlaceholder")}
-            autoComplete="off"
-            spellCheck={false}
-            value={flight.registration}
-            onChange={(e) => {
-              const value = e.target.value;
-              const matched = matchRegistration(value);
-              const nextType = matched?.type ?? type;
-              if (nextType) select(nextType, value);
-              else update({ registration: value });
-            }}
-            onBlur={async () => {
-              if (registration.length < 3 || matchRegistration(registration))
+        <RegistrationField
+          value={flight.registration}
+          options={[
+            ...new Set([
+              ...aircraftList.flatMap((a) =>
+                a.registration ? [a.registration] : [],
+              ),
+              ...Object.keys(models),
+              ...Object.keys(states)
+                .map((key) => key.split("::")[1] ?? "")
+                .filter((reg) => reg && reg !== "DEFAULT"),
+            ]),
+          ].sort()}
+          onChange={(value) => {
+            const matched = matchRegistration(value);
+            const nextType = matched?.type ?? type;
+            if (nextType) select(nextType, value);
+            else update({ registration: value });
+          }}
+          onBlur={async () => {
+            if (registration.length < 3 || matchRegistration(registration))
+              return;
+            try {
+              const identity = await queryClient.fetchQuery({
+                ...api.traffic.aircraftIdentity.queryOptions({
+                  registration: flight.registration,
+                }),
+                staleTime: 86400000,
+              });
+              const current = useFlight.getState().flight;
+              if (
+                normalizeRegistration(current.registration) !== registration ||
+                current.aircraftId !== flight.aircraftId
+              )
                 return;
-              try {
-                const identity = await queryClient.fetchQuery({
-                  ...api.traffic.aircraftIdentity.queryOptions({
-                    registration: flight.registration,
-                  }),
-                  staleTime: 86400000,
-                });
-                const current = useFlight.getState().flight;
-                if (
-                  normalizeRegistration(current.registration) !==
-                    registration ||
-                  current.aircraftId !== flight.aircraftId
-                )
-                  return;
-                const matched = matchRegistration(registration, identity);
-                if (matched) {
-                  rememberModel(current.registration, matched.type);
-                  select(matched.type, current.registration);
-                }
-              } catch {
-                /* Manual selection remains available offline or for an unknown airframe. */
+              const matched = matchRegistration(registration, identity);
+              if (matched) {
+                rememberModel(current.registration, matched.type);
+                select(matched.type, current.registration);
               }
-            }}
-          />
-        </div>
+            } catch {
+              /* Manual selection remains available offline or for an unknown airframe. */
+            }
+          }}
+        />
         {type && (
           <div className="grid gap-1.5">
             <Label htmlFor="fuel-indication">

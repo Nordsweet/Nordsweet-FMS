@@ -51,7 +51,17 @@ test("registration chooses its own model and state, gallons convert without roun
     },
   );
   await page.goto("/");
-  await page.getByLabel("Registration", { exact: true }).fill("sp-abc");
+  await page
+    .getByRole("button", { name: "Registration list", exact: true })
+    .click();
+  await page.screenshot({ path: "test-results/registration-dropdown.png" });
+  await page
+    .getByRole("option", { name: "SPABC", exact: true })
+    .getByRole("button")
+    .click();
+  await expect(page.getByLabel("Registration", { exact: true })).toHaveValue(
+    "SPABC",
+  );
   await expect(
     page.getByRole("combobox", { name: "Aircraft type", exact: true }),
   ).toContainText("C172S");
@@ -82,7 +92,7 @@ test("registration chooses its own model and state, gallons convert without roun
   await page.getByLabel("Block Fuel fuel litres", { exact: true }).blur();
   expect(await canonical()).toBeCloseTo(75.70823568, 9);
   await expect(page.getByTestId("fuel-on-board")).toHaveText("73 L");
-  await expect(page.getByLabel("Fuel added (L)", { exact: true })).toHaveValue(
+  await expect(page.getByLabel("Fuel Added (L)", { exact: true })).toHaveValue(
     "23",
   );
   await unit.click();
@@ -91,6 +101,7 @@ test("registration chooses its own model and state, gallons convert without roun
   await page.getByRole("tab", { name: "Fuel", exact: true }).click();
   await expect(unit).toContainText("US gal");
   await expect(block).toHaveValue("20");
+  await page.screenshot({ path: "test-results/fuel-gallons.png" });
   expect(await canonical()).toBeCloseTo(75.70823568, 9);
   await page.getByRole("tab", { name: "Aircraft", exact: true }).click();
   await page.getByLabel("Registration", { exact: true }).fill("SP-XYZ");

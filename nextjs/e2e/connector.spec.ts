@@ -145,6 +145,27 @@ test("Connector source feeds Fly, survives reload and clears stale fixes without
   await expect(page.getByTestId("connector-status")).toHaveText(
     "Connector disconnected",
   );
+  // A new tab has no sessionStorage from the first tab; credentials are still remembered.
+  const reopened = await page.context().newPage();
+  await reopened.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) =>
+    route.abort(),
+  );
+  await reopened.goto("/");
+  await expect(reopened.getByLabel("Connector HTTPS address")).toHaveValue(
+    "https://pc.example.ts.net:8767",
+  );
+  await expect(reopened.getByLabel("Connector token")).toHaveValue(
+    "test-token",
+  );
+  expect(
+    await reopened.evaluate(() =>
+      sessionStorage.getItem("nordsweet.position-source.v1"),
+    ),
+  ).toBeNull();
+  expect(
+    await reopened.evaluate(() => localStorage.getItem("nordsweet.flight.v2")),
+  ).not.toContain("test-token");
+  await reopened.close();
   await page
     .getByRole("combobox", { name: "Position source", exact: true })
     .selectOption("device");

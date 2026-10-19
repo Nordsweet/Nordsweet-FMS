@@ -274,7 +274,7 @@ export function FuelSection() {
                         : "plan.fuel.fuelOfGallons",
                       { row: t("plan.fuel.block") },
                     )}
-                    value={plan.blockFuelL}
+                    value={flight.fuel.blockL}
                     suggested={false}
                     key={unit}
                     format={shownFuel}
