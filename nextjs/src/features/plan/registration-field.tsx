@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
@@ -21,7 +21,7 @@ export function RegistrationField({
   onBlur: () => void;
 }) {
   const t = useT();
-  const id = useId();
+  const id = "aircraft-registration";
   const input = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState(false);
