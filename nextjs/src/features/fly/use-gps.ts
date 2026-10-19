@@ -126,6 +126,18 @@ function startDevice() {
 }
 /** The connector sends several frames a second; the page shows its position this often. */
 const CONNECTOR_PUBLISH_MS = 500;
+/** A reading that has not changed (parked, paused) still refreshes the fix this often, so it never looks old. */
+const CONNECTOR_HEARTBEAT_MS = 2000;
+/** The same reading apart from when it arrived. */
+export const sameReading = (a: GpsFix, b: GpsFix) => {
+  const keys = new Set([
+    ...Object.keys(a),
+    ...Object.keys(b),
+  ] as (keyof GpsFix)[]);
+  return [...keys].every(
+    (key) => key === "time" || key === "receivedAt" || a[key] === b[key],
+  );
+};
 let stopConnector: (() => void) | undefined;
 let stopSettings: (() => void) | undefined;
 function stopSource() {
@@ -150,27 +162,33 @@ function startSource() {
   const show = throttleLatest((frame: ConnectorFrame) => {
     const data = frame.data;
     if (!data || !frame.receivedAt) return;
-    publish({
-      error: null,
-      fix: {
-        source: frame.source === "demo" ? "demo" : "connector",
-        paused: frame.paused,
-        lat: data.latitude,
-        lon: data.longitude,
-        altitudeFt: data.altitudeMslFt,
-        groundSpeedKt: data.groundSpeedKt,
-        trackDeg: data.trackTrueDeg,
-        accuracyM: 0,
-        altitudeAccuracyM: null,
-        time: frame.receivedAt,
-        receivedAt: Date.now(),
-        indicatedAirspeedKt: data.indicatedAirspeedKt,
-        trueAirspeedKt: data.trueAirspeedKt,
-        altitudeAglFt: data.altitudeAglFt,
-        verticalSpeedFpm: data.verticalSpeedFpm,
-        headingTrueDeg: data.headingTrueDeg,
-      },
-    });
+    const fix: GpsFix = {
+      source: frame.source === "demo" ? "demo" : "connector",
+      paused: frame.paused,
+      lat: data.latitude,
+      lon: data.longitude,
+      altitudeFt: data.altitudeMslFt,
+      groundSpeedKt: data.groundSpeedKt,
+      trackDeg: data.trackTrueDeg,
+      accuracyM: 0,
+      altitudeAccuracyM: null,
+      time: frame.receivedAt,
+      receivedAt: Date.now(),
+      indicatedAirspeedKt: data.indicatedAirspeedKt,
+      trueAirspeedKt: data.trueAirspeedKt,
+      altitudeAglFt: data.altitudeAglFt,
+      verticalSpeedFpm: data.verticalSpeedFpm,
+      headingTrueDeg: data.headingTrueDeg,
+    };
+    const shown = snapshot.fix;
+    // Nothing changed: re-rendering the page for it would only repeat the last picture.
+    if (
+      shown &&
+      sameReading(fix, shown) &&
+      Date.now() - (shown.receivedAt ?? 0) < CONNECTOR_HEARTBEAT_MS
+    )
+      return;
+    publish({ error: null, fix });
   }, CONNECTOR_PUBLISH_MS);
   const stop = connectTelemetry(
     settings.url,

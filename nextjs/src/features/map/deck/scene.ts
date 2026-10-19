@@ -858,7 +858,23 @@ export class DeckScene {
     private readonly onTerrainError: () => void,
   ) {}
 
+  /** What each part of the scene last held, as JSON: unchanged data must not rebuild the map. */
+  private readonly sent = new Map<string, string>();
+
+  /**
+   * Patch the scene. Parts whose content is the same as before are dropped (callers re-send equal
+   * arrays all the time), and a patch that changes nothing does not touch deck.gl; `set({})` still
+   * forces a rebuild, for tiles that finished loading.
+   */
   set(patch: Partial<Scene>) {
+    const keys = Object.keys(patch) as (keyof Scene)[];
+    for (const key of keys) {
+      const value = patch[key];
+      const json = JSON.stringify(value);
+      if (this.sent.get(key) === json) delete patch[key];
+      else this.sent.set(key, json);
+    }
+    if (keys.length && !Object.keys(patch).length) return;
     Object.assign(this.state, patch);
     if (this.queued) return;
     this.queued = true;
