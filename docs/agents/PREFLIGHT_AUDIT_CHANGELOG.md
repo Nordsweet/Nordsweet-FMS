@@ -5,6 +5,19 @@ Reference: <https://nordsweet-performance-calculator.mrnordsweet.chatgpt.site/> 
 `5265bc5de9510aa3d83cc469860a730962b96c78`. Starting develop: `2f289ed6dc8d7b7c3186b100577c787c64df1de2`.
 Branch: `codex/preflight-parity-audit`.
 
+## Point Weather / Insert PIREP and exact EPKC regression (2026-10-19)
+
+- Remove the separate WX action from point details. For route points, Weather now contains
+  Insert PIREP immediately below TAF, opening the existing waypoint weather editor with the
+  same altitude/wind rows, calculations and persisted data. The action remains available
+  when the automatic weather briefing is unavailable.
+- Non-airport route points also have Weather access, using the existing nearest-station
+  briefing. Their manual editor remains tied to the point; airport-only Insert ATIS is hidden
+  there. Existing airport Insert ATIS and other briefing screens retain their behavior.
+- Add exact EPKC → EPML right Downwind/Crosswind regressions at 100 KIAS, including IAS-to-TAS
+  circuit planning, the derived FPL and entry/Base/Final arcs. Browser checks confirm the
+  reported right Downwind route is smooth in preview, acceptance and after reload.
+
 ## Smooth Crosswind capture at EPML (2026-10-19)
 
 - Crosswind previously skipped the shared entry-connector solver. An oblique arrival could

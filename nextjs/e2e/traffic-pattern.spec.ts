@@ -94,11 +94,12 @@ async function mocks(
   }, flight);
 }
 
-for (const [join, direction, label] of [
-  ["downwind", "left", "Downwind"],
-  ["crosswind", "right", "Crosswind"],
+for (const [join, direction, label, direct] of [
+  ["downwind", "left", "Downwind", false],
+  ["crosswind", "right", "Crosswind", false],
+  ["downwind", "right", "Downwind", true],
 ] as const) {
-  test(`Mielec ${label} has smooth turns in preview, accepted route and reload`, async ({
+  test(`Mielec ${direction} ${label}${direct ? " from EPKC at 100 KIAS" : ""} has smooth turns in preview, accepted route and reload`, async ({
     page,
   }, testInfo) => {
     test.setTimeout(60_000);
@@ -119,9 +120,12 @@ for (const [join, direction, label] of [
     await mocks(page, false, {
       ...newFlight(),
       aircraftId: "P2006T",
-      departure,
+      departure: direct
+        ? airportSchema.parse(raw.find((a) => a.ident === "EPKC"))
+        : departure,
       destination: mielec,
-      waypoints: [inbound],
+      waypoints: direct ? [] : [inbound],
+      cruiseTasKt: direct ? 100 : 120,
     });
     await page.route("**/EPML/weather", (r) =>
       r.fulfill({

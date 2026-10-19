@@ -31,6 +31,7 @@ import type { Ground } from "~/data/schemas";
 import { anchoredWaypoint, waypointInsertionSlots } from "./waypoint-insertion";
 import { navigationRoute } from "./navigation-route";
 import type { FlightPoint } from "~/data/flight";
+import { patternPlanningPerformance } from "./pattern-performance";
 
 const threshold = { lat: 50, lon: 20, elevationFt: 500 };
 const end = destinationPoint(threshold, 90, 1000 / 1852);
@@ -95,6 +96,69 @@ const middle = (
   lon: a.lon + (b.lon - a.lon) * fraction,
 });
 const original = useInFlight.getState();
+
+test.each(["downwind", "crosswind"] as const)(
+  "EPKC to EPML right %s at 100 KIAS keeps all entry and circuit arcs",
+  (join) => {
+    const departure = airportSchema.parse(
+      airports.find((a) => a.ident === "EPKC"),
+    );
+    const destination = airportSchema.parse(
+      airports.find((a) => a.ident === "EPML"),
+    );
+    const runway = destination.runways.find((r) => r.designator === "09")!;
+    const arrival: TrafficPattern = {
+      ...pattern,
+      airport: destination,
+      runway: { ...runway, ...patternRunwayGeometry(destination, runway)! },
+      direction: "right",
+      join,
+      speedKias: 100,
+      turnPerformance: patternPlanningPerformance(
+        100,
+        destination.elevationFt,
+        1000,
+        null,
+      ),
+    };
+    const plan = buildRoutePlan(
+      {
+        airport: () => null,
+        point: () => null,
+        procedures: () => [],
+        airways: {},
+      },
+      {
+        departure,
+        destination,
+        alternate: null,
+        altitudeFt: 3000,
+        routeText: "",
+        selections: { SID: null, STAR: null, APPROACH: null },
+        inlineSelections: {},
+        insertedWaypoints: [],
+        trafficPattern: arrival,
+        waypointAltitudes: {},
+        waypointWx: {},
+        conditionsWind: null,
+        runwayWind: () => null,
+        climbGradientFtPerNm: 500,
+      },
+    )!;
+    const route = navigationRoute(plan);
+    const path = flyByRoute(route, { tasKt: 100 });
+    expect(path.issues).toEqual([]);
+    expect(path.turns.has(1)).toBe(true);
+    const geometry = trafficPatternGeometry(arrival);
+    for (const position of [
+      geometry.positions.base,
+      geometry.positions.final,
+    ]) {
+      const at = route.findIndex((p) => distanceNm(p, position) < 0.0005);
+      expect(path.turns.has(at)).toBe(true);
+    }
+  },
+);
 
 test.each([
   ["left", 100],
