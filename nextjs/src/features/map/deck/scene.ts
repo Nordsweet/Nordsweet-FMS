@@ -487,6 +487,31 @@ function vectorTemplate(refresh: () => void) {
   return tilejson.template;
 }
 
+/**
+ * What each rule draws from one tile, worked out once per tile (a zoom step only changes widths and
+ * colours, not which features a rule takes): re-filtering would hand deck new arrays, and it would
+ * tessellate every polygon of every tile again.
+ */
+type TileRules = Map<number, Feature[]> & { layers: Map<string, Feature[]> };
+const tileCache = new WeakMap<Feature[], TileRules>();
+function tileRules(data: Feature[], style: VectorStyle) {
+  let tile = tileCache.get(data);
+  if (!tile) {
+    tile = Object.assign(new Map<number, Feature[]>(), {
+      layers: new Map<string, Feature[]>(),
+    });
+    for (const feature of data) {
+      const name = String(feature.properties.layerName);
+      if (style.index.has(name))
+        (tile.layers.get(name) ?? tile.layers.set(name, []).get(name)!).push(
+          feature,
+        );
+    }
+    tileCache.set(data, tile);
+  }
+  return tile;
+}
+
 function vectorBasemap(
   zoom: number,
   template: string,
@@ -527,28 +552,38 @@ function vectorBasemap(
     },
     updateTriggers: { renderSubLayers: [zoom] },
     renderSubLayers: ({ id, data, extensions, parameters }) => {
-      const byRule = new Map<number, Feature[]>();
-      for (const feature of data ?? [])
-        for (const i of style.index.get(String(feature.properties.layerName)) ??
-          [])
-          if (
-            style.rules[i]!.kind !== "text" &&
-            ruleMatches(style.rules[i]!, feature, zoom)
-          )
-            (byRule.get(i) ?? byRule.set(i, []).get(i)!).push(feature);
-      return [...byRule]
-        .sort(([a], [b]) => a - b)
-        .map(([i, features]) =>
-          vectorLayer(
-            `${id}-${i}`,
-            i,
-            features,
-            zoom,
-            style,
-            extensions,
-            parameters,
-          ),
-        );
+      const tile = tileRules(data ?? [], style);
+      const layers: Layer[] = [];
+      style.rules.forEach((rule, i) => {
+        if (
+          rule.kind === "text" ||
+          (rule.minzoom !== undefined && zoom < rule.minzoom) ||
+          (rule.maxzoom !== undefined && zoom >= rule.maxzoom)
+        )
+          return;
+        // The same array every time: deck keeps a layer's tessellated geometry while `data` is unchanged.
+        let features =
+          rule.where && rule.where.length > 1 ? undefined : tile.get(i);
+        if (!features) {
+          features = (tile.layers.get(rule.layer) ?? []).filter((feature) =>
+            ruleMatches(rule, feature, zoom),
+          );
+          if (!(rule.where && rule.where.length > 1)) tile.set(i, features);
+        }
+        if (features.length)
+          layers.push(
+            vectorLayer(
+              `${id}-${i}`,
+              i,
+              features,
+              zoom,
+              style,
+              extensions,
+              parameters,
+            ),
+          );
+      });
+      return layers;
     },
   });
 }

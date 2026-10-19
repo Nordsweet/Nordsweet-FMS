@@ -92,7 +92,7 @@ GPU layers (no GeoJSON re-tiling in a worker, no 2D-canvas label pass on every f
   picking), `scene.ts` (the layer stack, bottom to top, and `DeckScene.set(patch)`, which rebuilds it
   once per tick), `data.ts` / `labels.ts` / `captions.ts` (pure data builders), `atlas.ts` (one icon
   texture per theme, cut from `symbols.ts`), `markers.ts` (DOM waypoint buttons), `theme.ts`.
-- Basemap: default Fjord (OpenFreeMap vector); the OSM `TileLayer` loads `/tiles/{z}/{x}/{y}.png`, an nginx disk cache (7 days, request-coalesced) in front of `tile.openstreetmap.org` (`nextjs/deploy/nginx.conf`; `next dev` rewrites it). `public/sw.js` keeps up to 3000 visited tiles (LRU). Own-ship in the lower
+- Basemap: default Fjord (OpenFreeMap vector); the OSM `TileLayer` loads `/tiles/{z}/{x}/{y}.png`, an nginx disk cache (7 days, request-coalesced) in front of `tile.openstreetmap.org` (`nextjs/deploy/nginx.conf`; `next dev` rewrites it). `public/sw.js` keeps up to 2000 visited tiles (oldest-touched first; stored and evicted off the tile response path). Own-ship in the lower
   half while following uses a camera offset instead of MapLibre's view padding (padding fights panning).
 - Dark map: new `night` basemap ("Dark map") = the same OSM tiles with their lightness flipped in a
   shader (no second tile provider); `dark` ("Black") is unchanged. Both use the dark overlay palette
