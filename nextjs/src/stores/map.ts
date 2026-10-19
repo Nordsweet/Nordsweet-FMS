@@ -28,7 +28,7 @@ export const mapPreferencesSchema = z.object({
   gpsEnabled: z.boolean().default(false),
   basemap: z
     .enum(["osm", "dark", "night", "fjord", "dark-matter"])
-    .default("osm"),
+    .default("fjord"),
   plan: z.enum(["current", "next", "none"]).default("current"),
   layers: z
     .object({

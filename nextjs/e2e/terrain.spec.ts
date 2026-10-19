@@ -20,7 +20,7 @@ async function seed(
         headers: { "Access-Control-Allow-Origin": "*" },
       }),
   );
-  await page.route("https://tile.openstreetmap.org/**", (r) =>
+  await page.route("**/tiles/**", (r) =>
     r.fulfill({
       path: "e2e/fixtures/terrain-texture.png",
       contentType: "image/png",

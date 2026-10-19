@@ -187,7 +187,8 @@ export const emptyScene = (): Scene => ({
 /** The layers that answer clicks, most useful first (aircraft, then airports...). */
 export const PICK_LAYERS = ["traffic", "airports", "vfr", "ifr", "navaids"];
 
-const OSM_TILES = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+/** Our own caching proxy in front of tile.openstreetmap.org (deploy/nginx.conf, rewrite in next.config.js for dev). */
+const OSM_TILES = "/tiles/{z}/{x}/{y}.png";
 const FONT = "system-ui, sans-serif";
 /** Edges soften over about a screen pixel: the default is fine at 2x, but jagged on 1x (Windows) displays. */
 const sdfSettings = () => ({

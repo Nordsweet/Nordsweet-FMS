@@ -7,16 +7,18 @@ self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=
 self.addEventListener('fetch',event=>{
  if(event.request.method!=='GET')return;
  const url=new URL(event.request.url);
- if(url.hostname==='tile.openstreetmap.org'||url.hostname==='tiles.openfreemap.org'||(url.hostname==='s3.amazonaws.com'&&url.pathname.startsWith('/elevation-tiles-prod/terrarium/'))){
+ if(url.pathname.startsWith('/tiles/')||url.hostname==='tile.openstreetmap.org'||url.hostname==='tiles.openfreemap.org'||(url.hostname==='s3.amazonaws.com'&&url.pathname.startsWith('/elevation-tiles-prod/terrarium/'))){
    event.respondWith(caches.open('map-osm-tiles-v1').then(async cache=>{
      // The vector basemap's TileJSON names the current planet build: take it fresh, keep the last for offline.
      if(url.hostname==='tiles.openfreemap.org'&&!url.pathname.endsWith('.pbf')){
        try{const fresh=await fetch(event.request);if(fresh.ok)await cache.put(event.request,fresh.clone());return fresh;}
        catch{return (await cache.match(event.request))||Response.error();}
      }
-     const cached=await cache.match(event.request);if(cached)return cached;
+     const cached=await cache.match(event.request);
+     // Re-putting a hit moves it to the end of the cache's key order, so the first key is the least recently used.
+     if(cached){event.waitUntil(cache.put(event.request,cached.clone()).catch(()=>{}));return cached;}
      const response=await fetch(event.request);
-     if(response.ok){try{await cache.put(event.request,response.clone());const keys=await cache.keys();if(keys.length>600)await cache.delete(keys[0]);}catch{/* A full offline cache must not discard a successful network tile. */}}
+     if(response.ok){try{await cache.put(event.request,response.clone());const keys=await cache.keys();if(keys.length>3000)await cache.delete(keys[0]);}catch{/* A full offline cache must not discard a successful network tile. */}}
      return response;
    }));return;
  }
