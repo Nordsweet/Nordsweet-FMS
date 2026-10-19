@@ -2,6 +2,7 @@
 
 import {
   ClipboardList,
+  Compass,
   type LucideIcon,
   Map as MapIcon,
   Plane,
@@ -19,6 +20,7 @@ const nav: { href: string; label: MessageKey; icon: LucideIcon }[] = [
   { href: "/", label: "nav.planner", icon: ClipboardList },
   { href: "/map", label: "nav.graphicalPlan", icon: MapIcon },
   { href: "/aircraft", label: "nav.aircraft", icon: Plane },
+  { href: "/inspire", label: "nav.inspire", icon: Compass },
 ];
 
 /** Pages render their own top-right actions here (see usePageActions). */

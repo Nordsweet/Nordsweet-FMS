@@ -11,6 +11,7 @@ import {
   type PlaceKind,
   placesResponseSchema,
   sourcesSchema,
+  inspirationResponseSchema,
   notamsResponseSchema,
   trafficResponseSchema,
   weatherResponseSchema,
@@ -155,6 +156,9 @@ export const aviationApi = {
           ...response,
           aircraft: response.aircraft.map(correctTrafficMetadata),
         })),
+  /** The whole curated list: the app filters it itself, so favourites never disappear with a filter. */
+  inspiration: ({ lang }: { lang: "pl" | "en" }) =>
+    get("/inspiration", inspirationResponseSchema, { lang }),
   airspace: ({ lat, lon, radiusNm, plan }: Around & { plan?: AirspacePlan }) =>
     get("/airspace", airspaceResponseSchema, {
       lat,

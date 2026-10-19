@@ -38,6 +38,46 @@ export const placesResponseSchema = z.object({
   sources: sourcesSchema,
 });
 
+const httpsUrl = z.string().startsWith("https://");
+
+/** `kind` and `interests` stay plain strings: a value the API adds later must not break the whole list. */
+export const inspirationSpotSchema = z.object({
+  id: z.string(),
+  kind: z.string(),
+  name: z.string(),
+  lat: z.number(),
+  lon: z.number(),
+  icao: z.string().nullable(),
+  interests: z.array(z.string()),
+  summary: z.string().nullable(),
+  photo_url: httpsUrl.nullable(),
+  page_url: httpsUrl.nullable(),
+  license: z.string().nullable(),
+  distance_nm: z.number().nullable(),
+});
+
+export const inspirationRouteSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  interests: z.array(z.string()),
+  distance_nm: z.number(),
+  stops: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      lat: z.number(),
+      lon: z.number(),
+      icao: z.string().nullable(),
+    }),
+  ),
+});
+
+export const inspirationResponseSchema = z.object({
+  spots: z.array(inspirationSpotSchema),
+  routes: z.array(inspirationRouteSchema),
+  sources: sourcesSchema,
+});
+
 export const metarSchema = z.object({
   raw: z.string(),
   observed_at: timestamp,
@@ -183,6 +223,8 @@ export const activationsResponseSchema = z.object({
 
 export type Place = z.infer<typeof placeSchema>;
 export type PlaceKind = Place["kind"];
+export type InspirationSpot = z.infer<typeof inspirationSpotSchema>;
+export type InspirationRoute = z.infer<typeof inspirationRouteSchema>;
 export type Metar = z.infer<typeof metarSchema>;
 export type Atis = z.infer<typeof atisSchema>;
 export type Notam = z.infer<typeof notamSchema>;

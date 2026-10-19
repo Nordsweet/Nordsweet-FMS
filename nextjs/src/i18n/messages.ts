@@ -11,8 +11,10 @@ import { connectorEn, connectorPl } from "./connector";
 import { flightPopupsEn, flightPopupsPl } from "./flight-popups";
 import { aircraftReferenceEn, aircraftReferencePl } from "./aircraft-reference";
 import { debriefEn, debriefPl } from "./debrief";
+import { inspireEn, inspirePl } from "./inspire";
 
 const pl = {
+  ...inspirePl,
   ...debriefPl,
   ...aircraftReferencePl,
   ...flightPopupsPl,
@@ -844,6 +846,7 @@ const en: Record<MessageKey, string> = {
   ...holdingEn,
   ...trafficPatternEn,
   ...atisConsensusEn,
+  ...inspireEn,
   ...mapToolsEn,
   ...aircraftEditorEn,
   "maplegacy.airspace": "Airspaces",

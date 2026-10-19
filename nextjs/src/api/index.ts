@@ -298,6 +298,13 @@ export const api = {
       },
     ),
   },
+  inspiration: {
+    ideas: query(
+      "inspiration.ideas",
+      (input: { lang: "pl" | "en" }) => aviationApi.inspiration(input),
+      live(HOUR),
+    ),
+  },
   airspace: {
     around: query(
       "airspace.around",

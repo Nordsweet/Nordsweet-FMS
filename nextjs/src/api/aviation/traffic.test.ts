@@ -52,3 +52,17 @@ it("shows every network by default, and old stored preferences gain that default
     mapPreferencesSchema.safeParse({ trafficSources: ["radar"] }).success,
   ).toBe(false);
 });
+
+it("asks for the whole inspiration list in the chosen language", async () => {
+  const fetch = vi.fn((_url: URL) =>
+    Promise.resolve(
+      new Response(JSON.stringify({ spots: [], routes: [], sources: {} })),
+    ),
+  );
+  vi.stubGlobal("fetch", fetch);
+  await aviationApi.inspiration({ lang: "pl" });
+  const url = fetch.mock.calls[0]![0];
+  expect(url.pathname).toBe("/inspiration");
+  expect([...url.searchParams.keys()]).toEqual(["lang"]);
+  expect(url.searchParams.get("lang")).toBe("pl");
+});
