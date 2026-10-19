@@ -5,6 +5,17 @@ Reference: <https://nordsweet-performance-calculator.mrnordsweet.chatgpt.site/> 
 `5265bc5de9510aa3d83cc469860a730962b96c78`. Starting develop: `2f289ed6dc8d7b7c3186b100577c787c64df1de2`.
 Branch: `codex/preflight-parity-audit`.
 
+## Smooth Crosswind capture at EPML (2026-10-19)
+
+- Crosswind previously skipped the shared entry-connector solver. An oblique arrival could
+  require more tangent distance than the short Crosswind leg offered, causing the entry and
+  adjacent Downwind fly-by arcs to be rejected and drawn as square corners.
+- Include Crosswind in the existing rate-one connector solver when adjacent turns do not fit.
+  Establish the selected leg before its start, retaining full turn radii, circuit altitude,
+  existing dimensions and the subsequent smooth Downwind turn.
+- Regression cases cover EPML RWY 09, left/right circuits at 100/120 kt. Browser coverage
+  includes the right Crosswind preview, acceptance, entry guides and saved-plan reload.
+
 ## Downwind capture at EPML (2026-10-19)
 
 - A near-reciprocal inbound course could produce a large entry fly-by tangent that consumed

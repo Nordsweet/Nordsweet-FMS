@@ -102,6 +102,52 @@ test.each([
   ["right", 100],
   ["right", 120],
 ] as const)(
+  "EPML %s Crosswind at %i kt fits both entry and Downwind turns",
+  (direction, tasKt) => {
+    const mielec = airportSchema.parse(
+      airports.find((a) => a.ident === "EPML"),
+    );
+    const runway = mielec.runways.find((r) => r.designator === "09")!;
+    const geometry = patternRunwayGeometry(mielec, runway)!;
+    const arrival: TrafficPattern = {
+      ...pattern,
+      airport: mielec,
+      runway: { ...runway, ...geometry },
+      direction,
+      join: "crosswind",
+      turnPerformance: { tasKt },
+    };
+    const g = trafficPatternGeometry(arrival);
+    const inbound = [
+      {
+        ident: "INBOUND",
+        ...destinationPoint(
+          g.positions.crosswind,
+          direction === "right" ? 255 : 285,
+          20,
+        ),
+      },
+    ];
+    const joining = trafficPatternEntryPoints(arrival, inbound);
+    const route = [...inbound, ...joining];
+    const path = flyByRoute(route, { tasKt });
+    expect(path.issues).toEqual([]);
+    expect(path.turns.has(1)).toBe(true);
+    const downwind = route.findIndex((p) => p.ident === "TP2/EPML");
+    expect(path.turns.has(downwind)).toBe(true);
+    expect(path.turns.size).toBeGreaterThanOrEqual(3);
+    // Entry guides must not replace either the selected leg or its planned altitude.
+    expect(joining.some((p) => p.ident === "TP1/EPML")).toBe(true);
+    expect(joining.every((p) => p.altitudeFt !== undefined)).toBe(true);
+  },
+);
+
+test.each([
+  ["left", 100],
+  ["left", 120],
+  ["right", 100],
+  ["right", 120],
+] as const)(
   "EPML %s Downwind at %i kt retains its start and runway abeam after an acute entry",
   (direction, tasKt) => {
     const mielec = airportSchema.parse(
