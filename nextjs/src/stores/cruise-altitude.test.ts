@@ -7,13 +7,11 @@ beforeEach(() => {
   vi.useFakeTimers();
   vi.setSystemTime(120000);
   useCruiseAltitude.setState(useCruiseAltitude.getInitialState(), true);
-  useFlight
-    .getState()
-    .load({
-      ...newFlight(),
-      cruiseAltitudeFt: 5000,
-      waypointAltitudes: { FREE: 5000 },
-    });
+  useFlight.getState().load({
+    ...newFlight(),
+    cruiseAltitudeFt: 5000,
+    waypointAltitudes: { FREE: 5000 },
+  });
   useInFlight.setState({
     startedAt: "session",
     activeLeg: 0,
@@ -23,18 +21,16 @@ beforeEach(() => {
     ],
   });
   for (let at = 0; at <= 120000; at += 5000)
-    useCruiseAltitude
-      .getState()
-      .observe(
-        {
-          session: "session",
-          plannedFt: 5000,
-          source: "gps",
-          phase: "cruise",
-          sample: { at, altitudeFt: 6000 },
-        },
-        at,
-      );
+    useCruiseAltitude.getState().observe(
+      {
+        session: "session",
+        plannedFt: 5000,
+        source: "gps",
+        phase: "cruise",
+        sample: { at, altitudeFt: 6000 },
+      },
+      at,
+    );
 });
 afterEach(() => vi.useRealTimers());
 it("YES updates the saved plan and active navigation levels without resetting the leg", () => {
