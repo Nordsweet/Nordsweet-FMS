@@ -1,3 +1,4 @@
+import { type FlightPoint } from "~/data/flight";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { distanceNm } from "~/domain/geo";
@@ -57,6 +58,10 @@ export const mapPreferencesSchema = z.object({
 });
 type Preferences = z.infer<typeof mapPreferencesSchema>;
 type MapState = Preferences & {
+  pointRequest: (FlightPoint & { name: string; kind: string }) | null;
+  inspectPoint: (
+    point: (FlightPoint & { name: string; kind: string }) | null,
+  ) => void;
   searchOpen: boolean;
   setSearchOpen: (open: boolean) => void;
   gpsTrack: TrackPoint[];
@@ -87,6 +92,12 @@ export const useMapSettings = create<MapState>()(
       ...mapPreferencesSchema.parse({}),
       gpsEnabled: false,
       following: false,
+      pointRequest: null,
+      inspectPoint: (pointRequest) =>
+        set({
+          pointRequest,
+          ...(pointRequest ? { following: false, searchOpen: false } : {}),
+        }),
       searchOpen: false,
       setSearchOpen: (searchOpen) => set({ searchOpen }),
       command: null,

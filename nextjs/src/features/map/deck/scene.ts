@@ -96,6 +96,7 @@ export type Scene = {
   navaids: PointDatum[];
   route: Path[];
   plannedRoute: Path[];
+  routeHistory: Path[];
   patternPreview: Path[];
   holding: Path[];
   holdingPreview: Path[];
@@ -150,6 +151,7 @@ export const emptyScene = (): Scene => ({
   navaids: [],
   route: [],
   plannedRoute: [],
+  routeHistory: [],
   patternPreview: [],
   holding: [],
   holdingPreview: [],
@@ -619,6 +621,10 @@ export function buildLayers(
     points("vfr", s.vfr, vfr, atlas),
     points("airports", s.airports, airports, atlas),
     points("navaids", s.navaids, navaids, atlas),
+    paths("route-history-halo", s.routeHistory, [255, 0, 255, 92], 4, route, {
+      round: true,
+    }),
+    paths("route-history", s.routeHistory, MAGENTA, 1.6, route),
     paths("route-halo", s.route, [255, 0, 255, 92], 4, route, { round: true }),
     paths("route", s.route, MAGENTA, 1.6, route, { pickable: true }),
     new PathLayer<Path, PathStyleExtensionProps<Path>>({

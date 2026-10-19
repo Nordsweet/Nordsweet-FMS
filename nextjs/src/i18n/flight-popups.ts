@@ -1,4 +1,6 @@
 export const flightPopupsEn = {
+  "fly.fpl.remove": "Remove {point} from route",
+  "fly.fpl.options": "Point options: {point}",
   "fly.traffic.ta":
     "Traffic advisory: {callsign}, {clock} o'clock, {distance} NM, {altitude} ft",
   "fly.traffic.close":
@@ -33,6 +35,8 @@ export const flightPopupsEn = {
   "fly.popup.descend": "Descend {altitude} ft",
 };
 export const flightPopupsPl: typeof flightPopupsEn = {
+  "fly.fpl.remove": "Usuń {point} z trasy",
+  "fly.fpl.options": "Opcje punktu: {point}",
   "fly.traffic.ta":
     "Traffic advisory: {callsign}, godzina {clock}, {distance} NM, {altitude} ft",
   "fly.traffic.close":

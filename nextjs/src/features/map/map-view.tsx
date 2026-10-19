@@ -6,7 +6,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { SearchIcon } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { api } from "~/api";
@@ -29,6 +29,7 @@ import {
   routeWithTrafficPattern,
   activeRouteWithTrafficPattern,
 } from "~/domain/traffic-pattern";
+import { routeHistoryPaths } from "~/domain/route-history";
 import { flyByRoute } from "~/domain/fly-by";
 import { navigationRoute } from "~/domain/navigation-route";
 import { ownRegistration } from "~/domain/traffic-identity";
@@ -159,7 +160,35 @@ export function MapView({
   const captions = useRef(new AirspaceCaptions());
   const [ready, setReady] = useState(false);
   const [notificationHistoryOpen, setNotificationHistoryOpen] = useState(false);
-  const [click, setClick] = useState<Click | null>(null);
+  const [localClick, setLocalClick] = useState<Click | null>(null);
+  const pointRequest = useMapSettings((s) => s.pointRequest);
+  const click = useMemo<Click | null>(
+    () =>
+      pointRequest
+        ? {
+            kind: "point",
+            point: pointRequest,
+            lngLat: { lng: pointRequest.lon, lat: pointRequest.lat },
+          }
+        : localClick,
+    [pointRequest, localClick],
+  );
+  const setClick = useCallback((value: Click | null) => {
+    useMapSettings.getState().inspectPoint(null);
+    setLocalClick(value);
+  }, []);
+  useEffect(() => {
+    if (!ready || !pointRequest || !mapRef.current) return;
+    mapRef.current.animateTo(
+      {
+        longitude: pointRequest.lon,
+        latitude: pointRequest.lat,
+        zoom: Math.max(9, mapRef.current.getZoom()),
+      },
+      700,
+      true,
+    );
+  }, [ready, pointRequest]);
   const [holdingPreview, setHoldingPreview] = useState<Holding | null>(null);
   const [patternPreview, setPatternPreview] = useState<TrafficPattern | null>(
     null,
@@ -622,7 +651,7 @@ export function MapView({
       cancelled = true;
       teardown?.();
     };
-  }, []);
+  }, [setClick]);
 
   const theme = themeOf(basemap);
   useEffect(() => {
@@ -826,6 +855,11 @@ export function MapView({
   // The route line, and its waypoints as DOM labels (keyboard- and screen-reader-reachable).
   useEffect(() => {
     sceneRef.current?.set({
+      routeHistory: toPaths(
+        navigation.startedAt
+          ? routeHistoryPaths(navigation.routeHistory, route)
+          : [],
+      ),
       route: toPaths([
         routePath.points,
         ...(flight.destination && flight.alternate
@@ -833,7 +867,9 @@ export function MapView({
           : []),
       ]),
       plannedRoute:
-        route[0]?.ident === "DCT" && !navigation.trafficPattern
+        route[0]?.ident === "DCT" &&
+        !navigation.trafficPattern &&
+        !navigation.routeHistory
           ? toPaths([plannedPath])
           : [],
     });
@@ -841,6 +877,8 @@ export function MapView({
     ready,
     route,
     routePath.points,
+    navigation.startedAt,
+    navigation.routeHistory,
     flight.destination,
     flight.alternate,
     plannedPath,
@@ -894,7 +932,7 @@ export function MapView({
         return { element: el, lon: p.lon, lat: p.lat };
       }),
     );
-  }, [ready, route, flight.alternate, airports.data, navpoints.data]);
+  }, [ready, route, flight.alternate, airports.data, navpoints.data, setClick]);
 
   const segmentTime = (index: number) => {
     const target = route[index + 1],
@@ -1152,6 +1190,12 @@ export function MapView({
         "legacy-map absolute inset-0",
         theme === "dark" && "legacy-map--dark",
       )}
+      data-route-history-paths={
+        navigation.startedAt
+          ? routeHistoryPaths(navigation.routeHistory, route).length
+          : 0
+      }
+      data-route-history-last-fix={navigation.routeHistory?.lastPassed.ident}
       data-pattern-preview={patternPreview ? "true" : "false"}
       data-holding-preview={holdingPreview ? "true" : "false"}
       data-terrain-3d={settings.terrain3d ? "true" : "false"}
