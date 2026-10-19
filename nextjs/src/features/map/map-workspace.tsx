@@ -267,6 +267,7 @@ export function MapWorkspace({ embedded = false }: { embedded?: boolean }) {
             label={t("map.basemap")}
             value={settings.basemap}
             options={[
+              { value: "bright", label: t("map.basemapBright") },
               { value: "osm", label: "OpenStreetMap" },
               { value: "night", label: t("map.basemapNight") },
               { value: "fjord", label: t("map.basemapFjord") },

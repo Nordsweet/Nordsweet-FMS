@@ -24,6 +24,7 @@ import { type AirspaceFeature } from "~/api/aviation/schemas";
 import { type Basemap, type LayerId } from "~/stores/map";
 import { iconAtlas, type IconName } from "./atlas";
 import { cssColor, type Rgba } from "./color";
+import { BRIGHT_BACKGROUND, brightRules, brightRulesByLayer } from "./bright";
 import {
   darkMatterRules,
   darkMatterRulesByLayer,
@@ -344,7 +345,7 @@ function basemap(dark: boolean) {
   });
 }
 
-/** Shared OpenMapTiles rules, used by both bundled vector styles. */
+/** Shared OpenMapTiles rules, used by the bundled vector styles. */
 type VectorStyle = {
   id: string;
   rules: Rule[];
@@ -356,6 +357,12 @@ const fjordStyle: VectorStyle = {
   rules: fjordRules,
   index: fjordRulesByLayer,
   background: FJORD_BACKGROUND,
+};
+const brightStyle: VectorStyle = {
+  id: "bright",
+  rules: brightRules,
+  index: brightRulesByLayer,
+  background: BRIGHT_BACKGROUND,
 };
 const darkMatterStyle: VectorStyle = {
   id: "dark-matter",
@@ -554,11 +561,13 @@ export function buildLayers(
 ): Layer[] {
   const { airspace, airports, vfr, ifr, navaids, route, traffic } = s.visible;
   const vector =
-    s.basemap === "fjord"
-      ? fjordStyle
-      : s.basemap === "dark-matter"
-        ? darkMatterStyle
-        : null;
+    s.basemap === "bright"
+      ? brightStyle
+      : s.basemap === "fjord"
+        ? fjordStyle
+        : s.basemap === "dark-matter"
+          ? darkMatterStyle
+          : null;
   const template = vector ? vectorTemplate(refresh) : null;
   const vectorLayers =
     vector && template

@@ -5,7 +5,7 @@ import { cssColor, type Rgba } from "./color";
 /** `light` is the printed-chart look; `dark` (night map, black background) lightens everything drawn on top. */
 export type Theme = "light" | "dark";
 export const themeOf = (basemap: Basemap): Theme =>
-  basemap === "osm" ? "light" : "dark";
+  basemap === "osm" || basemap === "bright" ? "light" : "dark";
 
 type Palette = {
   ink: PointInk;

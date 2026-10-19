@@ -28,7 +28,7 @@ test("the dark map is a stored basemap choice; unknown ones fall back to the def
   expect(mapPreferencesSchema.parse({ basemap: "dark-matter" }).basemap).toBe(
     "dark-matter",
   );
-  expect(mapPreferencesSchema.parse({}).basemap).toBe("fjord");
+  expect(mapPreferencesSchema.parse({}).basemap).toBe("bright");
 });
 
 test("old flights gain defaults; map restrictions and anchors survive nord export/import", () => {
@@ -51,11 +51,12 @@ test("old flights gain defaults; map restrictions and anchors survive nord expor
   expect(decoded.waypoints).toEqual(original.waypoints);
 });
 
-test("a stored v1 OpenStreetMap default moves to Fjord; later choices are kept", () => {
+test("a stored OpenStreetMap or Fjord default moves to Bright; later choices are kept", () => {
   expect(migrateMap({ basemap: "osm", labels: false }, 1)).toEqual({
-    basemap: "fjord",
+    basemap: "bright",
     labels: false,
   });
-  expect(migrateMap({ basemap: "osm" }, 2)).toEqual({ basemap: "osm" });
+  expect(migrateMap({ basemap: "fjord" }, 2)).toEqual({ basemap: "bright" });
+  expect(migrateMap({ basemap: "osm" }, 3)).toEqual({ basemap: "osm" });
   expect(migrateMap({ basemap: "night" }, 1)).toEqual({ basemap: "night" });
 });

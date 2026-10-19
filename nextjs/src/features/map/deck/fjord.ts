@@ -52,6 +52,8 @@ export type Rule = {
       /** Higher wins when labels collide. */
       priority: number;
       halo: Rgba;
+      /** Keep the name as written; the others are drawn in capitals. */
+      mixedCase?: true;
     }
 );
 
@@ -499,15 +501,14 @@ export function placeLabels(
   for (const feature of features) {
     if (feature.properties.layerName !== "place") continue;
     const name = feature.properties["name:latin"] ?? feature.properties.name;
-    const text = typeof name === "string" ? name.toUpperCase() : "";
-    if (!text) continue;
+    if (typeof name !== "string" || !name) continue;
     for (const i of index.get("place") ?? []) {
       const rule = rules[i]!;
       if (rule.kind === "text" && ruleMatches(rule, feature, zoom))
         labels.push({
           rule: i,
           position: feature.geometry.coordinates as [number, number],
-          text,
+          text: rule.mixedCase ? name : name.toUpperCase(),
           priority: rule.priority,
           rank: Number(feature.properties.rank ?? 99),
         });

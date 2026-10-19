@@ -22,13 +22,14 @@ export const trafficNetworks = [
   "ogn",
 ] as const;
 export type LayerId = (typeof mapLayers)[number];
-export type Basemap = "osm" | "dark" | "night" | "fjord" | "dark-matter";
+export type Basemap =
+  "osm" | "bright" | "dark" | "night" | "fjord" | "dark-matter";
 export const mapPreferencesSchema = z.object({
   terrain3d: z.boolean().default(false),
   gpsEnabled: z.boolean().default(false),
   basemap: z
-    .enum(["osm", "dark", "night", "fjord", "dark-matter"])
-    .default("fjord"),
+    .enum(["osm", "bright", "dark", "night", "fjord", "dark-matter"])
+    .default("bright"),
   plan: z.enum(["current", "next", "none"]).default("current"),
   layers: z
     .object({
@@ -86,11 +87,11 @@ export function readLegacyMap(
       : {};
 }
 
-/** v1 stored the old "osm" default for everyone; the vector Fjord map is the default since v2. */
+/** Every browser stored the default it was first given ("osm", then "fjord"); the vector Bright map is the default since v3. */
 export const migrateMap = (persisted: unknown, version: number) => {
   const value = (persisted ?? {}) as Partial<Preferences>;
-  return version < 2 && value.basemap === "osm"
-    ? { ...value, basemap: "fjord" }
+  return version < 3 && (value.basemap === "osm" || value.basemap === "fjord")
+    ? { ...value, basemap: "bright" }
     : value;
 };
 
@@ -128,7 +129,7 @@ export const useMapSettings = create<MapState>()(
     }),
     {
       name: "nordsweet.map.v1",
-      version: 2,
+      version: 3,
       migrate: migrateMap,
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => mapPreferencesSchema.parse(state),
