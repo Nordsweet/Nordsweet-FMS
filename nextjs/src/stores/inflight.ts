@@ -1,3 +1,4 @@
+import { fuelUnit, formatFuel } from "~/domain/fuel-units";
 import { create } from "zustand";
 import { retainPassedRoute, type RouteHistory } from "~/domain/route-history";
 import { safeWaypointIndex } from "~/domain/waypoint-insertion";
@@ -401,6 +402,11 @@ export const useInFlight = create<InFlight>()(
         set((s) => {
           const now = Date.now();
           const takeoff = s.timers.airTime.startedAt;
+          const flight = useFlight.getState().flight;
+          const unit = fuelUnit(
+            s.debrief?.aircraftType ?? flight.aircraftId,
+            s.debrief?.fuelDisplayUnit ?? flight.fuelDisplayUnit,
+          );
           return {
             fredaOpen: false,
             fredaDueAt:
@@ -412,7 +418,7 @@ export const useInFlight = create<InFlight>()(
                 : now + FREDA_INTERVAL_MS,
             timers: addEvent(
               s.timers,
-              `FREDA Fuel check — ${Math.round(fuelL)} L`,
+              `FREDA Fuel check — ${formatFuel(fuelL, unit)} ${unit}`,
               now,
             ),
           };
@@ -517,6 +523,7 @@ export const useInFlight = create<InFlight>()(
             flightId: flight.id,
             name: flight.name,
             aircraftType,
+            fuelDisplayUnit: fuelUnit(aircraftType, flight.fuelDisplayUnit),
             registration,
             mthBefore:
               mth.trim() !== "" && Number.isFinite(Number(mth))

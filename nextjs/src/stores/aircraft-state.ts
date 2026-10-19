@@ -1,7 +1,11 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
-import { type FuelIndicationMode, formatMth } from "~/domain/aircraft";
+import {
+  type FuelIndicationMode,
+  formatMth,
+  normalizeRegistration,
+} from "~/domain/aircraft";
 
 /** What is known about one airframe between flights. */
 export type AircraftState = {
@@ -26,10 +30,12 @@ export const emptyAircraftState: AircraftState = {
 
 /** "TYPE::REG", or "TYPE::DEFAULT" without a registration (the legacy keys). */
 export const aircraftStateKey = (type: string, registration: string) =>
-  `${type}::${registration || "DEFAULT"}`;
+  `${type}::${normalizeRegistration(registration) || "DEFAULT"}`;
 
 type Store = {
   states: Record<string, AircraftState>;
+  models: Record<string, string>;
+  rememberModel: (registration: string, type: string) => void;
   /** Mode only: choosing it is a setting, not a recorded state. */
   setFuelIndicationMode: (key: string, mode: FuelIndicationMode | null) => void;
   record: (
@@ -38,17 +44,13 @@ type Store = {
   ) => void;
 };
 
-/** The registration's state, else the type's. */
+/** A different airframe's readings must never become this registration's baseline. */
 export function selectAircraftState(
   states: Record<string, AircraftState>,
   type: string,
   registration: string,
 ): AircraftState {
-  return (
-    states[aircraftStateKey(type, registration)] ??
-    states[aircraftStateKey(type, "")] ??
-    emptyAircraftState
-  );
+  return states[aircraftStateKey(type, registration)] ?? emptyAircraftState;
 }
 
 /** Fuel left after the last flight plus fuel added, capped at the tank capacity; null if neither is known. */
@@ -116,6 +118,11 @@ export const useAircraftState = create<Store>()(
   persist(
     (set) => ({
       states: {},
+      models: {},
+      rememberModel: (registration, type) => {
+        const key = normalizeRegistration(registration);
+        if (key) set((s) => ({ models: { ...s.models, [key]: type } }));
+      },
       setFuelIndicationMode: (key, mode) =>
         set((s) => ({
           states: {
@@ -142,9 +149,12 @@ export const useAircraftState = create<Store>()(
       name: "nordsweet.aircraftState.v2",
       version: 1,
       storage: createJSONStorage(() => localStorage),
-      partialize: ({ states }) => ({ states }),
+      partialize: ({ states, models }) => ({ states, models }),
       merge: (persisted, current) => ({
         ...current,
+        models:
+          (persisted as { models?: Record<string, string> } | undefined)
+            ?.models ?? {},
         states:
           (persisted as { states?: Record<string, AircraftState> } | undefined)
             ?.states ?? readLegacyAircraftStates(localStorage),

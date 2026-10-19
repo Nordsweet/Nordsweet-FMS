@@ -1,9 +1,9 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "~/api";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useCallback, useEffect } from "react";
 
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
@@ -18,6 +18,7 @@ import { type Aircraft } from "~/data/aircraft";
 import { type Flight } from "~/data/flight";
 import {
   aircraftLabel,
+  aircraftForRegistration,
   aircraftTypes,
   formatMth,
   normalizeRegistration,
@@ -37,6 +38,7 @@ import { useSettings } from "~/stores/settings";
 import { Section } from "./fields";
 import { PositionSourcePanel } from "~/features/fly/position-source-panel";
 import { usePlan } from "./use-plan";
+import { RegistrationField } from "./registration-field";
 
 /** A new profile starts from its POH/W&B defaults, with the pilot weight from settings. */
 function profileDefaults(
@@ -70,6 +72,7 @@ const updatedFormat = new Intl.DateTimeFormat(undefined, {
 export function AircraftSection() {
   const t = useT();
   const { flight, aircraft, aircraftList } = usePlan();
+  const queryClient = useQueryClient();
   const update = useFlight((s) => s.update);
   const homeAirport = useSettings((s) => s.homeAirportIcao);
   const home = useQuery(
@@ -82,6 +85,8 @@ export function AircraftSection() {
   const type = aircraft?.type ?? null;
   const stateKey = type ? aircraftStateKey(type, registration) : "";
   const states = useAircraftState((s) => s.states);
+  const models = useAircraftState((s) => s.models);
+  const rememberModel = useAircraftState((s) => s.rememberModel);
   const setFuelIndicationMode = useAircraftState(
     (s) => s.setFuelIndicationMode,
   );
@@ -89,6 +94,42 @@ export function AircraftSection() {
   const lastState = type
     ? selectAircraftState(states, type, registration)
     : null;
+
+  const matchRegistration = useCallback(
+    (
+      value: string,
+      identity?: { icaoType: string | null; model?: string | null } | null,
+    ) => {
+      const reg = normalizeRegistration(value);
+      const remembered = Object.entries(states)
+        .filter(([key]) => key.split("::")[1] === reg)
+        .sort((a, b) => (b[1].updatedAt ?? 0) - (a[1].updatedAt ?? 0))
+        .map(([key]) => key.split("::")[0]!);
+      return aircraftForRegistration(
+        aircraftList,
+        reg,
+        models[reg] ? [models[reg], ...remembered] : remembered,
+        identity,
+      );
+    },
+    [aircraftList, states, models],
+  );
+
+  // Reference data and persisted airframe readings may finish loading after registration entry.
+  useEffect(() => {
+    const matched = matchRegistration(registration);
+    const current = useFlight.getState().flight;
+    if (
+      !matched ||
+      normalizeRegistration(current.registration) !== registration ||
+      current.aircraftId === matched.id
+    )
+      return;
+    update({
+      ...profileDefaults(matched, current, pilotWeightKg),
+      fuelDisplayUnit: null,
+    });
+  }, [matchRegistration, registration, pilotWeightKg, update]);
 
   const select = (nextType: string, nextRegistration: string) => {
     const next = resolveAircraft(aircraftList, nextType, nextRegistration);
@@ -99,6 +140,7 @@ export function AircraftSection() {
       ...(point && !flight.departure ? { departure: point } : {}),
       ...(point && !flight.destination ? { destination: point } : {}),
       registration: nextRegistration,
+      ...(next?.type !== type ? { fuelDisplayUnit: null } : {}),
       ...(next?.id !== flight.aircraftId &&
         profileDefaults(next, flight, pilotWeightKg)),
     });
@@ -111,7 +153,10 @@ export function AircraftSection() {
           <Label htmlFor="aircraft-type">{t("plan.aircraft.type")}</Label>
           <Select
             value={type ?? ""}
-            onValueChange={(next) => select(next, flight.registration)}
+            onValueChange={(next) => {
+              rememberModel(flight.registration, next);
+              select(next, flight.registration);
+            }}
           >
             <SelectTrigger id="aircraft-type" className="w-full">
               <SelectValue placeholder={t("plan.aircraft.placeholder")} />
@@ -125,23 +170,51 @@ export function AircraftSection() {
             </SelectContent>
           </Select>
         </div>
-        <div className="grid gap-1.5">
-          <Label htmlFor="aircraft-registration">
-            {t("plan.aircraft.registration")}
-          </Label>
-          <Input
-            id="aircraft-registration"
-            placeholder={t("plan.aircraft.registrationPlaceholder")}
-            autoComplete="off"
-            spellCheck={false}
-            value={flight.registration}
-            onChange={(e) =>
-              type
-                ? select(type, e.target.value)
-                : update({ registration: e.target.value })
+        <RegistrationField
+          value={flight.registration}
+          options={[
+            ...new Set([
+              ...aircraftList.flatMap((a) =>
+                a.registration ? [a.registration] : [],
+              ),
+              ...Object.keys(models),
+              ...Object.keys(states)
+                .map((key) => key.split("::")[1] ?? "")
+                .filter((reg) => reg && reg !== "DEFAULT"),
+            ]),
+          ].sort()}
+          onChange={(value) => {
+            const matched = matchRegistration(value);
+            const nextType = matched?.type ?? type;
+            if (nextType) select(nextType, value);
+            else update({ registration: value });
+          }}
+          onBlur={async () => {
+            if (registration.length < 3 || matchRegistration(registration))
+              return;
+            try {
+              const identity = await queryClient.fetchQuery({
+                ...api.traffic.aircraftIdentity.queryOptions({
+                  registration: flight.registration,
+                }),
+                staleTime: 86400000,
+              });
+              const current = useFlight.getState().flight;
+              if (
+                normalizeRegistration(current.registration) !== registration ||
+                current.aircraftId !== flight.aircraftId
+              )
+                return;
+              const matched = matchRegistration(registration, identity);
+              if (matched) {
+                rememberModel(current.registration, matched.type);
+                select(matched.type, current.registration);
+              }
+            } catch {
+              /* Manual selection remains available offline or for an unknown airframe. */
             }
-          />
-        </div>
+          }}
+        />
         {type && (
           <div className="grid gap-1.5">
             <Label htmlFor="fuel-indication">
@@ -223,6 +296,7 @@ export function AircraftSection() {
           )}
           <LastKnownState
             key={stateKey}
+            registration={registration}
             mth={lastState?.mth ?? ""}
             updatedAt={lastState?.updatedAt ?? null}
             onMth={(mth) => record(stateKey, { mth })}
@@ -250,10 +324,12 @@ function dataStatus(
 }
 
 function LastKnownState({
+  registration,
   mth,
   updatedAt,
   onMth,
 }: {
+  registration: string;
   mth: string;
   updatedAt: number | null;
   onMth: (mth: string) => void;
@@ -267,6 +343,7 @@ function LastKnownState({
       <div className="text-muted-foreground grid gap-1 text-[0.82rem]">
         <strong className="text-accent-2 tracking-[0.07em] uppercase">
           {t("plan.aircraft.lastState")}
+          {registration && ` · ${registration}`}
         </strong>
         <span>
           {updatedAt

@@ -8,8 +8,9 @@ position/follow. Disconnect preserves the selected source without falling back t
 Use Connector v0.1's schemaVersion 1 `/ws?token=...` endpoint. HTTPS pages require HTTPS/WSS.
 Tailscale Serve must run on the Prepar3D PC, and Connector must be launched with `--host` matching
 its Tailscale DNS name, with the exact Windows URL ACL reserved. The app is static; no server relay,
-REST CORS or backend credentials are involved. The token and connection preferences are persisted
-only in sessionStorage, not in flights, exported files or localStorage. Never log the WebSocket URL.
+REST CORS or backend credentials are involved. At the owner’s request (2026-10-19), the address, token and connection preferences are persisted
+in localStorage on this browser/device, including after closing and reopening the app. Existing
+sessionStorage preferences migrate once; saved flights and exported files never contain them. Never log the WebSocket URL.
 
 Connector frames are validated at the API boundary. Missing/invalid/old frames clear the active fix;
 silence marks it stale after 2.5 seconds and closes the socket after 5 seconds. Closure reconnects

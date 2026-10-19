@@ -14,6 +14,7 @@ beforeEach(() => {
     name: "Recorded flight",
     registration: "sp-abc",
     fuel: { blockL: 100 },
+    fuelDisplayUnit: "L",
   });
   useAircraftState.getState().record(aircraftStateKey("C172S", "SPABC"), {
     mth: "00123.40",
@@ -129,4 +130,22 @@ describe("postflight actual readings", () => {
       }),
     ).toMatchObject({ blockMs: null, airMs: null });
   });
+});
+
+it("accepts C172S gallon readings and saves canonical litres for the captured registration", () => {
+  useFlight.getState().update({ fuelDisplayUnit: null });
+  start();
+  expect(useInFlight.getState().debrief?.fuelDisplayUnit).toBe("US gal");
+  useFlight
+    .getState()
+    .update({ fuelDisplayUnit: "L", registration: "SP-OTHER" });
+  useInFlight.getState().end();
+  expect(useInFlight.getState().acceptDebrief("123.70", "20")).toBeNull();
+  expect(useInFlight.getState().debrief?.accepted?.fuelAfterL).toBeCloseTo(
+    75.70823568,
+    9,
+  );
+  expect(
+    useAircraftState.getState().states["C172S::SPABC"]?.fuelRemainingL,
+  ).toBeCloseTo(75.70823568, 9);
 });
