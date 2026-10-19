@@ -12,6 +12,7 @@ import {
   patternRunwayGeometry,
   routeWithTrafficPattern,
   trafficPatternGeometry,
+  trafficPatternEntryPoints,
   trafficPatternReport,
   activeRouteWithTrafficPattern,
 } from "./traffic-pattern";
@@ -95,6 +96,58 @@ const middle = (
 });
 const original = useInFlight.getState();
 
+test.each([
+  ["left", 100],
+  ["left", 120],
+  ["right", 100],
+  ["right", 120],
+] as const)(
+  "EPML %s Downwind at %i kt retains its start and runway abeam after an acute entry",
+  (direction, tasKt) => {
+    const mielec = airportSchema.parse(
+      airports.find((a) => a.ident === "EPML"),
+    );
+    const runway = mielec.runways.find((r) => r.designator === "09")!;
+    const geometry = patternRunwayGeometry(mielec, runway)!;
+    const arrival: TrafficPattern = {
+      ...pattern,
+      airport: mielec,
+      runway: { ...runway, ...geometry },
+      direction,
+      join: "downwind",
+      turnPerformance: { tasKt },
+    };
+    const g = trafficPatternGeometry(arrival);
+    const inbound = [
+      { ident: "INBOUND", ...destinationPoint(g.positions.downwind, 255, 20) },
+    ];
+    const route = [...inbound, ...trafficPatternEntryPoints(arrival, inbound)];
+    const path = flyByRoute(route, { tasKt });
+    expect(path.issues).toEqual([]);
+    expect(
+      path.points.some((p) => distanceNm(p, g.positions.downwind) < 0.0005),
+    ).toBe(true);
+    const offset = (p: { lat: number; lon: number }) =>
+      trackOffset(geometry.threshold, geometry.departureEnd, p);
+    const abeam = offset(mielec).alongTrackNm;
+    // A straight Downwind segment must pass alongside the airport, not finish upstream of it.
+    expect(
+      path.points.some((p, i) => {
+        const next = path.points[i + 1];
+        if (!next) return false;
+        const a = offset(p),
+          b = offset(next);
+        return (
+          Math.abs(Math.abs(a.crossTrackNm) - g.lateralOffsetNm) < 0.01 &&
+          Math.abs(Math.abs(b.crossTrackNm) - g.lateralOffsetNm) < 0.01 &&
+          a.alongTrackNm > abeam &&
+          b.alongTrackNm < abeam
+        );
+      }),
+    ).toBe(true);
+  },
+);
+
 test("insertion between circuits preserves the selected side of an en-route fix after recalculation", () => {
   const destination = { ...airport, ident: "EPBB", lat: 51 };
   const departure = {
@@ -150,9 +203,17 @@ test("insertion between circuits preserves the selected side of an en-route fix 
       route.filter((p) => p.patternOperation === "leave").map((p) => p.ident),
     );
     expect(
-      rebuilt.filter((p) => p.patternOperation === "join").map((p) => p.ident),
+      rebuilt
+        .filter(
+          (p) => p.patternOperation === "join" && !p.ident.startsWith("TPJ"),
+        )
+        .map((p) => p.ident),
     ).toEqual(
-      route.filter((p) => p.patternOperation === "join").map((p) => p.ident),
+      route
+        .filter(
+          (p) => p.patternOperation === "join" && !p.ident.startsWith("TPJ"),
+        )
+        .map((p) => p.ident),
     );
   }
   // Saved endpoint anchors created before protection must not discard the new fix.

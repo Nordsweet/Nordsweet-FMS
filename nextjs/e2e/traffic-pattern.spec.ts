@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import { test, expect, type Page } from "@playwright/test";
 import { airportSchema } from "../src/data/schemas";
-import { newFlight } from "../src/data/flight";
+import { newFlight, type Flight } from "../src/data/flight";
 import {
   trafficPatternGeometry,
   patternRunwayGeometry,
@@ -29,7 +29,16 @@ const pattern: TrafficPattern = {
   altitudeAalFt: 1000,
   finalDistanceNm: 2,
 };
-async function mocks(page: Page, atis = true) {
+async function mocks(
+  page: Page,
+  atis = true,
+  flight: Flight = {
+    ...newFlight(),
+    aircraftId: "P2006T",
+    departure,
+    destination: airport,
+  },
+) {
   await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => route.abort());
   await page.route("https://aviation.lab.vibecde.com/**", (route) => {
     const path = new URL(route.request().url()).pathname;
@@ -75,18 +84,77 @@ async function mocks(page: Page, atis = true) {
       });
     return route.fulfill({ json: { places: [], sources: {} } });
   });
-  await page.addInitScript(
-    (flight) => {
-      localStorage.setItem("nordsweet.language.v1", "en");
-      if (!localStorage.getItem("nordsweet.flight.v2"))
-        localStorage.setItem(
-          "nordsweet.flight.v2",
-          JSON.stringify({ version: 1, state: { flight } }),
-        );
-    },
-    { ...newFlight(), aircraftId: "P2006T", departure, destination: airport },
-  );
+  await page.addInitScript((flight) => {
+    localStorage.setItem("nordsweet.language.v1", "en");
+    if (!localStorage.getItem("nordsweet.flight.v2"))
+      localStorage.setItem(
+        "nordsweet.flight.v2",
+        JSON.stringify({ version: 1, state: { flight } }),
+      );
+  }, flight);
 }
+
+test("Mielec Downwind preserves runway abeam in preview, accepted route and reload", async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(60_000);
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  const mielec = airportSchema.parse(raw.find((a) => a.ident === "EPML"));
+  const runway = mielec.runways.find((r) => r.designator === "09")!;
+  const runwayGeometry = patternRunwayGeometry(mielec, runway)!;
+  const sample: TrafficPattern = {
+    ...pattern,
+    airport: mielec,
+    runway: { ...runway, ...runwayGeometry },
+    turnPerformance: { tasKt: 100 },
+  };
+  const start = trafficPatternGeometry(sample).positions.downwind;
+  const inbound = { ident: "INBOUND", ...destinationPoint(start, 255, 20) };
+  await mocks(page, false, {
+    ...newFlight(),
+    aircraftId: "P2006T",
+    departure,
+    destination: mielec,
+    waypoints: [inbound],
+  });
+  await page.route("**/EPML/weather", (r) =>
+    r.fulfill({ json: { icao: "EPML", metar: null, taf: null, sources: {} } }),
+  );
+  await page.goto("/map");
+  const panel = await open(page, "EPML");
+  await expect(page.locator("[data-pattern-preview='true']")).toBeVisible();
+  await expect(page.getByTestId("turn-constraint")).toHaveCount(0);
+  for (let i = 0; i < 2; i++)
+    await page.getByRole("button", { name: "Zoom in", exact: true }).click();
+  await page.getByRole("button", { name: "Layers", exact: true }).click();
+  await page.screenshot({
+    path: testInfo.outputPath("mielec-downwind-preview.png"),
+  });
+  await panel
+    .getByRole("button", { name: "Accept traffic pattern", exact: true })
+    .click();
+  const accepted = await savedPattern(page);
+  expect(accepted?.airport.ident).toBe("EPML");
+  await expect(page.getByTestId("map-planner-points")).toContainText(
+    "TPJ1/EPML",
+  );
+  await expect(
+    page.getByRole("dialog", { name: "Details", exact: true }),
+  ).toBeHidden();
+  await page.screenshot({
+    path: testInfo.outputPath("mielec-downwind-accepted.png"),
+  });
+  await page.reload();
+  expect(await savedPattern(page)).toEqual(accepted);
+  await expect(page.getByTestId("map-planner-points")).toContainText(
+    "TPJ1/EPML",
+  );
+  await expect(page.getByTestId("turn-constraint")).toHaveCount(0);
+  const reopened = await open(page, "EPML");
+  await expect(
+    reopened.getByRole("combobox", { name: "Join position", exact: true }),
+  ).toHaveText("Downwind");
+});
 async function open(page: Page, code = "EPNT") {
   await page.getByRole("button", { name: "Search", exact: true }).click();
   const search = page.getByRole("dialog", { name: "Search", exact: true });
