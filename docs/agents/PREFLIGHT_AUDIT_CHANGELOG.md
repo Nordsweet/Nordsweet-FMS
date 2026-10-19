@@ -5,6 +5,19 @@ Reference: <https://nordsweet-performance-calculator.mrnordsweet.chatgpt.site/> 
 `5265bc5de9510aa3d83cc469860a730962b96c78`. Starting develop: `2f289ed6dc8d7b7c3186b100577c787c64df1de2`.
 Branch: `codex/preflight-parity-audit`.
 
+## Downwind capture at EPML (2026-10-19)
+
+- A near-reciprocal inbound course could produce a large entry fly-by tangent that consumed
+  Downwind past runway abeam, despite the raw circuit having the correct dimensions.
+- Check the end of the entry turn against the far runway end. If Downwind would be captured
+  too late, reuse the rate-one entry connector to establish the selected leg before its start.
+  Ordinary entries that still cover the runway retain their existing geometry.
+- The shared connector applies to dashed previews, planned and active-flight acceptance.
+  Guide points retain the circuit altitude and turn performance. Guide points are regenerated
+  when an inserted waypoint changes the inbound course; the circuit legs remain intact.
+- Regression coverage reproduces EPML RWY 09 at 100/120 kt with left/right patterns, verifies
+  a straight segment across runway abeam, and exercises preview, acceptance and saved-plan reload.
+
 ## Protect traffic-pattern insertion (2026-10-19)
 
 - Add waypoint treats the departure and arrival circuits as protected blocks, including their

@@ -245,7 +245,7 @@ export function trafficPatternEntryPoints(
   const points = trafficPatternGeometry(pattern).points;
   if (
     pattern.operation === "leave" ||
-    pattern.join !== "base" ||
+    (pattern.join !== "base" && pattern.join !== "downwind") ||
     !inbound.length
   )
     return points;
@@ -259,8 +259,22 @@ export function trafficPatternEntryPoints(
     !flyByRoute(route, performance).issues.some(
       (issue) => issue.index >= boundary - 1 && issue.index <= boundary + 2,
     );
-  if (fits([...inbound, ...points])) return points;
-  // Reverse the established Base course to solve its incoming connector. The forward
+  const direct = [...inbound, ...points];
+  const entryTurn = flyByRoute(direct, performance).candidates.get(boundary);
+  const downwindCapture = entryTurn?.points.at(-1);
+  const capturesBeforeRunway =
+    !downwindCapture ||
+    trackOffset(
+      pattern.runway.threshold,
+      pattern.runway.departureEnd,
+      downwindCapture,
+    ).alongTrackNm >=
+      distanceNm(pattern.runway.threshold, pattern.runway.departureEnd);
+  // An acute Downwind entry can fit geometrically yet consume the leg past runway abeam.
+  // Establish its course before the selected leg start, rather than trimming that start.
+  if (fits(direct) && (pattern.join !== "downwind" || capturesBeforeRunway))
+    return points;
+  // Reverse the established leg course to solve its incoming connector. The forward
   // validation keeps the real wind and full rate-one radii, including adjacent arcs.
   for (const direction of [
     pattern.direction === "left" ? "right" : "left",
