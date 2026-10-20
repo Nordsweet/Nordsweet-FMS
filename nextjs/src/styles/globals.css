@@ -235,6 +235,10 @@
   border-radius: 50%;
   pointer-events: none;
 }
+.legacy-route-label {
+  font: inherit;
+  letter-spacing: inherit;
+}
 .legacy-route-hit-target {
   position: absolute;
   left: 0;
@@ -778,10 +782,28 @@
 }
 .fly-popover[data-panel="fpl"] {
   --head: #5dc1ff;
-  top: var(--top);
+  top: 0.75rem;
   right: 5.5rem;
   width: min(430px, calc(100vw - 6.5rem));
-  max-height: calc(100% - var(--top) - 1rem);
+  display: flex;
+  flex-direction: column;
+  height: min(55rem, calc(100% - 1.5rem));
+  max-height: calc(100% - 1.5rem);
+}
+.fly-popover[data-panel="fpl"] > .fly-popover-head {
+  flex-shrink: 0;
+}
+.fly-popover[data-panel="fpl"] > [data-testid="flight-plan-table"] {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 7rem;
+}
+.fly-popover[data-panel="fpl"]
+  [data-testid="flight-plan-table"]
+  > [role="list"] {
+  min-height: 0;
+  max-height: none;
 }
 .fly-popover[data-panel="wx"] {
   --head: #5dc1ff;

@@ -12,7 +12,12 @@ import {
   aviationApi,
 } from "./aviation/client";
 import { loadAircraft, readCustomDrafts, writeCustomDrafts } from "./aircraft";
-import { loadGeoid, loadTerrainRegion, prepareTerrain } from "./terrain";
+import {
+  loadGeoid,
+  loadTerrainRegion,
+  loadTerrainProfile,
+  prepareTerrain,
+} from "./terrain";
 import { loadDataset } from "./datasets";
 import {
   listFlights,
@@ -102,6 +107,10 @@ export const api = {
     close: mutation("flightSync.close", flightSyncApi.close),
   },
   terrain: {
+    profile: query("terrain.profile", loadTerrainProfile, {
+      staleTime: 5 * MINUTE,
+      gcTime: MINUTE,
+    }),
     prepare: mutation("terrain.prepare", prepareTerrain),
     region: query("terrain.region", loadTerrainRegion, {
       staleTime: 5 * MINUTE,

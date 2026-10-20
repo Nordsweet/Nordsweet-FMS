@@ -951,11 +951,12 @@ export function MapView({
         navigation.startedAt ? route : undefined,
         routePath.points,
       ).map((point) => {
-        const element = document.createElement("span");
+        const element = document.createElement("div");
         element.className = "legacy-route-marker";
         element.dataset.profileMarker = point.id;
         const label = document.createElement("span");
-        label.textContent = point.id === "TOC" ? "↑ TOC" : "↓ TOD";
+        label.className = "legacy-route-label";
+        label.textContent = point.id;
         label.style.position = "relative";
         label.style.top = point.id === "TOC" ? "-12px" : "12px";
         element.append(label);

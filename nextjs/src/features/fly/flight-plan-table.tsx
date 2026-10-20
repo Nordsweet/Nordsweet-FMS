@@ -22,8 +22,10 @@ export function FlightPlanTable({
   label,
   interactive = false,
   actions = false,
+  listClassName,
 }: {
   children: ReactNode;
+  listClassName?: string;
   label: string;
   interactive?: boolean;
   actions?: boolean;
@@ -52,7 +54,7 @@ export function FlightPlanTable({
       <div
         role={interactive ? "listbox" : "list"}
         aria-label={label}
-        className="max-h-[48dvh] overflow-y-auto"
+        className={cn("max-h-[48dvh] overflow-y-auto", listClassName)}
       >
         {children}
       </div>
