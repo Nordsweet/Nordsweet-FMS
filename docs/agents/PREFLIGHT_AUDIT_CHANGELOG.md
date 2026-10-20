@@ -7,6 +7,15 @@ Branch: `codex/preflight-parity-audit`.
 
 ## Flight guidance refinements (2026-10-20)
 
+- Route: add Clear route beside Load route; clear navigation endpoints, fixes, procedures,
+  circuits, holding and per-point overrides while retaining aircraft/fuel/performance data.
+  Show the expanded route in the text field when idle, synchronized with the strip and map;
+  focus retains the existing DCT/airway/procedure source editor with a PL/EN hint.
+  Add red delete and white point-options controls matching flight FPL to real leg destinations;
+  TOC/TOD stay calculated annotations. Options open the existing map point dialog. Stable
+  occurrence exclusions keep deleted airway/procedure fixes out of recalculations and saved files;
+  editing route instructions resets exclusions so fixes can be explicitly reintroduced.
+
 - Replace the expanded in-flight phase strip with one current-phase dropdown in the instrument
   bar. Keep manual selection and automatic phase updates. Move Close Flight beneath the device
   indicators, beside AGL. The antenna opens/closes the position-source dialog, including Connector

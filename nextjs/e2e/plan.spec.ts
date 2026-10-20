@@ -103,6 +103,7 @@ test("imports a legacy .nord flight", async ({ page }) => {
   await tab(page, "Current flight");
   await tab(page, "Route");
   await expect(page.getByTestId("route-summary")).toContainText("EPNT -> EPML");
+  await page.getByRole("textbox", { name: "Route", exact: true }).focus();
   await expect(
     page.getByRole("textbox", { name: "Route", exact: true }),
   ).toHaveValue("epnta epmlr epmls");

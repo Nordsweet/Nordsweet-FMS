@@ -9,7 +9,8 @@ import { type FlightPoint } from "~/data/flight";
 
 import { toRad } from "./angles";
 import { distanceNm, initialBearingDeg } from "./geo";
-import { waypointInsertionIndex } from "./waypoint-insertion";
+import { waypointInsertionIndex, sameFlightPoint } from "./waypoint-insertion";
+import { routeEditKeys } from "./route-edit";
 
 /**
  * The legacy route planner (Route tab), ported rule for rule: free-text route tokens (DCT, airways,
@@ -141,6 +142,7 @@ export type RoutePlanInput = {
   alternate: Airport | null;
   altitudeFt: number;
   routeText: string;
+  removedRoutePoints?: string[];
   selections: Record<ProcedureType, ProcedureSelection>;
   /** Variant picked for "SID NAVUR"-style requests, keyed by choice key. */
   inlineSelections: Record<string, string>;
@@ -1616,6 +1618,14 @@ export function buildRoutePlan(data: RouteData, input: RoutePlanInput) {
       ...outbound,
     ];
   }
+  const editKeys = routeEditKeys(withUserPoints);
+  withUserPoints = withUserPoints.filter(
+    (point, index) =>
+      !input.removedRoutePoints?.includes(editKeys[index]!) ||
+      input.insertedWaypoints.some((p) =>
+        sameFlightPoint(p, { ...point, ident: point.id }),
+      ),
+  );
   const base = verticalProfile(
     input,
     withUserPoints,

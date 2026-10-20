@@ -63,6 +63,7 @@ export const flightSchema = z.object({
   pointRestrictions: z.record(z.string(), pointRestrictionSchema).default({}),
   /** Legacy route text: DCT, airways, procedures ("SID NAVUR"), coordinates. */
   routeText: z.string().default(""),
+  removedRoutePoints: z.array(z.string()).default([]),
   /** Procedure selects: null = none, "AUTO" = suggested for the runway, else a procedure id. */
   sid: z.string().nullable().default(null),
   star: z.string().nullable().default(null),
@@ -156,6 +157,7 @@ export function newFlight(): Flight {
     departureRunway: null,
     pointRestrictions: {},
     routeText: "",
+    removedRoutePoints: [],
     sid: null,
     star: null,
     approach: null,

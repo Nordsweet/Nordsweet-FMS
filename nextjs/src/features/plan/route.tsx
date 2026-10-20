@@ -1,7 +1,8 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { Clock } from "lucide-react";
+import { Clock, Ellipsis, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useId, useRef, useState } from "react";
 
 import { api } from "~/api";
@@ -45,6 +46,9 @@ import { type MessageKey } from "~/i18n/messages";
 import { useT } from "~/i18n/use-t";
 import { cn } from "~/lib/utils";
 import { useFlight } from "~/stores/flight";
+import { useMapSettings } from "~/stores/map";
+import { clearedRoute, routeEditKeys } from "~/domain/route-edit";
+import { sameFlightPoint } from "~/domain/waypoint-insertion";
 
 import { NumberField, Section, num } from "./fields";
 import { AirportField } from "./airport-field";
@@ -150,7 +154,7 @@ export function RouteSection() {
           />
         ))}
       </div>
-      <RouteText />
+      <RouteText expanded={plan?.points.map(formatRoutePoint).join(" → ")} />
       <div className="flex flex-wrap gap-2">
         <Button
           variant="outline"
@@ -174,6 +178,9 @@ export function RouteSection() {
           {t("plan.route.verticalProfile")}
         </Button>
         <LoadRouteButton onStatus={setLoadStatus} />
+        <Button variant="outline" onClick={() => update(clearedRoute)}>
+          {t("plan.route.clear")}
+        </Button>
       </div>
       <RouteStatus plan={plan} loadStatus={loadStatus} />
       {plan && (
@@ -273,11 +280,12 @@ const selectionField = {
   APPROACH: "approach",
 } as const satisfies Record<ProcedureType, keyof Flight>;
 
-function RouteText() {
+function RouteText({ expanded }: { expanded?: string }) {
   const t = useT();
   const id = useId();
   const routeText = useFlight((s) => s.flight.routeText);
   const update = useFlight((s) => s.update);
+  const [editing, setEditing] = useState(false);
   return (
     <div className="grid gap-1.5">
       <Label htmlFor={id}>{t("plan.route.text")}</Label>
@@ -287,9 +295,16 @@ function RouteText() {
         spellCheck={false}
         placeholder={t("plan.route.placeholder")}
         className="border-input bg-input/40 focus-visible:ring-ring/50 min-h-24 rounded-xl border px-3 py-2 text-base outline-none focus-visible:ring-3"
-        value={routeText}
-        onChange={(e) => update({ routeText: e.target.value })}
+        value={editing ? routeText : (expanded ?? routeText)}
+        onFocus={() => setEditing(true)}
+        onBlur={() => setEditing(false)}
+        onChange={(e) =>
+          update({ routeText: e.target.value, removedRoutePoints: [] })
+        }
       />
+      <p className="text-muted-foreground text-xs">
+        {t("plan.route.textHint")}
+      </p>
     </div>
   );
 }
@@ -566,6 +581,7 @@ function LegCard({
   onWx: (key: string) => void;
 }) {
   const t = useT();
+  const router = useRouter();
   const update = useFlight((s) => s.update);
   const flight = useFlight((s) => s.flight);
   const point = leg.to;
@@ -613,6 +629,60 @@ function LegCard({
           >
             WX
           </Button>
+        )}
+        {!point.isProfilePoint && (
+          <div className="flex shrink-0 gap-1">
+            <button
+              type="button"
+              aria-label={t("fly.fpl.remove", {
+                point: formatRoutePoint(point),
+              })}
+              className="flex size-9 items-center justify-center rounded-lg text-red-500 hover:bg-red-500/15 focus-visible:ring-2"
+              onClick={() => {
+                const index = plan.points.indexOf(point);
+                const insertedIndex = flight.waypoints.findIndex((p) =>
+                  sameFlightPoint(p, { ...point, ident: point.id }),
+                );
+                if (index === plan.points.length - 1)
+                  update({ destination: null });
+                else
+                  update({
+                    waypoints: flight.waypoints.filter(
+                      (_, i) => i !== insertedIndex,
+                    ),
+                    removedRoutePoints: [
+                      ...flight.removedRoutePoints,
+                      routeEditKeys(plan.points)[index]!,
+                    ],
+                  });
+              }}
+            >
+              <Trash2 className="size-4" aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              aria-label={t("fly.fpl.options", {
+                point: formatRoutePoint(point),
+              })}
+              className="flex size-9 items-center justify-center rounded-lg text-white hover:bg-white/10 focus-visible:ring-2"
+              onClick={() => {
+                const ident = point.airportIcao ?? point.id;
+                useMapSettings.getState().inspectPoint({
+                  ident,
+                  lat: point.lat,
+                  lon: point.lon,
+                  name: formatRoutePoint(point),
+                  kind:
+                    point.kind === "airport" || point.kind === "threshold"
+                      ? "airport"
+                      : "point",
+                });
+                router.push("/map");
+              }}
+            >
+              <Ellipsis className="size-5" aria-hidden="true" />
+            </button>
+          </div>
         )}
       </div>
       <div className="grid gap-1">

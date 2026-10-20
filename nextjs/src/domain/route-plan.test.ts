@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { anchoredWaypoint } from "./waypoint-insertion";
+import { routeEditKeys, clearedRoute } from "./route-edit";
+import { newFlight, flightSchema } from "~/data/flight";
 
 import { type Cruise } from "~/data/aircraft";
 import { type Airport, type Procedure } from "~/data/schemas";
@@ -80,6 +82,66 @@ describe("routeTokens", () => {
 });
 
 describe("buildRoutePlan", () => {
+  it("keeps an airway fix removed across recalculation without flattening the remaining route", () => {
+    const request = input({ routeText: "P1 A1 P3" });
+    const original = buildRoutePlan(data, request)!;
+    const index = original.points.findIndex((p) => p.id === "P2");
+    const removedRoutePoints = [routeEditKeys(original.points)[index]!];
+    const changed = buildRoutePlan(data, { ...request, removedRoutePoints })!;
+    expect(changed.points.map((p) => p.id)).not.toContain("P2");
+    expect(changed.points.map((p) => p.id)).toEqual(
+      expect.arrayContaining(["DEPA", "P1", "P3", "DEST"]),
+    );
+    expect(changed.usedAirways).toEqual(original.usedAirways);
+    expect(changed.legs.every((leg) => leg.distanceNm > 0)).toBe(true);
+    expect(
+      buildRoutePlan(data, {
+        ...request,
+        altitudeFt: 4500,
+        removedRoutePoints,
+      })!.points.map((p) => p.id),
+    ).not.toContain("P2");
+    expect(buildRoutePlan(data, request)!.points.map((p) => p.id)).toContain(
+      "P2",
+    );
+    expect(
+      buildRoutePlan(data, {
+        ...request,
+        removedRoutePoints,
+        insertedWaypoints: [{ ident: "P2", ...points.P2! }],
+      })!.points.map((p) => p.id),
+    ).toContain("P2");
+  });
+
+  it("clears all route inputs and retains aircraft and fuel, including older saved flights", () => {
+    const original = {
+      ...newFlight(),
+      aircraftId: "C172S",
+      fuel: { blockL: 60 },
+      departure: { ident: "DEPA", lat: 50, lon: 19 },
+      routeText: "P1",
+      removedRoutePoints: ["old-fix"],
+      waypoints: [{ ident: "P2", lat: 50.5, lon: 19 }],
+    };
+    const cleared = flightSchema.parse({ ...original, ...clearedRoute });
+    expect(cleared).toMatchObject({
+      aircraftId: "C172S",
+      fuel: { blockL: 60 },
+      departure: null,
+      destination: null,
+      routeText: "",
+      waypoints: [],
+      removedRoutePoints: [],
+      sid: null,
+      departurePattern: null,
+      trafficPattern: null,
+    });
+    expect(
+      flightSchema.parse({ ...original, removedRoutePoints: undefined })
+        .removedRoutePoints,
+    ).toEqual([]);
+  });
+
   it("adds TOC and TOD from the climb and 1:13 descent gradients", () => {
     const plan = buildRoutePlan(data, input())!;
     expect(plan.points.map((p) => p.id)).toEqual([
