@@ -36,15 +36,19 @@ export function HoldingStatus() {
     <section
       aria-label={t("holding.title")}
       data-holding-phase={hold.phase}
-      className="bg-background/95 text-foreground absolute top-3 left-20 z-20 grid max-w-72 gap-1 rounded-xl border p-3 text-sm shadow-lg"
+      className="bg-card/95 text-card-foreground border-primary/25 absolute top-3 left-20 z-20 grid max-w-72 gap-2 rounded-2xl border p-4 text-sm shadow-lg backdrop-blur"
     >
-      <strong>
+      <strong className="text-primary tracking-wide">
         {hold.config.fix.ident} HOLD · {hold.config.levelFt} ft
       </strong>
       <span>{t("holding.entry", { entry: t(`holding.${hold.entry}`) })}</span>
       <span>{t(`holding.${hold.phase}`)}</span>
       {remaining !== null && (
-        <output aria-live="off" data-holding-timer>
+        <output
+          className="text-primary font-mono text-2xl font-bold tabular-nums"
+          aria-live="off"
+          data-holding-timer
+        >
           {Math.floor(remaining / 60)
             .toString()
             .padStart(2, "0")}

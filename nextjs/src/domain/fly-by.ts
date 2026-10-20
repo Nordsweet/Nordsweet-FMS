@@ -7,6 +7,7 @@ import {
 } from "./geo";
 
 export type TurnPerformance = {
+  departureTasKt?: number;
   tasKt: number;
   windDirectionDeg?: number;
   windSpeedKt?: number;
@@ -36,6 +37,7 @@ export type TurnIssue = {
 };
 
 export type FlyByPoint = LatLon & {
+  patternOperation?: "join" | "leave";
   flyOver?: boolean;
   turnPerformance?: TurnPerformance;
   /** Start a resumed route on this ground track before turning toward its first fix. */
@@ -112,7 +114,10 @@ export function flyByRoute(
   for (let i = 1; i < route.length - 1; i++) {
     if (route[i]!.flyOver) continue;
     const p = route[i]!;
-    const setting = p.turnPerformance ?? performance;
+    const setting =
+      p.patternOperation === "leave" && performance.departureTasKt
+        ? { ...performance, tasKt: performance.departureTasKt }
+        : (p.turnPerformance ?? performance);
     const v = setting.tasKt / 3600;
     const w = unit(toRad(setting.windDirectionDeg ?? 0));
     w.e *= -(setting.windSpeedKt ?? 0) / 3600;

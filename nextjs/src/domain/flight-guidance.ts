@@ -12,7 +12,12 @@ export function plannedGuidanceAltitude(
   plan: {
     points: Pick<
       RoutePoint,
-      "id" | "lat" | "lon" | "routeDistanceNm" | "isProfilePoint"
+      | "id"
+      | "lat"
+      | "lon"
+      | "routeDistanceNm"
+      | "isProfilePoint"
+      | "profileLabels"
     >[];
     pointAltitudeByKey: Record<string, number>;
   } | null,
@@ -48,7 +53,7 @@ export type GuidanceCommand =
   | { category: "heading"; direction: "left" | "right"; headingDeg: number }
   | {
       category: "altitude";
-      direction: "climb" | "descend";
+      direction: "climb" | "descend" | "levelOff";
       altitudeFt: number;
     };
 
@@ -82,6 +87,7 @@ export function flightGuidance(input: {
     trackDeg: number | null;
     headingTrueDeg?: number;
     altitudeFt: number | null;
+    verticalSpeedFpm?: number | null;
   } | null;
   courseTrueDeg: number | null;
   targetAltitudeFt: number | null;

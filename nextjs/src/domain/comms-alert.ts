@@ -8,7 +8,7 @@ export function commsChangeSuggestion(
   dismissed: ReadonlySet<string>,
 ) {
   if (
-    phase !== "cruise" ||
+    !["cruise", "climb", "descent"].includes(phase) ||
     estimate.seconds === null ||
     !Number.isFinite(estimate.seconds) ||
     estimate.seconds <= 0 ||

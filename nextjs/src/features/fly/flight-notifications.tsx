@@ -43,6 +43,7 @@ const useGuidanceNotices = create<
       events: TimedGuidance[],
       now: number,
       available: boolean,
+      monotonic: boolean,
     ) => void;
     dismiss: (key: string) => void;
   }
@@ -50,8 +51,10 @@ const useGuidanceNotices = create<
   session: null,
   seen: new Set(),
   notices: [],
-  observe: (session, context, events, now, available) =>
-    set((s) => observeGuidance(s, session, context, events, now, available)),
+  observe: (session, context, events, now, available, monotonic) =>
+    set((s) =>
+      observeGuidance(s, session, context, events, now, available, monotonic),
+    ),
   dismiss: (key) =>
     set((s) => ({
       seen: new Set([...s.seen, key]),
@@ -74,7 +77,14 @@ const FrequencyNotification = memo(function FrequencyNotification({
     return () => clearInterval(id);
   }, []);
   const comms = useCommsPlan(phase, fix, now, true);
-  return <CommsChangePopup phase={phase} estimate={comms.estimate} />;
+  return (
+    <CommsChangePopup
+      phase={phase}
+      estimate={comms.estimate}
+      now={now}
+      live={!!fix && !fix.paused && now - Date.parse(fix.time) < 30000}
+    />
+  );
 });
 
 /** One stack reuses map guidance inputs instead of rebuilding the planner on its expiry clock. */
@@ -147,6 +157,7 @@ export function FlightNotifications({
           plan,
           cruiseAltitudeFt,
           holdingActive,
+          holding,
           now,
           phase: navigation.phase,
           fix,
@@ -166,7 +177,7 @@ export function FlightNotifications({
         })
       : [];
     const context = holdingActive
-      ? `${holding.config.fix.ident}:${holding.config.inboundTrueDeg}:${holding.config.direction}|${holding.circuits}|${holding.phase}`
+      ? `${holding.config.fix.ident}:${holding.config.inboundTrueDeg}:${holding.config.direction}|${holding.circuits}`
       : navigation.route
           .map(
             (p) =>
@@ -181,6 +192,7 @@ export function FlightNotifications({
         commands,
         now,
         flightGuidanceAvailable({ now, phase: navigation.phase, fix }),
+        holdingActive || !!next?.patternId,
       );
   }, [navigation, fix, turns, plan, cruiseAltitudeFt, progress, now]);
   return (
@@ -206,15 +218,27 @@ export function FlightNotifications({
                 ? t(`fly.popup.turn.${command.direction}`, {
                     heading: String(command.headingDeg).padStart(3, "0"),
                   })
-                : t(`fly.popup.${command.direction}`, {
-                    altitude: command.altitudeFt,
-                  });
+                : command.direction === "levelOff"
+                  ? t("fly.popup.thousandToGo")
+                  : t(
+                      command.direction === "descend"
+                        ? "fly.popup.descentTo"
+                        : "fly.popup.climb",
+                      {
+                        altitude: command.altitudeFt,
+                      },
+                    );
             return (
               <FlightPopup
                 key={key}
                 category={command.category}
                 notificationId={`guidance:${key}`}
-                message={`${message} ${announcedAt === null ? t("fly.popup.inSeconds", { seconds: Math.max(1, Math.ceil((dueAt - now) / 1000)) }) : t("fly.popup.now")}`}
+                message={
+                  command.category === "altitude" &&
+                  command.direction === "levelOff"
+                    ? message
+                    : `${message} ${announcedAt === null ? t(command.category === "altitude" && command.direction === "descend" ? "fly.popup.descentInSeconds" : "fly.popup.inSeconds", { seconds: Math.max(1, Math.ceil((dueAt - now) / 1000)) }) : t("fly.popup.now")}`
+                }
                 recordHistory={announcedAt !== null}
                 recordedAt={announcedAt ?? undefined}
                 historyMessage={message}

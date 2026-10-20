@@ -191,7 +191,7 @@ export function FlightStatusBar({
         {item(t("fly.ete"), ete, "status-ete")}
       </div>
       <div
-        className="flex min-w-40 flex-1 items-end justify-center self-stretch xl:absolute xl:bottom-2 xl:left-1/2 xl:-translate-x-1/2"
+        className="flex min-w-40 flex-1 items-end justify-center self-stretch 2xl:absolute 2xl:bottom-2 2xl:left-1/2 2xl:-translate-x-1/2"
         data-testid="flight-phase-slot"
       >
         {phaseControl}

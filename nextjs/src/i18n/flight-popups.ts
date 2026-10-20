@@ -1,4 +1,7 @@
 export const flightPopupsEn = {
+  "fly.popup.thousandToGo": "1000ft to go",
+  "fly.popup.descentTo": "Descent to {altitude}ft",
+  "fly.popup.descentInSeconds": "in {seconds}s",
   "plan.route.clear": "Clear route",
   "plan.route.textHint":
     "Expanded route. Click to edit the route instructions (DCT, fixes, airways or procedures).",
@@ -43,6 +46,9 @@ export const flightPopupsEn = {
   "fly.popup.descend": "Descend {altitude} ft",
 };
 export const flightPopupsPl: typeof flightPopupsEn = {
+  "fly.popup.thousandToGo": "1000ft do zadanej wysokości",
+  "fly.popup.descentTo": "Zniżanie do {altitude}ft",
+  "fly.popup.descentInSeconds": "za {seconds}s",
   "plan.route.clear": "Wyczyść trasę",
   "plan.route.textHint":
     "Rozwinięta trasa. Kliknij, aby edytować zapis trasy (DCT, punkty, drogi lub procedury).",
