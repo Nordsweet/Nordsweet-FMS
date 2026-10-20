@@ -9,7 +9,8 @@ import { destinationPoint, initialBearingDeg } from "../src/domain/geo";
 test("TOC/TOD dots stay on the drawn line and descent counts down into clean notification history", async ({
   page,
 }) => {
-  test.setTimeout(60000);
+  // Leave room for moving-map initialization under concurrent CI load.
+  test.setTimeout(90000);
   const start = new Date("2026-10-20T12:00:00Z");
   await page.clock.install({ time: start });
   await page.clock.pauseAt(new Date(start.getTime() + 1000));
@@ -124,6 +125,14 @@ test("TOC/TOD dots stay on the drawn line and descent counts down into clean not
     },
   );
   await page.goto("/fly");
+  await expect(page.getByTestId("flight-status-bar")).toBeVisible();
+  // Query notification timers must drain even while the simulated flight clock is paused.
+  await expect
+    .poll(async () => {
+      await page.clock.runFor(100);
+      return page.locator('[data-profile-marker="TOD"]').count();
+    })
+    .toBe(1);
   const popup = page
     .getByTestId("flight-notifications")
     .getByRole("status", { name: "Altitude", exact: true });
@@ -161,9 +170,11 @@ test("TOC/TOD dots stay on the drawn line and descent counts down into clean not
     expect(distance).toBeLessThan(1.5);
   }
   await page.screenshot({ path: "test-results/toc-tod-anchored.png" });
-  await page.clock.runFor(8000);
+  await page.clock.fastForward(8000);
+  await page.clock.runFor(1000);
   await expect(popup).toContainText(/in (\d|1\d)s/);
-  await page.clock.runFor(16000);
+  await page.clock.fastForward(16000);
+  await page.clock.runFor(1000);
   await expect(popup).toContainText(/Descent to \d+ft now/);
   const entries = await page.evaluate(
     () =>

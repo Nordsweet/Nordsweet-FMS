@@ -9,6 +9,7 @@ import {
   terrariumHeight,
   tileUrl,
   gridLocation,
+  terrainEnvelope,
 } from "~/domain/terrain";
 import {
   destinationPoint,
@@ -221,4 +222,62 @@ export async function prepareTerrain(route: LatLon[]) {
   flushTerrainWrites(true);
   await Promise.all([...cacheWrites]);
   return { count, missing, limited };
+}
+
+/** Sample the DEM envelope between profile stations, sharing the map's offline tile cache. */
+export async function loadTerrainProfile(points: LatLon[]) {
+  if (points.length > 12000) throw Error("Terrain profile too large");
+  const envelope = (i: number) => {
+    const a = points[Math.max(0, i - 1)]!,
+      b = points[i]!;
+    return [a, { ...b, lon: a.lon + ((b.lon - a.lon + 540) % 360) - 180 }];
+  };
+  let zoom = 11;
+  const coordinates = (z: number) => {
+    const tiles = new Map<string, { z: number; x: number; y: number }>();
+    const n = 2 ** z;
+    for (let i = 0; i < points.length; i++) {
+      const pair = envelope(i).map((p) => terrainPixel(p, z));
+      // The same one-pixel margin as terrainEnvelope, including tile boundaries.
+      const minX = Math.floor((Math.min(...pair.map((p) => p.x)) - 1) / 256);
+      const maxX = Math.floor((Math.max(...pair.map((p) => p.x)) + 2) / 256);
+      const minY = Math.floor((Math.min(...pair.map((p) => p.y)) - 1) / 256);
+      const maxY = Math.floor((Math.max(...pair.map((p) => p.y)) + 2) / 256);
+      for (let x = minX; x <= maxX; x++)
+        for (let y = minY; y <= maxY; y++) {
+          const tx = ((x % n) + n) % n;
+          if (y >= 0 && y < n) tiles.set(`${tx}/${y}`, { z, x: tx, y });
+          if (tiles.size > 128) return tiles;
+        }
+    }
+    return tiles;
+  };
+  let coords = coordinates(zoom);
+  while (coords.size > 128 && zoom > 3) coords = coordinates(--zoom);
+  const queue = [...coords.values()];
+  const tiles = new Map<string, TerrainTile>();
+  let cursor = 0;
+  regionLoads++;
+  try {
+    await Promise.all(
+      Array.from({ length: Math.min(4, queue.length) }, async () => {
+        while (cursor < queue.length) {
+          const coordinate = queue[cursor++]!;
+          try {
+            const tile = await loadTerrainTile(coordinate);
+            tiles.set(`${tile.x}/${tile.y}`, tile);
+          } catch {
+            /* Unknown terrain stays a gap, including offline cache misses. */
+          }
+        }
+      }),
+    );
+  } finally {
+    regionLoads--;
+    flushTerrainWrites();
+  }
+  return points.map((point, i) => {
+    const heightM = terrainEnvelope(tiles, zoom, envelope(i));
+    return Number.isFinite(heightM) ? heightM / 0.3048 : null;
+  });
 }
