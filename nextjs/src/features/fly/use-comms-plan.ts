@@ -15,6 +15,7 @@ import { usePlan } from "~/features/plan/use-plan";
 import { useInFlight } from "~/stores/inflight";
 import { useMapSettings } from "~/stores/map";
 import { type GpsFix } from "./use-gps";
+import { useTerrainHeight } from "./use-terrain-height";
 const FRESH_FIX_MS = 30_000;
 
 /** Shared radio estimate keeps COMMs and the always-visible hand-off popup in sync. */
@@ -42,6 +43,14 @@ export function useCommsPlan(
   const tick = fix ? Math.floor(Date.parse(fix.time) / 2000) : 0;
   const freshFix = !!fix && now - Date.parse(fix.time) < FRESH_FIX_MS;
   const fresh = freshFix ? fix : null;
+  const height = useTerrainHeight(fresh);
+  const position = fresh
+    ? {
+        ...fresh,
+        altitudeFt: height.mslFt ?? fresh.altitudeFt,
+        altitudeAglFt: height.aglFt,
+      }
+    : null;
 
   const result = useMemo(() => {
     const list = frequencies.data ?? [];
@@ -59,7 +68,7 @@ export function useCommsPlan(
       estimate: estimateComms(
         {
           phase,
-          position: enabled ? fresh : null,
+          position: enabled ? position : null,
           gpsSpeedKt: fresh?.groundSpeedKt ?? null,
           plannedSpeedKt: cruiseSpeedKt,
           route,
@@ -78,6 +87,8 @@ export function useCommsPlan(
     phase,
     tick,
     freshFix,
+    height.mslFt,
+    height.aglFt,
     enabled,
     route,
     frequencies.data,

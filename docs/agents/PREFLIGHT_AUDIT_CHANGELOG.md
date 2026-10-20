@@ -7,6 +7,22 @@ Branch: `codex/preflight-parity-audit`.
 
 ## Flight guidance refinements (2026-10-20)
 
+- Anchor TOC/TOD dots on the rendered route, including fly-by segments; offset the labels only.
+  Use that same path for the TOD countdown. Add a fresh climbing-sample "1000ft to go" callout
+  near 1000 ft remaining; descent uses "Descent to XXXXXft in XXs", then NOW and one clean history entry.
+- HOLD headings now come from fix passage and the persisted outbound deadline, including the
+  opposite initial parallel turn. HOLD/circuit countdowns cannot increase after their first prediction;
+  holding phase changes retain the instruction identity. The HOLD status panel follows the app palette.
+- Add an internal phase/leg speed schedule with stored IAS restrictions converted to TAS. C172S
+  take-off/climb uses the owner's 72 KIAS Vy, including old departure-circuit turn overrides.
+- COMMs use geographic ATZ/FIS/CTR/TMA services during climb/cruise/descent, active status and
+  known AMSL/AGL limits. Prefer local/control service to FIS; retain two-minute boundary suggestions
+  and announce actual service crossings when a boundary prediction was missed.
+- Tablet navigation handles stationary taps independently of suppressed synthetic clicks after map
+  gestures. Centered pinch keeps the ownship anchor and zooms; single-finger pan releases follow;
+  free pinch zooms/pans around the fingers. Disable touch rotation. Keep the phase tile clear of ETE
+  at smaller desktop widths. Touch behaviour verified with emulated tablet/CDP gestures.
+
 - Route: add Clear route beside Load route; clear navigation endpoints, fixes, procedures,
   circuits, holding and per-point overrides while retaining aircraft/fuel/performance data.
   Show the expanded route in the text field when idle, synchronized with the strip and map;

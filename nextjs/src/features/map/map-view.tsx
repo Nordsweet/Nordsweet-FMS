@@ -249,12 +249,15 @@ export function MapView({
     });
   }, [ready, holding, holdingEntry, holdingPreview]);
   const patternPosition = fix ?? navigation.track.at(-1) ?? null;
+  useEffect(() => {
+    mapRef.current?.setFollowing(settings.following);
+  }, [ready, settings.following]);
   const turns = useTurnPerformance(navigation.startedAt ? fix : null);
   // The hook returns a new object each render; the geometry only depends on these numbers.
-  const { tasKt, windDirectionDeg, windSpeedKt } = turns;
+  const { tasKt, windDirectionDeg, windSpeedKt, departureTasKt } = turns;
   const turnPerformance = useMemo(
-    () => ({ tasKt, windDirectionDeg, windSpeedKt }),
-    [tasKt, windDirectionDeg, windSpeedKt],
+    () => ({ tasKt, windDirectionDeg, windSpeedKt, departureTasKt }),
+    [tasKt, windDirectionDeg, windSpeedKt, departureTasKt],
   );
   const routePath = useMemo(
     () =>
@@ -946,21 +949,25 @@ export function MapView({
       mapProfilePoints(
         routePlan?.points ?? [],
         navigation.startedAt ? route : undefined,
+        routePath.points,
       ).map((point) => {
         const element = document.createElement("span");
         element.className = "legacy-route-marker";
         element.dataset.profileMarker = point.id;
-        element.textContent = point.id === "TOC" ? "↑ TOC" : "↓ TOD";
+        const label = document.createElement("span");
+        label.textContent = point.id === "TOC" ? "↑ TOC" : "↓ TOD";
+        label.style.position = "relative";
+        label.style.top = point.id === "TOC" ? "-12px" : "12px";
+        element.append(label);
         element.title = t(
           point.id === "TOC" ? "maptools.topOfClimb" : "maptools.topOfDescent",
         );
         element.setAttribute("aria-label", element.title);
         element.style.color = point.id === "TOC" ? "#00b8e6" : "#e68600";
-        element.style.marginTop = point.id === "TOC" ? "-12px" : "12px";
         return { element, lat: point.lat, lon: point.lon, interactive: false };
       }),
     );
-  }, [ready, routePlan, navigation.startedAt, route, t]);
+  }, [ready, routePlan, navigation.startedAt, route, routePath, t]);
 
   const segmentTime = (index: number) => {
     const target = route[index + 1],

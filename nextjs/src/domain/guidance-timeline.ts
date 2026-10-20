@@ -7,6 +7,10 @@ import {
 import { distanceNm, initialBearingDeg, trackOffset, type LatLon } from "./geo";
 import { flyByRoute, type TurnPerformance } from "./fly-by";
 import { nearestLeg, type NavPoint } from "./progress";
+import { mapProfilePoints } from "./map-profile";
+import { holdingGeometry, type HoldingRuntime } from "./holding";
+import { trueToMagneticDeg } from "./magnetic";
+import { windTriangle } from "./wind";
 
 export type TimedGuidance = {
   key: string;
@@ -23,6 +27,7 @@ export function guidanceTimeline(
     plan: Parameters<typeof plannedGuidanceAltitude>[2];
     cruiseAltitudeFt: number;
     holdingActive?: boolean;
+    holding?: HoldingRuntime | null;
   },
 ): TimedGuidance[] {
   if (!flightGuidanceAvailable(input) || !input.fix) return [];
@@ -31,12 +36,70 @@ export function guidanceTimeline(
     const key =
       command.category === "heading"
         ? `heading-leg:${leg}`
-        : `altitude-leg:${leg}:${command.altitudeFt}`;
+        : command.direction === "levelOff"
+          ? `level-off:${command.altitudeFt}`
+          : `altitude-leg:${leg}:${command.altitudeFt}`;
     if (!events.some((e) => e.key === key))
       events.push({ key, command, dueAt });
   };
   for (const command of flightGuidance(input))
-    add(command, input.activeLeg, input.now);
+    if (!(input.holdingActive && command.category === "heading"))
+      add(command, input.activeLeg, input.now);
+  if (input.holdingActive && input.holding) {
+    const hold = input.holding;
+    const end =
+      hold.timerStartedAt === null
+        ? null
+        : hold.timerStartedAt + hold.config.legSeconds * 1000;
+    const fixTurn = hold.phase === "turn";
+    if (
+      fixTurn ||
+      (end !== null && end - input.now <= 30000 && input.now - end < 12000)
+    ) {
+      const course = fixTurn
+        ? holdingGeometry(hold.config, hold.entry).outboundDeg
+        : hold.config.inboundTrueDeg;
+      const opposite = hold.entry === "parallel" && hold.circuits === 0;
+      const direction = opposite
+        ? hold.config.direction === "right"
+          ? "left"
+          : "right"
+        : hold.config.direction;
+      const heading =
+        windTriangle(course, input.tasKt, input.wind)?.headingDeg ?? course;
+      events.push({
+        key: `hold-${fixTurn ? "fix" : "outbound"}:${hold.config.fix.ident}:${hold.circuits}`,
+        command: {
+          category: "heading",
+          direction,
+          headingDeg:
+            Math.round(trueToMagneticDeg(heading, input.variationDeg)) % 360 ||
+            360,
+        },
+        dueAt: fixTurn ? input.now : end!,
+      });
+    }
+    return events;
+  }
+  const toClimb =
+    input.targetAltitudeFt !== null && input.fix.altitudeFt !== null
+      ? input.targetAltitudeFt - input.fix.altitudeFt
+      : Infinity;
+  // Allow one normal telemetry interval around the 1000-ft crossing, without a late callout near capture.
+  if (
+    (input.fix.verticalSpeedFpm ?? 0) > 50 &&
+    toClimb <= 1000 &&
+    toClimb >= 850
+  )
+    add(
+      {
+        category: "altitude",
+        direction: "levelOff",
+        altitudeFt: Math.round(input.targetAltitudeFt!),
+      },
+      input.activeLeg,
+      input.now,
+    );
   if (input.holdingActive || !("lat" in input.fix) || !("lon" in input.fix))
     return events;
   const position = input.fix as typeof input.fix & LatLon;
@@ -97,8 +160,14 @@ export function guidanceTimeline(
         add(command, leg, at);
   }
   // Vertical profile points are not navigable fixes; locate TOD on the same drawn path.
-  for (const p of input.plan?.points ?? []) {
-    if (!p.isProfilePoint || p.id !== "TOD") continue;
+  for (const p of mapProfilePoints(
+    input.plan?.points ?? [],
+    input.route,
+    path.points,
+  )) {
+    if (p.id !== "TOD") continue;
+    // A profile event at a real waypoint is already covered by its leg-boundary countdown.
+    if (input.route.some((fix) => distanceNm(fix, p) < 0.001)) continue;
     let closest: { cross: number; nm: number; leg: number } | null = null;
     for (let i = nearest.index; i < path.legs.length; i++) {
       const a = path.points[i]!,

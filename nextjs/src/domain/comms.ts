@@ -7,6 +7,7 @@ import {
   airspaceKind,
   polygonContainsPoint,
   routeCrossesPolygon,
+  airspaceAltitudeFt,
 } from "./map-navigation";
 
 /** Route-based radio suggestions (legacy public/comms.js + the map's comms responder). */
@@ -18,6 +19,10 @@ export type RadioRow = {
 };
 /** Airport frequencies for these services, in the order the services are given. */
 export type AirportRows = (icao: string, services: string[]) => RadioRow[];
+export type RadioPosition = LatLon & {
+  altitudeFt?: number | null;
+  altitudeAglFt?: number | null;
+};
 
 const rowKey = (r: RadioRow) =>
   [r.frequencyMhz, r.callsign, r.sector].join("|");
@@ -41,7 +46,9 @@ const kind = (z: AirspaceFeature) =>
 
 /** The zones the radio plan looks at: FIS/FIR sectors and ATZs. */
 export const commsZones = (zones: AirspaceFeature[]) =>
-  zones.filter((z) => isEnrouteInfo(z) || kind(z) === "ATZ");
+  zones.filter(
+    (z) => isEnrouteInfo(z) || ["ATZ", "CTR", "TMA"].includes(kind(z)),
+  );
 
 const FIS_UNITS: [RegExp, string][] = [
   [/KRAK[OÓ]W/i, "EPKK"],
@@ -59,6 +66,22 @@ const SECTORS: Record<string, string> = {
 /** Legacy commsZoneRows: ATZ → its aerodrome's radio/tower, FIS sector → its unit's sector rows. */
 export function zoneRows(z: AirspaceFeature, airport: AirportRows) {
   const name = z.properties.name;
+  if (["CTR", "TMA"].includes(kind(z))) {
+    const embedded = zoneRadioRows(z.properties);
+    const icao =
+      /\bEP[A-Z0-9]{2}\b/.exec(name.toUpperCase())?.[0] ??
+      FIS_UNITS.find(([pattern]) => pattern.test(name))?.[1];
+    return embedded.length
+      ? embedded
+      : icao
+        ? airport(
+            icao,
+            kind(z) === "TMA"
+              ? ["zblizanie", "radar", "approach"]
+              : ["tower", "zblizanie"],
+          )
+        : [];
+  }
   if (kind(z) === "ATZ") {
     const icao = /\bEP[A-Z0-9]{2}\b/.exec(name.toUpperCase())?.[0];
     const rows = icao ? airport(icao, ["radio", "informacja", "tower"]) : [];
@@ -84,12 +107,24 @@ export function zoneRows(z: AirspaceFeature, airport: AirportRows) {
 
 /** Rows for a position: the ATZ first, then the FIS sector (else any FIR/FIS zone). */
 export function rowsAt(
-  point: LatLon,
+  point: RadioPosition,
   zones: AirspaceFeature[],
   airport: AirportRows,
 ) {
   const containing = zones.filter(
-    ({ bbox: [w, s, e, n], geometry }) =>
+    ({ bbox: [w, s, e, n], geometry, properties }) =>
+      properties.active_now !== false &&
+      [properties.lower, properties.upper].every((limit, i) => {
+        const height = /AGL|GND|SFC|SURFACE/i.test(limit)
+          ? point.altitudeAglFt
+          : point.altitudeFt;
+        const bound = airspaceAltitudeFt(limit);
+        return (
+          height == null ||
+          bound == null ||
+          (i === 0 ? height >= bound : height <= bound)
+        );
+      }) &&
       point.lon >= w &&
       point.lon <= e &&
       point.lat >= s &&
@@ -98,8 +133,17 @@ export function rowsAt(
   );
   const fis = containing.filter((z) => kind(z) === "FIS");
   const atz = containing.filter((z) => kind(z) === "ATZ");
+  for (const type of ["CTR", "TMA"]) {
+    const controlled = containing
+      .filter((z) => kind(z) === type)
+      .flatMap((z) => zoneRows(z, airport));
+    if (controlled.length) return uniqueRows(controlled);
+  }
   const background = fis.length ? fis : containing.filter(isEnrouteInfo);
-  return [...atz, ...background].flatMap((z) => zoneRows(z, airport));
+  const local = atz.flatMap((z) => zoneRows(z, airport));
+  return uniqueRows(
+    local.length ? local : background.flatMap((z) => zoneRows(z, airport)),
+  );
 }
 
 /** "FIS / ATZ on route": every crossed zone with its rows, without repeats. */
@@ -157,7 +201,7 @@ export function estimateComms(
   input: {
     phase: FlightPhase;
     /** A GPS fix less than 30 s old, else null. */
-    position: LatLon | null;
+    position: RadioPosition | null;
     gpsSpeedKt: number | null;
     plannedSpeedKt: number;
     route: LatLon[];
@@ -165,7 +209,7 @@ export function estimateComms(
   api: {
     dep: (services: string[]) => RadioRow[];
     arr: (services: string[]) => RadioRow[];
-    at: (point: LatLon) => RadioRow[];
+    at: (point: RadioPosition) => RadioRow[];
   },
 ): CommsEstimate {
   const { phase, position, route } = input;
@@ -185,7 +229,10 @@ export function estimateComms(
     speedKt: null,
     speedSource: null,
   };
-  if (phase !== "cruise") {
+  if (
+    phase !== "cruise" &&
+    !(position && ["climb", "descent"].includes(phase) && enroute.length)
+  ) {
     const pairs: Record<Exclude<FlightPhase, "cruise">, () => RadioRow[][]> = {
       taxiout: () => [first(dep(["ground"]), dep(tower)), dep(tower)],
       takeoff: () => [dep(tower), first(dep(approach), enroute)],
@@ -224,7 +271,17 @@ export function estimateComms(
     const steps = Math.max(1, Math.ceil((length * (1 - start)) / 0.25));
     for (let j = 1; j <= steps; j++) {
       const t = start + ((1 - start) * j) / steps;
-      const rows = uniqueRows(api.at(along(a, b, t)));
+      const rows = uniqueRows(
+        api.at({
+          ...along(a, b, t),
+          ...(position && "altitudeFt" in position
+            ? { altitudeFt: position.altitudeFt }
+            : {}),
+          ...(position?.altitudeAglFt != null
+            ? { altitudeAglFt: position.altitudeAglFt }
+            : {}),
+        }),
+      );
       if (rowsKey(rows) !== initial) {
         const distance = travelled + length * (t - start);
         const gps = input.gpsSpeedKt;

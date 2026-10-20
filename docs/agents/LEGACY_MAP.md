@@ -57,9 +57,9 @@ State defaults: the `state = {…}` object (~line 1500). DOM refs: `refs = {…}
 
 ## 4. Work board
 
-TOC/TOD anchors and altitude notices — in progress, Codex 2026-10-20. Keep profile dots on the rendered route while offsetting labels only; climb 1000-ft callout and descent countdown using shared notification history.
+TOC/TOD anchors and altitude notices — done, Codex 2026-10-20. Dots follow rendered Mercator segments; labels move independently. Fresh-climb 1000-ft callout, TOD descent countdown/NOW/history. Browser regression measures both dot-to-route distances and checks countdown/history.
 
-Flight guidance/tablet follow-up — in progress, Codex 2026-10-20. HOLD commands from fix/timer events, stable circuit countdowns, internal phase speed profile with C172S Vy 72 KIAS, geographical ATZ/FIS/TMA handoffs, themed hold status and iPad planner/pinch behaviour.
+Flight guidance/tablet follow-up — done, Codex 2026-10-20. HOLD fix/timer commands, monotonic circuit/hold countdowns, internal phase/leg speed profile (C172S Vy 72 KIAS/TAS conversion and departure overrides), active/altitude-aware ATZ/FIS/CTR/TMA handoffs, themed status. Tablet tap navigation plus centered/free pinch and one-finger release covered in emulated-touch browser tests. Full CI gates before develop.
 
 Planner Route controls — done, Codex 2026-10-20. Clear route preserves aircraft/fuel; idle route text mirrors expanded plan with original source editing on focus. FPL-style red removal/white map-options actions; recalculation/reload exclusions, .nord support and map re-insertion retained. Unit/browser regressions and full CI gates before develop.
 

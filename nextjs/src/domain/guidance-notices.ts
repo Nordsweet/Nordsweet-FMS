@@ -15,6 +15,7 @@ export function observeGuidance(
   events: TimedGuidance[],
   now: number,
   available = true,
+  monotonic = false,
 ): GuidanceNotices {
   const same = state.session === session;
   const seen = new Set(same ? state.seen : []);
@@ -31,7 +32,9 @@ export function observeGuidance(
       n.announcedAt === null &&
       now >= n.dueAt &&
       now - n.dueAt < 5000 &&
-      !events.some((e) => `${context}|${e.key}` === n.key && e.dueAt > now)
+      !(monotonic
+        ? false
+        : events.some((e) => `${context}|${e.key}` === n.key && e.dueAt > now))
     ) {
       notices.push({ ...n, announcedAt: now });
       seen.add(n.key);
@@ -43,11 +46,15 @@ export function observeGuidance(
     const existing = previous.find(
       (n) => n.key === key && n.announcedAt === null,
     );
-    const announcedAt = now >= event.dueAt ? now : null;
+    const dueAt =
+      monotonic && existing
+        ? Math.min(existing.dueAt, event.dueAt)
+        : event.dueAt;
+    const announcedAt = now >= dueAt ? now : null;
     const notice =
-      existing?.dueAt === event.dueAt && announcedAt === null
+      existing?.dueAt === dueAt && announcedAt === null
         ? existing
-        : { ...event, key, announcedAt };
+        : { ...event, dueAt, key, announcedAt };
     notices.push(notice);
     if (announcedAt !== null) seen.add(key);
   }

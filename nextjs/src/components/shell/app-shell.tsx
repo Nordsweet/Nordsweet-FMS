@@ -9,7 +9,8 @@ import {
   Settings,
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useRef, type TouchEvent } from "react";
 
 import { Button } from "~/components/ui/button";
 import { useT } from "~/i18n/use-t";
@@ -32,6 +33,27 @@ export const PAGE_ACTIONS_ID = "page-actions";
 export function AppShell({ children }: { children: React.ReactNode }) {
   const t = useT();
   const pathname = usePathname();
+  const router = useRouter();
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
+  const startTouch = (event: TouchEvent<HTMLAnchorElement>) => {
+    const touch = event.touches.length === 1 ? event.touches[0] : null;
+    touchStart.current = touch ? { x: touch.clientX, y: touch.clientY } : null;
+  };
+  const finishTouch = (event: TouchEvent<HTMLAnchorElement>, href: string) => {
+    const touch = event.changedTouches[0];
+    const start = touchStart.current;
+    touchStart.current = null;
+    if (
+      start &&
+      touch &&
+      event.touches.length === 0 &&
+      Math.hypot(touch.clientX - start.x, touch.clientY - start.y) < 10
+    ) {
+      // iPad may suppress the synthetic click after map gestures; a stationary tap still navigates.
+      event.preventDefault();
+      router.push(href);
+    }
+  };
   const recoveryReady = useFlightSync((s) => s.phase === "ready");
   const variant = (href: string) => (pathname === href ? "default" : "outline");
 
@@ -39,7 +61,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-dvh flex-col">
       <FlightRecovery />
       {recoveryReady && <FlightRuntime />}
-      <header className="flex flex-wrap items-center gap-2 px-4 pt-4">
+      <header
+        className={`flex flex-wrap items-center gap-2 px-4 pt-4 ${pathname === "/map" ? "relative z-50" : ""}`}
+      >
         <nav className="flex flex-wrap gap-2">
           <Button
             asChild
@@ -59,7 +83,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               className="h-13.5 max-sm:size-12"
             >
               {/* Icons only on phones, so the header stays two rows. */}
-              <Link href={item.href}>
+              <Link
+                href={item.href}
+                onTouchStart={startTouch}
+                onTouchEnd={(event) => finishTouch(event, item.href)}
+              >
                 <item.icon className="size-5 sm:hidden" />
                 <span className="max-sm:sr-only">{t(item.label)}</span>
               </Link>
