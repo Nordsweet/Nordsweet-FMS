@@ -41,6 +41,8 @@ const EASE = new LinearInterpolator([
   "zoom",
   "bearing",
 ]);
+// Following supplies the centre for every zoom frame; only zoom belongs to the transition.
+const FOLLOW_ZOOM = new LinearInterpolator(["zoom"]);
 
 /**
  * The map: a deck.gl `Deck` with a Web Mercator view (the OSM tiles and every overlay are layers).
@@ -100,13 +102,16 @@ export class DeckMap {
         isDragging ? "grabbing" : isHovering ? "pointer" : "grab",
       onViewStateChange: ({ viewState, interactionState }) => {
         if (this.following && interactionState.isZooming && this.followTarget) {
-          this.setView({
-            ...viewState,
-            bearing: this.view.bearing,
-            pitch: this.view.pitch,
-          });
           const target = this.followTarget;
-          this.follow(target.position, target.bearing, target.anchor);
+          this.setView({
+            ...this.anchoredView(
+              { ...viewState, pitch: this.view.pitch },
+              target.position,
+              target.bearing,
+              target.anchor,
+            ),
+            transitionInterpolator: FOLLOW_ZOOM,
+          });
         } else this.setView(viewState);
       },
       onInteractionStateChange: (state) => {
@@ -413,26 +418,43 @@ export class DeckMap {
     anchor: [number, number],
   ) {
     this.followTarget = { position, bearing, anchor };
+    this.setView({
+      ...this.anchoredView(this.view, position, bearing, anchor),
+      transitionDuration: 0,
+    });
+  }
+
+  private anchoredView(
+    view: MapViewState,
+    position: [number, number],
+    bearing: number,
+    anchor: [number, number],
+  ): MapViewState {
     const { width, height } = this.size;
     const next = new WebMercatorViewport({
-      ...this.view,
+      ...view,
       ...this.size,
       bearing,
     });
     const pixel = [width * anchor[0], height * anchor[1]];
     const { longitude, latitude } =
-      (this.view.maxPitch ?? 0) > 0
+      (view.maxPitch ?? 0) > 0
         ? next.panByPosition3D(
             [
               ...position,
               cachedTerrainElevation({ lon: position[0], lat: position[1] }) ??
-                this.view.position?.[2] ??
+                view.position?.[2] ??
                 0,
             ],
             pixel,
           )
         : next.panByPosition(position, pixel);
-    this.jumpTo({ longitude, latitude, bearing });
+    return {
+      ...view,
+      longitude: longitude ?? view.longitude,
+      latitude: latitude ?? view.latitude,
+      bearing,
+    };
   }
 
   setLayers(layers: Layer[]) {
