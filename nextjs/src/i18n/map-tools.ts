@@ -1,4 +1,6 @@
 export const mapToolsEn = {
+  "maptools.topOfClimb": "Top of climb",
+  "maptools.topOfDescent": "Top of descent",
   "maptools.parachuting": "Parachuting (PJE)",
   "maptools.trafficUnavailable": "Traffic unavailable",
   "maptools.loading": "Loading map data…",
@@ -82,6 +84,8 @@ export const mapToolsEn = {
   "maptools.plan": "plan",
 } as const;
 export const mapToolsPl: Record<keyof typeof mapToolsEn, string> = {
+  "maptools.topOfClimb": "Koniec wznoszenia",
+  "maptools.topOfDescent": "Początek zniżania",
   "maptools.parachuting": "Skoki spadochronowe (PJE)",
   "maptools.trafficUnavailable": "Ruch niedostępny",
   "maptools.loading": "Wczytywanie danych mapy…",

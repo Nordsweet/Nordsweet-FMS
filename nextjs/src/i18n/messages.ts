@@ -1,4 +1,5 @@
 import { terrainEn, terrainPl } from "./terrain";
+import { flightSyncEn, flightSyncPl } from "./flight-sync";
 import { trafficPatternEn, trafficPatternPl } from "./traffic-pattern";
 import { type Language } from "~/stores/settings";
 import { atisConsensusEn, atisConsensusPl } from "./atis-consensus";
@@ -14,6 +15,7 @@ import { debriefEn, debriefPl } from "./debrief";
 import { inspireEn, inspirePl } from "./inspire";
 
 const pl = {
+  ...flightSyncPl,
   ...inspirePl,
   ...debriefPl,
   ...aircraftReferencePl,
@@ -841,6 +843,7 @@ const pl = {
 export type MessageKey = keyof typeof pl;
 
 const en: Record<MessageKey, string> = {
+  ...flightSyncEn,
   ...debriefEn,
   ...aircraftReferenceEn,
   ...flightPopupsEn,

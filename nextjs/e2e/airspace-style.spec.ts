@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./test";
 
 const zones = [
   { name: "ATZ EPNT", active_now: true, remarks: "PJE", west: 20 },

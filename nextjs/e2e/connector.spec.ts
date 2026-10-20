@@ -1,4 +1,4 @@
-import { expect, test, type WebSocketRoute } from "@playwright/test";
+import { expect, test, type WebSocketRoute } from "./test";
 
 test("Connector source feeds Fly, survives reload and clears stale fixes without GPS fallback", async ({
   page,

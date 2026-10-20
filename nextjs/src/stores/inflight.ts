@@ -1,4 +1,5 @@
 import { fuelUnit, formatFuel } from "~/domain/fuel-units";
+import { airElapsedMs, type FredaFuel } from "~/domain/freda";
 import { create } from "zustand";
 import { retainPassedRoute, type RouteHistory } from "~/domain/route-history";
 import { safeWaypointIndex } from "~/domain/waypoint-insertion";
@@ -126,6 +127,9 @@ type InFlight = {
   /** Next FREDA check (legacy: 30 min after take-off, then every 30 min); null before take-off. */
   fredaDueAt: number | null;
   fredaOpen: boolean;
+  fredaFuel: FredaFuel | null;
+  fredaAvailable: boolean;
+  setFredaAvailable: (available: boolean) => void;
   /** OPTIONS "Debug with GPX": shows the replay dock. */
   replayEnabled: boolean;
   setReplayEnabled: (on: boolean) => void;
@@ -388,9 +392,22 @@ export const useInFlight = create<InFlight>()(
       track: [],
       fredaDueAt: null,
       fredaOpen: false,
+      fredaFuel: null,
+      fredaAvailable: true,
+      setFredaAvailable: (fredaAvailable) =>
+        set((s) =>
+          s.fredaAvailable === fredaAvailable
+            ? s
+            : {
+                fredaAvailable,
+                ...(!fredaAvailable ? { fredaOpen: false } : {}),
+              },
+        ),
       replayEnabled: false,
       setReplayEnabled: (replayEnabled) => set({ replayEnabled }),
-      openFreda: () => set({ fredaOpen: true }),
+      openFreda: () => {
+        if (get().fredaAvailable) set({ fredaOpen: true });
+      },
       closeFreda: () =>
         set((s) => {
           let due = s.fredaDueAt;
@@ -409,6 +426,10 @@ export const useInFlight = create<InFlight>()(
           );
           return {
             fredaOpen: false,
+            fredaFuel: {
+              fuelL: Math.max(0, fuelL),
+              airElapsedMs: airElapsedMs(s.timers.airTime, now),
+            },
             fredaDueAt:
               takeoff !== null
                 ? takeoff +
@@ -457,6 +478,10 @@ export const useInFlight = create<InFlight>()(
         // Legacy maybePromptFredaCheck: open the check when due while airborne.
         if (
           !s.fredaOpen &&
+          s.fredaAvailable &&
+          (!["descent", "landing", "taxiin"].includes(s.phase) ||
+            (s.timers.last !== null &&
+              Math.abs(now - s.timers.last.at) <= 20000)) &&
           s.fredaDueAt !== null &&
           now >= s.fredaDueAt &&
           isRunning(s.timers.airTime)
@@ -553,6 +578,8 @@ export const useInFlight = create<InFlight>()(
           track: [],
           fredaDueAt: null,
           fredaOpen: false,
+          fredaFuel: null,
+          fredaAvailable: true,
           phase: "taxiout",
           timers: newTimers(),
         });
@@ -897,6 +924,7 @@ export const useInFlight = create<InFlight>()(
         track,
         fredaDueAt,
         fredaOpen,
+        fredaFuel,
         replayEnabled,
         phase,
         config,
@@ -915,6 +943,7 @@ export const useInFlight = create<InFlight>()(
         track,
         fredaDueAt,
         fredaOpen,
+        fredaFuel,
         replayEnabled,
         phase,
         config,

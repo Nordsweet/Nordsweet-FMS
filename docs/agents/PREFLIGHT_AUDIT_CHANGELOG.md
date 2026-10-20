@@ -5,6 +5,49 @@ Reference: <https://nordsweet-performance-calculator.mrnordsweet.chatgpt.site/> 
 `5265bc5de9510aa3d83cc469860a730962b96c78`. Starting develop: `2f289ed6dc8d7b7c3186b100577c787c64df1de2`.
 Branch: `codex/preflight-parity-audit`.
 
+## Flight guidance refinements (2026-10-20)
+
+- Keep separate departure/arrival airport occurrences for graphical round trips, even before an
+  intermediate waypoint is inserted. On a same-airport flight, after sequencing the last departure
+  pattern point, Traffic Pattern configures/edits/removes the arrival pattern; pre-flight still plans
+  departure. Direct-to routes that have skipped the departure circuit also use arrival mode.
+- Add distinct TOC/TOD map annotations from the existing vertical profile, including events at real
+  fixes. These annotations do not become FPL waypoints, follow the route layer and disappear when
+  their planned leg was abandoned by a Direct/Divert.
+- TA uses the complete yellow traffic sprite; proximity uses the complete red sprite. Both symbols
+  are 36 px (1.5 times the normal 24 px), retaining the warning outlines and existing advisory logic.
+- FREDA in descent, landing or taxi-in is suppressed unless above both half the planned cruise
+  altitude (AMSL) and 2000 ft AGL. Unknown/stale terrain/height cannot qualify. Manual opening and
+  automatic due checks share the gate; lowering below it closes an existing check without losing its
+  due schedule. The height tile and notification gate share instrument/DEM/geoid datum handling.
+- A confirmed FREDA fuel reading now persists as a fuel/elapsed-air-time baseline. Future prediction
+  burns from that reading at the planned cruise flow (trip average fallback), not from original block
+  fuel. At 24 L/h a 60 L reading predicts 48 L after 30 airborne minutes; gallons continue converting
+  internally to litres. An unchanged rounded tank display does not round away the predicted baseline.
+- Recovery preserves route-history fix metadata and unexpired pattern notices. Explicitly opened
+  library/map pages stay open when resuming; FREDA cannot cover the restart choice dialog.
+
+## Server track and restart recovery (2026-10-20)
+
+- Persist each flight under registration + local DDMMYYHHmm (for example SPOKO1910262330), with a
+  separate UUID to prevent collisions. Keep ordered track and full flight/runtime checkpoints in
+  SQLite on a persistent Docker volume behind the app's same-origin API.
+- Upload new recorded positions during the flight, retry offline batches, persist the exact request
+  before sending, and replay lost acknowledgements without duplicate points. Attempt a final small
+  keepalive upload when the page hides/closes; crashes retain the last durable server acknowledgement.
+- On startup ask YES/No before advancing the saved flight. YES downloads the server prefix and restores
+  the plan, route/active leg, timers/events, holding/pattern/config and track, retaining an agreeing
+  unsent local tail. No and End flight archive the record without deleting its track. Offline final
+  checkpoints are not offered as active flights again.
+- The map now renders the active flight's full restored track, rather than the transient GPS buffer
+  collected only since opening the page.
+- An anonymous per-browser capability protects each browser's records; no global registration lookup.
+  Recovery requires the same browser profile/capability. Exclude this API from the service worker and
+  persisted query cache. Connector credentials/device settings never enter the upload.
+- Add backend storage/HTTP tests, frontend outbox/recovery tests and browser cases for live uploads,
+  remote-only recovery, offline catch-up and declining recovery. Existing flight regression fixtures
+  explicitly continue saved flights. See [contract, durability and limitations](FLIGHT_SYNC.md).
+
 ## P3D wind tile (2026-10-20)
 
 - Fix the missing Connector wind path: P3D readings were excluded from native GPS circle fitting,

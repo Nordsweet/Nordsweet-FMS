@@ -1,4 +1,5 @@
 import { type TurnPerformance } from "~/domain/fly-by";
+import { isDeparturePatternTarget } from "~/domain/departure-pattern";
 import { type TrafficPattern } from "~/data/traffic-pattern";
 import { TrafficPatternPanel } from "./traffic-pattern-panel";
 import { HoldingPanel } from "./holding-panel";
@@ -256,6 +257,7 @@ export function PointDetails({
       )}
       {mode === "pattern" && airportRecord && (
         <TrafficPatternPanel
+          key={`${airportRecord.ident}:${isDeparturePatternTarget(flight, navigation, airportRecord.ident)}`}
           airport={airportRecord}
           departureTargetAltitudeFt={departureTargetAltitudeFt}
           preview={previewPattern}

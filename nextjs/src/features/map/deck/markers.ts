@@ -1,6 +1,11 @@
 import { type DeckMap } from "./deck-map";
 
-type Marker = { element: HTMLElement; lon: number; lat: number };
+type Marker = {
+  element: HTMLElement;
+  lon: number;
+  lat: number;
+  interactive?: boolean;
+};
 
 /**
  * DOM labels pinned to coordinates (the route's waypoints): real buttons, so they take keyboard
@@ -34,12 +39,12 @@ export class MarkerLayer {
   set(markers: Marker[]) {
     this.root.replaceChildren();
     this.markers = markers;
-    for (const { element } of markers) {
+    for (const { element, interactive } of markers) {
       Object.assign(element.style, {
         position: "absolute",
         left: "0",
         top: "0",
-        pointerEvents: "auto",
+        pointerEvents: interactive === false ? "none" : "auto",
       });
       this.root.append(element);
     }

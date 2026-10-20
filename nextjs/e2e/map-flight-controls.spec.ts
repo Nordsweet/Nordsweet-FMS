@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./test";
 
 const a = { ident: "A", lat: 49, lon: 20 };
 const b = { ident: "B", lat: 50, lon: 20 };

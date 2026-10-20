@@ -14,6 +14,8 @@ import { usePathname } from "next/navigation";
 import { Button } from "~/components/ui/button";
 import { useT } from "~/i18n/use-t";
 import { FlightRuntime } from "~/features/fly/flight-runtime";
+import { FlightRecovery } from "~/features/fly/flight-recovery";
+import { useFlightSync } from "~/stores/flight-sync";
 import { type MessageKey } from "~/i18n/messages";
 
 const nav: { href: string; label: MessageKey; icon: LucideIcon }[] = [
@@ -30,11 +32,13 @@ export const PAGE_ACTIONS_ID = "page-actions";
 export function AppShell({ children }: { children: React.ReactNode }) {
   const t = useT();
   const pathname = usePathname();
+  const recoveryReady = useFlightSync((s) => s.phase === "ready");
   const variant = (href: string) => (pathname === href ? "default" : "outline");
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <FlightRuntime />
+      <FlightRecovery />
+      {recoveryReady && <FlightRuntime />}
       <header className="flex flex-wrap items-center gap-2 px-4 pt-4">
         <nav className="flex flex-wrap gap-2">
           <Button

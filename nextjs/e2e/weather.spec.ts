@@ -1,6 +1,6 @@
 import fs from "node:fs";
 
-import { type Page, expect, test } from "@playwright/test";
+import { type Page, expect, test } from "./test";
 
 const epkk = fs.readFileSync("src/api/aviation/fixtures/airport.json", "utf8");
 

@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./test";
 
 test.use({ serviceWorkers: "allow" });
 test("map opens offline and serves previously visited map tiles", async ({

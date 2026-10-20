@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./test";
 
 test("C172S selection, source values and normal/emergency reference checklists persist", async ({
   page,

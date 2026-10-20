@@ -99,7 +99,12 @@ export function useMapAnimation({
             traffic.push({
               position: at,
               hex: a.hex,
-              icon: "aircraft",
+              icon:
+                alert?.level === "close"
+                  ? "aircraft-red"
+                  : alert?.level === "ta"
+                    ? "aircraft-amber"
+                    : "aircraft",
               advisory: alert?.level,
               alpha: position.alpha,
               track: a.track_deg ?? 0,
