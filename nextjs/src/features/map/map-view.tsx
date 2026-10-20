@@ -86,6 +86,7 @@ import type { DeckMap, DeckScene } from "./deck";
 import type { PointDatum, TrafficDatum } from "./deck/scene";
 import { isDeparturePatternTarget } from "~/domain/departure-pattern";
 import { mapProfilePoints } from "~/domain/map-profile";
+import { withoutRoutePoints } from "~/domain/map-route-points";
 import { AirspaceCaptions } from "./deck/captions";
 import { coordinatePaths, toPaths, toPoints, zoneDatum } from "./deck/data";
 import { airportLabels, minuteLabels, pointNameLabels } from "./deck/labels";
@@ -406,6 +407,18 @@ export function MapView({
       diversionAirport,
     ],
   );
+  const markedRoute = useMemo(
+    () => [...route, ...(flight.alternate ? [flight.alternate] : [])],
+    [route, flight.alternate],
+  );
+  const chartNavpoints = useMemo(
+    () => withoutRoutePoints(visibleNavpoints, markedRoute, layers.route),
+    [visibleNavpoints, markedRoute, layers.route],
+  );
+  const chartAirports = useMemo(
+    () => withoutRoutePoints(airports.data ?? [], markedRoute, layers.route),
+    [airports.data, markedRoute, layers.route],
+  );
   const airspace = useQuery(
     api.airspace.around.queryOptions({
       ...AIRSPACE_QUERY,
@@ -683,38 +696,37 @@ export function MapView({
   }, [ready, zones, theme]);
 
   useEffect(() => {
-    if (airports.data)
-      sceneRef.current?.set({
-        airports: toPoints(
-          airports.data.map((a) => ({
-            ...a,
-            kind: "airport",
-            symbol:
-              a.type === "controlled"
-                ? "controlled"
-                : a.isIcao
-                  ? "runway"
-                  : "airport",
-            heading: a.runways[0]?.trueHeadingDeg ?? 0,
-          })),
-        ),
-      });
-  }, [ready, airports.data]);
+    sceneRef.current?.set({
+      airports: toPoints(
+        chartAirports.map((a) => ({
+          ...a,
+          kind: "airport",
+          symbol:
+            a.type === "controlled"
+              ? "controlled"
+              : a.isIcao
+                ? "runway"
+                : "airport",
+          heading: a.runways[0]?.trueHeadingDeg ?? 0,
+        })),
+      ),
+    });
+  }, [ready, chartAirports]);
 
   useEffect(() => {
     sceneRef.current?.set({
       vfr: toPoints(
-        visibleNavpoints
+        chartNavpoints
           .filter((p) => p.kind === "vfr-reporting-point")
           .map((p) => ({ ...p, symbol: "reporting" })),
       ),
       ifr: toPoints(
-        visibleNavpoints.filter(
+        chartNavpoints.filter(
           (p) => p.kind !== "vfr-reporting-point" && p.kind !== "navaid",
         ),
       ),
       navaids: toPoints(
-        visibleNavpoints
+        chartNavpoints
           .filter((p) => p.kind === "navaid")
           .map((p) => ({
             ...p,
@@ -730,7 +742,7 @@ export function MapView({
           })),
       ),
     });
-  }, [ready, visibleNavpoints]);
+  }, [ready, chartNavpoints]);
 
   useEffect(() => {
     const aircraft = layers.traffic ? (traffic.data?.aircraft ?? []) : [];
@@ -794,7 +806,7 @@ export function MapView({
       if (key !== stage) {
         stage = key;
         const airportText = airportLabels(
-          airports.data ?? [],
+          chartAirports,
           settings.labels && layers.airports,
           visibility,
           theme,
@@ -803,7 +815,7 @@ export function MapView({
           airportTitles: airportText.titles,
           airportDetails: airportText.details,
           pointNames: pointNameLabels(
-            visibleNavpoints,
+            chartNavpoints,
             layers,
             visibility,
             theme,
@@ -830,8 +842,8 @@ export function MapView({
     };
   }, [
     ready,
-    airports.data,
-    visibleNavpoints,
+    chartAirports,
+    chartNavpoints,
     zones,
     layers,
     settings.labels,
@@ -964,7 +976,6 @@ export function MapView({
           point.id === "TOC" ? "maptools.topOfClimb" : "maptools.topOfDescent",
         );
         element.setAttribute("aria-label", element.title);
-        element.style.color = point.id === "TOC" ? "#00b8e6" : "#e68600";
         return { element, lat: point.lat, lon: point.lon, interactive: false };
       }),
     );
