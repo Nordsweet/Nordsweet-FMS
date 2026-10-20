@@ -143,7 +143,11 @@ export function FlyPage() {
   const turns = useTurnPerformance(flying ? fix : null);
   const [now, setNow] = useState(() => Date.now());
   const [debrief, setDebrief] = useState(false);
-  const debriefOpen = debrief || inFlight.debrief?.endedAt != null;
+  const [dismissedDebrief, setDismissedDebrief] = useState<number | null>(null);
+  const debriefOpen =
+    debrief ||
+    (inFlight.debrief?.endedAt != null &&
+      inFlight.debrief.endedAt !== dismissedDebrief);
   // shortcut: the phase is picked by hand; legacy also switched it automatically.
   const { phase, setPhase, config } = inFlight;
   const comms = useCommsPlan(phase, fix, now, flying);
@@ -600,6 +604,10 @@ export function FlyPage() {
                 summary={summary}
                 track={inFlight.track}
                 name={flight.name}
+                onClose={() => {
+                  setDebrief(false);
+                  setDismissedDebrief(inFlight.debrief?.endedAt ?? null);
+                }}
               />
             ) : (
               <p className="text-muted-foreground text-sm">

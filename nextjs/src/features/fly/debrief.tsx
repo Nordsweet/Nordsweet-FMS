@@ -1,6 +1,7 @@
 "use client";
 import { fuelUnit, formatFuel } from "~/domain/fuel-units";
 import { useState } from "react";
+import { X } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
@@ -30,10 +31,12 @@ export function Debrief({
   summary,
   track,
   name,
+  onClose,
 }: {
   summary: ReturnType<typeof summarizeTrack>;
   track: TrackPoint[];
   name: string;
+  onClose: () => void;
 }) {
   const t = useT(),
     drag = useWindowDrag();
@@ -53,17 +56,29 @@ export function Debrief({
     v == null ? "—" : `${fmt(v, digits)} ${unit}`;
   return (
     <>
-      <h2 className="text-primary font-semibold tracking-[0.08em] uppercase">
-        <span
-          role="button"
-          tabIndex={0}
-          aria-label={t("fly.status.dragDebrief")}
-          className="block cursor-grab touch-none select-none active:cursor-grabbing"
-          {...drag}
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-primary min-w-0 flex-1 font-semibold tracking-[0.08em] uppercase">
+          <span
+            role="button"
+            tabIndex={0}
+            aria-label={t("fly.status.dragDebrief")}
+            className="block cursor-grab touch-none select-none active:cursor-grabbing"
+            {...drag}
+          >
+            {t("fly.debrief")}
+          </span>
+        </h2>
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          aria-label={t("fly.debrief.close")}
+          title={t("fly.debrief.close")}
+          onClick={onClose}
         >
-          {t("fly.debrief")}
-        </span>
-      </h2>
+          <X className="size-4" aria-hidden="true" />
+        </Button>
+      </div>
       <p data-testid="debrief" className="text-sm">
         {t("fly.debriefSummary", {
           time: fmtMinutes(summary.minutes),

@@ -1,4 +1,5 @@
 export const flightPopupsEn = {
+  "fly.debrief.close": "Close flight debrief",
   "fly.popup.changeCruise":
     "Do You want to change Cruise Altitude to {altitude}ft?",
   "fly.popup.cruiseYes": "YES",
@@ -39,6 +40,7 @@ export const flightPopupsEn = {
   "fly.popup.descend": "Descend {altitude} ft",
 };
 export const flightPopupsPl: typeof flightPopupsEn = {
+  "fly.debrief.close": "Zamknij podsumowanie lotu",
   "fly.popup.changeCruise": "Czy zmienić wysokość przelotową na {altitude}ft?",
   "fly.popup.cruiseYes": "YES",
   "fly.popup.cruiseNo": "No",

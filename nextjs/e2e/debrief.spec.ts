@@ -88,6 +88,11 @@ test("accepts actual postflight readings, shows four statistic groups and retain
   );
   await page.goto("/fly");
   await page.getByRole("button", { name: "Close flight", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Close flight debrief", exact: true })
+    .click();
+  await expect(page.getByTestId("debrief")).toBeHidden();
+  await page.reload();
   await page.getByLabel("MTH after flight", { exact: true }).fill("123.70");
   await page
     .getByLabel("Fuel after flight (US gal)", { exact: true })
@@ -131,4 +136,25 @@ test("accepts actual postflight readings, shows four statistic groups and retain
     await panel.evaluate((el) => el.scrollWidth - el.clientWidth),
   ).toBeLessThanOrEqual(1);
   await page.screenshot({ path: "test-results/debrief-statistics-phone.png" });
+  const saved = await page.evaluate(() =>
+    localStorage.getItem("nordsweet.inflight.v1"),
+  );
+  await page
+    .getByRole("button", { name: "Close flight debrief", exact: true })
+    .click();
+  await expect(panel).toBeHidden();
+  await page.clock.install();
+  await page.clock.fastForward(16_000);
+  await expect(panel).toBeHidden();
+  expect(
+    await page.evaluate(() => localStorage.getItem("nordsweet.inflight.v1")),
+  ).toBe(saved);
+  await page.reload();
+  await expect(page.getByTestId("debrief-mth-used")).toHaveText("0.40 MTH");
+  await page
+    .getByRole("button", { name: "Close flight debrief", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Start flight", exact: true }).click();
+  await page.getByRole("button", { name: "Close flight", exact: true }).click();
+  await expect(page.getByTestId("debrief")).toBeVisible();
 });

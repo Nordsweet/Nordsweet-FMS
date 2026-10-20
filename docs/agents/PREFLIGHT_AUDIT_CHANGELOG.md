@@ -7,6 +7,10 @@ Branch: `codex/preflight-parity-audit`.
 
 ## Flight guidance refinements (2026-10-20)
 
+- Flight Debrief has an accessible X close button in its draggable header. Dismissal stays in
+  effect while using the current Fly view; saved readings, aircraft state and track remain intact.
+  Reloading can show the saved summary again, and the next completed flight opens automatically.
+
 - Keep separate departure/arrival airport occurrences for graphical round trips, even before an
   intermediate waypoint is inserted. On a same-airport flight, after sequencing the last departure
   pattern point, Traffic Pattern configures/edits/removes the arrival pattern; pre-flight still plans
