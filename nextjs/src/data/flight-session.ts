@@ -42,6 +42,7 @@ const sample = position.extend({
   altitudeFt: nullable,
   speedKt: nullable,
   headingDeg: nullable,
+  onGround: z.boolean().optional(),
 });
 const utility = z.object({
   mode: z.enum(["idle", "stopwatch", "countdown", "stopped", "complete"]),

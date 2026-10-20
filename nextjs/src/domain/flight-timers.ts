@@ -31,6 +31,8 @@ export type Sample = {
   altitudeFt: number | null;
   speedKt: number | null;
   headingDeg: number | null;
+  /** Explicit simulator contact state; absent for native GPS observations. */
+  onGround?: boolean;
 };
 export type Timers = {
   offBlock: Timer;
@@ -236,9 +238,12 @@ export function stepTimers(
     } else off.candidateAt = null;
   }
 
-  // Take-off: a 10 s accelerating run within 10° of track, confirmed passing +50 ft.
   const air = next.airTime;
-  if (air.autoArmed && air.startedAt === null) {
+  // Simulator ground contact is authoritative, even if a slower device missed the roll.
+  if (air.autoArmed && air.startedAt === null && s.onGround === false)
+    start("airTime", s.at, "auto");
+  // Native GPS: a 10 s accelerating run within 10° of track, confirmed passing +50 ft.
+  if (air.autoArmed && air.startedAt === null && s.onGround === undefined) {
     if (alt !== null && speed <= 35) {
       next.groundSamples = [...next.groundSamples, alt].slice(-25);
       next.groundReferenceFt = median(next.groundSamples);
