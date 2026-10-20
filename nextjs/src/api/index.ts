@@ -99,6 +99,13 @@ type Search = { query: string; limit?: number };
 type Icao = { icao: string };
 
 export const api = {
+  auth: {
+    // Credentials and the session never enter the persisted query cache.
+    login: mutation("auth.login", aviationApi.login),
+    // Called directly: it must read the token before sign-out clears it.
+    logout: { call: aviationApi.logout },
+    me: { call: aviationApi.me },
+  },
   flightSync: {
     // Recovery includes a private capability: never place it in the persisted query cache.
     latest: { call: flightSyncApi.latest },

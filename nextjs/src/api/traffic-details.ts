@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { env } from "~/env";
+import { aviationFetch } from "./aviation/client";
 import { type TrafficSample } from "~/domain/traffic-history";
 import { normalizeRegistration } from "~/domain/aircraft";
 import { confirmedTrafficAircraft } from "~/domain/traffic-metadata";
@@ -139,7 +140,9 @@ export async function trafficHistory({
     `/traffic/${hex.toLowerCase()}/history`,
     env.NEXT_PUBLIC_AVIATION_API_URL,
   );
-  const response = await fetch(url, { signal: AbortSignal.timeout(15000) });
+  const response = await aviationFetch(url, {
+    signal: AbortSignal.timeout(15000),
+  });
   if (!response.ok) throw new Error(`Traffic history: ${response.status}`);
   const payload = historySchema.parse(await response.json());
   if (payload.hex.toLowerCase() !== hex.toLowerCase())

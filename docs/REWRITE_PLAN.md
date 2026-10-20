@@ -78,10 +78,14 @@ everything it provides (map tiles excluded). Client: `src/api/aviation/` (zod sc
 against recorded responses). Everything else stays bundled in `public/data/` until the collector
 (or the future backend) provides it.
 
+Every data endpoint needs a login (`Authorization: Bearer`). The session lives in `src/stores/auth.ts`,
+`aviationFetch` in `client.ts` adds the header and is the only place a 401 ends the session, and
+`AuthGate` renders the login screen instead of the app, so nothing is requested before login.
+
 | Data | Source |
 |---|---|
 | METAR/TAF, ATIS, NOTAMs | API (`/airports/{icao}`, `/weather`, `/atis`, `/notams`) |
-| Live traffic | API (`/traffic`, `/stream`) |
+| Live traffic | API (`/traffic`; `/stream` is not used) |
 | Airspace geometry + AUP/UUP activations (PL, CZ) | API (`/airspace`, `/airspace/activations`) |
 | VFR reporting points | API (`/places?kind=vfr_point`), cached in IndexedDB for offline |
 | Airports with full runway data (TORA/LDA, thresholds) | bundled — API `places` has one runway only |
