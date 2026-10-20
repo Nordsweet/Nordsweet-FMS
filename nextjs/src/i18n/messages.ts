@@ -15,12 +15,14 @@ import { aircraftReferenceEn, aircraftReferencePl } from "./aircraft-reference";
 import { debriefEn, debriefPl } from "./debrief";
 import { inspireEn, inspirePl } from "./inspire";
 import { authEn, authPl } from "./auth";
+import { sessionSyncEn, sessionSyncPl } from "./session-sync";
 
 const pl = {
   ...fplProfilePl,
   ...flightSyncPl,
   ...inspirePl,
   ...authPl,
+  ...sessionSyncPl,
   ...debriefPl,
   ...aircraftReferencePl,
   ...flightPopupsPl,
@@ -861,6 +863,7 @@ const en: Record<MessageKey, string> = {
   ...atisConsensusEn,
   ...inspireEn,
   ...authEn,
+  ...sessionSyncEn,
   ...mapToolsEn,
   ...aircraftEditorEn,
   "maplegacy.airspace": "Airspaces",

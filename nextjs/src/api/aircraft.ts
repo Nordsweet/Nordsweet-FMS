@@ -29,8 +29,23 @@ export function readCustomDrafts(): AircraftDraft[] {
   }
 }
 
+const listeners = new Set<() => void>();
+/** Called after the drafts change, here or in another tab of the same browser. */
+export function subscribeCustomDrafts(listener: () => void) {
+  listeners.add(listener);
+  const onStorage = (event: StorageEvent) => {
+    if (event.key === KEY) listener();
+  };
+  window.addEventListener("storage", onStorage);
+  return () => {
+    listeners.delete(listener);
+    window.removeEventListener("storage", onStorage);
+  };
+}
+
 export function writeCustomDrafts(drafts: AircraftDraft[]) {
   localStorage.setItem(KEY, JSON.stringify(drafts));
+  listeners.forEach((l) => l());
 }
 
 /** Bundled profiles (with the pilot's edits applied by id) plus the pilot's own: the one list every planner component reads. */

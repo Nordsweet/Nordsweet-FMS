@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { routeExport } from "~/domain/route-export";
-import { createStore, del, entries, get, set } from "idb-keyval";
+import { createStore, del, entries, get, keys, set } from "idb-keyval";
 
 import { type Flight, flightSchema, newFlight } from "~/data/flight";
 import { parseNordFile, toNordFile, legacyAircraftId } from "~/data/nord";
@@ -9,12 +9,42 @@ import { findAirport } from "./search";
 import { loadAircraft } from "./aircraft";
 import { loadDataset } from "./datasets";
 
-// shortcut: one IndexedDB store on this device; replace with a sync queue once the backend exists.
+// The working copy on this device; api/sync mirrors it to the server.
 const store =
   typeof indexedDB === "undefined"
     ? undefined
     : createStore("nordsweet-flights", "flights");
 const MIGRATED_KEY = "legacy-saved-routes-imported";
+
+const listeners = new Set<() => void>();
+const channel =
+  typeof window === "undefined" || typeof BroadcastChannel === "undefined"
+    ? undefined
+    : new BroadcastChannel("nordsweet-flights");
+channel?.addEventListener("message", () => listeners.forEach((l) => l()));
+/** Called after every change to the library, in this tab and in other tabs of the same browser. */
+export function subscribeFlights(listener: () => void) {
+  listeners.add(listener);
+  return () => void listeners.delete(listener);
+}
+function changed() {
+  listeners.forEach((l) => l());
+  channel?.postMessage("changed");
+}
+
+/** Sync access: ids of the saved flights, one flight as stored, and a write that keeps its snapshot date. */
+export const flightIds = async () =>
+  (await keys(store)).filter(
+    (key): key is string => key !== MIGRATED_KEY && typeof key === "string",
+  );
+export async function getFlight(id: string) {
+  const parsed = flightSchema.safeParse(await get(id, store));
+  return parsed.success ? parsed.data : undefined;
+}
+export async function putFlight(flight: Flight) {
+  await set(flight.id, flightSchema.parse(flight), store);
+  changed();
+}
 
 /** Imports the legacy planner's saved routes (localStorage) once. */
 async function migrateLegacy() {
@@ -62,6 +92,7 @@ async function migrateLegacy() {
     }
   }
   await set(MIGRATED_KEY, true, store);
+  changed();
 }
 
 export async function listFlights(): Promise<Flight[]> {
@@ -80,6 +111,7 @@ export async function saveFlight(flight: Flight) {
     savedAt: new Date().toISOString(),
   });
   await set(saved.id, saved, store);
+  changed();
   return saved;
 }
 
@@ -88,11 +120,13 @@ export async function renameFlight({ id, name }: { id: string; name: string }) {
   const flight = flightSchema.parse(await get(id, store));
   const renamed = flightSchema.parse({ ...flight, name: name.trim() });
   await set(id, renamed, store);
+  changed();
   return renamed;
 }
 
 export async function removeFlight(id: string) {
   await del(id, store);
+  changed();
 }
 
 /** Parse uploaded files at the data boundary, including the legacy code-only alternate. */
@@ -128,6 +162,7 @@ export async function importFlight({
         : null),
   });
   await set(imported.id, imported, store);
+  changed();
   return imported;
 }
 

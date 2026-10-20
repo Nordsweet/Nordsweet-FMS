@@ -17,6 +17,7 @@ import { Button } from "~/components/ui/button";
 import { useT } from "~/i18n/use-t";
 import { FlightRuntime } from "~/features/fly/flight-runtime";
 import { FlightRecovery } from "~/features/fly/flight-recovery";
+import { SessionSync } from "~/features/sync/session-sync";
 import { api } from "~/api";
 import { useAuth } from "~/stores/auth";
 import { useFlightSync } from "~/stores/flight-sync";
@@ -107,6 +108,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           id={PAGE_ACTIONS_ID}
           className="ml-auto flex flex-wrap items-center gap-2"
         />
+        <SessionSync />
         <Button
           variant="outline"
           className="h-13.5 max-sm:size-12"
