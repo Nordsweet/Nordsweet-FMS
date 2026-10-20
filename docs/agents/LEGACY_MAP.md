@@ -57,6 +57,8 @@ State defaults: the `state = {…}` object (~line 1500). DOM refs: `refs = {…}
 
 ## 4. Work board
 
+Flight Debrief close control — in progress, Codex 2026-10-20. Add dismissal without clearing saved readings or flight track; retain automatic opening for the next completed flight.
+
 Claim a row before you start (owner = agent/session name + date), commit the claim, release it when
 merged to `develop`. One owner per row.
 
