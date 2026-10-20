@@ -69,6 +69,22 @@ test("FPL inserts TOC/TOD in sequence with profile levels, preserving every navi
   );
 });
 
+test("saved rounded airport coordinates retain profile events and arrival altitude when reference data arrives later", () => {
+  const p = plan();
+  const route = navigationRoute(p).map((point) => ({
+    ...point,
+    lat: point.lat + 0.0005,
+  }));
+  const profile = flightPlanProfile(route, p, { tasKt: 100 }, 5000);
+  expect(
+    profile.rows.filter((row) => row.event).map((row) => row.event),
+  ).toEqual(["TOC", "TOD"]);
+  expect(profile.rows.at(-1)!.altitudeFt).toBe(
+    p.pointAltitudeByKey[pointKey(p.points.at(-1))],
+  );
+  expect(profile.rows.at(-1)!.altitudeFt).not.toBe(5000);
+});
+
 test("direct/divert removes abandoned profile events and handles a return to departure", () => {
   const p = plan("EPML"),
     route = navigationRoute(p);

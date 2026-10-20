@@ -40,7 +40,11 @@ export function flightPlanProfile(
     if (route[i]!.ident === "DCT") continue;
     for (let k = cursor - 1; k >= 0; k--) {
       const p = plan!.points[k]!;
-      if (!p.isProfilePoint && distanceNm(p, route[i]!) < 0.001) {
+      const separationNm = distanceNm(p, route[i]!);
+      // A flight started before reference data loads can retain rounded saved ARP coordinates.
+      const savedAirport =
+        p.kind === "airport" && p.id === route[i]!.ident && separationNm < 0.3;
+      if (!p.isProfilePoint && (separationNm < 0.001 || savedAirport)) {
         indexes[i] = k;
         cursor = k;
         break;
