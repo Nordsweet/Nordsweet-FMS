@@ -1,4 +1,4 @@
-import { expect, test } from "./test";
+import { selectFlightPhase, expect, test } from "./test";
 import { newFlight } from "../src/data/flight";
 import { airportSchema } from "../src/data/schemas";
 import airports from "../public/data/airports.json" with { type: "json" };
@@ -160,7 +160,7 @@ test("FREDA confirmed fuel becomes the next prediction baseline and arrival with
     .getByRole("button", { name: "Close", exact: true })
     .first()
     .click();
-  await page.getByRole("button", { name: "Descent", exact: true }).click();
+  await selectFlightPhase(page, "Descent");
   const options = page.getByRole("button", { name: "Options", exact: true });
   if ((await options.getAttribute("aria-expanded")) !== "true")
     await options.click();

@@ -1,4 +1,4 @@
-import { expect, test } from "./test";
+import { selectFlightPhase, expect, test } from "./test";
 
 test.beforeEach(async ({ page }) => {
   await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => route.abort());
@@ -90,7 +90,7 @@ test("keeps preparation conditions, taxi selections and legacy preferences acros
   await page.keyboard.press("Escape");
   await page.getByRole("link", { name: "Start a flight" }).click();
   const panel = async (phase: string, name: string) => {
-    await page.getByRole("button", { name: phase, exact: true }).click();
+    await selectFlightPhase(page, phase);
     const button = page.getByRole("button", { name, exact: true });
     if ((await button.getAttribute("aria-expanded")) !== "true")
       await button.click();
