@@ -3,6 +3,7 @@
 import {
   ClipboardList,
   Compass,
+  LogOut,
   type LucideIcon,
   Map as MapIcon,
   Plane,
@@ -16,6 +17,8 @@ import { Button } from "~/components/ui/button";
 import { useT } from "~/i18n/use-t";
 import { FlightRuntime } from "~/features/fly/flight-runtime";
 import { FlightRecovery } from "~/features/fly/flight-recovery";
+import { api } from "~/api";
+import { useAuth } from "~/stores/auth";
 import { useFlightSync } from "~/stores/flight-sync";
 import { type MessageKey } from "~/i18n/messages";
 
@@ -53,6 +56,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       event.preventDefault();
       router.push(href);
     }
+  };
+  const username = useAuth((s) => s.session?.username);
+  const signOut = () => {
+    // Revoke first: the call reads the token synchronously, then the session ends locally either way.
+    void api.auth.logout.call().catch(() => undefined);
+    useAuth.getState().signOut();
   };
   const recoveryReady = useFlightSync((s) => s.phase === "ready");
   const variant = (href: string) => (pathname === href ? "default" : "outline");
@@ -98,6 +107,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           id={PAGE_ACTIONS_ID}
           className="ml-auto flex flex-wrap items-center gap-2"
         />
+        <Button
+          variant="outline"
+          className="h-13.5 max-sm:size-12"
+          title={t("auth.signedInAs", { username: username ?? "" })}
+          onClick={signOut}
+        >
+          <LogOut className="size-5" />
+          <span className="max-sm:sr-only">{username}</span>
+          <span className="sr-only">{t("auth.signOut")}</span>
+        </Button>
       </header>
       <main className="flex flex-1 flex-col p-4">{children}</main>
     </div>

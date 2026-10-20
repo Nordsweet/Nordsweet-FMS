@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { stubSession } from "./test";
 import { newFlight } from "../src/data/flight";
 import {
   type ServerFlight,
@@ -9,6 +10,7 @@ import { type TrackPoint } from "../src/domain/track";
 async function setup(page: Page) {
   let saved: ServerFlight | null = null;
   let offline = false;
+  await stubSession(page);
   await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (r) => r.abort());
   await page.route("**/flight-sync/sessions**", async (r) => {
     if (offline) return r.abort();

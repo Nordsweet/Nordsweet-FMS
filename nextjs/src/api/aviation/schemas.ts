@@ -11,6 +11,17 @@ export const sourcesSchema = z.record(z.string(), z.string());
 
 const timestamp = z.iso.datetime({ offset: true });
 
+/** `role` stays a plain string: a role the API adds later must not break login. */
+export const meResponseSchema = z.object({
+  username: z.string(),
+  role: z.string(),
+});
+export const loginResponseSchema = meResponseSchema.extend({
+  token: z.string().min(1),
+  /** Seconds; 30 days today. */
+  expires_in: z.number(),
+});
+
 export const placeKinds = [
   "vfr_point",
   "airfield_grass",
