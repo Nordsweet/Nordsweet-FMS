@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { SearchIcon, Trash2, Ellipsis } from "lucide-react";
+import { SearchIcon, Trash2, Ellipsis, ChevronDown } from "lucide-react";
 import { useMapSettings } from "~/stores/map";
 import { useEffect, useState } from "react";
 
@@ -56,7 +56,12 @@ import {
 } from "./flight-plan-table";
 import { plannedGuidanceAltitude } from "~/domain/flight-guidance";
 import { NotificationBell, NotificationHistory } from "./notification-history";
-import { usePositionSource } from "~/stores/position-source";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "~/components/ui/dropdown-menu";
 
 const PHASES = FLIGHT_PHASES;
 type Phase = FlightPhase;
@@ -72,7 +77,8 @@ type Panel =
   | "checklist"
   | "info"
   | "options"
-  | "notifications";
+  | "notifications"
+  | "position";
 /** Legacy rail per phase, in legacy order. */
 const RAIL: { id: Panel; phases?: Phase[] }[] = [
   { id: "emer" },
@@ -139,7 +145,6 @@ export function FlyPage() {
   const inFlight = useInFlight();
   const flying = inFlight.startedAt !== null;
   const { fix, connectorStatus, error: gpsError } = useGps(true);
-  const positionSource = usePositionSource((s) => s.source);
   const turns = useTurnPerformance(flying ? fix : null);
   const [now, setNow] = useState(() => Date.now());
   const [debrief, setDebrief] = useState(false);
@@ -190,13 +195,16 @@ export function FlyPage() {
   const rail = RAIL.filter((r) => !r.phases || r.phases.includes(phase));
   const panelLabel = (id: Panel) =>
     t(
-      id === "chart"
-        ? phase === "taxiout" || phase === "taxiin"
-          ? "fly.panel.taxi"
-          : "fly.panel.proc"
-        : `fly.panel.${id}`,
+      id === "position"
+        ? "connector.title"
+        : id === "chart"
+          ? phase === "taxiout" || phase === "taxiin"
+            ? "fly.panel.taxi"
+            : "fly.panel.proc"
+          : `fly.panel.${id}`,
     );
-  const open = rail.some((r) => r.id === panel) ? panel : null;
+  const open =
+    panel === "position" || rail.some((r) => r.id === panel) ? panel : null;
 
   const navigation = (
     <>
@@ -414,6 +422,7 @@ export function FlyPage() {
       </>
     ),
     options: <OptionsPanel />,
+    position: <PositionSourcePanel />,
     notifications: <NotificationHistory />,
   };
 
@@ -421,14 +430,56 @@ export function FlyPage() {
   // the right; each tool opens its panel beside the rail.
   return (
     <div className="bg-background fixed inset-0 z-40">
-      <FlightStatusBar fix={fix} progress={progress} />
+      <FlightStatusBar
+        fix={fix}
+        progress={progress}
+        positionOpen={open === "position"}
+        positionStatus={t(`connector.${connectorStatus}`)}
+        onPositionClick={() => {
+          setSearchOpen(false);
+          setPanel(open === "position" ? null : "position");
+        }}
+        phaseControl={
+          flying ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  data-testid="flight-phase"
+                  aria-pressed="true"
+                  className="min-w-36"
+                >
+                  {t(`fly.phase.${phase}`)}{" "}
+                  <ChevronDown className="size-4" aria-hidden="true" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="center">
+                {PHASES.map((p) => (
+                  <DropdownMenuItem key={p} onSelect={() => setPhase(p)}>
+                    {t(`fly.phase.${p}`)}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : null
+        }
+        endControl={
+          flying ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                inFlight.end();
+                setPanel(null);
+                setDebrief(true);
+              }}
+            >
+              {t("fly.end")}
+            </Button>
+          ) : null
+        }
+      />
       <div className="absolute inset-x-0 top-24 bottom-0">
         <MapWorkspace embedded />
-        {!flying && (
-          <div className="bg-card/95 absolute top-40 left-3 z-30 max-h-[calc(100%-15rem)] w-[min(25rem,calc(100%-1.5rem))] overflow-y-auto rounded-xl backdrop-blur">
-            <PositionSourcePanel />
-          </div>
-        )}
         <div
           className="fly-scrim"
           aria-hidden="true"
@@ -436,72 +487,30 @@ export function FlyPage() {
         />
         {flying && !emergencyActive && <FredaDialog fix={fix} now={now} />}
         {flying && inFlight.replayEnabled && <GpxReplayDock />}
-        <div className="bg-card/90 absolute top-3 left-1/2 z-30 flex max-w-[calc(100%-1.5rem)] -translate-x-1/2 gap-2 overflow-x-auto rounded-3xl border p-2 backdrop-blur">
-          {flying && positionSource === "connector" && (
+        {!flying && (
+          <div className="bg-card/90 absolute top-3 left-1/2 z-30 flex max-w-[calc(100%-1.5rem)] -translate-x-1/2 gap-2 overflow-x-auto rounded-3xl border p-2 backdrop-blur">
+            <Button variant="outline" className="shrink-0" asChild>
+              <Link href="/">{t("nav.plan")}</Link>
+            </Button>
             <Button
-              variant="outline"
-              className="max-w-48 shrink-0"
-              title={t(`connector.${connectorStatus}`)}
+              className="shrink-0"
+              disabled={planRoute.length < 2}
               onClick={() => {
-                setSearchOpen(false);
-                setPanel(open === "options" ? null : "options");
+                inFlight.start(
+                  planRoute,
+                  flight.trafficPattern,
+                  departurePattern,
+                  aircraft?.type,
+                );
+                inFlight.setHolding(flight.holding);
+                setPhase("taxiout");
+                setDebrief(false);
               }}
             >
-              <span className="truncate">
-                {t(`connector.${connectorStatus}`)}
-              </span>
+              {t("fly.start")}
             </Button>
-          )}
-          {flying ? (
-            <>
-              {PHASES.map((p) => (
-                <Button
-                  key={p}
-                  variant={p === phase ? "default" : "outline"}
-                  aria-pressed={p === phase}
-                  className="shrink-0"
-                  onClick={() => setPhase(p)}
-                >
-                  {t(`fly.phase.${p}`)}
-                </Button>
-              ))}
-              <Button
-                variant="outline"
-                className="border-primary shrink-0"
-                onClick={() => {
-                  inFlight.end();
-                  setPanel(null);
-                  setDebrief(true);
-                }}
-              >
-                {t("fly.end")}
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button variant="outline" className="shrink-0" asChild>
-                <Link href="/">{t("nav.plan")}</Link>
-              </Button>
-              <Button
-                className="shrink-0"
-                disabled={planRoute.length < 2}
-                onClick={() => {
-                  inFlight.start(
-                    planRoute,
-                    flight.trafficPattern,
-                    departurePattern,
-                    aircraft?.type,
-                  );
-                  inFlight.setHolding(flight.holding);
-                  setPhase("taxiout");
-                  setDebrief(false);
-                }}
-              >
-                {t("fly.start")}
-              </Button>
-            </>
-          )}
-        </div>
+          </div>
+        )}
 
         {flying && (
           <nav
@@ -568,7 +577,10 @@ export function FlyPage() {
             data-debrief={!open && debriefOpen ? "true" : undefined}
             style={
               {
-                "--top": `calc(5.15rem + ${rail.findIndex((r) => r.id === open)} * 3.93rem)`,
+                "--top":
+                  open === "position"
+                    ? "0.75rem"
+                    : `calc(5.15rem + ${rail.findIndex((r) => r.id === open)} * 3.93rem)`,
                 ...(open === "fpl"
                   ? { width: "min(42rem, calc(100vw - 6.5rem))" }
                   : {}),

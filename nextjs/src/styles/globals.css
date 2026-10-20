@@ -770,6 +770,12 @@
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.34);
 }
 /* Top right, beside the rail. */
+.fly-popover[data-panel="position"] {
+  top: 0.75rem;
+  right: 1rem;
+  width: min(430px, calc(100vw - 2rem));
+  max-height: calc(100% - 1.5rem);
+}
 .fly-popover[data-panel="fpl"] {
   --head: #5dc1ff;
   top: var(--top);

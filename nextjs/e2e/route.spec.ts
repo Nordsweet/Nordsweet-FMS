@@ -1,4 +1,4 @@
-import { type Page, expect, test } from "./test";
+import { selectFlightPhase, type Page, expect, test } from "./test";
 
 test.beforeEach(async ({ page }) => {
   await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => route.abort());
@@ -64,7 +64,7 @@ test("builds the legacy route: AUTO SID/STAR, TOC/TOD, restrictions", async ({
 
   // The flight view's PROC button draws the selected SID (legacy Nordchart).
   await page.getByRole("link", { name: /start a flight/i }).click();
-  await page.getByRole("button", { name: "Take-off", exact: true }).click();
+  await selectFlightPhase(page, "Take-off");
   await page.getByRole("button", { name: "PROC", exact: true }).click();
   await expect(
     page.getByRole("img", { name: "NAVUR 6J procedure chart" }),

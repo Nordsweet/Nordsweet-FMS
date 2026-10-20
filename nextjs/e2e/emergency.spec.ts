@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "./test";
+import { selectFlightPhase, expect, test, type Page } from "./test";
 import { newFlight } from "../src/data/flight";
 import { newTimers } from "../src/domain/flight-timers";
 
@@ -167,7 +167,7 @@ test("Engine Fire selects ground and flight excerpts for all seven phases and re
     "Landing",
     "Taxi-In",
   ]) {
-    await page.getByRole("button", { name: phase, exact: true }).click();
+    await selectFlightPhase(page, phase);
     await page.getByRole("button", { name: "EMER", exact: true }).click();
     const panel = page.getByRole("region", {
       name: "Emergency Checklists",

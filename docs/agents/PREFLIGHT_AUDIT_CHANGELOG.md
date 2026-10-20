@@ -7,6 +7,12 @@ Branch: `codex/preflight-parity-audit`.
 
 ## Flight guidance refinements (2026-10-20)
 
+- Replace the expanded in-flight phase strip with one current-phase dropdown in the instrument
+  bar. Keep manual selection and automatic phase updates. Move Close Flight beneath the device
+  indicators, beside AGL. The antenna opens/closes the position-source dialog, including Connector
+  settings and connection status; remove the separate connection-status button and always-open
+  preparation panel from Fly. Preparation/start controls remain available before flight.
+
 - Flight Debrief has an accessible X close button in its draggable header. Dismissal stays in
   effect while using the current Fly view; saved readings, aircraft state and track remain intact.
   Reloading can show the saved summary again, and the next completed flight opens automatically.

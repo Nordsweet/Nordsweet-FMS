@@ -1,4 +1,4 @@
-import { expect, test } from "./test";
+import { selectFlightPhase, expect, test } from "./test";
 
 const flight = {
   id: "e2e",
@@ -41,6 +41,27 @@ test("flies the route: sequencing, direct-to and debrief", async ({
   await expect(page.getByTestId("gps-status")).toHaveCount(0);
   await expect(page.getByTestId("map-gps-status")).toHaveCount(0);
   await page.getByRole("button", { name: "Start flight" }).click();
+  const instruments = page.getByTestId("flight-status-bar");
+  await expect(instruments.getByTestId("flight-phase")).toHaveText("Taxi-Out");
+  await expect(
+    instruments.getByRole("button", { name: "Close flight", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Cruise", exact: true }),
+  ).toHaveCount(0);
+  await instruments
+    .getByRole("button", { name: "Position source", exact: true })
+    .click();
+  const connection = page.getByRole("dialog", {
+    name: "Position source",
+    exact: true,
+  });
+  await expect(
+    connection.getByRole("combobox", { name: "Position source", exact: true }),
+  ).toBeVisible();
+  await connection.getByRole("button", { name: "Close", exact: true }).click();
+  await expect(connection).toBeHidden();
+  await page.screenshot({ path: "test-results/compact-flight-toolbar.png" });
   await expect(page.getByText(/^Route:/)).toHaveCount(0);
   await expect(page.getByTestId("gps-status")).toHaveCount(0);
   await expect(page.getByTestId("map-gps-status")).toHaveCount(0);
@@ -82,7 +103,7 @@ test("flies the route: sequencing, direct-to and debrief", async ({
   await expect(page.getByTestId("fly-xte")).toHaveText(/0\.0/);
 
   // OPTIONS: manual Block Time, the event log and the phase survive a reload.
-  await page.getByRole("button", { name: "Cruise", exact: true }).click();
+  await selectFlightPhase(page, "Cruise");
   await expect(rail.getByRole("button").nth(1)).toHaveText("FPL");
   await page.getByRole("button", { name: "Options", exact: true }).click();
   await page.getByRole("button", { name: "OFF-BLOCK" }).click();

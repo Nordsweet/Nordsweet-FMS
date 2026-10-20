@@ -1,4 +1,4 @@
-import { type Page, expect, test } from "./test";
+import { selectFlightPhase, type Page, expect, test } from "./test";
 
 test.beforeEach(async ({ page }) => {
   // Deterministic: no live API (VFR points degrade gracefully), English UI.
@@ -14,7 +14,7 @@ test.beforeEach(async ({ page }) => {
 async function flightPanel(page: Page, phase: string, panel: string) {
   if (!page.url().endsWith("/fly"))
     await page.getByRole("link", { name: "Start a flight" }).click();
-  await page.getByRole("button", { name: phase, exact: true }).click();
+  await selectFlightPhase(page, phase);
   const button = page.getByRole("button", { name: panel, exact: true });
   if ((await button.getAttribute("aria-expanded")) !== "true")
     await button.click();

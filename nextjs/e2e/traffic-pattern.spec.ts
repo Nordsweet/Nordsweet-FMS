@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import { test, expect, type Page } from "./test";
+import { selectFlightPhase, test, expect, type Page } from "./test";
 import { airportSchema } from "../src/data/schemas";
 import { newFlight, type Flight } from "../src/data/flight";
 import {
@@ -339,7 +339,7 @@ test("automatic departure circuit follows Take-off then Taxi-out runway selectio
     { departure, airport },
   );
   await page.goto("/fly");
-  await page.getByRole("button", { name: "Take-off", exact: true }).click();
+  await selectFlightPhase(page, "Take-off");
   await page.getByRole("button", { name: "RWY", exact: true }).click();
   await page
     .getByTestId("perf-takeoff")
@@ -355,7 +355,7 @@ test("automatic departure circuit follows Take-off then Taxi-out runway selectio
     .getByRole("button", { name: "Accept traffic pattern", exact: true })
     .click();
   await page.goto("/fly");
-  await page.getByRole("button", { name: "Taxi-Out", exact: true }).click();
+  await selectFlightPhase(page, "Taxi-Out");
   await page.getByRole("button", { name: "Route", exact: true }).click();
   await page
     .getByTestId("taxi-departure")

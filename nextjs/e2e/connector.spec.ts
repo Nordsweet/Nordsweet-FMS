@@ -99,6 +99,9 @@ test("Connector source feeds Fly, survives reload and clears stale fixes without
     await page.evaluate(() => localStorage.getItem("nordsweet.inflight.v1")),
   ).not.toContain('"startedAt":"');
   await page.goto("/fly");
+  await page
+    .getByRole("button", { name: "Position source", exact: true })
+    .click();
   await expect(page.getByTestId("wind-tile")).toContainText("308°/006");
   await expect(page.getByTestId("wind-tile")).toHaveAttribute(
     "data-wind-state",
@@ -155,6 +158,9 @@ test("Connector source feeds Fly, survives reload and clears stale fixes without
     "No current data from Prepar3D",
   );
   await page.reload();
+  await page
+    .getByRole("button", { name: "Position source", exact: true })
+    .click();
   await expect(
     page.getByRole("combobox", { name: "Position source", exact: true }),
   ).toHaveValue("connector");
