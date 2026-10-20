@@ -1,4 +1,4 @@
-import { type Page, expect, test } from "@playwright/test";
+import { type Page, expect, test } from "./test";
 
 test.beforeEach(async ({ page }) => {
   // Deterministic: no live API (VFR points degrade gracefully), English UI.

@@ -5,6 +5,28 @@ Reference: <https://nordsweet-performance-calculator.mrnordsweet.chatgpt.site/> 
 `5265bc5de9510aa3d83cc469860a730962b96c78`. Starting develop: `2f289ed6dc8d7b7c3186b100577c787c64df1de2`.
 Branch: `codex/preflight-parity-audit`.
 
+## Flight guidance refinements (2026-10-20)
+
+- Keep separate departure/arrival airport occurrences for graphical round trips, even before an
+  intermediate waypoint is inserted. On a same-airport flight, after sequencing the last departure
+  pattern point, Traffic Pattern configures/edits/removes the arrival pattern; pre-flight still plans
+  departure. Direct-to routes that have skipped the departure circuit also use arrival mode.
+- Add distinct TOC/TOD map annotations from the existing vertical profile, including events at real
+  fixes. These annotations do not become FPL waypoints, follow the route layer and disappear when
+  their planned leg was abandoned by a Direct/Divert.
+- TA uses the complete yellow traffic sprite; proximity uses the complete red sprite. Both symbols
+  are 36 px (1.5 times the normal 24 px), retaining the warning outlines and existing advisory logic.
+- FREDA in descent, landing or taxi-in is suppressed unless above both half the planned cruise
+  altitude (AMSL) and 2000 ft AGL. Unknown/stale terrain/height cannot qualify. Manual opening and
+  automatic due checks share the gate; lowering below it closes an existing check without losing its
+  due schedule. The height tile and notification gate share instrument/DEM/geoid datum handling.
+- A confirmed FREDA fuel reading now persists as a fuel/elapsed-air-time baseline. Future prediction
+  burns from that reading at the planned cruise flow (trip average fallback), not from original block
+  fuel. At 24 L/h a 60 L reading predicts 48 L after 30 airborne minutes; gallons continue converting
+  internally to litres. An unchanged rounded tank display does not round away the predicted baseline.
+- Recovery preserves route-history fix metadata and unexpired pattern notices. Explicitly opened
+  library/map pages stay open when resuming; FREDA cannot cover the restart choice dialog.
+
 ## Server track and restart recovery (2026-10-20)
 
 - Persist each flight under registration + local DDMMYYHHmm (for example SPOKO1910262330), with a

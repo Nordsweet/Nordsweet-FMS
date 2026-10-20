@@ -46,7 +46,7 @@ function build(theme: Theme) {
     ]),
     ["aircraft", aircraftSymbol([17, 17, 17])],
     ["aircraft-red", aircraftSymbol([220, 38, 38])],
-    ["aircraft-amber", aircraftSymbol([245, 158, 11])],
+    ["aircraft-amber", aircraftSymbol([250, 204, 21])],
     ["aircraft-caution", aircraftSymbol([255, 255, 255])],
     ["ownship", aircraftSymbol([36, 79, 134], true)],
     ["parachute", parachute()],

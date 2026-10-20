@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./test";
 import { newFlight } from "../src/data/flight";
 
 test("map resolves the selected airframe registration, then switches to a newly typed registration", async ({

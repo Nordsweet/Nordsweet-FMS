@@ -1,6 +1,6 @@
 "use client";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { api } from "~/api";
 import { distanceNm } from "~/domain/geo";
 import { departureRunwayChoice } from "~/domain/departure-pattern";
@@ -16,6 +16,8 @@ import { useWindEstimation } from "./use-wind-estimation";
 import { useEmergencyTelemetry } from "~/features/emergency/use-emergency-telemetry";
 import { useCruiseAltitude } from "~/stores/cruise-altitude";
 import { flightGuidanceAvailable } from "~/domain/flight-guidance";
+import { fredaAvailable } from "~/domain/freda";
+import { useTerrainHeight } from "./use-terrain-height";
 
 const useAirport = (code: string | undefined) =>
   useQuery({
@@ -33,7 +35,8 @@ export function FlightRuntime() {
   const enabled = useMapSettings((s) => s.gpsEnabled);
   const { fix, error } = useGps(enabled || flight.startedAt !== null);
   const turns = useTurnPerformance(flight.startedAt ? fix : null);
-  const { record, setActiveLeg, observe, tick } = flight;
+  const { record, setActiveLeg, observe, tick, setFredaAvailable } = flight;
+  const [now, setNow] = useState(() => Date.now());
   const departure = useAirport(plan.departure?.ident);
   const groundData = useQuery({
     ...api.ground.byAirport.queryOptions({
@@ -43,6 +46,32 @@ export function FlightRuntime() {
   }).data;
   const airports = useQuery(api.airports.list.queryOptions(undefined)).data;
   const flying = flight.startedAt !== null;
+  const fresh =
+    fix &&
+    !error &&
+    !fix.paused &&
+    Math.abs(now - Date.parse(fix.time)) <= 20000
+      ? fix
+      : null;
+  const height = useTerrainHeight(
+    ["descent", "landing", "taxiin"].includes(flight.phase) ? fresh : null,
+  );
+  useEffect(() => {
+    setFredaAvailable(
+      fredaAvailable(
+        flight.phase,
+        height.mslFt,
+        height.aglFt,
+        plan.cruiseAltitudeFt,
+      ),
+    );
+  }, [
+    flight.phase,
+    setFredaAvailable,
+    height.mslFt,
+    height.aglFt,
+    plan.cruiseAltitudeFt,
+  ]);
   useEffect(() => {
     const now = Date.now();
     const available =
@@ -80,7 +109,9 @@ export function FlightRuntime() {
   useEffect(() => {
     if (!flying) return;
     const id = setInterval(() => {
-      if (tick(Date.now())) playChime();
+      const at = Date.now();
+      setNow(at);
+      if (tick(at)) playChime();
     }, 1000);
     return () => clearInterval(id);
   }, [flying, tick]);

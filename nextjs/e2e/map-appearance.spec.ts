@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./test";
 
 test("legacy chart controls use the app palette and proportional zoom", async ({
   page,

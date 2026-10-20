@@ -1,6 +1,6 @@
 import fs from "node:fs";
 
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./test";
 
 const airspace = fs.readFileSync(
   "src/api/aviation/fixtures/airspace.json",

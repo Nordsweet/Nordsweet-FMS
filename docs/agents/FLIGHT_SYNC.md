@@ -34,9 +34,9 @@ Frontend components use the existing `api.flightSync` boundary, never fetch from
 - Before flight runtime can change GPS navigation/timers, startup reads the latest unfinished server
   flight and checks the local outbox. A PL/EN dialog asks whether to continue.
 - YES re-downloads the server record, restores the plan, route/active leg, holding/patterns, config,
-  flight timers/events, debrief/FREDA state and track. The downloaded prefix is used for rendering;
+  flight timers/events, debrief/FREDA fuel baseline and track. Unexpired pattern notices may resume; expired notices do not. The downloaded prefix is used for rendering;
   an agreeing unsent local tail is retained. Without server access the local checkpoint can resume
-  and uploads retry. Navigation remains on Map/Fly if opened there, otherwise it opens Fly.
+  and uploads retry. Navigation stays on the explicitly opened page; resuming from Home opens Fly.
 - No archives the prior flight and queues its unsent tail; the server record stays stored. Explicit
   End flight also archives it, so completed flights are not offered again.
 - A random 256-bit browser capability is kept in localStorage and sent only as an Authorization

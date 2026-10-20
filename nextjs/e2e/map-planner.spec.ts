@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./test";
 test("preparation navigation exposes exactly Settings, Flight Planner, Map, Aircraft and Inspire me and shares the map plan with the form", async ({
   page,
 }) => {

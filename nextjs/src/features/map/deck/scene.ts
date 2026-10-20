@@ -683,7 +683,7 @@ export function buildLayers(
       getPosition: (d) => d.position,
       getAngle: (d) => -d.track,
       getColor: (d) => [255, 255, 255, Math.round(d.alpha * 255)],
-      getSize: 24,
+      getSize: (d) => (d.advisory ? 36 : 24),
       sizeUnits: "pixels",
       billboard: false,
     }),

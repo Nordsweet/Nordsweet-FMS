@@ -86,14 +86,28 @@ export const inFlightSnapshotSchema = z.object({
   patternReports: z.array(
     z.enum(["downwind", "base", "longFinal", "final", "shortFinal"]),
   ),
+  patternNotice: z
+    .object({
+      report: z.enum(["downwind", "base", "longFinal", "final", "shortFinal"]),
+      expiresAt: number,
+    })
+    .nullable()
+    .default(null),
   divertAirport: z.string().nullable(),
   route: z.array(navpoint),
   routeHistory: z
-    .object({ paths: z.array(z.array(position)), lastPassed: navpoint })
+    .object({
+      paths: z.array(z.array(navpoint.partial({ ident: true }))),
+      lastPassed: navpoint,
+    })
     .nullable(),
   activeLeg: number.int().nonnegative(),
   fredaDueAt: nullable,
   fredaOpen: z.boolean(),
+  fredaFuel: z
+    .object({ fuelL: number.nonnegative(), airElapsedMs: number.nonnegative() })
+    .nullable()
+    .default(null),
   replayEnabled: z.boolean(),
   phase: z.enum(FLIGHT_PHASES),
   config: z.object({

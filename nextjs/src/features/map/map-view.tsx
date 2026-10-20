@@ -84,6 +84,8 @@ import { useMapAnimation } from "./use-map-animation";
 import { planAirportFixes } from "~/domain/plan-airport-fixes";
 import type { DeckMap, DeckScene } from "./deck";
 import type { PointDatum, TrafficDatum } from "./deck/scene";
+import { isDeparturePatternTarget } from "~/domain/departure-pattern";
+import { mapProfilePoints } from "~/domain/map-profile";
 import { AirspaceCaptions } from "./deck/captions";
 import { coordinatePaths, toPaths, toPoints, zoneDatum } from "./deck/data";
 import { airportLabels, minuteLabels, pointNameLabels } from "./deck/labels";
@@ -158,6 +160,7 @@ export function MapView({
   const mapRef = useRef<DeckMap | null>(null);
   const sceneRef = useRef<DeckScene | null>(null);
   const markers = useRef<MarkerLayer | null>(null);
+  const profileMarkers = useRef<MarkerLayer | null>(null);
   const captions = useRef(new AirspaceCaptions());
   const [ready, setReady] = useState(false);
   const [notificationHistoryOpen, setNotificationHistoryOpen] = useState(false);
@@ -548,6 +551,7 @@ export function MapView({
       map.on("move", syncZoom);
       map.on("moveend", syncZoom);
       markers.current = new MarkerLayer(map, root);
+      profileMarkers.current = new MarkerLayer(map, root);
       map.on("dragstart", () => useMapSettings.getState().follow(false));
       let lastViewportUpdate = 0;
       map.on("moveend", () => {
@@ -642,6 +646,8 @@ export function MapView({
       map.on("move", camera);
       teardown = () => {
         markers.current?.destroy();
+        profileMarkers.current?.destroy();
+        profileMarkers.current = null;
         scene.destroy();
         map.destroy();
         markers.current = sceneRef.current = mapRef.current = null;
@@ -664,6 +670,7 @@ export function MapView({
     });
     mapRef.current?.setTerrain(settings.terrain3d);
     markers.current?.setVisible(layers.route);
+    profileMarkers.current?.setVisible(layers.route);
   }, [ready, basemap, theme, layers, settings.terrain3d]);
 
   useEffect(() => {
@@ -933,6 +940,27 @@ export function MapView({
       }),
     );
   }, [ready, route, flight.alternate, airports.data, navpoints.data, setClick]);
+
+  useEffect(() => {
+    profileMarkers.current?.set(
+      mapProfilePoints(
+        routePlan?.points ?? [],
+        navigation.startedAt ? route : undefined,
+      ).map((point) => {
+        const element = document.createElement("span");
+        element.className = "legacy-route-marker";
+        element.dataset.profileMarker = point.id;
+        element.textContent = point.id === "TOC" ? "↑ TOC" : "↓ TOD";
+        element.title = t(
+          point.id === "TOC" ? "maptools.topOfClimb" : "maptools.topOfDescent",
+        );
+        element.setAttribute("aria-label", element.title);
+        element.style.color = point.id === "TOC" ? "#00b8e6" : "#e68600";
+        element.style.marginTop = point.id === "TOC" ? "-12px" : "12px";
+        return { element, lat: point.lat, lon: point.lon, interactive: false };
+      }),
+    );
+  }, [ready, routePlan, navigation.startedAt, route, t]);
 
   const segmentTime = (index: number) => {
     const target = route[index + 1],
@@ -1664,7 +1692,11 @@ export function MapView({
                   setClick(null);
                 }}
                 removePattern={() => {
-                  const leaving = click.point.ident === flight.departure?.ident;
+                  const leaving = isDeparturePatternTarget(
+                    flight,
+                    navigation,
+                    click.point.ident,
+                  );
                   update(
                     leaving
                       ? { departurePattern: null }

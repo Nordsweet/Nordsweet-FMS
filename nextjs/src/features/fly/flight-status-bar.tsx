@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { useQuery } from "@tanstack/react-query";
 import {
   ArrowUp,
   Battery,
@@ -9,14 +8,12 @@ import {
   Wifi,
   WifiOff,
 } from "lucide-react";
-import { api } from "~/api";
-import { cachedTerrainElevation } from "~/api/terrain";
-import { geoidSeparationM } from "~/domain/terrain";
 import { angleDiffDeg } from "~/domain/angles";
 import { magneticVariationDeg, trueToMagneticDeg } from "~/domain/magnetic";
 import { type Progress } from "~/domain/progress";
 import { useT } from "~/i18n/use-t";
 import { type GpsFix } from "./use-gps";
+import { useTerrainHeight } from "./use-terrain-height";
 
 const subscribeNetwork = (update: () => void) => {
   window.addEventListener("online", update);
@@ -89,43 +86,7 @@ export function FlightStatusBar({
     now - Date.parse(fix.time) <= 20000
       ? fix
       : null;
-  const terrain = useQuery({
-    ...api.terrain.region.queryOptions({
-      lat: Math.round((current?.lat ?? 0) * 100) / 100,
-      lon: Math.round((current?.lon ?? 0) * 100) / 100,
-      radiusNm: 1,
-    }),
-    enabled:
-      !!current &&
-      current.altitudeAglFt === undefined &&
-      current.source !== "replay",
-    retry: false,
-  });
-  const geoid = useQuery({
-    ...api.terrain.geoid.queryOptions(undefined),
-    enabled:
-      !!current &&
-      current.source !== "connector" &&
-      current.source !== "demo" &&
-      current.source !== "replay",
-  });
-  const groundM =
-    current && terrain.data ? cachedTerrainElevation(current) : null;
-  const separationM =
-    current && geoid.data ? geoidSeparationM(geoid.data, current) : null;
-  const mslFt =
-    current?.altitudeFt == null
-      ? null
-      : current.source === "connector" || current.source === "demo"
-        ? current.altitudeFt
-        : separationM === null
-          ? null
-          : current.altitudeFt - separationM / 0.3048;
-  const agl =
-    current?.altitudeAglFt ??
-    (mslFt !== null && groundM !== null
-      ? Math.max(0, mslFt - groundM / 0.3048)
-      : null);
+  const { aglFt: agl } = useTerrainHeight(current);
   const value = (n: number | null | undefined, unit = "", digits = 0) =>
     n == null || !Number.isFinite(n) ? "—" : `${n.toFixed(digits)}${unit}`;
   const variation = current ? magneticVariationDeg(current) : 0;

@@ -1559,6 +1559,9 @@ export function buildRoutePlan(data: RouteData, input: RoutePlanInput) {
     !input.trafficPattern &&
     finalPoint.kind === "threshold";
   appendPoint(points, endAtArp ? { ...finalPoint, flyOver: true } : finalPoint);
+  // A round trip still needs two endpoint occurrences before graphical waypoints are inserted.
+  if (departure.ident === destination.ident && points.length === 1)
+    points.push({ ...destinationPoint });
   if (endAtArp) appendPoint(points, destinationPoint);
 
   let withUserPoints = insertUserWaypoints(

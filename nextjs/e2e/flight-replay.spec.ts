@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./test";
 
 // A short local flight from EPKK (792 ft): taxi, take-off roll, climb to
 // 3000 ft, cruise, descent, landing roll and stop. Altitudes are MSL.

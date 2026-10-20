@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./test";
 
 test("settings migrate from the legacy planner and switch language", async ({
   page,

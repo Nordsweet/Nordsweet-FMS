@@ -59,8 +59,7 @@ export function FlightRecovery() {
                   void continuePreviousFlight().then(() => {
                     if (
                       useFlightSync.getState().phase === "ready" &&
-                      pathname !== "/map" &&
-                      pathname !== "/fly"
+                      pathname === "/"
                     )
                       router.push("/fly");
                   });

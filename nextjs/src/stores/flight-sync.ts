@@ -153,7 +153,11 @@ export async function continuePreviousFlight() {
   useInFlight.setState({
     ...flight.snapshot.inflight,
     track: flight.track,
-    patternNotice: null,
+    patternNotice:
+      flight.snapshot.inflight.patternNotice &&
+      flight.snapshot.inflight.patternNotice.expiresAt > Date.now()
+        ? flight.snapshot.inflight.patternNotice
+        : null,
     patternPreviousFix: null,
   });
   replacePending(flight);
