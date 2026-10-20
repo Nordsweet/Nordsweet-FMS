@@ -57,7 +57,7 @@ State defaults: the `state = {…}` object (~line 1500). DOM refs: `refs = {…}
 
 ## 4. Work board
 
-Planner Route controls — in progress, Codex 2026-10-20. Clear route, synchronized expanded-text presentation and point action controls matching in-flight FPL, with persistent removal across route recalculation.
+Planner Route controls — done, Codex 2026-10-20. Clear route preserves aircraft/fuel; idle route text mirrors expanded plan with original source editing on focus. FPL-style red removal/white map-options actions; recalculation/reload exclusions, .nord support and map re-insertion retained. Unit/browser regressions and full CI gates before develop.
 
 Compact flight toolbar — done, Codex 2026-10-20. Current-phase dropdown in instruments, separate Close Flight and antenna-triggered position-source dialog. Manual/automatic phases and source settings retained; browser coverage updated and full CI gates before develop.
 

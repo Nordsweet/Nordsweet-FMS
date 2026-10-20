@@ -1,4 +1,7 @@
 export const flightPopupsEn = {
+  "plan.route.clear": "Clear route",
+  "plan.route.textHint":
+    "Expanded route. Click to edit the route instructions (DCT, fixes, airways or procedures).",
   "fly.debrief.close": "Close flight debrief",
   "fly.popup.changeCruise":
     "Do You want to change Cruise Altitude to {altitude}ft?",
@@ -40,6 +43,9 @@ export const flightPopupsEn = {
   "fly.popup.descend": "Descend {altitude} ft",
 };
 export const flightPopupsPl: typeof flightPopupsEn = {
+  "plan.route.clear": "Wyczyść trasę",
+  "plan.route.textHint":
+    "Rozwinięta trasa. Kliknij, aby edytować zapis trasy (DCT, punkty, drogi lub procedury).",
   "fly.debrief.close": "Zamknij podsumowanie lotu",
   "fly.popup.changeCruise": "Czy zmienić wysokość przelotową na {altitude}ft?",
   "fly.popup.cruiseYes": "YES",

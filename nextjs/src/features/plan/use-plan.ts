@@ -187,6 +187,7 @@ export function usePlan(snapshot?: Flight) {
           alternate: alternateAirport,
           altitudeFt: flight.cruiseAltitudeFt,
           routeText: flight.routeText,
+          removedRoutePoints: flight.removedRoutePoints,
           selections: {
             SID: flight.sid,
             STAR: flight.star,
