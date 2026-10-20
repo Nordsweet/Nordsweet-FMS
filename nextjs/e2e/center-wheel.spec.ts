@@ -69,6 +69,59 @@ for (const path of ["/map", "/fly"]) {
     await expect.poll(zoom).toBeGreaterThan(freeZoom + 0.3);
     await center.click();
     await expect(center).toBeHidden();
+    // Inspect the canvas too: the app's camera attributes alone miss deck's transient viewport.
+    const aircraftPixel = async () => {
+      const png = await page.screenshot({
+        clip: {
+          x: Math.round(box.x + box.width / 2 - 100),
+          y: Math.round(box.y + box.height * 0.75 - 100),
+          width: 200,
+          height: 200,
+        },
+      });
+      return page.evaluate(async (bytes) => {
+        const bitmap = await createImageBitmap(
+          new Blob([new Uint8Array(bytes)], { type: "image/png" }),
+        );
+        const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+        const context = canvas.getContext("2d")!;
+        context.drawImage(bitmap, 0, 0);
+        const pixels = context.getImageData(
+          0,
+          0,
+          bitmap.width,
+          bitmap.height,
+        ).data;
+        bitmap.close();
+        let x = 0,
+          y = 0,
+          count = 0;
+        for (let i = 0; i < pixels.length; i += 4) {
+          if (
+            Math.abs(pixels[i]! - 36) < 4 &&
+            Math.abs(pixels[i + 1]! - 79) < 4 &&
+            Math.abs(pixels[i + 2]! - 134) < 4
+          ) {
+            x += (i / 4) % canvas.width;
+            y += Math.floor(i / 4 / canvas.width);
+            count++;
+          }
+        }
+        return { x: x / count, y: y / count, count };
+      }, Array.from(png));
+    };
+    await page.waitForTimeout(350);
+    const anchoredPixel = await aircraftPixel();
+    expect(anchoredPixel.count).toBeGreaterThan(20);
+    for (const delta of [-400, -400, 400, 400]) {
+      await page.mouse.wheel(0, delta);
+      const pixel = await aircraftPixel();
+      expect(pixel.count).toBeGreaterThan(20);
+      expect(
+        Math.hypot(pixel.x - anchoredPixel.x, pixel.y - anchoredPixel.y),
+      ).toBeLessThan(3);
+    }
+    await page.waitForTimeout(350);
     const centeredZoom = await zoom();
     await page.mouse.move(pointer.x, pointer.y);
     await page.mouse.wheel(0, -400);

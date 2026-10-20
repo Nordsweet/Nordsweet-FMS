@@ -41,8 +41,21 @@ const EASE = new LinearInterpolator([
   "zoom",
   "bearing",
 ]);
-// Following supplies the centre for every zoom frame; only zoom belongs to the transition.
-const FOLLOW_ZOOM = new LinearInterpolator(["zoom"]);
+// deck.gl renders the interpolated viewport itself, before the app's view-state callback.
+// Supply its anchored centre too; correcting only the callback leaves the canvas jumping.
+class AnchoredZoomInterpolator extends LinearInterpolator {
+  constructor(private readonly anchor: (zoom: number) => MapViewState) {
+    super(["zoom"]);
+  }
+
+  override interpolateProps(
+    start: Record<string, number>,
+    end: Record<string, number>,
+    t: number,
+  ) {
+    return this.anchor(start.zoom! + (end.zoom! - start.zoom!) * t);
+  }
+}
 
 /**
  * The map: a deck.gl `Deck` with a Web Mercator view (the OSM tiles and every overlay are layers).
@@ -67,6 +80,13 @@ export class DeckMap {
     bearing: number;
     anchor: [number, number];
   } | null = null;
+  private readonly followZoom = new AnchoredZoomInterpolator((zoom) => {
+    const view = { ...this.view, zoom };
+    const target = this.followTarget;
+    return this.following && target
+      ? this.anchoredView(view, target.position, target.bearing, target.anchor)
+      : view;
+  });
   /** True while a gesture or its inertia is running. */
   interacting = false;
   private fitted: { bounds: Bounds; padding: number } | null;
@@ -110,7 +130,7 @@ export class DeckMap {
               target.bearing,
               target.anchor,
             ),
-            transitionInterpolator: FOLLOW_ZOOM,
+            transitionInterpolator: this.followZoom,
           });
         } else this.setView(viewState);
       },
