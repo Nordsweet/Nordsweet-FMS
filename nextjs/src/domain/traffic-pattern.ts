@@ -488,3 +488,24 @@ export function trafficPatternReport(
   }
   return null;
 }
+
+/** Map-only closed circuit; never inserts extra legs into the navigation route. */
+export function trafficPatternCircuit(pattern: TrafficPattern): LatLon[] {
+  if (!pattern.multipleTrafficPatterns) return [];
+  const geometry = trafficPatternGeometry({
+    ...pattern,
+    operation: "join",
+    join: "downwind",
+    finalDistanceNm: 2,
+  });
+  const { crosswind, downwind, base, final } = geometry.positions;
+  // Duplicate the seam neighbours so the first/last circuit corner is also a fly-by.
+  const loop = [final, crosswind, downwind, base, final, crosswind, downwind];
+  const path = flyByRoute(loop, geometry.turnPerformance);
+  const first = path.turns.get(1)?.points[0] ?? crosswind;
+  const last = path.turns.get(5)?.points[0] ?? crosswind;
+  const start = path.points.indexOf(first);
+  const end = path.points.indexOf(last, start + 1);
+  const circuit = path.points.slice(start, end);
+  return [...circuit, first];
+}
