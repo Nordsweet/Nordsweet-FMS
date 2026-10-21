@@ -11,6 +11,8 @@ from datetime import UTC, datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from uuid import UUID
+from urllib.parse import urlsplit, parse_qs
+import logbook
 
 
 class StoreError(Exception):
@@ -246,6 +248,31 @@ class Handler(BaseHTTPRequestHandler):
 
     def handle_request(self, post):
         try:
+            url = urlsplit(self.path)
+            if url.path == "/flight-sync/logbook" or url.path.startswith("/flight-sync/logbook/"):
+                owner = logbook.account(self.headers.get("Authorization", ""))
+                parts = url.path.rstrip("/").split("/")
+                with database() as db:
+                    if not post and len(parts) == 3:
+                        offset = int(parse_qs(url.query).get("offset", ["0"])[0])
+                        if offset < 0:
+                            raise logbook.LogbookError(422, "Invalid offset")
+                        result = logbook.listing(db, owner, offset)
+                    elif post and len(parts) in (4, 5) and valid_id(parts[3]):
+                        length = int(self.headers.get("Content-Length", "0"))
+                        if not 0 < length <= 10000:
+                            raise logbook.LogbookError(413, "Entry too large")
+                        body = json.loads(self.rfile.read(length))
+                        if len(parts) == 4:
+                            result = logbook.save(db, owner, parts[3], body)
+                        elif parts[4] == "pic":
+                            result = logbook.edit_pic(db, owner, parts[3], body)
+                        else:
+                            raise logbook.LogbookError(404, "Not found")
+                    else:
+                        raise logbook.LogbookError(404, "Not found")
+                self.reply(200, result)
+                return
             if not post and self.path == "/flight-sync/health":
                 with database() as db:
                     db.execute("SELECT 1").fetchone()
@@ -255,7 +282,7 @@ class Handler(BaseHTTPRequestHandler):
             if not re.fullmatch(r"Bearer [a-f0-9]{64}", token):
                 raise StoreError(401, "Browser capability required")
             owner = hashlib.sha256(token.encode()).hexdigest()
-            parts = self.path.rstrip("/").split("/")
+            parts = url.path.rstrip("/").split("/")
             if parts[:3] != ["", "flight-sync", "sessions"]:
                 raise StoreError(404, "Not found")
             flight_id = parts[3] if len(parts) >= 4 else None
@@ -280,9 +307,17 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 if len(parts) > 4:
                     raise StoreError(404, "Not found")
-                result = read(owner, flight_id)
+                if flight_id is None and "offset" in parse_qs(url.query):
+                    offset = int(parse_qs(url.query)["offset"][0])
+                    if offset < 0:
+                        raise StoreError(422, "Invalid offset")
+                    with database() as db:
+                        rows = db.execute("SELECT id,started_at,snapshot FROM flights WHERE owner=? ORDER BY started_at DESC,id DESC LIMIT 101 OFFSET ?", (owner, offset)).fetchall()
+                        result = {"flights": [{"id": row["id"], "startedAt": row["started_at"], "snapshot": json.loads(row["snapshot"])} for row in rows[:100]], "hasMore": len(rows) > 100}
+                else:
+                    result = read(owner, flight_id)
             self.reply(200, result)
-        except StoreError as error:
+        except (StoreError, logbook.LogbookError) as error:
             self.reply(error.status, {"detail": error.message})
         except (sqlite3.Error, OSError):
             self.reply(503, {"detail": "Flight storage unavailable"})

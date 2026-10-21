@@ -6,6 +6,7 @@ export type Language = "pl" | "en";
 
 export const settingsSchema = z.object({
   language: z.enum(["pl", "en"]),
+  pilotSurname: z.string().max(120).default(""),
   homeAirportIcao: z.string(),
   pilotWeightKg: z.number().nonnegative().nullable(),
   atisAutoscroll: z.boolean().default(true),
@@ -21,6 +22,7 @@ type SettingsStore = Settings & {
 
 export const settingsDefaults: Settings = {
   language: "pl",
+  pilotSurname: "",
   homeAirportIcao: "",
   pilotWeightKg: null,
   atisAutoscroll: true,

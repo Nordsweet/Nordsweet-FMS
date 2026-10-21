@@ -13,6 +13,8 @@ import {
 } from "~/domain/debrief";
 import { normalizeRegistration, formatMth } from "~/domain/aircraft";
 import { useFlight } from "./flight";
+import { useAuth } from "./auth";
+import { useSettings } from "./settings";
 import {
   useAircraftState,
   selectAircraftState,
@@ -552,6 +554,14 @@ export const useInFlight = create<InFlight>()(
           : "";
         set({
           debrief: {
+            sessionId: crypto.randomUUID(),
+            startedAt: now,
+            username: useAuth.getState().session?.username ?? "",
+            pic:
+              useSettings.getState().pilotSurname.trim() ||
+              (useAuth.getState().session?.username ?? ""),
+            departure: flight.departure?.ident ?? route[0]?.ident ?? "",
+            arrival: flight.destination?.ident ?? route.at(-1)?.ident ?? "",
             flightId: flight.id,
             name: flight.name,
             aircraftType,
@@ -599,6 +609,12 @@ export const useInFlight = create<InFlight>()(
               : {
                   ...(s.debrief ?? {
                     flightId: useFlight.getState().flight.id,
+                    sessionId: "",
+                    startedAt: s.startedAt ?? "",
+                    username: "",
+                    pic: "",
+                    departure: "",
+                    arrival: "",
                     name: useFlight.getState().flight.name,
                     aircraftType: null,
                     registration: normalizeRegistration(
@@ -609,6 +625,11 @@ export const useInFlight = create<InFlight>()(
                     accepted: null,
                   }),
                   endedAt: Date.now(),
+                  arrival:
+                    s.divertAirport ??
+                    s.debrief?.arrival ??
+                    useFlight.getState().flight.destination?.ident ??
+                    "",
                   times: {
                     offBlockAt: s.timers.offBlock.startedAt,
                     onBlockAt: s.timers.offBlock.stoppedAt,

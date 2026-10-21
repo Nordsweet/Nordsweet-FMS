@@ -2,6 +2,12 @@ import { z } from "zod";
 
 const reading = z.number().finite().nonnegative().nullable();
 export const debriefSchema = z.object({
+  sessionId: z.string().default(""),
+  startedAt: z.string().default(""),
+  username: z.string().default(""),
+  pic: z.string().max(120).default(""),
+  departure: z.string().default(""),
+  arrival: z.string().default(""),
   flightId: z.string(),
   name: z.string(),
   aircraftType: z.string().nullable(),
@@ -24,4 +30,4 @@ export const debriefSchema = z.object({
     })
     .nullable(),
 });
-export type Debrief = z.infer<typeof debriefSchema>;
+export type Debrief = z.input<typeof debriefSchema>;

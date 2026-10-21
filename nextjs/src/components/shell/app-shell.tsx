@@ -2,6 +2,7 @@
 
 import {
   ClipboardList,
+  BookOpen,
   Compass,
   LogOut,
   type LucideIcon,
@@ -16,6 +17,7 @@ import { useRef, type TouchEvent } from "react";
 import { Button } from "~/components/ui/button";
 import { useT } from "~/i18n/use-t";
 import { FlightRuntime } from "~/features/fly/flight-runtime";
+import { LogbookRuntime } from "~/features/logbook/runtime";
 import { FlightRecovery } from "~/features/fly/flight-recovery";
 import { SessionSync } from "~/features/sync/session-sync";
 import { api } from "~/api";
@@ -27,6 +29,7 @@ const nav: { href: string; label: MessageKey; icon: LucideIcon }[] = [
   { href: "/", label: "nav.planner", icon: ClipboardList },
   { href: "/map", label: "nav.graphicalPlan", icon: MapIcon },
   { href: "/aircraft", label: "nav.aircraft", icon: Plane },
+  { href: "/logbook", label: "nav.logbook", icon: BookOpen },
   { href: "/inspire", label: "nav.inspire", icon: Compass },
 ];
 
@@ -70,6 +73,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-dvh flex-col">
       <FlightRecovery />
+      <LogbookRuntime />
       {recoveryReady && <FlightRuntime />}
       <header
         className={`flex flex-wrap items-center gap-2 px-4 pt-4 ${pathname === "/map" ? "relative z-50" : ""}`}

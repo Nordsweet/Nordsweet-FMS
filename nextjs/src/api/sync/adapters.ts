@@ -39,6 +39,7 @@ const settings: Adapter = {
   get: async () => {
     const {
       language,
+      pilotSurname,
       homeAirportIcao,
       pilotWeightKg,
       atisAutoscroll,
@@ -47,6 +48,7 @@ const settings: Adapter = {
     } = useSettings.getState();
     return {
       language,
+      pilotSurname,
       homeAirportIcao,
       pilotWeightKg,
       atisAutoscroll,

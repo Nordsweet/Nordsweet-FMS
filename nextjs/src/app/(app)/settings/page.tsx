@@ -84,6 +84,20 @@ export default function SettingsPage() {
             }
           />
         </div>
+        <div className="grid gap-2">
+          <Label htmlFor="pilot-surname">{t("logbook.surname")}</Label>
+          <Input
+            id="pilot-surname"
+            autoComplete="family-name"
+            maxLength={120}
+            value={settings.pilotSurname}
+            onChange={(e) => settings.update({ pilotSurname: e.target.value })}
+            aria-describedby="pilot-surname-hint"
+          />
+          <p id="pilot-surname-hint" className="text-muted-foreground text-xs">
+            {t("logbook.surnameHint")}
+          </p>
+        </div>
         {(["atisAutoscroll", "checklistAutoscroll"] as const).map((field) => (
           <label key={field} className="flex items-center gap-3">
             <input
