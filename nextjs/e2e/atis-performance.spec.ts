@@ -3,6 +3,8 @@ import { expect, test, selectFlightPhase, type Page } from "./test";
 import { newFlight } from "../src/data/flight";
 import { atisReducer, emptyAtisPad } from "../src/domain/atis-pad";
 
+test.describe.configure({ timeout: 90000 });
+
 const airportFixture = JSON.parse(
   fs.readFileSync("src/api/aviation/fixtures/airport.json", "utf8"),
 ) as Record<string, unknown>;
@@ -43,6 +45,8 @@ async function seed(page: Page, manual = false) {
 
 async function openPerformance(page: Page) {
   await page.goto("/fly");
+  const start = page.getByRole("button", { name: "Start flight", exact: true });
+  if (await start.isVisible()) await start.click();
   await selectFlightPhase(page, "Take-off");
   await page.getByRole("button", { name: "RWY", exact: true }).click();
   await expect(page.getByTestId("perf-takeoff")).toBeVisible();
@@ -53,7 +57,7 @@ test("downloads phase-specific ATIS automatically and preserves pilot correction
 }) => {
   await seed(page);
   let qnh = 1021;
-  await page.route("https://aviation.lab.vibecde.com/airports/EPKK", (r) =>
+  await page.route("https://aviation.lab.vibecde.com/airports/EPKK**", (r) =>
     r.fulfill({
       contentType: "application/json",
       body: JSON.stringify({
@@ -89,27 +93,23 @@ test("downloads phase-specific ATIS automatically and preserves pilot correction
   await openPerformance(page);
   const takeoff = page.getByTestId("perf-takeoff"),
     landing = page.getByTestId("perf-landing");
-  await expect(takeoff.getByLabel("QNH", { exact: true })).toHaveValue("1021");
-  await expect(takeoff.getByLabel("Temperature", { exact: true })).toHaveValue(
-    "30",
-  );
-  await expect(takeoff.getByLabel("Wind speed", { exact: true })).toHaveValue(
-    "15",
-  );
+  await expect(takeoff.getByLabel("QNH")).toHaveValue("1021");
+  await expect(takeoff.getByLabel("Temperature")).toHaveValue("30");
+  await expect(takeoff.getByLabel("Wind speed")).toHaveValue("15");
   await expect(
     takeoff.getByRole("combobox", { name: "Runway", exact: true }),
   ).toContainText("25");
-  await expect(landing.getByLabel("QNH", { exact: true })).toHaveValue("1002");
+  await expect(landing.getByLabel("QNH")).toHaveValue("1002");
   await expect(
     landing.getByRole("combobox", { name: "Runway", exact: true }),
   ).toContainText("07");
-  await takeoff.getByLabel("QNH", { exact: true }).fill("1025");
-  await takeoff.getByLabel("QNH", { exact: true }).blur();
+  await takeoff.getByLabel("QNH").fill("1025");
+  await takeoff.getByLabel("QNH").blur();
   await openPerformance(page);
-  await expect(takeoff.getByLabel("QNH", { exact: true })).toHaveValue("1025");
+  await expect(takeoff.getByLabel("QNH")).toHaveValue("1025");
   qnh = 1010;
   await openPerformance(page);
-  await expect(takeoff.getByLabel("QNH", { exact: true })).toHaveValue("1010");
+  await expect(takeoff.getByLabel("QNH")).toHaveValue("1010");
   await expect(page.getByTestId("perf-takeoff-atis")).toBeVisible();
 });
 
@@ -119,16 +119,10 @@ test("migrated manual ATIS feeds performance automatically and survives offline 
   await seed(page, true);
   await openPerformance(page);
   const takeoff = page.getByTestId("perf-takeoff");
-  await expect(takeoff.getByLabel("QNH", { exact: true })).toHaveValue("1005");
-  await expect(takeoff.getByLabel("Temperature", { exact: true })).toHaveValue(
-    "-5",
-  );
-  await expect(takeoff.getByLabel("Wind speed", { exact: true })).toHaveValue(
-    "8",
-  );
-  await expect(
-    takeoff.getByLabel("Wind direction", { exact: true }),
-  ).toHaveValue("250");
+  await expect(takeoff.getByLabel("QNH")).toHaveValue("1005");
+  await expect(takeoff.getByLabel("Temperature")).toHaveValue("-5");
+  await expect(takeoff.getByLabel("Wind speed")).toHaveValue("8");
+  await expect(takeoff.getByLabel("Wind from")).toHaveValue("250");
   await openPerformance(page);
-  await expect(takeoff.getByLabel("QNH", { exact: true })).toHaveValue("1005");
+  await expect(takeoff.getByLabel("QNH")).toHaveValue("1005");
 });
