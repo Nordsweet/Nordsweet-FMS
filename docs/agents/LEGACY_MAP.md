@@ -175,7 +175,7 @@ merged to `develop`. One owner per row.
 
 | Airport click/touch hitbox | done | Codex 2026-10-21 | PR #78: airport picking radius 10 to 15 px; symbols and other objects unchanged; shared Map/Fly and 2D/3D handler. Full CI 39666873095 passed. |
 
-| ATIS to performance conditions | in progress | Codex 2026-10-21 | Automatic manual/downloaded ATIS conditions per airport and takeoff/landing phase; preserve pilot overrides until source changes. |
+| ATIS to performance conditions | done | Codex 2026-10-21 | PR #79: automatic temperature/QNH/sustained wind/runway from manual pads or latest fresh reliable phase-specific ATIS. Airport pads retained independently, old storage migrates; pilot corrections persist until conditions change. Community two-device rule retained; VRB worst-case tailwind; no invented missing weather. CI 39672833831: 673 unit and 147 browser tests passed. |
 
 ## 5. Known legacy bugs / intended differences
 
