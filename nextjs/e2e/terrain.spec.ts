@@ -162,7 +162,8 @@ test("TerrainLayer toggles 3D with local workers, keeps overlays and survives re
 test("terrain clearance changes with actual altitude on flat and 3D maps", async ({
   page,
 }) => {
-  test.setTimeout(90000);
+  // Five 30-second render polls plus navigation must fit on software-rendered CI.
+  test.setTimeout(180000);
   await seed(page, true, true);
   const terrainPng = await page.evaluate(() => {
     const canvas = document.createElement("canvas");

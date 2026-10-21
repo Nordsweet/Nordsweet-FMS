@@ -6,6 +6,7 @@ const position = z.object({
 export const trafficPatternSchema = z.object({
   id: z.string().min(1),
   operation: z.enum(["join", "leave"]).optional(),
+  multipleTrafficPatterns: z.boolean().optional(),
   runwayAutomatic: z.boolean().optional(),
   airport: position.extend({ ident: z.string(), elevationFt: z.number() }),
   runway: z.object({

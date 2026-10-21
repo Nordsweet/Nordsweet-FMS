@@ -46,12 +46,12 @@ test("engine warm-up and stationary cool-down count down and movement resets coo
       destination: { ident: "EPNT", lat: 49.46283, lon: 20.05067 },
     },
   );
+  // Pause before loading the app: a busy renderer can outlast a 100 ms future target.
+  const clockStart = Date.now();
+  await page.clock.install({ time: new Date(clockStart) });
+  await page.clock.pauseAt(new Date(clockStart + 60000));
   await page.goto("/fly");
   await page.getByRole("button", { name: "Start flight", exact: true }).click();
-  await page.clock.install();
-  await page.clock.pauseAt(
-    new Date((await page.evaluate(() => Date.now())) + 100),
-  );
   const warm = page.getByRole("region", { name: "Warm Up", exact: true });
   await warm.getByRole("button", { name: "Engine Start", exact: true }).click();
   await page.clock.fastForward(10000);

@@ -1,5 +1,6 @@
 export const trafficPatternEn = {
   "pattern.title": "Traffic Pattern",
+  "pattern.multiple": "Multiple Traffic Patterns",
   "pattern.speed": "Pattern speed: {speed} KIAS",
   "pattern.offset": "Lateral offset: {distance} NM (auto)",
   "pattern.turnUnavailable":
@@ -47,6 +48,7 @@ export const trafficPatternEn = {
 } as const;
 export const trafficPatternPl: Record<keyof typeof trafficPatternEn, string> = {
   "pattern.title": "Traffic Pattern",
+  "pattern.multiple": "Multiple Traffic Patterns",
   "pattern.speed": "Prędkość kręgu: {speed} KIAS",
   "pattern.offset": "Odsunięcie boczne: {distance} NM (auto)",
   "pattern.turnUnavailable":

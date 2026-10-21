@@ -9,6 +9,7 @@ import { newFlight, flightSchema } from "~/data/flight";
 import { parseNordFile, toNordFile } from "~/data/nord";
 import { atisSchema } from "~/api/aviation/schemas";
 import {
+  trafficPatternCircuit,
   patternRunwayGeometry,
   routeWithTrafficPattern,
   trafficPatternGeometry,
@@ -1414,3 +1415,21 @@ test("without a live fix, a stored track position anchors DCT without clearing t
   expect(after.startedAt).toBe(before.startedAt);
   expect(after.phase).toBe("cruise");
 });
+
+test.each(["left", "right"] as const)(
+  "map-only full circuit for %s turns leaves navigation unchanged",
+  (direction) => {
+    const enabled = { ...pattern, direction, multipleTrafficPatterns: true };
+    const circuit = trafficPatternCircuit(enabled);
+    expect(trafficPatternCircuit(pattern)).toEqual([]);
+    expect(circuit.length).toBeGreaterThan(20);
+    expect(distanceNm(circuit[0]!, circuit.at(-1)!)).toBeLessThan(0.1);
+    expect(trafficPatternGeometry(enabled).points).toEqual(
+      trafficPatternGeometry({ ...enabled, multipleTrafficPatterns: false })
+        .points,
+    );
+    expect(trafficPatternSchema.parse(enabled).multipleTrafficPatterns).toBe(
+      true,
+    );
+  },
+);

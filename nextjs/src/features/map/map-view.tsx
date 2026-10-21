@@ -26,6 +26,7 @@ import { MapSearch } from "./map-search";
 import { WaypointInsertionDialog } from "./waypoint-insertion-dialog";
 import { type TrafficPattern } from "~/data/traffic-pattern";
 import {
+  trafficPatternCircuit,
   routeWithTrafficPattern,
   activeRouteWithTrafficPattern,
 } from "~/domain/traffic-pattern";
@@ -892,11 +893,15 @@ export function MapView({
                 Math.max(0, previewStart),
                 previewExit >= 0 ? previewExit + 1 : undefined,
               ),
+              ...(patternPreview
+                ? [trafficPatternCircuit(patternPreview)]
+                : []),
             ])
           : [],
     });
   }, [
     ready,
+    patternPreview,
     previewRoute.length,
     previewPath.points,
     previewStart,
@@ -913,6 +918,15 @@ export function MapView({
       ),
       route: toPaths([
         routePath.points,
+        ...[
+          flight.departurePattern,
+          navigation.trafficPattern ?? flight.trafficPattern,
+        ]
+          .filter(
+            (pattern): pattern is TrafficPattern =>
+              !!pattern && pattern.id !== patternPreview?.id,
+          )
+          .map(trafficPatternCircuit),
         ...(flight.destination && flight.alternate
           ? [[flight.destination, flight.alternate]]
           : []),
@@ -932,6 +946,9 @@ export function MapView({
     navigation.routeHistory,
     flight.destination,
     flight.alternate,
+    flight.departurePattern,
+    flight.trafficPattern,
+    patternPreview,
     plannedPath,
     navigation.trafficPattern,
   ]);

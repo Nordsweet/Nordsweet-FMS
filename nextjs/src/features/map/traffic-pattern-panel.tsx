@@ -59,6 +59,9 @@ export function TrafficPatternPanel({
   ).data?.find((a) => a.id === flight.aircraftId);
   const speedKias = aircraft?.patternSpeedKt ?? existing?.speedKias ?? 100;
   const saved = existing?.airport.ident === airport.ident ? existing : null;
+  const [multipleTrafficPatterns, setMultipleTrafficPatterns] = useState(
+    saved?.multipleTrafficPatterns ?? false,
+  );
   const [id] = useState(() => crypto.randomUUID());
   const [runwayId, setRunway] = useState(
     saved && !saved.runwayAutomatic ? saved.runway.designator : "auto",
@@ -104,6 +107,7 @@ export function TrafficPatternPanel({
     const parsed = trafficPatternSchema.safeParse({
       id,
       operation: leaving ? "leave" : "join",
+      multipleTrafficPatterns,
       runwayAutomatic: runwayId === "auto",
       airport: { ...airport },
       runway: {
@@ -143,6 +147,14 @@ export function TrafficPatternPanel({
       aria-label={t("pattern.title")}
     >
       <strong>{t("pattern.title")}</strong>
+      <Label className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          checked={multipleTrafficPatterns}
+          onChange={(event) => setMultipleTrafficPatterns(event.target.checked)}
+        />
+        {t("pattern.multiple")}
+      </Label>
       <Label>{t("pattern.runway")}</Label>
       <MapSelect
         label={t("pattern.runway")}

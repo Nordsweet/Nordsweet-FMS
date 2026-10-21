@@ -1017,3 +1017,25 @@ for (const gps of ["denied", "unavailable", "stale"] as const) {
     expect((await readActive()).route).toEqual(active.route);
   });
 }
+
+test("multiple patterns checkbox persists without adding navigation legs", async ({
+  page,
+}) => {
+  await mocks(page);
+  await page.goto("/map");
+  const panel = await open(page);
+  const checkbox = panel.getByRole("checkbox", {
+    name: "Multiple Traffic Patterns",
+  });
+  await expect(checkbox).not.toBeChecked();
+  await checkbox.check();
+  await panel
+    .getByRole("button", { name: "Accept traffic pattern", exact: true })
+    .click();
+  expect((await savedPattern(page))?.multipleTrafficPatterns).toBe(true);
+  await page.reload();
+  const reopened = await open(page);
+  await expect(
+    reopened.getByRole("checkbox", { name: "Multiple Traffic Patterns" }),
+  ).toBeChecked();
+});
