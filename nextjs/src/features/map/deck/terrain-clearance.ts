@@ -45,6 +45,8 @@ export function terrainClearanceLayer(altitudeFt: number) {
       };
       return new BitmapLayer({
         id: `${props.id}-clearance`,
+        extensions: props.extensions,
+        parameters: props.parameters,
         image: clearanceImage(props.data, altitudeFt),
         bounds: [west, south, east, north],
         pickable: false,

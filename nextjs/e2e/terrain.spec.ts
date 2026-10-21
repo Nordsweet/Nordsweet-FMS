@@ -159,7 +159,7 @@ test("TerrainLayer toggles 3D with local workers, keeps overlays and survives re
   await expect(page.locator("[data-terrain-3d='false']")).toBeVisible();
 });
 
-test("terrain clearance is drawn on the flat map and changes with actual altitude", async ({
+test("terrain clearance changes with actual altitude on flat and 3D maps", async ({
   page,
 }) => {
   test.setTimeout(90000);
@@ -188,7 +188,7 @@ test("terrain clearance is drawn on the flat map and changes with actual altitud
       window as Window & { terrainTestAltitudeM?: number }
     ).terrainTestAltitudeM = 0;
   });
-  await page.goto("/fly");
+  await page.goto("/map");
   const overlay = page.locator("[data-terrain-altitude-ft]");
   await expect(overlay).not.toHaveAttribute("data-terrain-altitude-ft", "", {
     timeout: 30000,
@@ -232,6 +232,10 @@ test("terrain clearance is drawn on the flat map and changes with actual altitud
       window as Window & { terrainTestAltitudeM?: number }
     ).terrainTestAltitudeM = 1250;
   });
+  await expect
+    .poll(() => colouredPixels("yellow"), { timeout: 30000 })
+    .toBeGreaterThan(10000);
+  await page.getByLabel("Terrain 3D", { exact: true }).check();
   await expect
     .poll(() => colouredPixels("yellow"), { timeout: 30000 })
     .toBeGreaterThan(10000);
