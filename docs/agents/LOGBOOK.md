@@ -4,6 +4,8 @@
 
 The account API currently exposes a username, not a surname. Settings therefore provides **Pilot surname / default PIC**, synchronized with the existing settings collection. Empty surname falls back to username. Each logbook row offers **Edit PIC**; the correction survives subsequent automatic flight updates.
 
+PIC-only corrections to synced entries use the dedicated PIC endpoint, so an older device cannot overwrite newer timer events or postflight readings while correcting a name. Only actual summary changes queue a summary upload; object field ordering does not count as a change.
+
 ## Persistence and offline use
 
 `nordsweet.logbook.v1` stores per-account summaries and a durable outbox, separate from the disposable flight checkpoint queue. Recording is mounted in AppShell across routes. Pending entries retry every five seconds; account history refreshes every thirty seconds, on reconnection, or with Refresh. A changed entry remains queued if another edit occurs during upload. Local history is immediately available when offline. Signing into another account selects a separate bucket.

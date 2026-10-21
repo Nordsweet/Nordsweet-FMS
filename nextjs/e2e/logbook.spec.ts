@@ -7,6 +7,7 @@ test("Fly records a session, preserves edited PIC offline and loads account hist
 }) => {
   test.setTimeout(60000);
   const entries = new Map<string, LogbookEntry>();
+  let summaries = 0;
   let offline = false;
   await page.route("**/flight-sync/sessions**", (r) =>
     r.fulfill({
@@ -30,6 +31,7 @@ test("Fly records a session, preserves edited PIC offline and loads account hist
       return r.fulfill({ json: body });
     }
     const body = r.request().postDataJSON() as LogbookEntry;
+    summaries++;
     const saved = { ...body, pic: entries.get(body.id)?.pic ?? body.pic };
     entries.set(body.id, saved);
     return r.fulfill({ json: saved });
@@ -63,6 +65,8 @@ test("Fly records a session, preserves edited PIC offline and loads account hist
   const row = page.getByTestId("logbook-row");
   await expect(row).toContainText("SPLOG");
   await expect(row).toContainText("In progress");
+  await expect(page.getByText(/Entries waiting to sync:/)).toHaveCount(0);
+  const syncedSummaries = summaries;
   offline = true;
   await row.getByRole("button", { name: "Edit PIC" }).click();
   await page.getByLabel("PIC", { exact: true }).fill("Nowak");
@@ -74,6 +78,7 @@ test("Fly records a session, preserves edited PIC offline and loads account hist
   await expect
     .poll(() => [...entries.values()][0]?.pic, { timeout: 15000 })
     .toBe("Nowak");
+  expect(summaries).toBe(syncedSummaries);
   await page.goto("/fly");
   await page.getByRole("button", { name: "Close flight", exact: true }).click();
   await expect.poll(() => [...entries.values()][0]?.endedAt).not.toBeNull();

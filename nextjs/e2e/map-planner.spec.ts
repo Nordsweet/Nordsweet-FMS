@@ -1,5 +1,5 @@
 import { expect, test } from "./test";
-test("preparation navigation exposes exactly Settings, Flight Planner, Map, Aircraft and Inspire me and shares the map plan with the form", async ({
+test("preparation navigation includes Logbook and shares the map plan with the form", async ({
   page,
 }) => {
   await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => route.abort());
@@ -9,7 +9,7 @@ test("preparation navigation exposes exactly Settings, Flight Planner, Map, Airc
   });
   await page.goto("/");
   const navigation = page.locator("header nav");
-  await expect(navigation.getByRole("link")).toHaveCount(5);
+  await expect(navigation.getByRole("link")).toHaveCount(6);
   await expect(navigation.getByRole("button")).toHaveCount(0);
   await expect(
     navigation.getByRole("link", { name: "Settings", exact: true }),
@@ -22,6 +22,10 @@ test("preparation navigation exposes exactly Settings, Flight Planner, Map, Airc
   ).toBeVisible();
   await expect(
     navigation.getByRole("link", { name: "Inspire me", exact: true }),
+  ).toBeVisible();
+  await navigation.getByRole("link", { name: "Logbook", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Pilot logbook" }),
   ).toBeVisible();
   await expect(
     navigation.getByRole("link", { name: "Fly", exact: true }),

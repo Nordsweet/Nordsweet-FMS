@@ -83,3 +83,20 @@ it("retains PIC corrections through automatic snapshots and protects unsent edit
   expect(useLogbook.getState().accounts.pilot?.[a.id]?.entry.pic).toBe("Nowak");
   expect(useLogbook.getState().accounts.other).toBeUndefined();
 });
+it("editing a synced PIC does not queue an older flight summary from another device", () => {
+  useInFlight.getState().start(route);
+  const a = entry();
+  useLogbook.getState().put("pilot", a, true);
+  useLogbook
+    .getState()
+    .put("pilot", Object.fromEntries(Object.entries(a).reverse()) as typeof a);
+  expect(useLogbook.getState().accounts.pilot?.[a.id]?.dirty).toBe(false);
+  useLogbook.getState().editPic("pilot", a.id, "Nowak");
+  expect(useLogbook.getState().accounts.pilot?.[a.id]).toMatchObject({
+    dirty: true,
+    summaryDirty: false,
+    picEdit: "Nowak",
+  });
+  useLogbook.getState().put("pilot", { ...a, endedAt: 100 });
+  expect(useLogbook.getState().accounts.pilot?.[a.id]?.summaryDirty).toBe(true);
+});

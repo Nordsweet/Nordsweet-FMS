@@ -103,7 +103,11 @@ export function LogbookRuntime() {
         const account = useLogbook.getState().accounts[username] ?? {};
         for (const [id, cached] of Object.entries(account)) {
           if (!cached.dirty || !currentUser()) continue;
-          const saved = await logbookApi.save(cached.entry);
+          // Editing PIC on another device must not upload its older timer/readings snapshot.
+          const saved =
+            (cached.summaryDirty ?? cached.dirty)
+              ? await logbookApi.save(cached.entry)
+              : cached.entry;
           sent = true;
           if (cached.picEdit !== null && currentUser())
             await logbookApi.pic(id, cached.picEdit);
@@ -119,6 +123,7 @@ export function LogbookRuntime() {
                   [id]: {
                     entry: { ...saved, pic: cached.picEdit ?? saved.pic },
                     dirty: false,
+                    summaryDirty: false,
                     picEdit: null,
                   },
                 },

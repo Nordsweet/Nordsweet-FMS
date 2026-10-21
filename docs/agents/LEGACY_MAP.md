@@ -58,7 +58,7 @@ State defaults: the `state = {…}` object (~line 1500). DOM refs: `refs = {…}
 
 ## 4. Work board
 
-Logbook — in progress, Codex 2026-10-21. Dedicated /logbook route, complete browser flight archive with durable offline cache, editable PIC and default pilot surname, existing Fly checkpoint/debrief integration. Isolated checkout codex/logbook.
+Logbook — done, Codex 2026-10-21. Dedicated /logbook route, account-owned flight history with durable offline outbox, editable PIC and default pilot surname. Fly sessions retain independent identities, real UTC events and accepted MTH/fuel readings. Imports existing browser checkpoints. PIC corrections preserve newer flight data on other devices. See LOGBOOK.md.
 
 TOC/TOD anchors and altitude notices — done, Codex 2026-10-20. Dots follow rendered Mercator segments; labels move independently. Fresh-climb 1000-ft callout, TOD descent countdown/NOW/history. Browser regression measures both dot-to-route distances and checks countdown/history.
 

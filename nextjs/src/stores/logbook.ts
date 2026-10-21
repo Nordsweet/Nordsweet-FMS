@@ -5,6 +5,7 @@ import { type LogbookEntry } from "~/data/logbook";
 type CachedEntry = {
   entry: LogbookEntry;
   dirty: boolean;
+  summaryDirty?: boolean;
   picEdit: string | null;
 };
 type Account = Record<string, CachedEntry>;
@@ -34,7 +35,12 @@ export const useLogbook = create<State>()(
               previous?.picEdit ??
               (remote ? entry.pic : (previous?.entry.pic ?? entry.pic)),
           };
-          if (JSON.stringify(previous?.entry) === JSON.stringify(next))
+          if (
+            previous &&
+            (Object.keys(next) as (keyof LogbookEntry)[]).every(
+              (key) => previous.entry[key] === next[key],
+            )
+          )
             return state;
           return {
             accounts: {
@@ -44,6 +50,7 @@ export const useLogbook = create<State>()(
                 [entry.id]: {
                   entry: next,
                   dirty: !remote,
+                  summaryDirty: !remote,
                   picEdit: previous?.picEdit ?? null,
                 },
               },
@@ -63,6 +70,7 @@ export const useLogbook = create<State>()(
                 [id]: {
                   ...previous,
                   entry: { ...previous.entry, pic: pic.trim() },
+                  summaryDirty: previous.summaryDirty ?? previous.dirty,
                   picEdit: pic.trim(),
                   dirty: true,
                 },
