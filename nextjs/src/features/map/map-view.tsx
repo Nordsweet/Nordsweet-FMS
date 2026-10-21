@@ -615,7 +615,11 @@ export function MapView({
         // Points are a few pixels wide: search a finger-sized radius. The nearest wins, but within
         // 2 px (a VOR on its airport) the symbol that is more useful to open takes it.
         const hit = map
-          .pick(point, PICK_LAYERS)
+          .pick(
+            point,
+            PICK_LAYERS.filter((layer) => layer !== "airports"),
+          )
+          .concat(map.pick(point, ["airports"], 15))
           .map((info) => {
             const [lon, lat] = (info.object as { position: [number, number] })
               .position;

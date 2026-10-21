@@ -175,6 +175,8 @@ merged to `develop`. One owner per row.
 | Saved flights library (rename, route-only import, GPX/KML route export)                                                                         | done                            |                   | Immediate snapshot/download, rename, per-flight .nord/GPX/KML export, return-to-route load; existing route-only import retained. PR #3 merged into develop.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | PFD, chart viewer, editors, company flights                                                                                                     | out of scope                    |                   | only if the owner asks                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 
+| Airport click/touch hitbox | in progress | Codex 2026-10-21 | Increase airport picking radius by 1.5 without changing symbols or other map objects. |
+
 ## 5. Known legacy bugs / intended differences
 
 Record every one you find here (and assert it in a test).
@@ -215,4 +217,4 @@ Record every one you find here (and assert it in a test).
   (not in legacy; Open-Meteo broke the single-data-source rule).
 - Map, fly mode and export use the route's fixes without TOC/TOD.
 
-| Automatic descent glide airfield rings | in progress | Codex 2026-10-21 | Reuse terrain/wind solver above 500 ft/min descent; map-only subtle rings. |
+| Automatic descent glide airfield rings | done | Codex 2026-10-21 | PR #77: subtle green airfield rings strictly above 500 ft/min descent, terrain/wind/runway validation, fresh quality-gated GNSS or instrument MSL. Clears on recovery/stale/ground/paused input; emergency state isolated. CI 39663587343: 664 unit and 145 browser tests passed. |
