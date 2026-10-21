@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { api } from "~/api";
 import { Button } from "~/components/ui/button";
@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "~/components/ui/select";
 import { type Runway } from "~/data/schemas";
+import type { Flight } from "~/data/flight";
 import { densityAltitudeFt, pressureAltitudeFt } from "~/domain/atmosphere";
 import {
   type PerformanceWarning,
@@ -24,11 +25,25 @@ import { parseMetar } from "~/domain/metar";
 import { windComponents } from "~/domain/wind";
 import { useT } from "~/i18n/use-t";
 import { useFlight } from "~/stores/flight";
+import { useAtis } from "~/stores/atis";
+import {
+  applyPerformanceAtis,
+  performanceAtis,
+} from "~/domain/atis-performance";
 import { cn } from "~/lib/utils";
 
 import { NumberField, Section, fmt } from "./fields";
 import { usePlan } from "./use-plan";
 import { useBriefing } from "./weather";
+
+const DEFAULT_INPUTS: Flight["performanceInputs"][string] = {
+  runwayId: null,
+  configId: null,
+  oatC: 15,
+  qnhHpa: 1013,
+  windDirectionDeg: 0,
+  windSpeedKt: 0,
+};
 
 const surfaceOf = (runway: Runway): RunwaySurface =>
   runway.surface === "grass"
@@ -81,15 +96,69 @@ export function usePhasePerformance(phase: "takeoff" | "landing") {
     enabled: !!point,
   });
   const update = useFlight((s) => s.update);
+  const atis = useAtis();
+  const { station, briefing } = useBriefing(point);
   const inputKey = `${phase}|${point?.ident ?? ""}|${aircraft?.id ?? ""}`;
-  const inputs = flight.performanceInputs[inputKey] ?? {
-    runwayId: null,
-    configId: null,
-    oatC: 15,
-    qnhHpa: 1013,
-    windDirectionDeg: 0,
-    windSpeedKt: 0,
-  };
+  const storedInputs = flight.performanceInputs[inputKey] ?? DEFAULT_INPUTS;
+  const pad = point
+    ? (atis.records[point.ident] ??
+      (atis.airport === point.ident ? atis.pad : null))
+    : null;
+  const weather = useMemo(
+    () =>
+      airport.data
+        ? performanceAtis(
+            airport.data,
+            phase,
+            station?.icao === point?.ident ? (briefing.data?.atis ?? []) : [],
+            pad,
+          )
+        : {},
+    [
+      airport.data,
+      phase,
+      station?.icao,
+      point?.ident,
+      briefing.data?.atis,
+      pad,
+    ],
+  );
+  const inputs = airport.data
+    ? applyPerformanceAtis(storedInputs, weather, airport.data)
+    : storedInputs;
+  useEffect(() => {
+    if (!airport.data || inputs === storedInputs) return;
+    const current = useFlight.getState().flight;
+    if (current.id !== flight.id) return;
+    const previous = current.performanceInputs[inputKey] ?? storedInputs;
+    const next = applyPerformanceAtis(previous, weather, airport.data);
+    if (next === previous) return;
+    update({
+      performanceInputs: { ...current.performanceInputs, [inputKey]: next },
+      ...(phase === "takeoff" &&
+      point &&
+      next.runwayId &&
+      next.runwayId !== previous.runwayId
+        ? {
+            departureRunway: {
+              airport: point.ident,
+              designator: next.runwayId,
+              source: "takeoff" as const,
+            },
+          }
+        : {}),
+    });
+  }, [
+    airport.data,
+    inputs,
+    storedInputs,
+    weather,
+    inputKey,
+    flight.id,
+    phase,
+    point,
+    update,
+  ]);
   const change = (patch: Partial<typeof inputs>) => {
     const current = useFlight.getState().flight;
     update({
@@ -112,7 +181,7 @@ export function usePhasePerformance(phase: "takeoff" | "landing") {
       },
     });
   };
-  const base = { point, inputs, inputKey, change, aircraft };
+  const base = { point, inputs, inputKey, change, aircraft, station, briefing };
   const perf = aircraft?.[phase];
   const ap = airport.data;
   const weightKg = loading?.[phase].totalKg;
@@ -168,7 +237,7 @@ export function usePhasePerformance(phase: "takeoff" | "landing") {
 function Phase({ phase }: { phase: "takeoff" | "landing" }) {
   const t = useT();
   const p = usePhasePerformance(phase);
-  const { point, inputs, inputKey, change, aircraft } = p;
+  const { inputs, inputKey, change, aircraft } = p;
   const { oatC, qnhHpa, windDirectionDeg, windSpeedKt } = inputs;
   const setRunwayId = (runwayId: string) => change({ runwayId });
   const setConfigId = (configId: string) => change({ configId });
@@ -177,7 +246,7 @@ function Phase({ phase }: { phase: "takeoff" | "landing" }) {
   const setWindDirectionDeg = (windDirectionDeg: number) =>
     change({ windDirectionDeg });
   const setWindSpeedKt = (windSpeedKt: number) => change({ windSpeedKt });
-  const { station, briefing } = useBriefing(point);
+  const { station, briefing } = p;
   const metar = briefing.data?.metar ?? null;
   const [metarNote, setMetarNote] = useState<{
     key: string;
@@ -304,6 +373,14 @@ function Phase({ phase }: { phase: "takeoff" | "landing" }) {
         />
       </div>
       <div className="flex flex-wrap items-center gap-2 text-sm">
+        {inputs.atisSignature && (
+          <span
+            className="text-muted-foreground"
+            data-testid={`perf-${phase}-atis`}
+          >
+            {t("plan.perf.fromAtis")}
+          </span>
+        )}
         <Button
           variant="outline"
           size="sm"

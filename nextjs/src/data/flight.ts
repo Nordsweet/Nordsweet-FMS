@@ -125,6 +125,7 @@ export const flightSchema = z.object({
         qnhHpa: z.number().positive().default(1013),
         windDirectionDeg: z.number().default(0),
         windSpeedKt: z.number().nonnegative().default(0),
+        atisSignature: z.string().optional(),
       }),
     )
     .default({}),

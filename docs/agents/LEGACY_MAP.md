@@ -175,6 +175,8 @@ merged to `develop`. One owner per row.
 
 | Airport click/touch hitbox | done | Codex 2026-10-21 | PR #78: airport picking radius 10 to 15 px; symbols and other objects unchanged; shared Map/Fly and 2D/3D handler. Full CI 39666873095 passed. |
 
+| ATIS to performance conditions | in progress | Codex 2026-10-21 | Automatic manual/downloaded ATIS conditions per airport and takeoff/landing phase; preserve pilot overrides until source changes. |
+
 ## 5. Known legacy bugs / intended differences
 
 Record every one you find here (and assert it in a test).
