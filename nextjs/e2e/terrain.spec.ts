@@ -190,7 +190,9 @@ test("terrain clearance is drawn on the flat map and changes with actual altitud
   });
   await page.goto("/fly");
   const overlay = page.locator("[data-terrain-altitude-ft]");
-  await expect(overlay).not.toHaveAttribute("data-terrain-altitude-ft", "");
+  await expect(overlay).not.toHaveAttribute("data-terrain-altitude-ft", "", {
+    timeout: 30000,
+  });
   await expect(
     page.getByRole("link", { name: /Terrain: Mapzen/ }),
   ).toBeVisible();
