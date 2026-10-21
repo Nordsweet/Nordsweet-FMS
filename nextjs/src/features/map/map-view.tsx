@@ -75,6 +75,7 @@ import { useTrafficSession } from "~/stores/traffic-session";
 import { useInFlight } from "~/stores/inflight";
 import { useMapSettings, type Basemap, type LayerId } from "~/stores/map";
 import { useGps } from "~/features/fly/use-gps";
+import { useTerrainHeight } from "~/features/fly/use-terrain-height";
 import { GlideStatus } from "~/features/emergency/glide-status";
 import { useEmergencyMap } from "~/features/emergency/use-emergency-map";
 import { MapSummary } from "./map-summary";
@@ -345,6 +346,23 @@ export function MapView({
   }, [route]);
   const [terrainError, setTerrainError] = useState(false);
   const [now, setNow] = useState(() => Date.now());
+  const { mslFt: terrainAltitudeFt } = useTerrainHeight(fix);
+  const terrainFixAge = fix
+    ? now - (fix.receivedAt ?? Date.parse(fix.time))
+    : Infinity;
+  const clearanceAltitudeFt =
+    !gpsError &&
+    terrainFixAge >= -5000 &&
+    terrainFixAge <= 20000 &&
+    terrainAltitudeFt !== null &&
+    Number.isFinite(terrainAltitudeFt)
+      ? terrainAltitudeFt
+      : null;
+  useEffect(() => {
+    sceneRef.current?.set({
+      terrainAltitudeFt: clearanceAltitudeFt,
+    });
+  }, [ready, clearanceAltitudeFt]);
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
@@ -1248,6 +1266,7 @@ export function MapView({
       data-pattern-preview={patternPreview ? "true" : "false"}
       data-holding-preview={holdingPreview ? "true" : "false"}
       data-terrain-3d={settings.terrain3d ? "true" : "false"}
+      data-terrain-altitude-ft={clearanceAltitudeFt ?? ""}
       data-glide-cells={emergencyMap.footprint.length}
     >
       {navigation.startedAt && !emergencyMap.active && (
@@ -1421,7 +1440,9 @@ export function MapView({
         }
       />
       <MapScale mapRef={mapRef} ready={ready} />
-      {(settings.terrain3d || emergencyMap.glide.reach) && (
+      {(settings.terrain3d ||
+        Boolean(emergencyMap.glide.reach) ||
+        terrainAltitudeFt !== null) && (
         <a
           className="bg-card/90 text-muted-foreground absolute right-20 bottom-8 z-10 max-w-[65%] rounded px-1 text-right text-[10px]"
           href="/terrain-attribution.html"
