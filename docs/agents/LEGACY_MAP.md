@@ -177,6 +177,8 @@ merged to `develop`. One owner per row.
 
 | ATIS to performance conditions | done | Codex 2026-10-21 | PR #79: automatic temperature/QNH/sustained wind/runway from manual pads or latest fresh reliable phase-specific ATIS. Airport pads retained independently, old storage migrates; pilot corrections persist until conditions change. Community two-device rule retained; VRB worst-case tailwind; no invented missing weather. CI 39672833831: 673 unit and 147 browser tests passed. |
 
+| Multiple Traffic Patterns map overlay | in progress | Codex 2026-10-21 | Full circuit overlay, preview and accepted, without changing navigation. |
+
 ## 5. Known legacy bugs / intended differences
 
 Record every one you find here (and assert it in a test).
