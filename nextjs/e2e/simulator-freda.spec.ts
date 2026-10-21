@@ -50,6 +50,10 @@ for (const tablet of [false, true]) {
       let socket: WebSocketRoute | undefined;
       await page.routeWebSocket("wss://sim.example/ws*", (route) => {
         socket = route;
+        route.onClose(() => {
+          if (socket === route) socket = undefined;
+          void route.close();
+        });
       });
       await page.goto("/fly");
       await expect.poll(() => !!socket).toBe(true);
@@ -100,26 +104,31 @@ for (const tablet of [false, true]) {
         // Keep telemetry flowing through the watchdog reconnect after each quiet time jump.
         // Advance the throttle until this exact sample reaches the flight timers.
         await expect
-          .poll(async () => {
-            socket!.send(frame);
-            await page.clock.runFor(500);
-            return page.evaluate(() => {
-              const saved = JSON.parse(
-                localStorage.getItem("nordsweet.inflight.v1")!,
-              ) as {
-                state: {
-                  timers: {
-                    last: {
-                      at: number;
-                      altitudeFt: number;
-                      onGround: boolean;
-                    } | null;
+          .poll(
+            async () => {
+              socket?.send(frame);
+              // Reconnect is scheduled 3 seconds after the watchdog closes the quiet socket.
+              // A paused clock must advance through that delay, independently of real-time polling.
+              await page.clock.runFor(1000);
+              return page.evaluate(() => {
+                const saved = JSON.parse(
+                  localStorage.getItem("nordsweet.inflight.v1")!,
+                ) as {
+                  state: {
+                    timers: {
+                      last: {
+                        at: number;
+                        altitudeFt: number;
+                        onGround: boolean;
+                      } | null;
+                    };
                   };
                 };
-              };
-              return saved.state.timers.last;
-            });
-          })
+                return saved.state.timers.last;
+              });
+            },
+            { timeout: 15000, intervals: [100, 250, 500] },
+          )
           .toMatchObject({ at, altitudeFt, onGround });
       };
       await send(true, 778, 0);

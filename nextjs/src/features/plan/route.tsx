@@ -92,6 +92,26 @@ export function RouteSection() {
           : t("plan.route.status.select")}
       </p>
       <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-1.5">
+          <Label>{t("arrival.rules")}</Label>
+          <Select
+            value={flight.flightRules}
+            onValueChange={(flightRules) => {
+              if (["V", "I", "Y", "Z"].includes(flightRules))
+                update({ flightRules: flightRules as Flight["flightRules"] });
+            }}
+          >
+            <SelectTrigger className="w-full" aria-label={t("arrival.rules")}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="V">V - VFR</SelectItem>
+              <SelectItem value="I">I - IFR</SelectItem>
+              <SelectItem value="Y">{t("arrival.Y")}</SelectItem>
+              <SelectItem value="Z">{t("arrival.Z")}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         <AirportField
           label={t("plan.route.departure")}
           value={flight.departure}
@@ -312,7 +332,7 @@ function RouteText({ expanded }: { expanded?: string }) {
 const NONE = "NONE";
 const AUTO = "AUTO";
 
-function ProcedureSelect({
+export function ProcedureSelect({
   type,
   procedures,
   suggested,

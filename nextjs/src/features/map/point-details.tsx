@@ -1,7 +1,7 @@
 import { type TurnPerformance } from "~/domain/fly-by";
 import { isDeparturePatternTarget } from "~/domain/departure-pattern";
 import { type TrafficPattern } from "~/data/traffic-pattern";
-import { TrafficPatternPanel } from "./traffic-pattern-panel";
+import { ArrivalPanel } from "./arrival-panel";
 import { HoldingPanel } from "./holding-panel";
 import { type Holding } from "~/data/holding";
 import { useState } from "react";
@@ -187,7 +187,7 @@ export function PointDetails({
             aria-expanded={mode === "pattern"}
             onClick={() => setMode(mode === "pattern" ? null : "pattern")}
           >
-            {t("pattern.title")}
+            {t("arrival.title")}
           </Button>
         )}
         {/* Legacy "Add To Route" turns into "Remove From Route" once the point is on it. */}
@@ -256,8 +256,8 @@ export function PointDetails({
         />
       )}
       {mode === "pattern" && airportRecord && (
-        <TrafficPatternPanel
-          key={`${airportRecord.ident}:${isDeparturePatternTarget(flight, navigation, airportRecord.ident)}`}
+        <ArrivalPanel
+          key={`${airportRecord.ident}:${flight.flightRules}:${isDeparturePatternTarget(flight, navigation, airportRecord.ident)}`}
           airport={airportRecord}
           departureTargetAltitudeFt={departureTargetAltitudeFt}
           preview={previewPattern}
