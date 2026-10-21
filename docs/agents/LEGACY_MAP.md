@@ -58,6 +58,8 @@ State defaults: the `state = {…}` object (~line 1500). DOM refs: `refs = {…}
 
 ## 4. Work board
 
+Logbook — in progress, Codex 2026-10-21. Dedicated /logbook route, complete browser flight archive with durable offline cache, editable PIC and default pilot surname, existing Fly checkpoint/debrief integration. Isolated checkout codex/logbook.
+
 TOC/TOD anchors and altitude notices — done, Codex 2026-10-20. Dots follow rendered Mercator segments; labels move independently. Fresh-climb 1000-ft callout, TOD descent countdown/NOW/history. Browser regression measures both dot-to-route distances and checks countdown/history.
 
 Flight guidance/tablet follow-up — done, Codex 2026-10-20. HOLD fix/timer commands, monotonic circuit/hold countdowns, internal phase/leg speed profile (C172S Vy 72 KIAS/TAS conversion and departure overrides), active/altitude-aware ATZ/FIS/CTR/TMA handoffs, themed status. Tablet tap navigation plus centered/free pinch and one-finger release covered in emulated-touch browser tests. Full CI gates before develop.
