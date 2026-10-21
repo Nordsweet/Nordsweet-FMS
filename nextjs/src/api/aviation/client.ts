@@ -8,6 +8,7 @@ import { useAuth } from "~/stores/auth";
 import {
   activationsResponseSchema,
   airportResponseSchema,
+  fuelResponseSchema,
   airspaceResponseSchema,
   atisResponseSchema,
   type PlaceKind,
@@ -183,6 +184,7 @@ export const aviationApi = {
     };
   },
   airport: (icao: string) => get(icaoPath(icao), airportResponseSchema),
+  fuel: (icao: string) => get(icaoPath(icao, "/fuel"), fuelResponseSchema),
   weather: (icao: string) =>
     get(icaoPath(icao, "/weather"), weatherResponseSchema),
   atis: (icao: string) => get(icaoPath(icao, "/atis"), atisResponseSchema),

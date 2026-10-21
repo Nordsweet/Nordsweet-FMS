@@ -2,6 +2,7 @@ import { type TurnPerformance } from "~/domain/fly-by";
 import { isDeparturePatternTarget } from "~/domain/departure-pattern";
 import { type TrafficPattern } from "~/data/traffic-pattern";
 import { ArrivalPanel } from "./arrival-panel";
+import { AirportFuel } from "./airport-fuel";
 import { HoldingPanel } from "./holding-panel";
 import { type Holding } from "~/data/holding";
 import { useState } from "react";
@@ -245,6 +246,7 @@ export function PointDetails({
             </Button>
           ))}
       </div>
+      {airport && <AirportFuel icao={airportCode} />}
       {mode === "hold" && (
         <HoldingPanel
           point={point}

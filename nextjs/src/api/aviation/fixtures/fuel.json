@@ -1,0 +1,7 @@
+{
+  "icao": "EPBC",
+  "fuel": [
+    { "supplier": "AWIX OIL", "fuels": ["AVGAS_100LL", "JET_A1"] },
+    { "supplier": "ORLEN Aviation", "fuels": ["AVGAS_100LL"] }
+  ]
+}

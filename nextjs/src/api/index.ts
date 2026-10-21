@@ -297,6 +297,13 @@ export const api = {
       live(2 * MINUTE),
     ),
   },
+  fuel: {
+    byAirport: query(
+      "fuel.byAirport",
+      ({ icao }: Icao) => aviationApi.fuel(icao),
+      live(HOUR),
+    ),
+  },
   notams: {
     byAirport: query(
       "notams.byAirport",

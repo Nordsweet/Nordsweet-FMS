@@ -148,6 +148,11 @@ export const notamsResponseSchema = z.object({
   sources: sourcesSchema,
 });
 
+export const fuelResponseSchema = z.object({
+  icao: z.string(),
+  fuel: z.array(z.object({ supplier: z.string(), fuels: z.array(z.string()) })),
+});
+
 export const airportResponseSchema = z.object({
   icao: z.string(),
   aerodrome: placeSchema.nullable(),
