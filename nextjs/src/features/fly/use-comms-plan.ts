@@ -16,6 +16,8 @@ import { useInFlight } from "~/stores/inflight";
 import { useMapSettings } from "~/stores/map";
 import { type GpsFix } from "./use-gps";
 import { useTerrainHeight } from "./use-terrain-height";
+import { useTurnPerformance } from "./use-turn-performance";
+import { flightPlanProfile } from "~/domain/flight-plan-profile";
 const FRESH_FIX_MS = 30_000;
 
 /** Shared radio estimate keeps COMMs and the always-visible hand-off popup in sync. */
@@ -25,8 +27,9 @@ export function useCommsPlan(
   now: number,
   enabled: boolean,
 ) {
-  const { flight, cruiseSpeedKt } = usePlan();
+  const { flight, cruiseSpeedKt, plan: routePlan } = usePlan();
   const route = useInFlight((s) => s.route);
+  const activeLeg = useInFlight((s) => s.activeLeg);
   const plan = useMapSettings((s) => s.plan);
   const frequencies = useQuery({
     ...api.frequencies.list.queryOptions(undefined),
@@ -39,11 +42,16 @@ export function useCommsPlan(
     }),
     enabled,
   });
+  const imported = useQuery({
+    ...api.map.importedAirspace.queryOptions(undefined),
+    enabled,
+  });
   // Recompute at most every 2 s of GPS time, like legacy.
   const tick = fix ? Math.floor(Date.parse(fix.time) / 2000) : 0;
   const freshFix = !!fix && now - Date.parse(fix.time) < FRESH_FIX_MS;
   const fresh = freshFix ? fix : null;
   const height = useTerrainHeight(fresh);
+  const performance = useTurnPerformance(fresh);
   const position = fresh
     ? {
         ...fresh,
@@ -61,7 +69,22 @@ export function useCommsPlan(
         .sort(
           (a, b) => services.indexOf(a.service) - services.indexOf(b.service),
         );
-    const zones = commsZones(airspace.data?.features ?? []);
+    const zones = commsZones([
+      ...(airspace.data?.features ?? []),
+      ...(imported.data ?? []),
+    ]);
+    const profile = flightPlanProfile(
+      route,
+      routePlan,
+      performance,
+      flight.cruiseAltitudeFt,
+    );
+    const radioRoute = profile.rows.map((r) => ({
+      ...r.point,
+      altitudeFt: r.altitudeFt,
+    }));
+    const first = profile.rows.findIndex((r) => r.routeIndex === activeLeg);
+    const last = profile.rows.findIndex((r) => r.routeIndex === activeLeg + 1);
     const dep = flight.departure?.ident ?? "";
     const arr = flight.destination?.ident ?? "";
     return {
@@ -71,7 +94,9 @@ export function useCommsPlan(
           position: enabled ? position : null,
           gpsSpeedKt: fresh?.groundSpeedKt ?? null,
           plannedSpeedKt: cruiseSpeedKt,
-          route,
+          route: radioRoute,
+          activeLeg: first >= 0 ? first : undefined,
+          activeLegEnd: last >= 0 ? last : undefined,
         },
         {
           dep: (services) => airport(dep, services),
@@ -91,8 +116,16 @@ export function useCommsPlan(
     height.aglFt,
     enabled,
     route,
+    activeLeg,
+    routePlan,
+    performance.tasKt,
+    performance.departureTasKt,
+    performance.windDirectionDeg,
+    performance.windSpeedKt,
+    flight.cruiseAltitudeFt,
     frequencies.data,
     airspace.data,
+    imported.data,
     flight.departure,
     flight.destination,
     cruiseSpeedKt,

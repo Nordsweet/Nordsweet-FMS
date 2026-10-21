@@ -125,13 +125,37 @@ test("climb crossing ATZ to FIS and entering TMA both suggest the current local 
     page.getByRole("dialog", { name: "COMMs", exact: true }),
   ).toContainText("Test Radio");
   await page.getByRole("button", { name: "COMMs", exact: true }).click();
-  await page.evaluate(() => localStorage.setItem("test.radio.lon", "20.2"));
-  await page.clock.runFor(3000);
   const frequency = page
     .getByTestId("flight-notifications")
     .getByRole("status", { name: "Frequency", exact: true });
-  await expect(frequency).toContainText("119.275 Local Information (FIS)");
+  await expect(frequency).toContainText("Switch to Test Radio, 122.305 MHz");
+  await frequency
+    .getByRole("button", { name: "Dismiss Frequency", exact: true })
+    .click();
+  await page.evaluate(() => localStorage.setItem("test.radio.lon", "20.2"));
+  await page.clock.runFor(3000);
+  await expect(frequency).toContainText(
+    "Switch to Local Information, 119.275 MHz",
+  );
+  await frequency
+    .getByRole("button", { name: "Dismiss Frequency", exact: true })
+    .click();
   await page.evaluate(() => localStorage.setItem("test.radio.lon", "20.6"));
   await page.clock.runFor(3000);
-  await expect(frequency).toContainText("121.075 Test Approach");
+  await expect(frequency).toContainText("Switch to Test Approach, 121.075 MHz");
+  for (const [lon, message] of [
+    ["20.2", "Switch to Local Information, 119.275 MHz"],
+    ["20", "Switch to Test Radio, 122.305 MHz"],
+    ["20.2", "Switch to Local Information, 119.275 MHz"],
+  ]) {
+    await frequency
+      .getByRole("button", { name: "Dismiss Frequency", exact: true })
+      .click();
+    await page.evaluate(
+      (value) => localStorage.setItem("test.radio.lon", value!),
+      lon,
+    );
+    await page.clock.runFor(3000);
+    await expect(frequency).toContainText(message!);
+  }
 });

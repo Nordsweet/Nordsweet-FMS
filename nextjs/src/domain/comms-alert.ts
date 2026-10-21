@@ -1,4 +1,4 @@
-import { type CommsEstimate } from "./comms";
+import { radioRowsKey, type CommsEstimate } from "./comms";
 import { type FlightPhase } from "./flight-phase";
 
 /** A sector hand-off is suggested during its last two minutes, once per dismissed transition. */
@@ -16,11 +16,7 @@ export function commsChangeSuggestion(
     !estimate.next.length
   )
     return null;
-  const rowsKey = (rows: CommsEstimate["next"]) =>
-    rows
-      .map((r) => [r.frequencyMhz, r.callsign, r.sector ?? ""].join("|"))
-      .sort()
-      .join(";");
+  const rowsKey = radioRowsKey;
   const key = rowsKey(estimate.current) + "→" + rowsKey(estimate.next);
   if (
     dismissed.has(key) ||
@@ -28,4 +24,37 @@ export function commsChangeSuggestion(
   )
     return null;
   return { key, rows: estimate.next };
+}
+
+export type RadioCrossing = {
+  session: string | null;
+  current: string;
+  sequence: number;
+  change: { key: string; rows: CommsEstimate["current"]; at: number } | null;
+};
+
+/** Each visit has its own handoff: returning to the same ATZ must prompt again. */
+export function observeRadioCrossing(
+  state: RadioCrossing,
+  session: string | null,
+  rows: CommsEstimate["current"],
+  now: number,
+): RadioCrossing {
+  const previous =
+    state.session === session
+      ? state
+      : { session, current: "", sequence: 0, change: null };
+  const current = radioRowsKey(rows);
+  if (!session || !current || current === previous.current) return previous;
+  const sequence = previous.sequence + 1;
+  return {
+    session,
+    current,
+    sequence,
+    change: {
+      key: `${session}:${sequence}:${previous.current}→${current}`,
+      rows,
+      at: now,
+    },
+  };
 }

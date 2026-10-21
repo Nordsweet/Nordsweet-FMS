@@ -368,8 +368,7 @@ const pl = {
   "fly.comms.loading": "Wczytywanie danych radiowych…",
   "fly.comms.current": "Bieżąca · sugerowana",
   "fly.comms.next": "Następna",
-  "fly.comms.suggestion":
-    "Zalecana zmiana częstotliwości na {frequency} {callsign}{service}",
+  "fly.comms.suggestion": "Przejdź na {callsign}, {frequency} MHz",
   "fly.comms.dismissSuggestion": "Zamknij sugestię zmiany częstotliwości",
   "fly.comms.onRoute": "FIS / ATZ na trasie",
   "fly.comms.notAvailable": "Niedostępne",
@@ -1198,8 +1197,7 @@ const en: Record<MessageKey, string> = {
   "fly.comms.loading": "Loading radio data…",
   "fly.comms.current": "Current · suggested",
   "fly.comms.next": "Next",
-  "fly.comms.suggestion":
-    "Suggested Frequency Change to {frequency} {callsign}{service}",
+  "fly.comms.suggestion": "Switch to {callsign}, {frequency} MHz",
   "fly.comms.dismissSuggestion": "Dismiss frequency change suggestion",
   "fly.comms.onRoute": "FIS / ATZ on route",
   "fly.comms.notAvailable": "Not available",
