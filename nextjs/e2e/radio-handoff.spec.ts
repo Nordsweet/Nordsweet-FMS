@@ -52,8 +52,8 @@ test("climb crossing ATZ to FIS and entering TMA both suggest the current local 
     },
   });
   const features = [
-    zone("ATZ TEST", 19.8, 20.1, "122.305", "Test Radio"),
-    zone("FIS LOCAL", 19, 22, "119.275", "Local Information"),
+    zone("ATZ TEST", 19.8, 20.1, "122.305", "Tatry-Tower"),
+    zone("FIS LOCAL", 19, 22, "119.275", "Bratislava Information"),
     zone("TMA TEST", 20.5, 21, "121.075", "Test Approach", "4000 FT AMSL"),
   ];
   await page.route("https://aviation.lab.vibecde.com/airspace**", (r) =>
@@ -123,19 +123,30 @@ test("climb crossing ATZ to FIS and entering TMA both suggest the current local 
   await page.getByRole("button", { name: "COMMs", exact: true }).click();
   await expect(
     page.getByRole("dialog", { name: "COMMs", exact: true }),
-  ).toContainText("Test Radio");
+  ).toContainText("Tatry-Tower");
+  const comms = page.getByRole("dialog", { name: "COMMs", exact: true });
+  for (const station of ["Tatry-Tower", "Bratislava Information"]) {
+    const guide = comms.locator("details").filter({ hasText: station }).first();
+    await expect(guide.getByText("Dobrý deň", { exact: true })).toBeHidden();
+    await guide.locator("summary").click();
+    for (const phrase of ["Dobrý deň", "Ďakujem", "Dovidenia", "Dopočutia"]) {
+      await expect(guide.getByText(phrase, { exact: true })).toBeVisible();
+    }
+    await guide.locator("summary").click();
+    await expect(guide.getByText("Dobrý deň", { exact: true })).toBeHidden();
+  }
   await page.getByRole("button", { name: "COMMs", exact: true }).click();
   const frequency = page
     .getByTestId("flight-notifications")
     .getByRole("status", { name: "Frequency", exact: true });
-  await expect(frequency).toContainText("Switch to Test Radio, 122.305 MHz");
+  await expect(frequency).toContainText("Switch to Tatry-Tower, 122.305 MHz");
   await frequency
     .getByRole("button", { name: "Dismiss Frequency", exact: true })
     .click();
   await page.evaluate(() => localStorage.setItem("test.radio.lon", "20.2"));
   await page.clock.runFor(3000);
   await expect(frequency).toContainText(
-    "Switch to Local Information, 119.275 MHz",
+    "Switch to Bratislava Information, 119.275 MHz",
   );
   await frequency
     .getByRole("button", { name: "Dismiss Frequency", exact: true })
@@ -144,9 +155,9 @@ test("climb crossing ATZ to FIS and entering TMA both suggest the current local 
   await page.clock.runFor(3000);
   await expect(frequency).toContainText("Switch to Test Approach, 121.075 MHz");
   for (const [lon, message] of [
-    ["20.2", "Switch to Local Information, 119.275 MHz"],
-    ["20", "Switch to Test Radio, 122.305 MHz"],
-    ["20.2", "Switch to Local Information, 119.275 MHz"],
+    ["20.2", "Switch to Bratislava Information, 119.275 MHz"],
+    ["20", "Switch to Tatry-Tower, 122.305 MHz"],
+    ["20.2", "Switch to Bratislava Information, 119.275 MHz"],
   ]) {
     await frequency
       .getByRole("button", { name: "Dismiss Frequency", exact: true })
