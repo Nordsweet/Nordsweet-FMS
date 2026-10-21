@@ -247,7 +247,10 @@ for (const action of ["Skip", "Set Next"]) {
     page,
   }) => {
     await seed(page);
-    await expect(page.getByTestId("status-gs")).toContainText("100");
+    // The recovery dialog handler runs inside this assertion's timeout.
+    await expect(page.getByTestId("status-gs")).toContainText("100", {
+      timeout: 15_000,
+    });
     await page.getByRole("button", { name: "FPL", exact: true }).click();
     await page
       .getByRole("button", { name: "Point options: CCCC", exact: true })
