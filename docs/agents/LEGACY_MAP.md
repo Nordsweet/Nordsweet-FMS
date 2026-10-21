@@ -212,3 +212,5 @@ Record every one you find here (and assert it in a test).
   The pre-port nav log table, manual wind/fuel-flow inputs and Open-Meteo winds aloft were removed
   (not in legacy; Open-Meteo broke the single-data-source rule).
 - Map, fly mode and export use the route's fixes without TOC/TOD.
+
+| Automatic descent glide airfield rings | in progress | Codex 2026-10-21 | Reuse terrain/wind solver above 500 ft/min descent; map-only subtle rings. |
