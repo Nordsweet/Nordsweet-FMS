@@ -19,6 +19,7 @@ export type FlightEvent = {
   at: number;
   /** When it was recorded (landing is back-dated to its candidate time); drives the toast. */
   notedAt?: number;
+  touchAndGoNumber?: number;
   source: "auto" | "manual";
   lat: number | null;
   lon: number | null;
@@ -33,6 +34,7 @@ export type Sample = {
   headingDeg: number | null;
   /** Explicit simulator contact state; absent for native GPS observations. */
   onGround?: boolean;
+  altitudeAglFt?: number;
 };
 export type Timers = {
   offBlock: Timer;
@@ -47,6 +49,16 @@ export type Timers = {
   onBlockCandidateAt: number | null;
   todCandidateAt: number | null;
   events: FlightEvent[];
+  touchAndGo?: {
+    armed: boolean;
+    contact: {
+      firstAt: number;
+      maximumSpeedKt: number;
+      speedDrop: boolean;
+      minimum: Sample;
+      groundFt: number;
+    } | null;
+  };
   /** Legacy delayed phase changes: climb 10 s after take-off, taxi-in 20 s after landing. */
   pendingPhase: { phase: "climb" | "taxiin"; dueAt: number } | null;
   /** TIMER 1 and TIMER 2: stopwatch or 1/2 minute countdown. */
@@ -88,6 +100,7 @@ export const newTimers = (): Timers => ({
   onBlockCandidateAt: null,
   todCandidateAt: null,
   events: [],
+  touchAndGo: { armed: false, contact: null },
   pendingPhase: null,
   utility: [utilityTimer(), utilityTimer()],
 });
@@ -111,13 +124,21 @@ const median = (values: number[]) => {
 /** One mutable working copy per step; helpers below act on it. */
 function working(t: Timers, at: number, where: Sample | null) {
   const next = structuredClone(t);
-  const event = (name: string, when: number, source: "auto" | "manual") => {
-    // Operational events are recorded once per flight (legacy createOperationalFlightEvent).
-    if (next.events.some((e) => e.name === name)) return;
+  const event = (
+    name: string,
+    when: number,
+    source: "auto" | "manual",
+    notify = true,
+  ) => {
+    if (
+      !["Landing", "Take-off"].includes(name) &&
+      next.events.some((e) => e.name === name)
+    )
+      return;
     next.events.push({
       name,
       at: when,
-      notedAt: at,
+      notedAt: notify ? at : undefined,
       source,
       lat: where?.lat ?? null,
       lon: where?.lon ?? null,
@@ -201,12 +222,14 @@ export function stepTimers(
 ): { timers: Timers; phase: FlightPhase | null } {
   const previous = t.last;
   const { next, event, start, stop } = working(t, s.at, s);
+  if (previous && s.at <= previous.at) return { timers: t, phase: null };
   next.last = s;
   let phase: FlightPhase | null = null;
   const speed = s.speedKt;
   const alt = s.altitudeFt;
-  if (speed === null || !Number.isFinite(speed)) {
+  if (speed === null || !Number.isFinite(speed) || speed < 0) {
     next.onBlockCandidateAt = null;
+    next.touchAndGo = { armed: false, contact: null };
     return { timers: next, phase };
   }
   if (
@@ -274,6 +297,81 @@ export function stepTimers(
       previous.altitudeFt < groundFt + 50 &&
       alt >= groundFt + 50;
     if (verifiedRoll && crossed50ft) start("airTime", s.at, "auto");
+  }
+
+  // Every circuit is independent; a bounce without the speed loss is not a touch and go.
+  const touch = (next.touchAndGo ??= { armed: false, contact: null });
+  if (
+    !previous ||
+    s.at - previous.at > 20000 ||
+    alt === null ||
+    !Number.isFinite(alt)
+  ) {
+    touch.armed = false;
+    touch.contact = null;
+  }
+  const groundFt =
+    s.altitudeAglFt != null && alt !== null
+      ? alt - s.altitudeAglFt
+      : ctx.groundElevationFt +
+        (s.onGround === undefined && next.groundReferenceFt !== null
+          ? next.groundReferenceFt - ctx.departureElevationFt
+          : 0);
+  if (alt !== null && Number.isFinite(alt) && air.startedAt !== null) {
+    const inContact = Math.abs(alt - groundFt) <= 10 && s.onGround !== false;
+    if (touch.armed && inContact && !touch.contact)
+      touch.contact = {
+        firstAt: s.at,
+        maximumSpeedKt: speed,
+        speedDrop: false,
+        minimum: s,
+        groundFt,
+      };
+    const contact = touch.contact;
+    if (contact && inContact) {
+      if (contact.maximumSpeedKt - speed >= 5) contact.speedDrop = true;
+      contact.maximumSpeedKt = Math.max(contact.maximumSpeedKt, speed);
+      if (speed < contact.minimum.speedKt!) contact.minimum = s;
+    }
+    if (contact && alt >= contact.groundFt + 100 && s.onGround !== true) {
+      const decreased = contact.speedDrop;
+      if (decreased) {
+        // A prolonged touch may have already satisfied the normal landing detector.
+        const existingLanding = [...next.events]
+          .reverse()
+          .find(
+            (e) =>
+              e.name === "Landing" &&
+              (e.at >= contact.firstAt || e.at === air.stoppedAt),
+          );
+        if (existingLanding) {
+          existingLanding.at = contact.minimum.at;
+          existingLanding.notedAt = undefined;
+        } else event("Landing", contact.minimum.at, "auto", false);
+        event("Take-off", s.at, "auto", false);
+        const number =
+          next.events.filter((e) => e.touchAndGoNumber !== undefined).length +
+          1;
+        event(`#${number} Touch and go`, contact.minimum.at, "auto");
+        next.events.at(-1)!.touchAndGoNumber = number;
+        next.airTime.stoppedAt = null;
+        next.landingCandidateAt = null;
+        next.onBlockCandidateAt = null;
+        next.pendingPhase = null;
+        phase = "climb";
+      }
+      touch.contact = null;
+      touch.armed = true;
+    } else if (!contact && alt >= groundFt + 100 && s.onGround !== true) {
+      // A full-stop landing may be followed by another take-off in the same session.
+      if (air.stoppedAt !== null) {
+        air.stoppedAt = null;
+        event("Take-off", s.at, "auto");
+        next.pendingPhase = null;
+        phase = "climb";
+      }
+      touch.armed = true;
+    }
   }
 
   // Top of climb: at the cruise altitude (−50 ft GNSS tolerance) in take-off or climb.

@@ -28,6 +28,8 @@ export function logbookFromDebrief(
     arrival: record.arrival?.length ? record.arrival : fallback.arrival,
     pic: record.pic?.length ? record.pic : fallback.pic,
     ...record.times,
+    landingCount:
+      record.landingCount ?? (record.times.landingAt !== null ? 1 : 0),
     mthBefore: record.mthBefore,
     mthAfter: record.accepted?.mthAfter ?? null,
     fuelBeforeL: record.fuelBeforeL,
@@ -42,11 +44,19 @@ export function logbookFromCheckpoint(
 ) {
   const { flight: plan, inflight } = flight.snapshot;
   if (!inflight.debrief) return null;
-  return logbookFromDebrief(inflight.debrief, {
-    id: flight.id,
-    startedAt: flight.startedAt,
-    departure: plan.departure?.ident ?? "",
-    arrival: inflight.divertAirport ?? plan.destination?.ident ?? "",
-    pic,
-  });
+  return logbookFromDebrief(
+    {
+      ...inflight.debrief,
+      landingCount:
+        inflight.debrief.landingCount ??
+        inflight.timers.events.filter((e) => e.name === "Landing").length,
+    },
+    {
+      id: flight.id,
+      startedAt: flight.startedAt,
+      departure: plan.departure?.ident ?? "",
+      arrival: inflight.divertAirport ?? plan.destination?.ident ?? "",
+      pic,
+    },
+  );
 }

@@ -28,3 +28,9 @@ The nginx `/flight-sync/` proxy and compose persistent volume already cover thes
 ## Verification
 
 Domain/store tests cover immutable summaries, missing and reversed event times, independent session IDs, editable PIC and account isolation. Python tests cover HTTP wiring, verified account identity, isolation, pagination, invalid data, idempotency, closed-session protection and PIC preservation. Playwright exercises real Fly start/end, surname default, offline PIC edits/reload, account history restoration, and phone overflow. Screenshots are written into ignored `nextjs/test-results/`.
+
+## Repeated landings
+
+Summaries carry optional nonnegative integer `landingCount`. New recordings count each Landing event, including one landing per confirmed touch and go and the final landing. Older entries without the field display one if a landing time exists, otherwise zero. The server retains this field in the account summary.
+
+Touch and go requires an airborne approach, ground contact within 10 ft, a speed drop of at least 5 kt while in that band, and a subsequent climb to at least 100 ft above the contact ground reference. Explicit simulator air/ground state prevents counting a low pass. Native GPS uses the airport elevation with the recorded taxi datum correction; simulator AGL takes precedence. Duplicate/out-of-order fixes and gaps over 20 seconds cannot confirm an old candidate. Candidate state and counters survive flight checkpoints. The System Info popup uses the minimum-speed timestamp, appears after climb confirmation, and increments #1, #2, etc. Touch and go clears pending taxi-in and continues in Climb.

@@ -16,6 +16,7 @@ export const debriefSchema = z.object({
   mthBefore: reading,
   fuelBeforeL: reading,
   endedAt: reading,
+  landingCount: z.number().int().nonnegative().optional(),
   times: z.object({
     offBlockAt: reading,
     onBlockAt: reading,

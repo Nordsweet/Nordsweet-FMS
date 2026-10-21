@@ -63,6 +63,9 @@ export function LogbookRuntime() {
       const entry = logbookFromDebrief(
         {
           ...record,
+          landingCount: live.startedAt
+            ? live.timers.events.filter((e) => e.name === "Landing").length
+            : record.landingCount,
           times: live.startedAt
             ? {
                 offBlockAt: live.timers.offBlock.startedAt,

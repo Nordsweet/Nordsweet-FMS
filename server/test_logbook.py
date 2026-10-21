@@ -49,6 +49,16 @@ class LogbookTest(unittest.TestCase):
         with self.assertRaises(logbook.LogbookError):
             self.save(entry={**self.entry, "startedAt": "2026-10-22T00:00:00Z"})
 
+    def test_landing_counts_round_trip_and_old_entries(self):
+        self.assertEqual(self.save()["landingCount"], 0)
+        self.assertEqual(self.save(entry={**self.entry, "landingCount": 4})["landingCount"], 4)
+        with database() as db:
+            self.assertEqual(logbook.listing(db, "pilot", 0)["entries"][0]["landingCount"], 4)
+        self.assertEqual(self.save()["landingCount"], 4)  # Older clients cannot erase recorded landings.
+        for count in (-1, 1.5, True):
+            with self.assertRaises(logbook.LogbookError):
+                self.save(entry={**self.entry, "landingCount": count})
+
     def test_all_pages_and_order(self):
         for n in range(103):
             self.save(entry={**self.entry, "id": str(uuid4()), "registration": str(n)})

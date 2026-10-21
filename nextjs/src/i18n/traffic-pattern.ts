@@ -1,4 +1,5 @@
 export const trafficPatternEn = {
+  "fly.touchAndGo": "#{number} Touch and go",
   "pattern.title": "Traffic Pattern",
   "pattern.multiple": "Multiple Traffic Patterns",
   "pattern.speed": "Pattern speed: {speed} KIAS",
@@ -47,6 +48,7 @@ export const trafficPatternEn = {
   "pattern.dismiss": "Dismiss report reminder",
 } as const;
 export const trafficPatternPl: Record<keyof typeof trafficPatternEn, string> = {
+  "fly.touchAndGo": "#{number} Touch and go",
   "pattern.title": "Traffic Pattern",
   "pattern.multiple": "Multiple Traffic Patterns",
   "pattern.speed": "Prędkość kręgu: {speed} KIAS",

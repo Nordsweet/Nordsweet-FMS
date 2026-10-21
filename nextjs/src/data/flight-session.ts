@@ -43,6 +43,7 @@ const sample = position.extend({
   speedKt: nullable,
   headingDeg: nullable,
   onGround: z.boolean().optional(),
+  altitudeAglFt: number.optional(),
 });
 const utility = z.object({
   mode: z.enum(["idle", "stopwatch", "countdown", "stopped", "complete"]),
@@ -61,11 +62,26 @@ const timers = z.object({
   landingCandidateAt: nullable,
   onBlockCandidateAt: nullable,
   todCandidateAt: nullable,
+  touchAndGo: z
+    .object({
+      armed: z.boolean(),
+      contact: z
+        .object({
+          firstAt: number,
+          maximumSpeedKt: number,
+          speedDrop: z.boolean(),
+          minimum: sample,
+          groundFt: number,
+        })
+        .nullable(),
+    })
+    .optional(),
   events: z.array(
     z.object({
       name: z.string(),
       at: number,
       notedAt: number.optional(),
+      touchAndGoNumber: number.int().positive().optional(),
       source: z.enum(["auto", "manual"]),
       lat: nullable,
       lon: nullable,
