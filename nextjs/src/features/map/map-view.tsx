@@ -170,11 +170,13 @@ export function MapView({
   const click = useMemo<Click | null>(
     () =>
       pointRequest
-        ? {
-            kind: "point",
-            point: pointRequest,
-            lngLat: { lng: pointRequest.lon, lat: pointRequest.lat },
-          }
+        ? pointRequest.centerOnly
+          ? null
+          : {
+              kind: "point",
+              point: pointRequest,
+              lngLat: { lng: pointRequest.lon, lat: pointRequest.lat },
+            }
         : localClick,
     [pointRequest, localClick],
   );
