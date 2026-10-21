@@ -181,6 +181,8 @@ merged to `develop`. One owner per row.
 
 | Multiple Traffic Patterns map overlay | done | Codex 2026-10-22 | PR #80: persisted checkbox; smooth full circuit in dashed preview and solid accepted overlay, navigation unchanged. Full CI 39683325429 passed, 149 browser tests. Stabilized existing engine clock and terrain timeout tests. |
 
+| Repeated landings / touch and go | in progress | Codex 2026-10-22 | Contact/speed-drop/climb detector, numbered notifications and logbook landing totals. |
+
 ## 5. Known legacy bugs / intended differences
 
 Record every one you find here (and assert it in a test).
