@@ -102,6 +102,7 @@ export type Scene = {
   emergencyPreview: Path[];
   emergencyRange: { polygon: Pos[] }[];
   emergencyAirports: Pos[];
+  descentAirfields: Pos[];
   trafficTrail: Path[];
   trafficGap: Path[];
   trafficVector: Path[];
@@ -158,6 +159,7 @@ export const emptyScene = (): Scene => ({
   emergencyPreview: [],
   emergencyRange: [],
   emergencyAirports: [],
+  descentAirfields: [],
   trafficTrail: [],
   trafficGap: [],
   trafficVector: [],
@@ -642,6 +644,20 @@ export function buildLayers(
       2,
       true,
     ),
+    new ScatterplotLayer<Pos>({
+      id: "descent-glide-airfields",
+      data: s.descentAirfields,
+      getPosition: (d) => d,
+      getRadius: 17,
+      radiusUnits: "pixels",
+      getLineColor: [80, 210, 130, 170],
+      getFillColor: [80, 210, 130, 24],
+      getLineWidth: 1.5,
+      lineWidthUnits: "pixels",
+      stroked: true,
+      filled: true,
+      pickable: false,
+    }),
     new ScatterplotLayer<Pos>({
       id: "emergency-airports",
       data: s.emergencyAirports,

@@ -473,3 +473,76 @@ test("quality-gated GNSS descent uses EGM96 AMSL automatically without manual re
     )
     .toBeGreaterThan(100);
 });
+
+test("measured descent highlights reachable airfields without EMER and clears at 500 ft/min", async ({
+  page,
+}) => {
+  test.setTimeout(90000);
+  await seed(page, true);
+  await page.addInitScript(() =>
+    localStorage.setItem(
+      "nordsweet.position-source.v1",
+      JSON.stringify({
+        state: {
+          source: "connector",
+          url: "https://pc.example.ts.net:8767",
+          token: "test",
+          enabled: true,
+        },
+        version: 0,
+      }),
+    ),
+  );
+  let vs = -600;
+  await page.routeWebSocket("wss://pc.example.ts.net:8767/ws*", (route) => {
+    const timer = setInterval(
+      () =>
+        route.send(
+          JSON.stringify({
+            schemaVersion: 1,
+            source: "prepar3d-v5",
+            connected: true,
+            paused: false,
+            stale: false,
+            ageMs: 0,
+            receivedAt: new Date().toISOString(),
+            data: {
+              latitude: 49.48,
+              longitude: 20.05,
+              altitudeMslFt: 6000,
+              altitudeAglFt: 4000,
+              indicatedAltitudeFt: 6000,
+              groundSpeedKt: 90,
+              indicatedAirspeedKt: 90,
+              trueAirspeedKt: 90,
+              headingTrueDeg: 180,
+              headingMagneticDeg: 175,
+              trackTrueDeg: 180,
+              verticalSpeedFpm: vs,
+              pitchDeg: 0,
+              bankDeg: 0,
+              onGround: 0,
+            },
+          }),
+        ),
+      500,
+    );
+    route.onClose(() => clearInterval(timer));
+    page.once("close", () => clearInterval(timer));
+  });
+  await page.goto("/fly");
+  const map = page.locator("[data-descent-airfields]");
+  await expect(map).toHaveAttribute("data-descent-airfields", /EPNT/, {
+    timeout: 45000,
+  });
+  await page.screenshot({ path: "test-results/descent-airfields.png" });
+  vs = -500;
+  await expect(map).toHaveAttribute("data-descent-airfields", "");
+  vs = -700;
+  await expect(map).toHaveAttribute("data-descent-airfields", /EPNT/, {
+    timeout: 30000,
+  });
+  await page.context().setOffline(true);
+  vs = 0;
+  await expect(map).toHaveAttribute("data-descent-airfields", "");
+});
