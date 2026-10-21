@@ -4,13 +4,20 @@ import {
   plannedGuidanceAltitude,
   type GuidanceCommand,
 } from "./flight-guidance";
-import { distanceNm, initialBearingDeg, trackOffset, type LatLon } from "./geo";
+import {
+  destinationPoint,
+  distanceNm,
+  initialBearingDeg,
+  trackOffset,
+  type LatLon,
+} from "./geo";
 import { flyByRoute, type TurnPerformance } from "./fly-by";
 import { nearestLeg, type NavPoint } from "./progress";
 import { mapProfilePoints } from "./map-profile";
 import { holdingGeometry, type HoldingRuntime } from "./holding";
 import { trueToMagneticDeg } from "./magnetic";
 import { windTriangle } from "./wind";
+import { rateOneIntercept } from "./turn-intercept";
 
 export type TimedGuidance = {
   key: string;
@@ -18,7 +25,7 @@ export type TimedGuidance = {
   dueAt: number;
 };
 
-/** Warn thirty seconds before the actual curved-path leg boundary or TOD, with a fresh-fix fallback for already-due corrections. */
+/** Thirty-second heading forecasts use measured motion; altitude forecasts follow leg boundaries and TOD. */
 export function guidanceTimeline(
   input: Parameters<typeof flightGuidance>[0] & {
     route: NavPoint[];
@@ -103,6 +110,53 @@ export function guidanceTimeline(
   if (input.holdingActive || !("lat" in input.fix) || !("lon" in input.fix))
     return events;
   const position = input.fix as typeof input.fix & LatLon;
+  const corner = input.activeLeg + 1;
+  const from = input.route[corner],
+    to = input.route[corner + 1];
+  if (from?.flyOver && to && position.trackDeg !== null) {
+    const offset = trackOffset(
+      position,
+      destinationPoint(position, position.trackDeg, 1),
+      from,
+    );
+    const at =
+      Date.parse(position.time) +
+      (offset.alongTrackNm / position.groundSpeedKt!) * 3600000;
+    if (
+      Math.abs(offset.crossTrackNm) < 0.05 &&
+      at >= input.now - 1000 &&
+      at <= input.now + 30000
+    )
+      for (const command of flightGuidance({
+        ...input,
+        courseTrueDeg: initialBearingDeg(from, to),
+        targetAltitudeFt: null,
+      }))
+        add(command, corner, at);
+  }
+  if (from && to && !from.flyOver) {
+    const intercept = rateOneIntercept(position, from, to, input.wind);
+    if (intercept) {
+      const at = Date.parse(input.fix.time) + intercept.seconds * 1000;
+      if (at - input.now <= 30000 && at >= input.now - 1000) {
+        // A correction to the old leg would conflict with the impending live intercept.
+        for (let i = events.length - 1; i >= 0; i--)
+          if (events[i]!.command.category === "heading") events.splice(i, 1);
+        add(
+          {
+            category: "heading",
+            direction: intercept.direction,
+            headingDeg:
+              Math.round(
+                trueToMagneticDeg(intercept.headingTrueDeg, input.variationDeg),
+              ) % 360 || 360,
+          },
+          corner,
+          at,
+        );
+      }
+    }
+  }
   const path = flyByRoute(input.route, input.performance);
   const nearest = nearestLeg(path, position, input.activeLeg);
   if (!nearest || nearest.distance > 1) return events;
@@ -125,20 +179,7 @@ export function guidanceTimeline(
     if (at - input.now > 30000) break;
     if (!within(at)) continue;
     const from = input.route[leg]!,
-      next = input.route[leg + 1]!,
-      previous = input.route[leg - 1]!;
-    const projected = {
-      ...input.fix,
-      headingTrueDeg: undefined,
-      trackDeg: initialBearingDeg(previous, from),
-    };
-    for (const command of flightGuidance({
-      ...input,
-      fix: projected,
-      courseTrueDeg: initialBearingDeg(from, next),
-      targetAltitudeFt: null,
-    }))
-      add(command, leg, at);
+      next = input.route[leg + 1]!;
     const before = plannedGuidanceAltitude(
       from,
       0,

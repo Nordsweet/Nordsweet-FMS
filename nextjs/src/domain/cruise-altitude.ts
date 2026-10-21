@@ -121,13 +121,14 @@ export function observeCruiseAltitude(
   };
 }
 
-/** Recalculate cruise-based levels without moving passed fixes, restrictions or circuit/airport levels. */
+/** Recalculate cruise levels (all future free levels for a manual edit), retaining passed fixes and restrictions. */
 export function changedCruiseAltitude(
   flight: Flight,
   altitudeFt: number,
   route: NavPoint[],
   activeLeg: number,
   protectedKeys: readonly string[] = [],
+  allFuture = false,
 ) {
   const passed = new Set(
     route.slice(0, activeLeg + 1).map((p) => p.ident.toUpperCase()),
@@ -147,7 +148,8 @@ export function changedCruiseAltitude(
       waypointAltitudes: Object.fromEntries(
         Object.entries(flight.waypointAltitudes).map(([key, value]) => [
           key,
-          value === flight.cruiseAltitudeFt && !protectedPoint(key)
+          (allFuture || value === flight.cruiseAltitudeFt) &&
+          !protectedPoint(key)
             ? altitudeFt
             : value,
         ]),
@@ -157,7 +159,7 @@ export function changedCruiseAltitude(
       i > activeLeg &&
       !point.patternId &&
       !protectedPoint(point.ident) &&
-      point.altitudeFt === flight.cruiseAltitudeFt
+      (allFuture || point.altitudeFt === flight.cruiseAltitudeFt)
         ? { ...point, altitudeFt }
         : point,
     ),

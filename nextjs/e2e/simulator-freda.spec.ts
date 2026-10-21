@@ -69,37 +69,58 @@ for (const tablet of [false, true]) {
         altitudeFt: number,
         speedKt: number,
       ) => {
-        socket!.send(
-          JSON.stringify({
-            schemaVersion: 1,
-            source: "prepar3d-v5",
-            connected: true,
-            paused: false,
-            stale: false,
-            ageMs: 0,
-            receivedAt: new Date(
-              await page.evaluate(() => Date.now()),
-            ).toISOString(),
-            data: {
-              latitude: 50.077778,
-              longitude: 19.784722,
-              altitudeMslFt: altitudeFt,
-              altitudeAglFt: altitudeFt - 778,
-              indicatedAltitudeFt: altitudeFt,
-              groundSpeedKt: speedKt,
-              indicatedAirspeedKt: speedKt,
-              trueAirspeedKt: speedKt,
-              headingTrueDeg: 250,
-              headingMagneticDeg: 245,
-              trackTrueDeg: 250,
-              verticalSpeedFpm: 0,
-              pitchDeg: 0,
-              bankDeg: 0,
-              onGround: onGround ? 1 : 0,
-            },
-          }),
-        );
-        await page.clock.runFor(1000);
+        const at = await page.evaluate(() => Date.now());
+        const frame = JSON.stringify({
+          schemaVersion: 1,
+          source: "prepar3d-v5",
+          connected: true,
+          paused: false,
+          stale: false,
+          ageMs: 0,
+          receivedAt: new Date(at).toISOString(),
+          data: {
+            latitude: 50.077778,
+            longitude: 19.784722,
+            altitudeMslFt: altitudeFt,
+            altitudeAglFt: altitudeFt - 778,
+            indicatedAltitudeFt: altitudeFt,
+            groundSpeedKt: speedKt,
+            indicatedAirspeedKt: speedKt,
+            trueAirspeedKt: speedKt,
+            headingTrueDeg: 250,
+            headingMagneticDeg: 245,
+            trackTrueDeg: 250,
+            verticalSpeedFpm: 0,
+            pitchDeg: 0,
+            bankDeg: 0,
+            onGround: onGround ? 1 : 0,
+          },
+        });
+        // WebSocket delivery is asynchronous even while the page clock is paused.
+        // Keep telemetry flowing through the watchdog reconnect after each quiet time jump.
+        // Advance the throttle until this exact sample reaches the flight timers.
+        await expect
+          .poll(async () => {
+            socket!.send(frame);
+            await page.clock.runFor(500);
+            return page.evaluate(() => {
+              const saved = JSON.parse(
+                localStorage.getItem("nordsweet.inflight.v1")!,
+              ) as {
+                state: {
+                  timers: {
+                    last: {
+                      at: number;
+                      altitudeFt: number;
+                      onGround: boolean;
+                    } | null;
+                  };
+                };
+              };
+              return saved.state.timers.last;
+            });
+          })
+          .toMatchObject({ at, altitudeFt, onGround });
       };
       await send(true, 778, 0);
       const takeoff = await page.evaluate(() => Date.now());

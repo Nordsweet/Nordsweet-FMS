@@ -10,6 +10,9 @@ test("tablet planner link works; centered pinch preserves ownship anchor and one
   page,
   context,
 }) => {
+  test.setTimeout(60000);
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
   await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (r) => r.abort());
   await page.addInitScript(
     (flight) => {
@@ -149,6 +152,69 @@ test("tablet planner link works; centered pinch preserves ownship anchor and one
     .poll(async () => Number(await map.getAttribute("data-zoom")))
     .toBeGreaterThan(freeZoom + 0.2);
   await expect(center).toBeVisible();
+  // Transition 1 → 2 → 1 fingers without lifting, then cancel while moving.
+  for (let cycle = 0; cycle < 3; cycle++) {
+    await client.send("Input.dispatchTouchEvent", {
+      type: "touchStart",
+      touchPoints: [{ id: 1, x, y }],
+    });
+    await client.send("Input.dispatchTouchEvent", {
+      type: "touchMove",
+      touchPoints: [{ id: 1, x: x + 15, y: y + 10 }],
+    });
+    await client.send("Input.dispatchTouchEvent", {
+      type: "touchStart",
+      touchPoints: [
+        { id: 1, x: x + 15, y: y + 10 },
+        { id: 2, x: x + 65, y: y + 10 },
+      ],
+    });
+    for (let i = 1; i <= 4; i++)
+      await client.send("Input.dispatchTouchEvent", {
+        type: "touchMove",
+        touchPoints: [
+          { id: 1, x: x + 15 - i * 5, y: y + 10 + i * 4 },
+          { id: 2, x: x + 65 + i * 8, y: y + 10 + i * 4 },
+        ],
+      });
+    await client.send("Input.dispatchTouchEvent", {
+      type: "touchEnd",
+      touchPoints: [{ id: 1, x, y: y + 26 }],
+    });
+    await client.send("Input.dispatchTouchEvent", {
+      type: "touchMove",
+      touchPoints: [{ id: 1, x: x + 30, y: y + 40 }],
+    });
+    await client.send("Input.dispatchTouchEvent", {
+      type: "touchCancel",
+      touchPoints: [],
+    });
+  }
+  const beforePan = Number(await map.getAttribute("data-center-lon"));
+  const panScale =
+    (512 * 2 ** Number(await map.getAttribute("data-zoom"))) / 360;
+  await client.send("Input.dispatchTouchEvent", {
+    type: "touchStart",
+    touchPoints: [{ id: 1, x, y }],
+  });
+  for (let i = 1; i <= 5; i++)
+    await client.send("Input.dispatchTouchEvent", {
+      type: "touchMove",
+      touchPoints: [{ id: 1, x: x + i * 15, y: y + i * 5 }],
+    });
+  await client.send("Input.dispatchTouchEvent", {
+    type: "touchEnd",
+    touchPoints: [],
+  });
+  await expect
+    .poll(
+      async () =>
+        Math.abs(
+          Number(await map.getAttribute("data-center-lon")) - beforePan,
+        ) * panScale,
+    )
+    .toBeGreaterThan(20);
+  expect(errors).toEqual([]);
   await page.getByRole("link", { name: "Flight Planner", exact: true }).tap();
   await expect(page).toHaveURL(/\/$/);
   await expect(

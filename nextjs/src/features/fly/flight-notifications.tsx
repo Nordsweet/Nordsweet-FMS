@@ -192,7 +192,7 @@ export function FlightNotifications({
         commands,
         now,
         flightGuidanceAvailable({ now, phase: navigation.phase, fix }),
-        holdingActive || !!next?.patternId,
+        holdingActive,
       );
   }, [navigation, fix, turns, plan, cruiseAltitudeFt, progress, now]);
   return (

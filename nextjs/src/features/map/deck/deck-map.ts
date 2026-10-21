@@ -113,7 +113,9 @@ export class DeckMap {
         scrollZoom: { speed: 0.01, smooth: true },
         dragRotate: true,
         touchRotate: false,
-        inertia: true,
+        // Pinch-end samples can share a timestamp on iPad: inertial zoom then
+        // divides by zero and poisons the camera for every subsequent gesture.
+        inertia: false,
       },
       // Everything is flat and drawn in layer order: depth testing would only hide coplanar layers.
       parameters: { depthCompare: "always", depthWriteEnabled: false },

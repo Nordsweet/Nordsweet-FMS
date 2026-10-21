@@ -86,6 +86,7 @@ export function flightGuidance(input: {
     groundSpeedKt: number | null;
     trackDeg: number | null;
     headingTrueDeg?: number;
+    trueAirspeedKt?: number;
     altitudeFt: number | null;
     verticalSpeedFpm?: number | null;
   } | null;
