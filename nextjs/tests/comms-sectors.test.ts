@@ -116,6 +116,9 @@ describe("radio sectors and nested local services", () => {
         (r) => r.frequencyMhz,
       ),
     ).toEqual(["119.950"]);
+    expect(
+      zoneRows(zone("FIR WARSZAWA", "", { frequencies: [] }), airport),
+    ).toEqual([]);
   });
   it("looks along the sequenced returning leg and detects altitude-driven exits", () => {
     const route = [

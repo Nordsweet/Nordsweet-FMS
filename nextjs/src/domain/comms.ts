@@ -126,7 +126,8 @@ export function zoneRows(z: AirspaceFeature, airport: AirportRows) {
   }
   // Legacy mapped only Kraków FIS West/East to EPKK; every Polish FIS unit has sector rows.
   const unit = FIS_UNITS.find(([pattern]) => pattern.test(name));
-  if (unit && isEnrouteInfo(z)) {
+  // A FIR identifies the national airspace, not the responsible regional FIS unit.
+  if (unit && kind(z) === "FIS") {
     const rows = airport(unit[1], ["fiss"]);
     const word = /\b([NSEW])(?:ORTH|OUTH|AST|EST)?\b/.exec(
       name.toUpperCase(),
