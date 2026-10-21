@@ -11,15 +11,54 @@ function Rows({ rows }: { rows: RadioRow[] }) {
         {t("fly.comms.notAvailable")}
       </p>
     );
-  return rows.map((r, i) => (
-    <div key={i} className="flex justify-between gap-3 text-sm">
-      <span>
-        {r.callsign || t("fly.comms.noCallsign")}
-        {r.sector && ` / ${r.sector}`}
-      </span>
-      <strong className="font-mono">{r.frequencyMhz} MHz</strong>
-    </div>
-  ));
+  return rows.map((r, i) =>
+    /^(bratislava[\s-]+information|tatry[\s-]+tower)$/i.test(
+      r.callsign.trim(),
+    ) ? (
+      <details key={i} className="rounded-lg border p-3 text-sm">
+        <summary className="text-primary cursor-pointer">
+          <span>{r.callsign}</span>
+          {r.sector && ` / ${r.sector}`}
+          <strong className="float-right ml-3 font-mono">
+            {r.frequencyMhz} MHz
+          </strong>
+          <span className="text-muted-foreground mt-1 block text-xs">
+            {t("fly.comms.slovakGuide")}
+          </span>
+        </summary>
+        <dl className="mt-3 grid gap-3 border-t pt-3">
+          {(
+            [
+              ["greeting", "Dobrý deň"],
+              ["thanks", "Ďakujem"],
+              ["goodbye", "Dovidenia"],
+              ["hearYou", "Dopočutia"],
+            ] as const
+          ).map(([key, phrase]) => (
+            <div key={key}>
+              <dt className="text-muted-foreground text-xs">
+                {t(`fly.comms.slovak.${key}`)}
+              </dt>
+              <dd>
+                <strong lang="sk">{phrase}</strong>
+                <span className="text-muted-foreground ml-2 text-xs">
+                  {t(`fly.comms.slovak.${key}Pronunciation`)}
+                </span>
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </details>
+    ) : (
+      <div key={i} className="flex justify-between gap-3 text-sm">
+        <span>
+          {r.callsign || t("fly.comms.noCallsign")}
+          {r.sector && ` / ${r.sector}`}
+        </span>
+        <strong className="font-mono">{r.frequencyMhz} MHz</strong>
+      </div>
+    ),
+  );
 }
 
 const heading =
