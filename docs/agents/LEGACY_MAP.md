@@ -185,6 +185,8 @@ merged to `develop`. One owner per row.
 
 | Slovak COMMs courtesy guide | done | Codex 2026-10-22 | PR #82: clickable offline Slovak greetings/farewells with PL/EN meanings and pronunciation; Tatry-Tower spelling supported. Full CI 39692212749 passed; browser test covers both guides and frequency handoffs. |
 
+| Poprad LZTT AIP data | claimed | Codex 2026-10-22 | Audit and supplement official LPS AIP airport/chart data, effective 01 OCT 2026. |
+
 ## 5. Known legacy bugs / intended differences
 
 Record every one you find here (and assert it in a test).
