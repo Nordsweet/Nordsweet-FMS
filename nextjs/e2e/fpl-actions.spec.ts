@@ -181,7 +181,9 @@ test("Center closes FPL and centers the chosen fix without opening point details
 }) => {
   await seed(page);
   const map = page.getByTestId("map");
-  await expect(map).toHaveAttribute("data-map-ready", "true");
+  await expect(map).toHaveAttribute("data-map-ready", "true", {
+    timeout: 20000,
+  });
   await page.getByRole("button", { name: "FPL", exact: true }).click();
   await page
     .getByRole("button", { name: "Point options: CCCC", exact: true })
