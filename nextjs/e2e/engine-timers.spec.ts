@@ -24,8 +24,8 @@ test("engine warm-up and stationary cool-down count down and movement resets coo
               callback({
                 timestamp: Date.now(),
                 coords: {
-                  latitude: 50.077778,
-                  longitude: 19.784722,
+                  latitude: 50.12,
+                  longitude: 19.74,
                   accuracy: 5,
                   altitude: 240,
                   altitudeAccuracy: 5,
