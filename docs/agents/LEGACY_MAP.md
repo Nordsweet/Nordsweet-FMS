@@ -183,7 +183,7 @@ merged to `develop`. One owner per row.
 
 | Repeated landings / touch and go | done | Codex 2026-10-22 | PR #81: 10 ft contact / 5 kt loss / 100 ft climb, numbered minimum-speed-time popups; repeated takeoffs/landings and logbook landing totals persisted locally/server-side. CI 39688675717 passed: 689 unit, 14 server, 150 browser tests. |
 
-| Slovak COMMs courtesy guide | claimed | Codex 2026-10-22 | Click Bratislava Information / Tatry Tower for local greetings and farewells. |
+| Slovak COMMs courtesy guide | done | Codex 2026-10-22 | PR #82: clickable offline Slovak greetings/farewells with PL/EN meanings and pronunciation; Tatry-Tower spelling supported. Full CI 39692212749 passed; browser test covers both guides and frequency handoffs. |
 
 ## 5. Known legacy bugs / intended differences
 
