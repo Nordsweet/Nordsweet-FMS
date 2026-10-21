@@ -36,6 +36,10 @@ export function useWindEstimation() {
           : null,
         Date.now(),
       );
+      if (fix)
+        useWind
+          .getState()
+          .locate({ lat: fix.lat, lon: fix.lon, at: Date.parse(fix.time) });
       return;
     }
     useWind.getState().observe(
@@ -60,5 +64,9 @@ export function useWindEstimation() {
         : null,
       Date.now(),
     );
+    if (fix)
+      useWind
+        .getState()
+        .locate({ lat: fix.lat, lon: fix.lon, at: Date.parse(fix.time) });
   }, [session, airborne, fix, error, source]);
 }

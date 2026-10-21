@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { airrepSchema, type Airrep } from "~/data/airrep";
 
 import { env } from "~/env";
 import { correctTrafficMetadata } from "~/domain/traffic-metadata";
@@ -123,6 +124,22 @@ export type CommunityAtisReport = {
 };
 
 export const aviationApi = {
+  submitAirrep: (report: Airrep, signal?: AbortSignal) =>
+    send(
+      "/community/airrep",
+      z.object({ id: z.string() }),
+      new URL("/community/airrep", env.NEXT_PUBLIC_AVIATION_API_URL),
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(report),
+        signal,
+      },
+    ),
+  airreps: (source: "gps" | "simulator" = "gps") =>
+    get("/community/airrep", z.object({ reports: z.array(airrepSchema) }), {
+      source,
+    }),
   login: (credentials: { username: string; password: string }) =>
     post("/auth/login", loginResponseSchema, credentials),
   /** 401 = expired or revoked: the central handler has already ended the session. */

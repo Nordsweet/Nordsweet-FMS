@@ -12,6 +12,8 @@ type WindState = {
   session: string | null;
   mode: "gps" | "simulator";
   state: WindEstimation;
+  position: { lat: number; lon: number; at: number } | null;
+  locate: (position: { lat: number; lon: number; at: number }) => void;
   observe: (
     session: string | null,
     airborne: boolean,
@@ -30,6 +32,9 @@ export const useWind = create<WindState>()((set) => ({
   session: null,
   mode: "gps",
   state: emptyWind(),
+  position: null,
+  locate: (position) =>
+    set((s) => (s.state.estimate?.at === position.at ? { position } : s)),
   observe: (session, airborne, sample, now) =>
     set((s) => {
       const state =

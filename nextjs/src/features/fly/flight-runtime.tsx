@@ -18,6 +18,7 @@ import { useCruiseAltitude } from "~/stores/cruise-altitude";
 import { flightGuidanceAvailable } from "~/domain/flight-guidance";
 import { fredaAvailable } from "~/domain/freda";
 import { useTerrainHeight } from "./use-terrain-height";
+import { recordAirrep, useAirrepUpload } from "./use-airrep";
 
 const useAirport = (code: string | undefined) =>
   useQuery({
@@ -28,6 +29,7 @@ const useAirport = (code: string | undefined) =>
 /** Mounted once above routes: leg sequencing, recording and flight timers continue across screens. */
 export function FlightRuntime() {
   useWindEstimation();
+  useAirrepUpload();
   useEmergencyTelemetry();
   const flight = useInFlight();
   const plan = useFlight((s) => s.flight);
@@ -135,6 +137,22 @@ export function FlightRuntime() {
       turns,
       current.holding,
     );
+    if (progress && progress.activeLeg > current.activeLeg) {
+      for (let i = current.activeLeg + 1; i <= progress.activeLeg; i++)
+        recordAirrep(flight.startedAt, current.route, i, fix);
+    }
+    const last = current.route.at(-1);
+    if (
+      last &&
+      current.activeLeg === current.route.length - 2 &&
+      distanceNm(last, fix) <= 0.3
+    )
+      recordAirrep(
+        flight.startedAt,
+        current.route,
+        current.route.length - 1,
+        fix,
+      );
     if (progress && progress.activeLeg !== flight.activeLeg)
       setActiveLeg(progress.activeLeg);
     record({
