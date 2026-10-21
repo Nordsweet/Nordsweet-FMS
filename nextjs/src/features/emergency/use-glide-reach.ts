@@ -22,6 +22,7 @@ export function useGlideReach(
   fix: GpsFix | null,
   samples: EmergencyMeasurement[],
   now: number,
+  publishStatus = true,
 ) {
   const windState = useWind(),
     clearance = useGlide((s) => s.clearanceM),
@@ -225,7 +226,24 @@ export function useGlideReach(
   const heightSource = measurement?.source ?? "instrument",
     missing = region.data?.missing ?? 0;
   useEffect(() => {
-    publish({ sessionId, status, reach, input, source: heightSource, missing });
-  }, [publish, sessionId, status, reach, input, heightSource, missing]);
+    if (publishStatus)
+      publish({
+        sessionId,
+        status,
+        reach,
+        input,
+        source: heightSource,
+        missing,
+      });
+  }, [
+    publishStatus,
+    publish,
+    sessionId,
+    status,
+    reach,
+    input,
+    heightSource,
+    missing,
+  ]);
   return { reach, input, wind, source: heightSource, missing, status };
 }

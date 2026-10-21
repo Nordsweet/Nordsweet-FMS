@@ -388,6 +388,10 @@ export function MapView({
       emergencyRange: emergencyMap.footprint.map((polygon) => ({ polygon })),
       emergencyBoundary: emergencyMap.boundary.map((path) => ({ path })),
       emergencyAirports: emergencyMap.reachable.map((a) => [a.lon, a.lat]),
+      descentAirfields: emergencyMap.descentAirfields.map((a) => [
+        a.lon,
+        a.lat,
+      ]),
     });
   }, [
     ready,
@@ -396,6 +400,7 @@ export function MapView({
     emergencyMap.footprint,
     emergencyMap.boundary,
     emergencyMap.reachable,
+    emergencyMap.descentAirfields,
   ]);
   const navpoints = useQuery(api.navpoints.list.queryOptions(undefined));
   const procedures = useQuery(api.procedures.all.queryOptions(undefined));
@@ -1268,6 +1273,9 @@ export function MapView({
       data-terrain-3d={settings.terrain3d ? "true" : "false"}
       data-terrain-altitude-ft={clearanceAltitudeFt ?? ""}
       data-glide-cells={emergencyMap.footprint.length}
+      data-descent-airfields={emergencyMap.descentAirfields
+        .map((a) => a.ident)
+        .join(" ")}
     >
       {navigation.startedAt && !emergencyMap.active && (
         <FlightNotifications

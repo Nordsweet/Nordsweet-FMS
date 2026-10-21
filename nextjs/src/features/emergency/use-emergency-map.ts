@@ -9,6 +9,7 @@ import { usePlan } from "~/features/plan/use-plan";
 import { emergencyApproach, emergencyCandidates } from "~/domain/emergency";
 import { distanceNm } from "~/domain/geo";
 import { useGlideReach } from "./use-glide-reach";
+import { useDescentGlide } from "./use-descent-glide";
 import { glideApproachClear } from "~/domain/glide-reach";
 
 /** Live overlays are recomputed from fresh inputs; persisted targets never reactivate stale guidance. */
@@ -53,20 +54,23 @@ export function useEmergencyMap(
     measurements,
     now,
   );
+  const descent = useDescentGlide(fix, error, now, !active);
+  const airfieldGlide = active ? glide : descent;
   const reachable = useMemo(() => {
-    if (!active || !fix || !fresh || !glide.reach || !glide.input) return [];
+    if (!fix || !fresh || !airfieldGlide.reach || !airfieldGlide.input)
+      return [];
     const nearby = airports.filter((a) =>
       a.runways.some(
         (r) =>
           r.threshold &&
-          distanceNm(fix, r.threshold) * 1852 <= glide.input!.radiusM,
+          distanceNm(fix, r.threshold) * 1852 <= airfieldGlide.input!.radiusM,
       ),
     );
-    return emergencyCandidates(nearby, fix, glide.input.tasKt)
+    return emergencyCandidates(nearby, fix, airfieldGlide.input.tasKt)
       .filter((candidate) =>
         glideApproachClear(
-          glide.reach!,
-          glide.input!,
+          airfieldGlide.reach!,
+          airfieldGlide.input!,
           candidate.approach.points,
           candidate.target.threshold,
         ),
@@ -75,7 +79,7 @@ export function useEmergencyMap(
         airports.find((a) => a.ident === candidate.target.airport)!,
       )
       .filter((a, i, all) => all.findIndex((b) => b.ident === a.ident) === i);
-  }, [active, airports, fix, fresh, glide.reach, glide.input]);
+  }, [airports, fix, fresh, airfieldGlide.reach, airfieldGlide.input]);
   return {
     active,
     target,
@@ -96,5 +100,6 @@ export function useEmergencyMap(
     boundary: glide.reach?.paths ?? [],
     glide,
     reachable: active && fresh ? reachable : [],
+    descentAirfields: !active && fresh ? reachable : [],
   };
 }
