@@ -100,6 +100,64 @@ async function turn(page: Page) {
   }
 }
 
+test("AIRREP retries a persisted observation after reload without changing measurement time", async ({
+  page,
+}) => {
+  await seed(page);
+  const report = {
+    id: "flight.KELEL.1",
+    flight_started_at: "2026-10-17T11:00:00.000Z",
+    waypoint: "KELEL",
+    passed_at: "2026-10-17T11:59:00.000Z",
+    observed_at: "2026-10-17T11:58:00.000Z",
+    source: "gps",
+    lat: 50,
+    lon: 20,
+    altitude_ft: 4000,
+    wind_from_deg: 270,
+    wind_speed_kt: 12,
+    residual_kt: 0.5,
+  };
+  await page.addInitScript((report) => {
+    if (!localStorage.getItem("nordsweet.airrep.v1"))
+      localStorage.setItem(
+        "nordsweet.airrep.v1",
+        JSON.stringify({
+          version: 0,
+          state: {
+            pending: [{ owner: "admin", report }],
+            sent: [],
+          },
+        }),
+      );
+  }, report);
+  let available = false;
+  const received: unknown[] = [];
+  await page.route("**/community/airrep", async (route) => {
+    received.push(route.request().postDataJSON() as unknown);
+    if (!available) return route.abort();
+    await route.fulfill({ json: { id: report.id } });
+  });
+  await page.goto("/fly");
+  await expect(page.getByTestId("wind-tile")).toBeVisible();
+  await expect.poll(() => received.length).toBeGreaterThan(0);
+  expect(received[0]).toEqual(report);
+  available = true;
+  await page.reload();
+  await expect(page.getByTestId("wind-tile")).toBeVisible();
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const saved = JSON.parse(
+          localStorage.getItem("nordsweet.airrep.v1")!,
+        ) as { state: { pending: unknown[] } };
+        return saved.state.pending.length;
+      }),
+    )
+    .toBe(0);
+  expect(received.at(-1)).toEqual(report);
+});
+
 test("GPS wind tile shows downwind arrow and FROM/kt, then expires and resets on reload", async ({
   page,
   context,
