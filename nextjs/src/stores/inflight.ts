@@ -1,5 +1,6 @@
 import { fuelUnit, formatFuel } from "~/domain/fuel-units";
 import { airElapsedMs, type FredaFuel } from "~/domain/freda";
+import { editFplPoint, type FplAction } from "~/domain/fpl-actions";
 import { create } from "zustand";
 import { retainPassedRoute, type RouteHistory } from "~/domain/route-history";
 import { safeWaypointIndex } from "~/domain/waypoint-insertion";
@@ -163,6 +164,12 @@ type InFlight = {
   ) => void;
   end: () => void;
   setActiveLeg: (leg: number) => void;
+  editFplPoint: (
+    index: number,
+    action: FplAction,
+    position: LatLon | null,
+    performance?: TurnPerformance,
+  ) => void;
   goDirect: (
     targetIndex: number,
     position: LatLon,
@@ -618,6 +625,41 @@ export const useInFlight = create<InFlight>()(
           patternPreviousFix: null,
         })),
       setActiveLeg: (activeLeg) => set({ activeLeg }),
+      editFplPoint: (index, action, position, performance) =>
+        set((s) => {
+          const edit = editFplPoint(
+            s.route,
+            s.activeLeg,
+            index,
+            action,
+            position,
+          );
+          if (!edit) return s;
+          const holdFix = s.holding?.config.fix;
+          return {
+            route: edit.route,
+            activeLeg: edit.activeLeg,
+            routeHistory: edit.redirected
+              ? retainPassedRoute(
+                  s.routeHistory,
+                  s.route,
+                  s.activeLeg,
+                  performance,
+                )
+              : s.routeHistory,
+            holding:
+              edit.redirected ||
+              (holdFix &&
+                !edit.route.some(
+                  (p) =>
+                    p.ident === holdFix.ident &&
+                    p.lat === holdFix.lat &&
+                    p.lon === holdFix.lon,
+                ))
+                ? null
+                : s.holding,
+          };
+        }),
       goDirect: (targetIndex, position, performance) =>
         set((s) => ({
           routeHistory: retainPassedRoute(

@@ -31,6 +31,7 @@ import { cn } from "~/lib/utils";
 import { MapWorkspace } from "~/features/map/map-workspace";
 import { useFlight } from "~/stores/flight";
 import { sameFlightPoint } from "~/domain/waypoint-insertion";
+import type { FplAction } from "~/domain/fpl-actions";
 import { useInFlight } from "~/stores/inflight";
 import { useEmergency, emergencyScope } from "~/stores/emergency";
 
@@ -334,6 +335,21 @@ export function FlyPage() {
       flight.cruiseAltitudeFt,
     ],
   );
+  const fplPosition =
+    fix &&
+    !gpsError &&
+    !fix.paused &&
+    Math.abs(now - Date.parse(fix.time)) <= 20000
+      ? fix
+      : null;
+  const editFplWaypoint = (index: number, action: FplAction) => {
+    const position =
+      fplPosition &&
+      Math.abs(Date.now() - Date.parse(fplPosition.time)) <= 20000
+        ? fplPosition
+        : null;
+    inFlight.editFplPoint(index, action, position, turns);
+  };
   const content: Record<Panel, React.ReactNode> = {
     emer: <EmergencyPanel phase={phase} />,
     fpl:
@@ -406,24 +422,68 @@ export function FlyPage() {
                         >
                           <Trash2 className="size-4" aria-hidden="true" />
                         </button>
-                        <button
-                          type="button"
-                          aria-label={t("fly.fpl.options", {
-                            point: point.ident,
-                          })}
-                          className="flex size-9 items-center justify-center rounded-lg text-white hover:bg-white/10 focus-visible:ring-2"
-                          onClick={() => {
-                            const airport = routeData?.airport(point.ident);
-                            useMapSettings.getState().inspectPoint({
-                              ...point,
-                              name: airport?.name ?? point.ident,
-                              kind: airport ? "airport" : "point",
-                            });
-                            setPanel(null);
-                          }}
-                        >
-                          <Ellipsis className="size-5" aria-hidden="true" />
-                        </button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              type="button"
+                              aria-label={t("fly.fpl.options", {
+                                point: point.ident,
+                              })}
+                              className="flex size-9 items-center justify-center rounded-lg text-white hover:bg-white/10 focus-visible:ring-2"
+                            >
+                              <Ellipsis className="size-5" aria-hidden="true" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onSelect={() => {
+                                useMapSettings.getState().inspectPoint({
+                                  ...point,
+                                  name: point.ident,
+                                  kind: "point",
+                                  centerOnly: true,
+                                });
+                                setPanel(null);
+                              }}
+                            >
+                              {t("fly.fpl.center")}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              disabled={
+                                index <= inFlight.activeLeg ||
+                                index === inFlight.route.length - 1 ||
+                                (index === inFlight.activeLeg + 1 &&
+                                  !fplPosition)
+                              }
+                              onSelect={() => editFplWaypoint(index, "skip")}
+                            >
+                              {t("fly.fpl.skip")}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              disabled={
+                                index === inFlight.activeLeg + 1 && !fplPosition
+                              }
+                              onSelect={() =>
+                                editFplWaypoint(index, "set-next")
+                              }
+                            >
+                              {t("fly.fpl.setNext")}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onSelect={() => {
+                                const airport = routeData?.airport(point.ident);
+                                useMapSettings.getState().inspectPoint({
+                                  ...point,
+                                  name: airport?.name ?? point.ident,
+                                  kind: airport ? "airport" : "point",
+                                });
+                                setPanel(null);
+                              }}
+                            >
+                              {t("fly.fpl.details")}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     )}
                   </div>

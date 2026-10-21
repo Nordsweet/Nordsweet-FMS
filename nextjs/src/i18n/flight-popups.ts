@@ -12,6 +12,10 @@ export const flightPopupsEn = {
   "fly.popup.cruiseNo": "No",
   "fly.fpl.remove": "Remove {point} from route",
   "fly.fpl.options": "Point options: {point}",
+  "fly.fpl.center": "Center",
+  "fly.fpl.skip": "Skip",
+  "fly.fpl.setNext": "Set Next",
+  "fly.fpl.details": "Point details",
   "fly.traffic.ta":
     "Traffic advisory: {callsign}, {clock} o'clock, {distance} NM, {altitude} ft",
   "fly.traffic.close":
@@ -58,6 +62,10 @@ export const flightPopupsPl: typeof flightPopupsEn = {
   "fly.popup.cruiseNo": "No",
   "fly.fpl.remove": "Usuń {point} z trasy",
   "fly.fpl.options": "Opcje punktu: {point}",
+  "fly.fpl.center": "Wyśrodkuj",
+  "fly.fpl.skip": "Pomiń",
+  "fly.fpl.setNext": "Ustaw jako następny",
+  "fly.fpl.details": "Informacje o punkcie",
   "fly.traffic.ta":
     "Traffic advisory: {callsign}, godzina {clock}, {distance} NM, {altitude} ft",
   "fly.traffic.close":

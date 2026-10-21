@@ -8,10 +8,10 @@ const route = [
   { ident: "CCCC", lat: 50.1, lon: 19.8 },
   { ident: "EPKK", lat: 50.0777, lon: 19.7848 },
 ];
-async function seed(page: Page) {
+async function seed(page: Page, activeLeg = 1, withGps = true) {
   await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (r) => r.abort());
   await page.addInitScript(
-    ({ route, flight, timers }) => {
+    ({ route, flight, timers, activeLeg, withGps }) => {
       localStorage.setItem("nordsweet.language.v1", "en");
       // These scenarios exercise FPL controls and route geometry. Reference-layer
       // rendering has its own browser coverage; keep software WebGL work bounded.
@@ -45,7 +45,7 @@ async function seed(page: Page) {
             version: 1,
             state: {
               route,
-              activeLeg: 1,
+              activeLeg,
               phase: "cruise",
               startedAt: new Date().toISOString(),
               timers,
@@ -53,6 +53,7 @@ async function seed(page: Page) {
           }),
         );
       navigator.geolocation.watchPosition = (success) => {
+        if (!withGps) return 1;
         const sample = () =>
           success({
             timestamp: Date.now(),
@@ -80,6 +81,8 @@ async function seed(page: Page) {
         waypoints: [route[1]!, route[2]!],
       },
       timers: newTimers(),
+      activeLeg,
+      withGps,
     },
   );
   await page.goto("/fly");
@@ -144,6 +147,9 @@ test("every FPL row has red remove and white options; options open the existing 
   expect(box.x + box.width).toBeLessThanOrEqual(390);
   await page.screenshot({ path: testInfo.outputPath("fpl-actions-phone.png") });
   await options.click();
+  await page
+    .getByRole("menuitem", { name: "Point details", exact: true })
+    .click();
   await expect(fpl).toHaveCount(0);
   const details = page.getByRole("dialog", { name: "Details", exact: true });
   await expect(details).toContainText("CCCC");
@@ -170,6 +176,103 @@ test("every FPL row has red remove and white options; options open the existing 
   ).toHaveCount(0);
 });
 
+test("Center closes FPL and centers the chosen fix without opening point details", async ({
+  page,
+}) => {
+  await seed(page);
+  const map = page.getByTestId("map");
+  await expect(map).toHaveAttribute("data-map-ready", "true");
+  await page.getByRole("button", { name: "FPL", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Point options: CCCC", exact: true })
+    .click();
+  await page.getByRole("menuitem", { name: "Center", exact: true }).click();
+  await expect(
+    page.getByRole("dialog", { name: "FPL", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("dialog", { name: "Details", exact: true }),
+  ).toHaveCount(0);
+  await expect
+    .poll(async () => Number(await map.getAttribute("data-center-lat")))
+    .toBeCloseTo(50.1, 4);
+  await expect
+    .poll(async () => Number(await map.getAttribute("data-center-lon")))
+    .toBeCloseTo(19.8, 4);
+  expect((await active(page)).route.map((p) => p.ident)).toEqual(
+    route.map((p) => p.ident),
+  );
+});
+
+for (const action of ["Skip", "Set Next"]) {
+  test(`${action} on a future fix preserves the active leg and works without GPS`, async ({
+    page,
+  }) => {
+    await seed(page, 0, false);
+    await page.getByRole("button", { name: "FPL", exact: true }).click();
+    await page
+      .getByRole("button", {
+        name: `Point options: ${action === "Skip" ? "CCCC" : "EPKK"}`,
+        exact: true,
+      })
+      .click();
+    await page.getByRole("menuitem", { name: action, exact: true }).click();
+    await expect
+      .poll(async () => (await active(page)).route.map((p) => p.ident))
+      .toEqual(["AAAA", "BBBB", "EPKK"]);
+    expect((await active(page)).activeLeg).toBe(0);
+    await expect(
+      page.getByRole("listitem").filter({ hasText: "BBBB" }),
+    ).toHaveAttribute("aria-current", "step");
+    await page
+      .getByRole("button", { name: "Point options: BBBB", exact: true })
+      .click();
+    await expect(
+      page.getByRole("menuitem", { name: "Skip", exact: true }),
+    ).toHaveAttribute("data-disabled");
+    await expect(
+      page.getByRole("menuitem", { name: "Set Next", exact: true }),
+    ).toHaveAttribute("data-disabled");
+    await page.keyboard.press("Escape");
+    await page.reload();
+    expect((await active(page)).route.map((p) => p.ident)).toEqual([
+      "AAAA",
+      "BBBB",
+      "EPKK",
+    ]);
+  });
+  test(`${action} on the active target uses the live position and preserves flown history`, async ({
+    page,
+  }) => {
+    await seed(page);
+    await expect(page.getByTestId("status-gs")).toContainText("100");
+    await page.getByRole("button", { name: "FPL", exact: true }).click();
+    await page
+      .getByRole("button", { name: "Point options: CCCC", exact: true })
+      .click();
+    await page.getByRole("menuitem", { name: action, exact: true }).click();
+    const expected =
+      action === "Skip" ? ["DCT", "EPKK"] : ["DCT", "CCCC", "EPKK"];
+    await expect
+      .poll(async () => (await active(page)).route.map((p) => p.ident))
+      .toEqual(expected);
+    const state = await active(page);
+    expect(state.route[0]).toMatchObject({ lat: 50.04, lon: 19.8 });
+    expect(state.activeLeg).toBe(0);
+    expect(state.routeHistory?.lastPassed.ident).toBe("BBBB");
+    await expect(page.locator(".legacy-map")).toHaveAttribute(
+      "data-route-history-paths",
+      "2",
+    );
+    await page.reload();
+    await expect(page.locator(".legacy-map")).toHaveAttribute(
+      "data-route-history-last-fix",
+      "BBBB",
+    );
+    expect((await active(page)).route.map((p) => p.ident)).toEqual(expected);
+  });
+}
+
 test("Direct and Divert keep passed route geometry and its straight connector after reload", async ({
   page,
 }) => {
@@ -179,6 +282,9 @@ test("Direct and Divert keep passed route geometry and its straight connector af
   await page.getByRole("button", { name: "FPL", exact: true }).click();
   await page
     .getByRole("button", { name: "Point options: EPKK", exact: true })
+    .click();
+  await page
+    .getByRole("menuitem", { name: "Point details", exact: true })
     .click();
   const details = page.getByRole("dialog", { name: "Details", exact: true });
   await details
