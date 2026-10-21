@@ -155,5 +155,29 @@ for (const available of [true, false]) {
       await expect(profile.locator("[data-terrain-section]")).toHaveCount(0);
     }
     await expect(table.locator('[aria-current="step"]')).toHaveCount(1);
+    if (available) {
+      const tod = profile
+        .locator("g")
+        .filter({ has: page.locator("text", { hasText: /^TOD$/ }) })
+        .locator("circle");
+      const before = await tod.getAttribute("cx");
+      const cruise = page.getByRole("spinbutton", {
+        name: "Cruise altitude (ft)",
+        exact: true,
+      });
+      await cruise.fill("6500");
+      await cruise.press("Enter");
+      await expect(table.locator('[data-profile-event="TOD"]')).toContainText(
+        "6500",
+      );
+      await expect.poll(() => tod.getAttribute("cx")).not.toBe(before);
+      await expect(cruise).toHaveValue("6500");
+      await page.reload();
+      await page.getByRole("button", { name: "FPL", exact: true }).click();
+      await expect(cruise).toHaveValue("6500");
+      await expect(table.locator('[data-profile-event="TOD"]')).toContainText(
+        "6500",
+      );
+    }
   });
 }

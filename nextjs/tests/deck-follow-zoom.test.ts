@@ -1,6 +1,7 @@
 import { afterEach, expect, test, vi } from "vitest";
 import {
   WebMercatorViewport,
+  MapController,
   type MapViewState,
   type LinearInterpolator,
 } from "@deck.gl/core";
@@ -115,3 +116,89 @@ test.each([
     }
   },
 );
+
+test("a moving pinch ending in the same telemetry tick leaves the camera usable for another pan", () => {
+  vi.stubGlobal("window", { setTimeout: () => 0 });
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      observe = vi.fn();
+      disconnect = vi.fn();
+    },
+  );
+  const map = new DeckMap(
+    {
+      clientWidth: 1000,
+      clientHeight: 600,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    } as unknown as HTMLElement,
+    {
+      bounds: [
+        [19, 49],
+        [21, 51],
+      ],
+      padding: 0,
+      onLoad: vi.fn(),
+    },
+  );
+  type Options = ConstructorParameters<typeof MapController>[0];
+  let current = {
+    ...(camera.props.viewState as MapViewState),
+    x: 0,
+    y: 0,
+    width: 1000,
+    height: 600,
+  };
+  const controller = new MapController({
+    timeline: { getTime: () => 0 } as Options["timeline"],
+    eventManager: {
+      on: vi.fn(),
+      off: vi.fn(),
+    } as unknown as Options["eventManager"],
+    makeViewport: (props) => new WebMercatorViewport(props),
+    onStateChange: vi.fn(),
+    onViewStateChange: ({ viewState }) => {
+      current = { ...current, ...(viewState as MapViewState) };
+    },
+  });
+  try {
+    controller.setProps({
+      dragMode: "pan",
+      ...current,
+      position: undefined,
+      ...(camera.props.controller as object),
+      id: "map",
+    });
+    const send = (type: string, scale: number, x: number) =>
+      controller.handleEvent({
+        type,
+        scale,
+        offsetCenter: { x, y: 200 },
+        rotation: 0,
+        deltaTime: 100,
+        pointerType: "touch",
+        srcEvent: { preventDefault: vi.fn() },
+        stopPropagation: vi.fn(),
+      } as unknown as Parameters<MapController["handleEvent"]>[0]);
+    send("pinchstart", 1, 200);
+    send("pinchmove", 1.3, 225);
+    send("pinchend", 1.4, 230);
+    for (const key of ["longitude", "latitude", "zoom"] as const)
+      expect(Number.isFinite(current[key])).toBe(true);
+    const before = current.longitude;
+    controller.setProps({
+      dragMode: "pan",
+      ...current,
+      position: undefined,
+      ...(camera.props.controller as object),
+      id: "map",
+    });
+    send("panstart", 1, 230);
+    send("panmove", 1, 280);
+    expect(Math.abs(current.longitude - before)).toBeGreaterThan(0.001);
+  } finally {
+    controller.finalize();
+    map.destroy();
+  }
+});

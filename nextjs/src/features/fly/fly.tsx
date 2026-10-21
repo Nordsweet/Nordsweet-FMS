@@ -22,7 +22,13 @@ import { magneticVariationDeg, trueToMagneticDeg } from "~/domain/magnetic";
 import { navigationProgress } from "~/domain/holding";
 import { summarizeTrack } from "~/domain/track";
 import { ChecklistsPage } from "~/features/checklists/checklists";
-import { fmt, fmtMinutes } from "~/features/plan/fields";
+import { fmt, fmtMinutes, NumberField } from "~/features/plan/fields";
+import { useCruiseAltitude } from "~/stores/cruise-altitude";
+import {
+  altitudeRestriction,
+  formatRoutePoint,
+  pointKey,
+} from "~/domain/route-plan";
 import { PerformanceSection } from "~/features/plan/performance";
 import { AirportTaxi } from "~/features/plan/taxi";
 import { usePlan } from "~/features/plan/use-plan";
@@ -355,6 +361,33 @@ export function FlyPage() {
     fpl:
       fplProfile && inFlight.route.some((p) => p.ident !== "DCT") ? (
         <>
+          <div className="shrink-0">
+            <NumberField
+              label={t("plan.route.tile.cruiseAltitude")}
+              unit="ft"
+              value={flight.cruiseAltitudeFt}
+              min={0}
+              step={100}
+              onChange={(altitudeFt) =>
+                useCruiseAltitude.getState().setAltitude(
+                  altitudeFt,
+                  (plan?.points ?? [])
+                    .filter(
+                      (p) =>
+                        altitudeRestriction(p) !== null ||
+                        p.patternId !== undefined ||
+                        p.kind === "airport" ||
+                        p.kind === "threshold",
+                    )
+                    .flatMap((p) => [
+                      pointKey(p),
+                      formatRoutePoint(p).toUpperCase(),
+                    ]),
+                  true,
+                )
+              }
+            />
+          </div>
           <FlightPlanTable
             actions
             label={t("mapplanner.points")}

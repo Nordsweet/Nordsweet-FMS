@@ -16,12 +16,35 @@ type MonitorStore = {
     now: number,
   ) => void;
   respond: (accept: boolean, protectedKeys?: readonly string[]) => void;
+  setAltitude: (
+    altitudeFt: number,
+    protectedKeys?: readonly string[],
+    allFuture?: boolean,
+  ) => void;
 };
 
 /** Shared by Map/Fly; reload starts a fresh two-minute observation rather than assuming continuity. */
 export const useCruiseAltitude = create<MonitorStore>()((set, get) => ({
   state: emptyCruiseAltitudeMonitor,
   observedAt: 0,
+  setAltitude: (altitudeFt, protectedKeys = [], allFuture = false) => {
+    if (!Number.isFinite(altitudeFt) || altitudeFt < 0) return;
+    const navigation = useInFlight.getState();
+    const change = changedCruiseAltitude(
+      useFlight.getState().flight,
+      altitudeFt,
+      navigation.route,
+      navigation.activeLeg,
+      [
+        ...protectedKeys,
+        ...(navigation.divertAirport ? [navigation.divertAirport] : []),
+      ],
+      allFuture,
+    );
+    useFlight.getState().update(change.patch);
+    useInFlight.setState({ route: change.route });
+    set({ state: emptyCruiseAltitudeMonitor });
+  },
   observe: (input, now) =>
     set((s) => ({
       state: observeCruiseAltitude(s.state, input),
@@ -37,18 +60,7 @@ export const useCruiseAltitude = create<MonitorStore>()((set, get) => ({
       state.context === `${navigation.startedAt}:${flight.cruiseAltitudeFt}` &&
       Date.now() - observedAt <= 20000;
     if (accept && valid) {
-      const change = changedCruiseAltitude(
-        flight,
-        state.offeredFt,
-        navigation.route,
-        navigation.activeLeg,
-        [
-          ...protectedKeys,
-          ...(navigation.divertAirport ? [navigation.divertAirport] : []),
-        ],
-      );
-      useFlight.getState().update(change.patch);
-      useInFlight.setState({ route: change.route });
+      get().setAltitude(state.offeredFt, protectedKeys);
     }
     set({
       state: {

@@ -52,3 +52,35 @@ it("an expired prompt cannot accept a no-longer-current altitude", () => {
   useCruiseAltitude.getState().respond(true);
   expect(useFlight.getState().flight.cruiseAltitudeFt).toBe(5000);
 });
+it("manual FPL edits update all future free levels, retaining restrictions, past points and the circuit", () => {
+  useFlight.getState().update({
+    waypointAltitudes: { FREE: 3500, LIMIT: 4000 },
+    pointRestrictions: {
+      LIMIT: { altitudeFt: 4000, altitudeMode: "at", speedKt: null },
+    },
+  });
+  useInFlight.setState({
+    route: [
+      { ident: "PAST", lat: 50, lon: 19, altitudeFt: 5000 },
+      { ident: "FREE", lat: 51, lon: 20, altitudeFt: 3500 },
+      { ident: "LIMIT", lat: 52, lon: 21, altitudeFt: 4000 },
+      {
+        ident: "TP1",
+        lat: 52,
+        lon: 22,
+        altitudeFt: 2000,
+        patternId: "pattern",
+      },
+    ],
+  });
+  useCruiseAltitude.getState().setAltitude(6500, [], true);
+  expect(useFlight.getState().flight.cruiseAltitudeFt).toBe(6500);
+  expect(useFlight.getState().flight.waypointAltitudes).toEqual({
+    FREE: 6500,
+    LIMIT: 4000,
+  });
+  expect(useInFlight.getState().route.map((p) => p.altitudeFt)).toEqual([
+    5000, 6500, 4000, 2000,
+  ]);
+  expect(useInFlight.getState().activeLeg).toBe(0);
+});
