@@ -86,6 +86,7 @@ export function trafficPatternGeometry(
   );
   const standardFinal = destinationPoint(pattern.runway.threshold, h + 180, 2);
   let lateralOffsetNm = 0.75;
+  let firstTurnEntryNm = 0;
   // Solve using the actual tangent budgets, including wind and geodesic course convergence.
   // Equality is allowed: two 90° arcs can share one tangent and form a continuous 180° turn.
   for (let iteration = 0; iteration < 12; iteration++) {
@@ -98,6 +99,7 @@ export function trafficPatternGeometry(
       pattern.runway.threshold,
     ];
     const { candidates } = flyByRoute(canonical, turnPerformance);
+    firstTurnEntryNm = candidates.get(1)?.entryNm ?? 0;
     const required = Math.max(
       0.75,
       (candidates.get(1)?.exitNm ?? 0) + (candidates.get(2)?.entryNm ?? 0),
@@ -107,6 +109,12 @@ export function trafficPatternGeometry(
     lateralOffsetNm = required;
   }
   const downwind = destinationPoint(crosswind, side, lateralOffsetNm);
+  // Leave on the runway axis before the first circuit turn, at its inbound tangent.
+  const straightOut = destinationPoint(
+    pattern.runway.threshold,
+    h,
+    Math.max(runwayLengthNm, runwayLengthNm + 2 - firstTurnEntryNm),
+  );
   const finalDistance =
     pattern.operation !== "leave" && pattern.join === "final"
       ? pattern.finalDistanceNm
@@ -129,7 +137,10 @@ export function trafficPatternGeometry(
     crosswind,
     downwind,
     base,
-    final,
+    final:
+      pattern.operation === "leave" && pattern.join === "final"
+        ? straightOut
+        : final,
   };
   const all = ["overhead", "crosswind", "downwind", "base", "final"] as const;
   const selected = all.slice(all.indexOf(pattern.join));
@@ -137,7 +148,9 @@ export function trafficPatternGeometry(
     const legs =
       pattern.join === "overhead"
         ? (["crosswind", "downwind", "base", "final", "overhead"] as const)
-        : all.slice(1, all.indexOf(pattern.join) + 1);
+        : pattern.join === "final"
+          ? (["crosswind"] as const)
+          : all.slice(1, all.indexOf(pattern.join) + 1);
     const points: NavPoint[] = [
       {
         ...pattern.runway.threshold,
@@ -147,7 +160,7 @@ export function trafficPatternGeometry(
         altitudeFt: pattern.runway.threshold.elevationFt,
       },
       ...legs.map((leg, i) => ({
-        ...positions[leg],
+        ...(pattern.join === "final" ? straightOut : positions[leg]),
         ident: `TPD${i + 1}/${pattern.airport.ident}`,
         patternId: pattern.id,
         patternOperation: "leave" as const,
@@ -162,7 +175,7 @@ export function trafficPatternGeometry(
         crosswind: downwind,
         downwind: base,
         base: final,
-        final: pattern.runway.threshold,
+        final: crosswind,
       };
       points.push(
         ...departureExitGuides(
