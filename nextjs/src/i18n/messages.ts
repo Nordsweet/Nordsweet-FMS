@@ -1,4 +1,5 @@
 import { terrainEn, terrainPl } from "./terrain";
+import { arrivalEn, arrivalPl } from "./arrival";
 import { fplProfileEn, fplProfilePl } from "./fpl-profile";
 import { flightSyncEn, flightSyncPl } from "./flight-sync";
 import { trafficPatternEn, trafficPatternPl } from "./traffic-pattern";
@@ -18,6 +19,7 @@ import { authEn, authPl } from "./auth";
 import { sessionSyncEn, sessionSyncPl } from "./session-sync";
 
 const pl = {
+  ...arrivalPl,
   ...fplProfilePl,
   ...flightSyncPl,
   ...inspirePl,
@@ -848,6 +850,7 @@ const pl = {
 export type MessageKey = keyof typeof pl;
 
 const en: Record<MessageKey, string> = {
+  ...arrivalEn,
   ...fplProfileEn,
   ...flightSyncEn,
   ...debriefEn,

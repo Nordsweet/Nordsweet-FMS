@@ -57,6 +57,7 @@ const nordRoute = z.object({
   altitudeFt: numberish.optional(),
   cruiseSpeedKt: numberish.optional(),
   routeText: z.string().optional(),
+  flightRules: z.enum(["V", "I", "Y", "Z"]).optional(),
   sid: z.string().optional(),
   star: z.string().optional(),
   approach: z.string().optional(),
@@ -157,6 +158,7 @@ export function nordRouteFields(flight: Flight) {
     schedule,
   } = flight;
   return {
+    flightRules: flight.flightRules,
     departure,
     destination,
     waypoints,
@@ -229,6 +231,7 @@ export function flightFromNordRoute(
           }),
         }),
     sid: selection(route.sid),
+    flightRules: route.flightRules ?? "V",
     star: selection(route.star),
     approach: selection(route.approach),
     cruiseSpeedEco: route.plannerCruiseSpeedEco ?? false,
@@ -316,6 +319,7 @@ export function toNordFile(
         routeText: flight.routeText,
         approach: flight.approach ?? "NONE",
         sid: flight.sid ?? "NONE",
+        flightRules: flight.flightRules,
         star: flight.star ?? "NONE",
         plannerCruiseSpeedEco: flight.cruiseSpeedEco,
         waypointRestrictions: Object.fromEntries(

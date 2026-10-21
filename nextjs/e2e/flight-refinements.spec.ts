@@ -68,9 +68,7 @@ test("a round trip shows TOC/TOD and home-airport Traffic Pattern changes to arr
   await expect(page.locator('[data-profile-marker="TOC"]')).toBeVisible();
   await expect(page.locator('[data-profile-marker="TOD"]')).toBeVisible();
   await page.locator('[data-route-marker="EPNT"]').last().click();
-  await page
-    .getByRole("button", { name: "Traffic Pattern", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Arrival", exact: true }).click();
   await expect(
     page.getByRole("combobox", { name: "Join position", exact: true }),
   ).toBeVisible();

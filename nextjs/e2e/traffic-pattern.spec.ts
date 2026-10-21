@@ -182,9 +182,7 @@ async function open(page: Page, code = "EPNT") {
   await search.getByRole("textbox").fill(code);
   await search.getByRole("button", { name: "Search", exact: true }).click();
   const details = page.getByRole("dialog", { name: "Details", exact: true });
-  await details
-    .getByRole("button", { name: "Traffic Pattern", exact: true })
-    .click();
+  await details.getByRole("button", { name: "Arrival", exact: true }).click();
   return details.getByRole("region", { name: "Traffic Pattern", exact: true });
 }
 async function choose(page: Page, label: string, option: string) {
@@ -464,7 +462,7 @@ test("previews defaults without editing the FPL; ATIS wins over wind, Custom Fin
   expect(await savedPattern(page)).toBeNull();
   await page
     .getByRole("dialog", { name: "Details", exact: true })
-    .getByRole("button", { name: "Traffic Pattern", exact: true })
+    .getByRole("button", { name: "Arrival", exact: true })
     .click();
   await choose(page, "Pattern direction", "Right");
   await choose(page, "Join position", "Final");
