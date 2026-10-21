@@ -82,7 +82,7 @@ test("engine warm-up and stationary cool-down count down and movement resets coo
   });
   await page.clock.runFor(2000);
   await expect(timer).toHaveText(/00:5\d/);
-  for (let i = 0; i < 6; i++) await page.clock.fastForward(10000);
+  for (let i = 0; i < 6; i++) await page.clock.runFor(10000);
   await expect(cool).toContainText("1 minute elapsed");
   const box = (await cool.boundingBox())!;
   expect(box.x).toBeLessThan(200);
