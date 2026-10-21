@@ -20,6 +20,7 @@ export function WindTile({
 }) {
   const t = useT();
   const state = useWind((s) => s.state);
+  const mode = useWind((s) => s.mode);
   const [now, setNow] = useState(() => Date.now());
   const arrow = useRef<SVGSVGElement>(null);
   const estimate = state.estimate;
@@ -45,11 +46,17 @@ export function WindTile({
   const description = current
     ? direction === null
       ? t("wind.calm")
-      : t("wind.valid", {
+      : t(mode === "simulator" ? "wind.simulatorValid" : "wind.valid", {
           direction: Math.round(direction) % 360,
           speed: Math.round(mpsToKt(current.speedMps)),
         })
-    : t(status === "stale" ? "wind.stale" : "wind.collecting");
+    : t(
+        status === "stale"
+          ? "wind.stale"
+          : mode === "simulator"
+            ? "wind.simulatorCollecting"
+            : "wind.collecting",
+      );
   return (
     <div
       data-testid="wind-tile"

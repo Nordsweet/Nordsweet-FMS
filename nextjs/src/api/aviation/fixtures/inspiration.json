@@ -1,0 +1,64 @@
+{
+  "spots": [
+    {
+      "id": "hel",
+      "kind": "scenic",
+      "name": "Hel Peninsula",
+      "lat": 54.6,
+      "lon": 18.8,
+      "icao": null,
+      "interests": ["coast", "nature"],
+      "summary": "Hel Peninsula or Hel Spit is a 35-kilometre-long (22 mi) sand bar peninsula in northern Poland separating the Bay of Puck from the open Baltic Sea. It is located in Puck County of the Pomeranian Voivodeship.",
+      "photo_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d5/Hel_peninsula_landsat.jpg/330px-Hel_peninsula_landsat.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+      "page_url": "https://en.wikipedia.org/wiki/Hel_Peninsula",
+      "license": "CC BY-SA 4.0",
+      "distance_nm": null
+    },
+    {
+      "id": "leba",
+      "kind": "scenic",
+      "name": "Łeba dunes (Słowiński National Park)",
+      "lat": 54.74,
+      "lon": 17.4,
+      "icao": null,
+      "interests": ["coast", "nature"],
+      "summary": "The Slovincian National Park, also known as Słowiński National Park, is a national park in Pomeranian Voivodeship, northern Poland. It is situated on the Baltic coast, between Łeba and Rowy. The northern boundary of the park consists of 32.5 kilometres (20.2 mi) of coastline.",
+      "photo_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/b0/SlowinskiNationalParkPL.jpg/330px-SlowinskiNationalParkPL.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+      "page_url": "https://en.wikipedia.org/wiki/Slovincian_National_Park",
+      "license": "CC BY-SA 4.0",
+      "distance_nm": null
+    }
+  ],
+  "routes": [
+    {
+      "id": "baltic-coast",
+      "name": "Baltic coast",
+      "interests": ["nature", "coast", "city"],
+      "distance_nm": 67.0,
+      "stops": [
+        {
+          "id": "epgd",
+          "name": "Gdańsk Lech Wałęsa",
+          "lat": 54.3776,
+          "lon": 18.4662,
+          "icao": "EPGD"
+        },
+        {
+          "id": "hel",
+          "name": "Hel Peninsula",
+          "lat": 54.6,
+          "lon": 18.8,
+          "icao": null
+        },
+        {
+          "id": "leba",
+          "name": "Łeba dunes (Słowiński National Park)",
+          "lat": 54.74,
+          "lon": 17.4,
+          "icao": null
+        }
+      ]
+    }
+  ],
+  "sources": { "wikipedia": "ok" }
+}

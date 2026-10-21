@@ -1,5 +1,23 @@
+import { fuelUnit, formatFuel } from "~/domain/fuel-units";
+import { airElapsedMs, type FredaFuel } from "~/domain/freda";
+import { editFplPoint, type FplAction } from "~/domain/fpl-actions";
 import { create } from "zustand";
+import { retainPassedRoute, type RouteHistory } from "~/domain/route-history";
+import { safeWaypointIndex } from "~/domain/waypoint-insertion";
 import { createJSONStorage, persist } from "zustand/middleware";
+import { debriefSchema, type Debrief } from "~/data/debrief";
+import {
+  validateDebrief,
+  debriefStatistics,
+  type DebriefError,
+} from "~/domain/debrief";
+import { normalizeRegistration, formatMth } from "~/domain/aircraft";
+import { useFlight } from "./flight";
+import {
+  useAircraftState,
+  selectAircraftState,
+  aircraftStateKey,
+} from "./aircraft-state";
 
 import {
   type CruiseMode,
@@ -73,6 +91,8 @@ const DEFAULT_CONFIG: FlightConfig = {
 };
 
 type InFlight = {
+  debrief: Debrief | null;
+  acceptDebrief: (mth: string, fuel: string) => DebriefError | null;
   holding: HoldingRuntime | null;
   setHolding: (config: Holding | null) => void;
   observeHolding: (fix: HoldFix, now: number) => void;
@@ -84,6 +104,7 @@ type InFlight = {
   /** Airport selected with Divert, retained across direct-to fixes and reloads. */
   divertAirport: string | null;
   route: NavPoint[];
+  routeHistory: RouteHistory | null;
   trafficPattern: TrafficPattern | null;
   departurePattern: TrafficPattern | null;
   patternReports: PatternReport[];
@@ -107,6 +128,9 @@ type InFlight = {
   /** Next FREDA check (legacy: 30 min after take-off, then every 30 min); null before take-off. */
   fredaDueAt: number | null;
   fredaOpen: boolean;
+  fredaFuel: FredaFuel | null;
+  fredaAvailable: boolean;
+  setFredaAvailable: (available: boolean) => void;
   /** OPTIONS "Debug with GPX": shows the replay dock. */
   replayEnabled: boolean;
   setReplayEnabled: (on: boolean) => void;
@@ -136,16 +160,39 @@ type InFlight = {
     route: NavPoint[],
     pattern?: TrafficPattern | null,
     departurePattern?: TrafficPattern | null,
+    aircraftType?: string | null,
   ) => void;
   end: () => void;
   setActiveLeg: (leg: number) => void;
-  goDirect: (targetIndex: number, position: LatLon) => void;
-  goToPoint: (target: NavPoint, position: LatLon) => void;
+  editFplPoint: (
+    index: number,
+    action: FplAction,
+    position: LatLon | null,
+    performance?: TurnPerformance,
+  ) => void;
+  goDirect: (
+    targetIndex: number,
+    position: LatLon,
+    performance?: TurnPerformance,
+  ) => void;
+  goToPoint: (
+    target: NavPoint,
+    position: LatLon,
+    performance?: TurnPerformance,
+  ) => void;
   /** Replace the remaining route with the diversion airport, retaining flight timers and track. */
-  divertTo: (airport: NavPoint, position: LatLon) => void;
-  insertWaypoint: (index: number, point: NavPoint) => void;
+  divertTo: (
+    airport: NavPoint,
+    position: LatLon,
+    performance?: TurnPerformance,
+  ) => void;
+  insertWaypoint: (
+    index: number,
+    point: NavPoint,
+    position?: LatLon | null,
+  ) => void;
   /** Remove one fix and keep the current navigation leg valid without resetting flight state. */
-  removeWaypoint: (index: number) => void;
+  removeWaypoint: (index: number, position?: LatLon | null) => void;
   resumeRoute: (
     route: NavPoint[],
     position: LatLon,
@@ -158,6 +205,35 @@ type InFlight = {
 export const useInFlight = create<InFlight>()(
   persist(
     (set, get) => ({
+      debrief: null,
+      acceptDebrief: (mth, fuel) => {
+        const debrief = get().debrief;
+        if (debrief?.endedAt == null) return null;
+        const result = validateDebrief(debrief, mth, fuel);
+        if (!result.ok) return result.error;
+        const accepted = {
+          ...debrief,
+          accepted: {
+            mthAfter: result.mthAfter,
+            fuelAfterL: result.fuelAfterL,
+            at: Date.now(),
+          },
+        };
+        set({ debrief: accepted });
+        if (debrief.aircraftType)
+          useAircraftState
+            .getState()
+            .record(
+              aircraftStateKey(debrief.aircraftType, debrief.registration),
+              {
+                mth: formatMth(String(result.mthAfter))!,
+                fuelRemainingL: result.fuelAfterL,
+                fuelUsedL: debriefStatistics(accepted).fuelUsedL,
+                fuelAddedL: 0,
+              },
+            );
+        return null;
+      },
       startedAt: null,
       holding: null,
       setHolding: (config) =>
@@ -208,6 +284,7 @@ export const useInFlight = create<InFlight>()(
         }),
       divertAirport: null,
       route: [],
+      routeHistory: null,
       trafficPattern: null,
       departurePattern: null,
       patternReports: [],
@@ -322,9 +399,22 @@ export const useInFlight = create<InFlight>()(
       track: [],
       fredaDueAt: null,
       fredaOpen: false,
+      fredaFuel: null,
+      fredaAvailable: true,
+      setFredaAvailable: (fredaAvailable) =>
+        set((s) =>
+          s.fredaAvailable === fredaAvailable
+            ? s
+            : {
+                fredaAvailable,
+                ...(!fredaAvailable ? { fredaOpen: false } : {}),
+              },
+        ),
       replayEnabled: false,
       setReplayEnabled: (replayEnabled) => set({ replayEnabled }),
-      openFreda: () => set({ fredaOpen: true }),
+      openFreda: () => {
+        if (get().fredaAvailable) set({ fredaOpen: true });
+      },
       closeFreda: () =>
         set((s) => {
           let due = s.fredaDueAt;
@@ -336,8 +426,17 @@ export const useInFlight = create<InFlight>()(
         set((s) => {
           const now = Date.now();
           const takeoff = s.timers.airTime.startedAt;
+          const flight = useFlight.getState().flight;
+          const unit = fuelUnit(
+            s.debrief?.aircraftType ?? flight.aircraftId,
+            s.debrief?.fuelDisplayUnit ?? flight.fuelDisplayUnit,
+          );
           return {
             fredaOpen: false,
+            fredaFuel: {
+              fuelL: Math.max(0, fuelL),
+              airElapsedMs: airElapsedMs(s.timers.airTime, now),
+            },
             fredaDueAt:
               takeoff !== null
                 ? takeoff +
@@ -347,7 +446,7 @@ export const useInFlight = create<InFlight>()(
                 : now + FREDA_INTERVAL_MS,
             timers: addEvent(
               s.timers,
-              `FREDA Fuel check — ${Math.round(fuelL)} L`,
+              `FREDA Fuel check — ${formatFuel(fuelL, unit)} ${unit}`,
               now,
             ),
           };
@@ -386,6 +485,10 @@ export const useInFlight = create<InFlight>()(
         // Legacy maybePromptFredaCheck: open the check when due while airborne.
         if (
           !s.fredaOpen &&
+          s.fredaAvailable &&
+          (!["descent", "landing", "taxiin"].includes(s.phase) ||
+            (s.timers.last !== null &&
+              Math.abs(now - s.timers.last.at) <= 20000)) &&
           s.fredaDueAt !== null &&
           now >= s.fredaDueAt &&
           isRunning(s.timers.airTime)
@@ -431,9 +534,43 @@ export const useInFlight = create<InFlight>()(
       addEvent: (name) =>
         set((s) => ({ timers: addEvent(s.timers, name, Date.now()) })),
       configure: (patch) => set((s) => ({ config: { ...s.config, ...patch } })),
-      start: (route, trafficPattern = null, departurePattern = null) => {
+      start: (
+        route,
+        trafficPattern = null,
+        departurePattern = null,
+        aircraftType = null,
+      ) => {
         const now = new Date().toISOString();
+        const flight = useFlight.getState().flight;
+        const registration = normalizeRegistration(flight.registration);
+        const mth = aircraftType
+          ? selectAircraftState(
+              useAircraftState.getState().states,
+              aircraftType,
+              registration,
+            ).mth
+          : "";
         set({
+          debrief: {
+            flightId: flight.id,
+            name: flight.name,
+            aircraftType,
+            fuelDisplayUnit: fuelUnit(aircraftType, flight.fuelDisplayUnit),
+            registration,
+            mthBefore:
+              mth.trim() !== "" && Number.isFinite(Number(mth))
+                ? Number(mth)
+                : null,
+            fuelBeforeL: flight.fuel.blockL > 0 ? flight.fuel.blockL : null,
+            endedAt: null,
+            times: {
+              offBlockAt: null,
+              onBlockAt: null,
+              takeoffAt: null,
+              landingAt: null,
+            },
+            accepted: null,
+          },
           startedAt: now,
           holding: null,
           trafficPattern,
@@ -443,16 +580,42 @@ export const useInFlight = create<InFlight>()(
           patternPreviousFix: null,
           divertAirport: null,
           route,
+          routeHistory: null,
           activeLeg: 0,
           track: [],
           fredaDueAt: null,
           fredaOpen: false,
+          fredaFuel: null,
+          fredaAvailable: true,
           phase: "taxiout",
           timers: newTimers(),
         });
       },
       end: () =>
-        set({
+        set((s) => ({
+          debrief:
+            s.debrief?.endedAt != null
+              ? s.debrief
+              : {
+                  ...(s.debrief ?? {
+                    flightId: useFlight.getState().flight.id,
+                    name: useFlight.getState().flight.name,
+                    aircraftType: null,
+                    registration: normalizeRegistration(
+                      useFlight.getState().flight.registration,
+                    ),
+                    mthBefore: null,
+                    fuelBeforeL: null,
+                    accepted: null,
+                  }),
+                  endedAt: Date.now(),
+                  times: {
+                    offBlockAt: s.timers.offBlock.startedAt,
+                    onBlockAt: s.timers.offBlock.stoppedAt,
+                    takeoffAt: s.timers.airTime.startedAt,
+                    landingAt: s.timers.airTime.stoppedAt,
+                  },
+                },
           holding: null,
           startedAt: null,
           departurePattern: null,
@@ -460,15 +623,56 @@ export const useInFlight = create<InFlight>()(
           trafficPattern: null,
           patternNotice: null,
           patternPreviousFix: null,
-        }),
+        })),
       setActiveLeg: (activeLeg) => set({ activeLeg }),
-      goDirect: (targetIndex, position) =>
+      editFplPoint: (index, action, position, performance) =>
+        set((s) => {
+          const edit = editFplPoint(
+            s.route,
+            s.activeLeg,
+            index,
+            action,
+            position,
+          );
+          if (!edit) return s;
+          const holdFix = s.holding?.config.fix;
+          return {
+            route: edit.route,
+            activeLeg: edit.activeLeg,
+            routeHistory: edit.redirected
+              ? retainPassedRoute(
+                  s.routeHistory,
+                  s.route,
+                  s.activeLeg,
+                  performance,
+                )
+              : s.routeHistory,
+            holding:
+              edit.redirected ||
+              (holdFix &&
+                !edit.route.some(
+                  (p) =>
+                    p.ident === holdFix.ident &&
+                    p.lat === holdFix.lat &&
+                    p.lon === holdFix.lon,
+                ))
+                ? null
+                : s.holding,
+          };
+        }),
+      goDirect: (targetIndex, position, performance) =>
         set((s) => ({
+          routeHistory: retainPassedRoute(
+            s.routeHistory,
+            s.route,
+            s.activeLeg,
+            performance,
+          ),
           holding: null,
           route: directTo(s.route, position, targetIndex),
           activeLeg: 0,
         })),
-      goToPoint: (target, position) =>
+      goToPoint: (target, position, performance) =>
         set((s) => {
           const index = s.route.findIndex(
             (p) =>
@@ -477,6 +681,12 @@ export const useInFlight = create<InFlight>()(
               p.lon === target.lon,
           );
           return {
+            routeHistory: retainPassedRoute(
+              s.routeHistory,
+              s.route,
+              s.activeLeg,
+              performance,
+            ),
             route: directTo(
               index >= 0 ? s.route : [target],
               position,
@@ -486,8 +696,14 @@ export const useInFlight = create<InFlight>()(
             holding: null,
           };
         }),
-      divertTo: (airport, position) =>
-        set({
+      divertTo: (airport, position, performance) =>
+        set((s) => ({
+          routeHistory: retainPassedRoute(
+            s.routeHistory,
+            s.route,
+            s.activeLeg,
+            performance,
+          ),
           holding: null,
           departurePattern: null,
           route: directTo([airport], position, 0),
@@ -497,17 +713,59 @@ export const useInFlight = create<InFlight>()(
           patternReports: [],
           patternPreviousFix: null,
           activeLeg: 0,
-        }),
-      insertWaypoint: (index, point) =>
-        set((s) => ({
-          route: [...s.route.slice(0, index), point, ...s.route.slice(index)],
-          activeLeg: index <= s.activeLeg ? s.activeLeg + 1 : s.activeLeg,
         })),
-      removeWaypoint: (index) =>
+      insertWaypoint: (index, point, position) =>
+        set((s) => {
+          const at = safeWaypointIndex(s.route, index);
+          if (at === null) return s;
+          index = at;
+          const route = [
+            ...s.route.slice(0, index),
+            point,
+            ...s.route.slice(index),
+          ];
+          const present = position ?? s.track.at(-1);
+          if (s.startedAt && present && index === s.activeLeg + 1)
+            return {
+              routeHistory: retainPassedRoute(
+                s.routeHistory,
+                s.route,
+                s.activeLeg,
+              ),
+              route: directTo(route, present, index),
+              activeLeg: 0,
+              holding: null,
+            };
+          return {
+            route,
+            activeLeg: index <= s.activeLeg ? s.activeLeg + 1 : s.activeLeg,
+          };
+        }),
+      removeWaypoint: (index, position) =>
         set((s) => {
           if (!Number.isInteger(index) || index < 0 || index >= s.route.length)
             return s;
           const route = s.route.filter((_, i) => i !== index);
+          const present = position ?? s.track.at(-1);
+          if (
+            s.startedAt &&
+            present &&
+            (index === s.activeLeg || index === s.activeLeg + 1)
+          ) {
+            const remaining = s.route
+              .slice(s.activeLeg + 1)
+              .filter((_, i) => i + s.activeLeg + 1 !== index);
+            return {
+              routeHistory: retainPassedRoute(
+                s.routeHistory,
+                s.route,
+                s.activeLeg,
+              ),
+              route: directTo(remaining, present, 0),
+              activeLeg: 0,
+              holding: null,
+            };
+          }
           return {
             route,
             activeLeg: Math.max(
@@ -678,6 +936,9 @@ export const useInFlight = create<InFlight>()(
         return {
           ...current,
           ...p,
+          debrief: debriefSchema.safeParse(p.debrief).success
+            ? debriefSchema.parse(p.debrief)
+            : null,
           // Regenerate derived vertices when fixed pattern dimensions change between releases.
           route,
           activeLeg:
@@ -692,6 +953,7 @@ export const useInFlight = create<InFlight>()(
         };
       },
       partialize: ({
+        debrief,
         holding,
         startedAt,
         trafficPattern,
@@ -699,15 +961,18 @@ export const useInFlight = create<InFlight>()(
         patternReports,
         divertAirport,
         route,
+        routeHistory,
         activeLeg,
         track,
         fredaDueAt,
         fredaOpen,
+        fredaFuel,
         replayEnabled,
         phase,
         config,
         timers,
       }) => ({
+        debrief,
         holding,
         startedAt,
         trafficPattern,
@@ -715,10 +980,12 @@ export const useInFlight = create<InFlight>()(
         patternReports,
         divertAirport,
         route,
+        routeHistory,
         activeLeg,
         track,
         fredaDueAt,
         fredaOpen,
+        fredaFuel,
         replayEnabled,
         phase,
         config,

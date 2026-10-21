@@ -2,6 +2,7 @@ import "~/styles/globals.css";
 
 import { type Metadata, type Viewport } from "next";
 
+import { AuthGate } from "~/features/auth/auth-gate";
 import { AppShell } from "~/components/shell/app-shell";
 import { Providers } from "~/components/shell/providers";
 
@@ -26,7 +27,9 @@ export default function AppLayout({
     <html lang="pl" className="dark">
       <body>
         <Providers>
-          <AppShell>{children}</AppShell>
+          <AuthGate>
+            <AppShell>{children}</AppShell>
+          </AuthGate>
         </Providers>
       </body>
     </html>

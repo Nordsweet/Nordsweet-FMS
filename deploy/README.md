@@ -5,6 +5,10 @@ Pre-production, reachable only over Tailscale (no authentication yet).
 - `nextjs/Dockerfile` builds the static export and serves it with nginx (`nextjs/deploy/nginx.conf`).
 - `deploy/docker-compose.yml` runs it on `127.0.0.1:8020`; Caddy (`/srv/stacks/caddy`) proxies
   `dev.fms.lab.vibecde.com` to it with its own certificate (Cloudflare DNS challenge).
+- The internal `flight-store` service persists flight checkpoints/tracks in the `flight-data` named
+  volume, exposed only by nginx at `/flight-sync/`. Never remove this volume on deploy. See
+  [flight sync contract and backup/recovery](../docs/agents/FLIGHT_SYNC.md). The deploy smoke test
+  also verifies that this storage service is reachable and can open its database.
 - `deploy/homelab-deploy.sh` is a pull-based deploy: every 2 minutes a systemd **user** timer
   fetches `origin/develop` and, when it moved, rebuilds and restarts the container, then smoke-tests
   it. A GitHub self-hosted runner is not used: the repo is public (fork PRs could run code on the

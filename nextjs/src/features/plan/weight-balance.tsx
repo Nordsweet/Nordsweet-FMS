@@ -1,5 +1,6 @@
 "use client";
 
+import { fuelUnit, formatFuel, parseFuel } from "~/domain/fuel-units";
 import { type WeightBalance } from "~/data/aircraft";
 import { aircraftLabel, normalizeRegistration } from "~/domain/aircraft";
 import {
@@ -11,7 +12,7 @@ import { cn } from "~/lib/utils";
 import { useFlight } from "~/stores/flight";
 import { useInFlight } from "~/stores/inflight";
 
-import { OverrideCell, OverrideInput, Section, litres, num } from "./fields";
+import { OverrideCell, OverrideInput, Section, num } from "./fields";
 import { usePlan } from "./use-plan";
 
 const kgInput = (text: string) => {
@@ -36,6 +37,7 @@ export function WeightBalanceSection() {
       </Section>
     );
 
+  const unit = fuelUnit(aircraft.type, flight.fuelDisplayUnit);
   const registration = normalizeRegistration(flight.registration);
   const inside = sheet.takeoff.withinEnvelope;
   const fuelRow = (
@@ -54,12 +56,15 @@ export function WeightBalanceSection() {
               label={input.aria}
               value={fuel.litres}
               suggested={false}
-              format={String}
-              parse={litres}
+              key={unit}
+              format={(value) => formatFuel(value, unit)}
+              parse={(text) => parseFuel(text, unit)}
               onCommit={input.onCommit}
             />
           ) : (
-            <span>{num(fuel.litres)} L</span>
+            <span>
+              {formatFuel(fuel.litres, unit)} {unit}
+            </span>
           )}
           <span className="text-muted-foreground whitespace-nowrap">
             = {num(fuel.weightKg, 1)} kg
@@ -118,7 +123,9 @@ export function WeightBalanceSection() {
                   <th className="px-2 py-2 text-left">
                     {t("plan.wb.station")}
                   </th>
-                  <th className="px-2 py-2">{t("plan.wb.weightOrFuel")}</th>
+                  <th className="px-2 py-2">
+                    {t("plan.wb.weightOrFuel", { unit })}
+                  </th>
                   <th className="px-2 py-2">{t("plan.wb.arm")}</th>
                   <th className="px-2 py-2">{t("plan.wb.moment")}</th>
                 </tr>
@@ -174,11 +181,11 @@ export function WeightBalanceSection() {
                   );
                 })}
                 {fuelRow(
-                  t("plan.wb.usableFuel"),
+                  t("plan.wb.usableFuel").replace("[L]", `[${unit}]`),
                   sheet.fuel.usable,
                   sheet.fuel.usable.weightKg * sheet.fuel.armM,
                   {
-                    aria: t("plan.wb.usableFuel"),
+                    aria: t("plan.wb.usableFuel").replace("[L]", `[${unit}]`),
                     // Same value as the Fuel tab's block fuel, as in the legacy planner.
                     onCommit: (blockL) =>
                       update({ fuel: { blockL: blockL ?? 0 } }),
@@ -191,11 +198,11 @@ export function WeightBalanceSection() {
                   "wb-takeoff",
                 )}
                 {fuelRow(
-                  t("plan.wb.tripFuel"),
+                  t("plan.wb.tripFuel").replace("[L]", `[${unit}]`),
                   sheet.fuel.trip,
                   sheet.fuel.trip.weightKg * sheet.fuel.armM,
                   {
-                    aria: t("plan.wb.tripFuel"),
+                    aria: t("plan.wb.tripFuel").replace("[L]", `[${unit}]`),
                     // Same value as the Fuel tab's trip fuel.
                     onCommit: (fuelL) =>
                       update({

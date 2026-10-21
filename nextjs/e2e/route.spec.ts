@@ -1,4 +1,5 @@
-import { type Page, expect, test } from "@playwright/test";
+import { type Flight } from "../src/data/flight";
+import { selectFlightPhase, type Page, expect, test } from "./test";
 
 test.beforeEach(async ({ page }) => {
   await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => route.abort());
@@ -18,6 +19,64 @@ async function select(page: Page, name: string, option: RegExp) {
   await page.getByRole("combobox", { name, exact: true }).click();
   await page.getByRole("option", { name: option }).click();
 }
+
+test("expanded text follows the plan; point actions persist removal and Clear route preserves aircraft data", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("tab", { name: "Route", exact: true }).click();
+  await pickPoint(page, "Departure", "EPWA");
+  await pickPoint(page, "Arrival", "EPKK");
+  const text = page.getByRole("textbox", { name: "Route", exact: true });
+  await text.fill("ABAKU N871 SUWGI");
+  await text.blur();
+  await expect(text).toHaveValue(/EPWA.*ABAKU.*POLON.*SUWGI.*EPKK/);
+  await page.screenshot({
+    path: "test-results/planner-route-controls.png",
+    fullPage: true,
+  });
+  const before = await page.evaluate(
+    () =>
+      (
+        JSON.parse(localStorage.getItem("nordsweet.flight.v2")!) as {
+          state: { flight: Flight };
+        }
+      ).state.flight,
+  );
+  await page
+    .getByRole("button", { name: "Remove POLON from route", exact: true })
+    .click();
+  await expect(text).not.toHaveValue(/POLON/);
+  await expect(page.getByTestId("route-strip")).not.toContainText("POLON");
+  await page.reload();
+  await page.getByRole("tab", { name: "Route", exact: true }).click();
+  await expect(text).not.toHaveValue(/POLON/);
+  await page
+    .getByRole("button", { name: "Point options: ABAKU", exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/map$/);
+  await expect(
+    page.getByRole("dialog", { name: "Details", exact: true }),
+  ).toContainText("ABAKU");
+  await page.goto("/");
+  await page.getByRole("tab", { name: "Route", exact: true }).click();
+  await page.getByRole("button", { name: "Clear route", exact: true }).click();
+  await expect(text).toHaveValue("");
+  await expect(page.getByTestId("route-strip")).toHaveCount(0);
+  const after = await page.evaluate(
+    () =>
+      (
+        JSON.parse(localStorage.getItem("nordsweet.flight.v2")!) as {
+          state: { flight: Flight };
+        }
+      ).state.flight,
+  );
+  expect(after.aircraftId).toBe(before.aircraftId);
+  expect(after.fuel).toEqual(before.fuel);
+  expect(after.waypoints).toEqual([]);
+  expect(after.departure).toBeNull();
+  expect(after.destination).toBeNull();
+});
 
 // Expected values recorded from the legacy planner with the same inputs (main 1888742).
 test("builds the legacy route: AUTO SID/STAR, TOC/TOD, restrictions", async ({
@@ -64,7 +123,7 @@ test("builds the legacy route: AUTO SID/STAR, TOC/TOD, restrictions", async ({
 
   // The flight view's PROC button draws the selected SID (legacy Nordchart).
   await page.getByRole("link", { name: /start a flight/i }).click();
-  await page.getByRole("button", { name: "Take-off", exact: true }).click();
+  await selectFlightPhase(page, "Take-off");
   await page.getByRole("button", { name: "PROC", exact: true }).click();
   await expect(
     page.getByRole("img", { name: "NAVUR 6J procedure chart" }),

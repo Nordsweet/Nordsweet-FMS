@@ -233,6 +233,21 @@
   background: white;
   border: 2px solid #ff00ff;
   border-radius: 50%;
+  pointer-events: none;
+}
+.legacy-route-label {
+  font: inherit;
+  letter-spacing: inherit;
+}
+.legacy-route-hit-target {
+  position: absolute;
+  left: 0;
+  top: calc(50% + 11px);
+  width: 12px;
+  height: 12px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  pointer-events: auto;
 }
 .legacy-map-tools {
   background: var(--popover);
@@ -737,6 +752,9 @@
   --head: #7af3d3;
   width: min(1040px, calc(100vw - 7rem));
 }
+.fly-popover[data-debrief="true"] {
+  width: min(960px, calc(100vw - 2rem));
+}
 .fly-popover[data-panel="options"] {
   --pad: 0.9rem;
   --head: #7af3d3;
@@ -756,12 +774,36 @@
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.34);
 }
 /* Top right, beside the rail. */
+.fly-popover[data-panel="position"] {
+  top: 0.75rem;
+  right: 1rem;
+  width: min(430px, calc(100vw - 2rem));
+  max-height: calc(100% - 1.5rem);
+}
 .fly-popover[data-panel="fpl"] {
   --head: #5dc1ff;
-  top: var(--top);
+  top: 0.75rem;
   right: 5.5rem;
   width: min(430px, calc(100vw - 6.5rem));
-  max-height: calc(100% - var(--top) - 1rem);
+  display: flex;
+  flex-direction: column;
+  height: min(55rem, calc(100% - 1.5rem));
+  max-height: calc(100% - 1.5rem);
+}
+.fly-popover[data-panel="fpl"] > .fly-popover-head {
+  flex-shrink: 0;
+}
+.fly-popover[data-panel="fpl"] > [data-testid="flight-plan-table"] {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 7rem;
+}
+.fly-popover[data-panel="fpl"]
+  [data-testid="flight-plan-table"]
+  > [role="list"] {
+  min-height: 0;
+  max-height: none;
 }
 .fly-popover[data-panel="wx"] {
   --head: #5dc1ff;

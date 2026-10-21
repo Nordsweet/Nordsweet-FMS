@@ -92,7 +92,13 @@ GPU layers (no GeoJSON re-tiling in a worker, no 2D-canvas label pass on every f
   picking), `scene.ts` (the layer stack, bottom to top, and `DeckScene.set(patch)`, which rebuilds it
   once per tick), `data.ts` / `labels.ts` / `captions.ts` (pure data builders), `atlas.ts` (one icon
   texture per theme, cut from `symbols.ts`), `markers.ts` (DOM waypoint buttons), `theme.ts`.
-- Basemap: OSM `TileLayer` (`tile.openstreetmap.org`, still cached by `public/sw.js`). Own-ship in the lower
+- Vector basemaps (Bright, Fjord, Dark Matter): `tile-worker.ts` fetches and parses each OpenFreeMap tile
+  and `bake.ts` paints it with the style's rules into one bitmap per map tile; the scene draws them as a
+  `TileLayer` of `BitmapLayer`s (like raster tiles), so zooming only scales textures. Past zoom 14 a tile is
+  painted from its zoom-14 ancestor. Place labels are still deck text layers (the worker returns the place
+  points). Measured headless, frames while zooming: no basemap 17 ms, vectors as deck layers 108-125 ms,
+  baked bitmaps 29-42 ms.
+- Basemap: default Bright (OpenFreeMap vector); the OSM `TileLayer` loads `/tiles/{z}/{x}/{y}.png`, an nginx disk cache (7 days, request-coalesced) in front of `tile.openstreetmap.org` (`nextjs/deploy/nginx.conf`; `next dev` rewrites it). `public/sw.js` keeps up to 2000 visited tiles (oldest-touched first; stored and evicted off the tile response path). Own-ship in the lower
   half while following uses a camera offset instead of MapLibre's view padding (padding fights panning).
 - Dark map: new `night` basemap ("Dark map") = the same OSM tiles with their lightness flipped in a
   shader (no second tile provider); `dark` ("Black") is unchanged. Both use the dark overlay palette

@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { type ReactNode } from "react";
 import {
   ArrowUp,
   Battery,
@@ -9,14 +9,13 @@ import {
   Wifi,
   WifiOff,
 } from "lucide-react";
-import { api } from "~/api";
-import { cachedTerrainElevation } from "~/api/terrain";
-import { geoidSeparationM } from "~/domain/terrain";
 import { angleDiffDeg } from "~/domain/angles";
 import { magneticVariationDeg, trueToMagneticDeg } from "~/domain/magnetic";
 import { type Progress } from "~/domain/progress";
 import { useT } from "~/i18n/use-t";
 import { type GpsFix } from "./use-gps";
+import { useTerrainHeight } from "./use-terrain-height";
+import { Button } from "~/components/ui/button";
 
 const subscribeNetwork = (update: () => void) => {
   window.addEventListener("online", update);
@@ -28,13 +27,23 @@ const subscribeNetwork = (update: () => void) => {
 };
 type DeviceBattery = EventTarget & { level: number; charging: boolean };
 
-/** Live flight instruments above the phase selector; unsupported or stale inputs remain unavailable. */
+/** Live instruments and compact flight controls; unsupported or stale inputs remain unavailable. */
 export function FlightStatusBar({
   fix,
   progress,
+  phaseControl,
+  endControl,
+  positionOpen,
+  positionStatus,
+  onPositionClick,
 }: {
   fix: GpsFix | null;
   progress: Progress | null;
+  phaseControl: ReactNode;
+  endControl: ReactNode;
+  positionOpen: boolean;
+  positionStatus: string;
+  onPositionClick: () => void;
 }) {
   const t = useT();
   const [now, setNow] = useState<number | null>(null);
@@ -89,43 +98,7 @@ export function FlightStatusBar({
     now - Date.parse(fix.time) <= 20000
       ? fix
       : null;
-  const terrain = useQuery({
-    ...api.terrain.region.queryOptions({
-      lat: Math.round((current?.lat ?? 0) * 100) / 100,
-      lon: Math.round((current?.lon ?? 0) * 100) / 100,
-      radiusNm: 1,
-    }),
-    enabled:
-      !!current &&
-      current.altitudeAglFt === undefined &&
-      current.source !== "replay",
-    retry: false,
-  });
-  const geoid = useQuery({
-    ...api.terrain.geoid.queryOptions(undefined),
-    enabled:
-      !!current &&
-      current.source !== "connector" &&
-      current.source !== "demo" &&
-      current.source !== "replay",
-  });
-  const groundM =
-    current && terrain.data ? cachedTerrainElevation(current) : null;
-  const separationM =
-    current && geoid.data ? geoidSeparationM(geoid.data, current) : null;
-  const mslFt =
-    current?.altitudeFt == null
-      ? null
-      : current.source === "connector" || current.source === "demo"
-        ? current.altitudeFt
-        : separationM === null
-          ? null
-          : current.altitudeFt - separationM / 0.3048;
-  const agl =
-    current?.altitudeAglFt ??
-    (mslFt !== null && groundM !== null
-      ? Math.max(0, mslFt - groundM / 0.3048)
-      : null);
+  const { aglFt: agl } = useTerrainHeight(current);
   const value = (n: number | null | undefined, unit = "", digits = 0) =>
     n == null || !Number.isFinite(n) ? "—" : `${n.toFixed(digits)}${unit}`;
   const variation = current ? magneticVariationDeg(current) : 0;
@@ -217,12 +190,27 @@ export function FlightStatusBar({
         )}
         {item(t("fly.ete"), ete, "status-ete")}
       </div>
-      <div className="ml-auto grid min-w-48 shrink-0 gap-1">
+      <div
+        className="flex min-w-40 flex-1 items-end justify-center self-stretch 2xl:absolute 2xl:bottom-2 2xl:left-1/2 2xl:-translate-x-1/2"
+        data-testid="flight-phase-slot"
+      >
+        {phaseControl}
+      </div>
+      <div className="ml-auto grid min-w-60 shrink-0 gap-1">
         <div className="flex items-center gap-4 text-xs">
-          <span title={t("fly.status.gps")} className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-auto gap-1 px-1 py-0.5"
+            aria-label={t("connector.title")}
+            title={`${t("connector.title")} — ${positionStatus}`}
+            aria-expanded={positionOpen}
+            aria-haspopup="dialog"
+            onClick={onPositionClick}
+          >
             <RadioTower className="size-5" />
             {value(current?.accuracyM, " m")}
-          </span>
+          </Button>
           <span title={t("fly.status.network")}>
             {online ? (
               <Wifi className="size-5" />
@@ -245,7 +233,10 @@ export function FlightStatusBar({
             />
           </span>
         </div>
-        {item(t("fly.status.agl"), value(agl, " ft"), "status-agl")}
+        <div className="flex items-end justify-between gap-3">
+          {item(t("fly.status.agl"), value(agl, " ft"), "status-agl")}
+          {endControl}
+        </div>
       </div>
     </section>
   );

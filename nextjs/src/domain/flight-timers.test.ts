@@ -99,7 +99,7 @@ describe("stepTimers", () => {
     ]);
     expect(timers.offBlock.startedAt).toBe(0);
     expect(timers.airTime.startedAt).toBe(33_000); // the sample that crossed 850 ft
-    expect(phases).toEqual(["climb", "cruise", "taxiin"]);
+    expect(phases).toEqual(["climb", "cruise", "descent", "taxiin"]);
   });
 
   it("does not take off on a turning run", () => {

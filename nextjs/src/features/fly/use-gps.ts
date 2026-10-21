@@ -2,7 +2,12 @@ import { useCallback, useSyncExternalStore } from "react";
 import { distanceNm, initialBearingDeg } from "~/domain/geo";
 import { mToFt, mpsToKt } from "~/domain/units";
 import { gnssAltitudeTrend } from "~/domain/terrain";
-import { connectTelemetry, type ConnectorStatus } from "~/api/connector";
+import {
+  connectTelemetry,
+  throttleLatest,
+  type ConnectorFrame,
+  type ConnectorStatus,
+} from "~/api/connector";
 import { usePositionSource } from "~/stores/position-source";
 export type GpsFix = {
   source?: "gps" | "derived" | "replay" | "connector" | "demo";
@@ -11,6 +16,7 @@ export type GpsFix = {
   trueAirspeedKt?: number;
   altitudeAglFt?: number;
   verticalSpeedFpm?: number;
+  onGround?: boolean;
   lat: number;
   lon: number;
   altitudeFt: number | null;
@@ -119,6 +125,20 @@ function startDevice() {
       );
   }
 }
+/** The connector sends several frames a second; the page shows its position this often. */
+const CONNECTOR_PUBLISH_MS = 500;
+/** A reading that has not changed (parked, paused) still refreshes the fix this often, so it never looks old. */
+const CONNECTOR_HEARTBEAT_MS = 2000;
+/** The same reading apart from when it arrived. */
+export const sameReading = (a: GpsFix, b: GpsFix) => {
+  const keys = new Set([
+    ...Object.keys(a),
+    ...Object.keys(b),
+  ] as (keyof GpsFix)[]);
+  return [...keys].every(
+    (key) => key === "time" || key === "receivedAt" || a[key] === b[key],
+  );
+};
 let stopConnector: (() => void) | undefined;
 let stopSettings: (() => void) | undefined;
 function stopSource() {
@@ -140,43 +160,56 @@ function startSource() {
     return;
   }
   if (!settings.enabled) return;
-  stopConnector = connectTelemetry(
+  const show = throttleLatest((frame: ConnectorFrame) => {
+    const data = frame.data;
+    if (!data || !frame.receivedAt) return;
+    const fix: GpsFix = {
+      source: frame.source === "demo" ? "demo" : "connector",
+      paused: frame.paused,
+      lat: data.latitude,
+      lon: data.longitude,
+      altitudeFt: data.altitudeMslFt,
+      groundSpeedKt: data.groundSpeedKt,
+      trackDeg: data.trackTrueDeg,
+      accuracyM: 0,
+      altitudeAccuracyM: null,
+      time: frame.receivedAt,
+      receivedAt: Date.now(),
+      indicatedAirspeedKt: data.indicatedAirspeedKt,
+      trueAirspeedKt: data.trueAirspeedKt,
+      altitudeAglFt: data.altitudeAglFt,
+      verticalSpeedFpm: data.verticalSpeedFpm,
+      headingTrueDeg: data.headingTrueDeg,
+      onGround: data.onGround !== 0,
+    };
+    const shown = snapshot.fix;
+    // Nothing changed: re-rendering the page for it would only repeat the last picture.
+    if (
+      shown &&
+      sameReading(fix, shown) &&
+      Date.now() - (shown.receivedAt ?? 0) < CONNECTOR_HEARTBEAT_MS
+    )
+      return;
+    publish({ error: null, fix });
+  }, CONNECTOR_PUBLISH_MS);
+  const stop = connectTelemetry(
     settings.url,
     settings.token,
-    (frame) => {
-      const data = frame.data;
-      if (!data || !frame.receivedAt) return;
-      publish({
-        error: null,
-        fix: {
-          source: frame.source === "demo" ? "demo" : "connector",
-          paused: frame.paused,
-          lat: data.latitude,
-          lon: data.longitude,
-          altitudeFt: data.altitudeMslFt,
-          groundSpeedKt: data.groundSpeedKt,
-          trackDeg: data.trackTrueDeg,
-          accuracyM: 0,
-          altitudeAccuracyM: null,
-          time: frame.receivedAt,
-          receivedAt: Date.now(),
-          indicatedAirspeedKt: data.indicatedAirspeedKt,
-          trueAirspeedKt: data.trueAirspeedKt,
-          altitudeAglFt: data.altitudeAglFt,
-          verticalSpeedFpm: data.verticalSpeedFpm,
-          headingTrueDeg: data.headingTrueDeg,
-        },
-      });
-    },
+    show,
     (connectorStatus) => {
       const valid = connectorStatus === "live" || connectorStatus === "paused";
-      publish({
-        connectorStatus,
-        fix: valid ? snapshot.fix : null,
-        error: valid ? null : "unavailable",
-      });
+      const fix = valid ? snapshot.fix : null;
+      if (!valid) show.cancel();
+      // Every frame reports "live": only a change of state is news to the page.
+      if (connectorStatus === snapshot.connectorStatus && fix === snapshot.fix)
+        return;
+      publish({ connectorStatus, fix, error: valid ? null : "unavailable" });
     },
   );
+  stopConnector = () => {
+    stop();
+    show.cancel();
+  };
 }
 function subscribe(listener: () => void) {
   listeners.add(listener);

@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./test";
 
 const a = { ident: "A", lat: 49, lon: 20 },
   b = { ident: "B", lat: 49.2, lon: 20 },
@@ -57,6 +57,113 @@ const order = async (page: Page) =>
     .evaluateAll((rows) =>
       rows.map((row) => row.getAttribute("data-insertion-row")),
     );
+
+test("departure and arrival circuits stay intact through insertion controls, acceptance and reload", async ({
+  page,
+}) => {
+  test.setTimeout(60_000);
+  await load(page, draft);
+  const departure = ["EPNT THR12", "TPD1/EPNT", "TPX1/EPNT"].map(
+    (ident, i) => ({
+      ident,
+      lat: 49 + i / 100,
+      lon: 20,
+      patternId: "departure",
+      patternOperation: "leave",
+    }),
+  );
+  const arrival = [
+    "TP1/EPNL",
+    "TP2/EPNL",
+    "TP3/EPNL",
+    "EPNL THR22",
+    "EPNL",
+  ].map((ident, i) => ({
+    ident,
+    lat: 49.7 + i / 100,
+    lon: 20,
+    patternId: "arrival",
+    patternOperation: "join",
+  }));
+  const route = [...departure, ...arrival];
+  await page.addInitScript((route) => {
+    localStorage.setItem(
+      "nordsweet.map.v1",
+      JSON.stringify({
+        version: 1,
+        state: {
+          layers: {
+            route: true,
+            airports: false,
+            vfr: false,
+            ifr: false,
+            navaids: false,
+            airspace: false,
+            traffic: false,
+          },
+          plan: "none",
+        },
+      }),
+    );
+    if (!localStorage.getItem("nordsweet.inflight.v1"))
+      localStorage.setItem(
+        "nordsweet.inflight.v1",
+        JSON.stringify({
+          version: 1,
+          state: {
+            startedAt: "2026-10-19T09:00:00.000Z",
+            route,
+            activeLeg: 0,
+            phase: "cruise",
+          },
+        }),
+      );
+  }, route);
+  await page.goto("/fly");
+  await expect(page.getByTestId("map")).toHaveAttribute(
+    "data-map-ready",
+    "true",
+    { timeout: 20_000 },
+  );
+  const dialog = await add(page);
+  const expected = [
+    ...departure.map((p) => p.ident),
+    "KELEL",
+    ...arrival.map((p) => p.ident),
+  ];
+  expect(await order(page)).toEqual(expected);
+  await expect(
+    dialog.getByRole("button", { name: "Move up", exact: true }),
+  ).toBeDisabled();
+  await expect(
+    dialog.getByRole("button", { name: "Move down", exact: true }),
+  ).toBeDisabled();
+  for (const p of [...departure, ...arrival.slice(1)]) {
+    await expect(
+      dialog.getByRole("option", {
+        name: `Insert before ${p.ident}`,
+        exact: true,
+      }),
+    ).toBeDisabled();
+  }
+  await expect(
+    dialog.getByRole("option", { name: "Insert before TP1/EPNL", exact: true }),
+  ).toBeEnabled();
+  await page.keyboard.press("ArrowUp");
+  expect(await order(page)).toEqual(expected);
+  await dialog.screenshot({
+    path: test.info().outputPath("protected-insertion.png"),
+  });
+  await dialog
+    .getByRole("button", { name: "Insert here", exact: true })
+    .click();
+  await expect(page.locator("[data-route-marker]")).toHaveText(["KELEL"]);
+  await page.reload();
+  await page.getByRole("button", { name: "FPL", exact: true }).click();
+  await expect(
+    page.getByTestId("flight-plan-table").getByRole("listitem"),
+  ).toContainText(expected);
+});
 
 test("previews optimal insertion, allows before-row and move controls, and saves only on confirmation", async ({
   page,

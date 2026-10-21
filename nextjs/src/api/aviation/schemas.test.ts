@@ -8,6 +8,7 @@ import {
   airportResponseSchema,
   airspaceResponseSchema,
   atisResponseSchema,
+  inspirationResponseSchema,
   placesResponseSchema,
   trafficResponseSchema,
   weatherResponseSchema,
@@ -32,6 +33,7 @@ describe("aviation API schemas accept recorded responses", () => {
     ["airspace", airspaceResponseSchema],
     ["activations", activationsResponseSchema],
     ["places", placesResponseSchema],
+    ["inspiration", inspirationResponseSchema],
   ] as const)("%s", (name, schema) => {
     expect(() => schema.parse(fixture(name))).not.toThrow();
   });

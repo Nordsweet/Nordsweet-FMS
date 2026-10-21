@@ -1,23 +1,21 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./test";
 
 test.use({ serviceWorkers: "allow" });
-test("map opens offline and serves previously visited OSM tiles", async ({
+test("map opens offline and serves previously visited map tiles", async ({
   page,
   context,
 }) => {
   test.setTimeout(60000);
-  await context.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => {
-    if (new URL(route.request().url()).hostname === "tile.openstreetmap.org")
-      return route.fulfill({
-        contentType: "image/png",
-        headers: { "access-control-allow-origin": "*" },
-        body: Buffer.from(
-          "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a0xkAAAAASUVORK5CYII=",
-          "base64",
-        ),
-      });
-    return route.abort();
-  });
+  await context.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => route.abort());
+  await context.route("**/tiles/**", (route) =>
+    route.fulfill({
+      contentType: "image/png",
+      body: Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a0xkAAAAASUVORK5CYII=",
+        "base64",
+      ),
+    }),
+  );
   await page.goto("/map");
   await page.evaluate(async () => {
     await navigator.serviceWorker.ready;
@@ -30,7 +28,7 @@ test("map opens offline and serves previously visited OSM tiles", async ({
         ),
       );
   });
-  const tile = "https://tile.openstreetmap.org/0/0/0.png";
+  const tile = "/tiles/0/0/0.png";
   await page.evaluate(async (url) => {
     const response = await fetch(url);
     if (!response.ok) throw Error("Tile failed");

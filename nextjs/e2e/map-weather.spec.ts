@@ -1,6 +1,7 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "./test";
+import { newFlight } from "../src/data/flight";
 
-async function setup(page: Page) {
+async function setup(page: Page, planned = false) {
   const requests: string[] = [];
   const confirmations: string[] = [];
   const submissions: {
@@ -104,8 +105,23 @@ async function setup(page: Page) {
       },
     });
   });
-  await page.addInitScript(() =>
-    localStorage.setItem("nordsweet.language.v1", "en"),
+  await page.addInitScript(
+    (flight) => {
+      localStorage.setItem("nordsweet.language.v1", "en");
+      if (flight && !localStorage.getItem("nordsweet.flight.v2"))
+        localStorage.setItem(
+          "nordsweet.flight.v2",
+          JSON.stringify({ version: 1, state: { flight } }),
+        );
+    },
+    planned
+      ? {
+          ...newFlight(),
+          departure: { ident: "EPKK", lat: 50.077778, lon: 19.784722 },
+          destination: { ident: "EPNT", lat: 49.462378, lon: 20.050147 },
+          waypoints: [{ ident: "WXTEST", lat: 50, lon: 20 }],
+        }
+      : null,
   );
   await page.goto("/map");
   await expect(page.getByTestId("map")).toHaveAttribute(
@@ -120,6 +136,72 @@ async function setup(page: Page) {
   await expect(details).toContainText("EPKK");
   return { details, requests, confirmations, submissions };
 }
+
+test("point WX moves below TAF as Insert PIREP and retains the existing editable weather data", async ({
+  page,
+}) => {
+  test.setTimeout(60_000);
+  const { details } = await setup(page, true);
+  await expect(
+    details.getByRole("button", { name: "WX", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    details.getByRole("button", { name: "Insert PIREP", exact: true }),
+  ).toHaveCount(0);
+  await details.getByRole("button", { name: "Weather", exact: true }).click();
+  const weather = page.getByTestId("wx-selected");
+  await expect(weather).toContainText("TAF EPKK");
+  const insert = weather.getByRole("button", {
+    name: "Insert PIREP",
+    exact: true,
+  });
+  expect(
+    await insert.evaluate((button) =>
+      button.parentElement?.previousElementSibling?.textContent?.startsWith(
+        "TAF",
+      ),
+    ),
+  ).toBe(true);
+  await insert.click();
+  const editor = page.getByRole("dialog", {
+    name: "Waypoint WX - EPKK",
+    exact: true,
+  });
+  await editor.getByLabel("Altitude 1").fill("3000");
+  await editor.getByLabel("Direction 1").fill("240");
+  await editor.getByLabel("Speed 1").fill("15");
+  await editor.getByLabel("Speed 1").blur();
+  await page.keyboard.press("Escape");
+  await expect(
+    weather.getByRole("button", { name: "Insert ATIS", exact: true }),
+  ).toBeVisible();
+  await insert.click();
+  await expect(editor.getByLabel("Direction 1")).toHaveValue("240");
+  await expect(editor.getByLabel("Speed 1")).toHaveValue("15");
+  await page.reload();
+  const stored = await page.evaluate(
+    () =>
+      (
+        JSON.parse(localStorage.getItem("nordsweet.flight.v2")!) as {
+          state: { flight: { waypointWx: Record<string, unknown> } };
+        }
+      ).state.flight.waypointWx.EPKK,
+  );
+  expect(stored).toEqual([
+    { altitudeFt: "3000", windDirection: "240", windSpeed: "15" },
+  ]);
+  await page.locator('[data-route-marker="WXTEST"]').click();
+  await details.getByRole("button", { name: "Weather", exact: true }).click();
+  await expect(
+    weather.getByRole("button", { name: "Insert ATIS", exact: true }),
+  ).toHaveCount(0);
+  await weather
+    .getByRole("button", { name: "Insert PIREP", exact: true })
+    .click();
+  await expect(
+    page.getByRole("dialog", { name: "Waypoint WX - WXTEST", exact: true }),
+  ).toBeVisible();
+});
 
 test("Weather loads only METAR, TAF and ATIS; one device is a suggestion in Insert ATIS", async ({
   page,

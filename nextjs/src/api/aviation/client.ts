@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { env } from "~/env";
 import { correctTrafficMetadata } from "~/domain/traffic-metadata";
+import { useAuth } from "~/stores/auth";
 
 import {
   activationsResponseSchema,
@@ -11,12 +12,15 @@ import {
   type PlaceKind,
   placesResponseSchema,
   sourcesSchema,
+  inspirationResponseSchema,
+  loginResponseSchema,
+  meResponseSchema,
   notamsResponseSchema,
   trafficResponseSchema,
   weatherResponseSchema,
 } from "./schemas";
 
-/** The service answered, but no upstream source had data (502) or the request was invalid (422). */
+/** The service answered, but no upstream source had data (502), the request was invalid (422) or login failed (401, 429). */
 export class AviationApiError extends Error {
   constructor(
     readonly status: number,
@@ -28,6 +32,25 @@ export class AviationApiError extends Error {
   }
 }
 
+/**
+ * Every Aviation API call goes through here: it adds the bearer token and is the only place a 401
+ * ends the session. No retry: the login screen takes over, and a late 401 for an old token cannot
+ * end a newer session.
+ */
+export async function aviationFetch(url: URL, init: RequestInit = {}) {
+  const token = useAuth.getState().session?.token;
+  const headers = new Headers(init.headers);
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+  const response = await fetch(url, { ...init, headers });
+  if (
+    response.status === 401 &&
+    token &&
+    useAuth.getState().session?.token === token
+  )
+    useAuth.getState().signOut();
+  return response;
+}
+
 type Params = Record<string, string | number | readonly string[] | undefined>;
 
 async function send<S extends z.ZodType>(
@@ -36,7 +59,7 @@ async function send<S extends z.ZodType>(
   url: URL,
   init?: RequestInit,
 ) {
-  const response = await fetch(url, init);
+  const response = await aviationFetch(url, init);
   const body: unknown = await response.json().catch(() => null);
   if (!response.ok) {
     const detail = (body as { detail?: unknown } | null)?.detail;
@@ -100,6 +123,12 @@ export type CommunityAtisReport = {
 };
 
 export const aviationApi = {
+  login: (credentials: { username: string; password: string }) =>
+    post("/auth/login", loginResponseSchema, credentials),
+  /** 401 = expired or revoked: the central handler has already ended the session. */
+  me: () => get("/auth/me", meResponseSchema),
+  /** Revokes the token held when called (a 204 has no body). */
+  logout: () => post("/auth/logout", z.null(), undefined),
   submitAtis: (report: CommunityAtisReport) =>
     post("/community/atis", z.object({ id: z.string() }).loose(), report),
   confirmAtis: ({ id, reporterId }: { id: string; reporterId: string }) =>
@@ -155,6 +184,9 @@ export const aviationApi = {
           ...response,
           aircraft: response.aircraft.map(correctTrafficMetadata),
         })),
+  /** The whole curated list: the app filters it itself, so favourites never disappear with a filter. */
+  inspiration: ({ lang }: { lang: "pl" | "en" }) =>
+    get("/inspiration", inspirationResponseSchema, { lang }),
   airspace: ({ lat, lon, radiusNm, plan }: Around & { plan?: AirspacePlan }) =>
     get("/airspace", airspaceResponseSchema, {
       lat,

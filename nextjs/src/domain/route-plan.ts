@@ -1,12 +1,16 @@
 import { type Airport, type Procedure, type Runway } from "~/data/schemas";
 import { type TrafficPattern } from "~/data/traffic-pattern";
-import { trafficPatternGeometry } from "./traffic-pattern";
+import {
+  trafficPatternGeometry,
+  trafficPatternEntryPoints,
+} from "./traffic-pattern";
 import type { TurnPerformance } from "./fly-by";
 import { type FlightPoint } from "~/data/flight";
 
 import { toRad } from "./angles";
 import { distanceNm, initialBearingDeg } from "./geo";
-import { waypointInsertionIndex } from "./waypoint-insertion";
+import { waypointInsertionIndex, sameFlightPoint } from "./waypoint-insertion";
+import { routeEditKeys } from "./route-edit";
 
 /**
  * The legacy route planner (Route tab), ported rule for rule: free-text route tokens (DCT, airways,
@@ -138,6 +142,7 @@ export type RoutePlanInput = {
   alternate: Airport | null;
   altitudeFt: number;
   routeText: string;
+  removedRoutePoints?: string[];
   selections: Record<ProcedureType, ProcedureSelection>;
   /** Variant picked for "SID NAVUR"-style requests, keyed by choice key. */
   inlineSelections: Record<string, string>;
@@ -1556,19 +1561,30 @@ export function buildRoutePlan(data: RouteData, input: RoutePlanInput) {
     !input.trafficPattern &&
     finalPoint.kind === "threshold";
   appendPoint(points, endAtArp ? { ...finalPoint, flyOver: true } : finalPoint);
+  // A round trip still needs two endpoint occurrences before graphical waypoints are inserted.
+  if (departure.ident === destination.ident && points.length === 1)
+    points.push({ ...destinationPoint });
   if (endAtArp) appendPoint(points, destinationPoint);
 
-  let withUserPoints = insertUserWaypoints(points, input.insertedWaypoints).map(
-    (p) => ({
-      ...p,
-      userRestriction: input.pointRestrictions?.[pointKey(p)],
-    }),
-  );
+  let withUserPoints = insertUserWaypoints(
+    points,
+    input.insertedWaypoints,
+    input,
+  ).map((p) => ({
+    ...p,
+    userRestriction: input.pointRestrictions?.[pointKey(p)],
+  }));
   if (input.trafficPattern?.airport.ident === destination.ident) {
     const pattern = input.trafficPattern;
+    const inbound = withUserPoints
+      .slice(0, -1)
+      .filter((p) => !isArrivalPoint(p));
     withUserPoints = [
-      ...withUserPoints.slice(0, -1).filter((p) => !isArrivalPoint(p)),
-      ...trafficPatternGeometry(pattern).points.map((p) => ({
+      ...inbound,
+      ...trafficPatternEntryPoints(
+        pattern,
+        inbound.map((p) => ({ ...p, ident: p.id })),
+      ).map((p) => ({
         id: p.ident,
         kind: "waypoint" as const,
         lat: p.lat,
@@ -1602,6 +1618,14 @@ export function buildRoutePlan(data: RouteData, input: RoutePlanInput) {
       ...outbound,
     ];
   }
+  const editKeys = routeEditKeys(withUserPoints);
+  withUserPoints = withUserPoints.filter(
+    (point, index) =>
+      !input.removedRoutePoints?.includes(editKeys[index]!) ||
+      input.insertedWaypoints.some((p) =>
+        sameFlightPoint(p, { ...point, ident: point.id }),
+      ),
+  );
   const base = verticalProfile(
     input,
     withUserPoints,
@@ -1680,6 +1704,7 @@ export function buildRoutePlan(data: RouteData, input: RoutePlanInput) {
 function insertUserWaypoints(
   points: RoutePoint[],
   inserted: RoutePlanInput["insertedWaypoints"],
+  patterns: Pick<RoutePlanInput, "departurePattern" | "trafficPattern">,
 ) {
   const out = [...points];
   const seen = new Set<string>();
@@ -1701,10 +1726,24 @@ function insertUserWaypoints(
       lat: w.lat,
       lon: w.lon,
     };
-    const route = out.map((p) => ({
+    const route = out.map((p, i) => ({
       ident: formatRoutePoint({ ...p, profileLabels: undefined }),
       lat: p.lat,
       lon: p.lon,
+      // These endpoints will be replaced by complete circuits after insertion.
+      ...(i === 0 &&
+      patterns.departurePattern?.airport.ident === (p.airportIcao ?? p.id)
+        ? {
+            patternId: patterns.departurePattern.id,
+            patternOperation: "leave" as const,
+          }
+        : i === out.length - 1 &&
+            patterns.trafficPattern?.airport.ident === (p.airportIcao ?? p.id)
+          ? {
+              patternId: patterns.trafficPattern.id,
+              patternOperation: "join" as const,
+            }
+          : {}),
     }));
     const at = waypointInsertionIndex(route, w);
     const next = out[at];

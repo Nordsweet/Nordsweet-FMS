@@ -1,4 +1,6 @@
 import { terrainEn, terrainPl } from "./terrain";
+import { fplProfileEn, fplProfilePl } from "./fpl-profile";
+import { flightSyncEn, flightSyncPl } from "./flight-sync";
 import { trafficPatternEn, trafficPatternPl } from "./traffic-pattern";
 import { type Language } from "~/stores/settings";
 import { atisConsensusEn, atisConsensusPl } from "./atis-consensus";
@@ -10,8 +12,18 @@ import { emergencyEn, emergencyPl } from "./emergency";
 import { connectorEn, connectorPl } from "./connector";
 import { flightPopupsEn, flightPopupsPl } from "./flight-popups";
 import { aircraftReferenceEn, aircraftReferencePl } from "./aircraft-reference";
+import { debriefEn, debriefPl } from "./debrief";
+import { inspireEn, inspirePl } from "./inspire";
+import { authEn, authPl } from "./auth";
+import { sessionSyncEn, sessionSyncPl } from "./session-sync";
 
 const pl = {
+  ...fplProfilePl,
+  ...flightSyncPl,
+  ...inspirePl,
+  ...authPl,
+  ...sessionSyncPl,
+  ...debriefPl,
   ...aircraftReferencePl,
   ...flightPopupsPl,
   ...connectorPl,
@@ -51,6 +63,7 @@ const pl = {
   "plan.aircraft.type": "Typ statku powietrznego",
   "plan.aircraft.placeholder": "Wybierz samolot",
   "plan.aircraft.registration": "Rejestracja",
+  "plan.aircraft.registrationList": "Lista rejestracji",
   "plan.aircraft.registrationPlaceholder": "np. SP-ABC",
   "plan.aircraft.fuelIndication": "Wskazanie paliwa (FREDA)",
   "plan.aircraft.fuelIndication.auto": "Auto (profil samolotu)",
@@ -84,14 +97,17 @@ const pl = {
   "plan.navlog.empty": "Wybierz lotnisko startu i lądowania.",
   "plan.fuel.title": "Paliwo",
   "plan.fuel.onBoard": "Paliwo na pokładzie",
-  "plan.fuel.added": "Dotankowano (L)",
+  "plan.fuel.added": "Dotankowano ({unit})",
   "plan.fuel.addedNote":
     "Dotankowane paliwo zmienia paliwo na pokładzie, paliwo blokowe i paliwo użytkowe w W&B.",
   "plan.fuel.calculation": "Obliczenie paliwa",
   "plan.fuel.flightTime": "Czas lotu",
   "plan.fuel.litres": "Paliwo (L)",
+  "plan.fuel.column": "Paliwo",
+  "plan.fuel.unit": "Jednostka paliwa",
   "plan.fuel.timeOf": "{row} – czas lotu",
   "plan.fuel.fuelOf": "{row} – paliwo w litrach",
+  "plan.fuel.fuelOfGallons": "{row} – paliwo w galonach US",
   "plan.fuel.minHold": "{minutes} min oczekiwania",
   "plan.fuel.row.plannedTrip": "Czas przelotu",
   "plan.fuel.row.contingency": "Rezerwa operacyjna (5% / 5 min oczekiwania)",
@@ -103,25 +119,25 @@ const pl = {
   "plan.fuel.minimum": "Minimalna ilość paliwa",
   "plan.fuel.block": "Paliwo blokowe",
   "plan.fuel.outOfRange": "Poza zasięgiem",
-  "plan.fuel.margin": "Zapas paliwa: +{litres} L.",
-  "plan.fuel.below": "Paliwa brakuje do minimum: {litres} L.",
+  "plan.fuel.margin": "Zapas paliwa: +{litres} {unit}.",
+  "plan.fuel.below": "Paliwa brakuje do minimum: {litres} {unit}.",
   "plan.fuel.note.contingency":
-    "Rezerwa operacyjna: {basis} ({trip} L vs {hold} L oczekiwania, bazowo {base} L/h, z zapasem {buffered} L/h, {source}).",
+    "Rezerwa operacyjna: {basis} ({trip} {unit} vs {hold} {unit} oczekiwania, bazowo {base} {unit}/h, z zapasem {buffered} {unit}/h, {source}).",
   "plan.fuel.note.contingency.trip": "5% paliwa na przelot",
   "plan.fuel.note.contingency.hold": "5 min oczekiwania na 1500 ft",
   "plan.fuel.note.contingency.table": "tabela 1500 ft + 20%",
-  "plan.fuel.note.contingency.fallback": "domyślnie 30 L/h",
+  "plan.fuel.note.contingency.fallback": "domyślnie {flow} {unit}/h",
   "plan.fuel.note.alternate":
     "Zapasowe: zapasowe {from} -> {to}: odejście na drugi krąg 5 min, wznoszenie {climb} ft z {rate}, DCT {distance} NM przy GS {gs} kt, podejście/lądowanie 10 min. Jeśli wymagane są dwa lotniska zapasowe, przyjmij większą ilość paliwa.",
   "plan.fuel.note.alternate.fallbackRate": "domyślnym 500 ft/min",
   "plan.fuel.note.alternate.tableRate":
     "{rate} ft/min (80% najlepszej prędkości wznoszenia z tabeli)",
   "plan.fuel.note.noAlternate":
-    "Zapasowe: nie wybrano lotniska zapasowego. Silnik tłokowy: 45 min + min(15% planowanego czasu przelotu, 2 h). Przyjęty czas przelotu: {cruise} min; dodatek {addition} min. Wiersz nie obejmuje osobnej rezerwy końcowej. Zużycie {flow} L/h przy bieżącym ustawieniu przelotowym. Razem bez zapasowego {total} L minus rezerwa końcowa {reserve} L.",
+    "Zapasowe: nie wybrano lotniska zapasowego. Silnik tłokowy: 45 min + min(15% planowanego czasu przelotu, 2 h). Przyjęty czas przelotu: {cruise} min; dodatek {addition} min. Wiersz nie obejmuje osobnej rezerwy końcowej. Zużycie {flow} {unit}/h przy bieżącym ustawieniu przelotowym. Razem bez zapasowego {total} {unit} minus rezerwa końcowa {reserve} {unit}.",
   "plan.fuel.note.noAlternateTurbine":
-    "Zapasowe: nie wybrano lotniska zapasowego. Turbina/odrzutowy: 2 h zużycia przelotowego nad lotniskiem docelowym, łącznie z rezerwą końcową, której ten wiersz nie dubluje. Zużycie {flow} L/h. Razem {total} L minus rezerwa końcowa {reserve} L.",
+    "Zapasowe: nie wybrano lotniska zapasowego. Turbina/odrzutowy: 2 h zużycia przelotowego nad lotniskiem docelowym, łącznie z rezerwą końcową, której ten wiersz nie dubluje. Zużycie {flow} {unit}/h. Razem {total} {unit} minus rezerwa końcowa {reserve} {unit}.",
   "plan.fuel.note.reserve":
-    "Rezerwa końcowa: {powerplant}: {minutes} min oczekiwania, {source}, -2 °C/1000 ft, {airport} + 1500 ft. Przy ziemi {surface} °C -> oczekiwanie {holding} °C, {flow} L/h.",
+    "Rezerwa końcowa: {powerplant}: {minutes} min oczekiwania, {source}, -2 °C/1000 ft, {airport} + 1500 ft. Przy ziemi {surface} °C -> oczekiwanie {holding} °C, {flow} {unit}/h.",
   "plan.fuel.note.reserve.metar": "temperatura z METAR {icao}",
   "plan.fuel.note.reserve.standard": "temperatura standardowa 15 °C",
   "plan.fuel.note.sync":
@@ -132,7 +148,7 @@ const pl = {
   "plan.wb.lwBasis": "(MTOW - paliwo na przelot)",
   "plan.wb.alwBasis": "(LW - paliwo na zapasowe)",
   "plan.wb.station": "Stanowisko",
-  "plan.wb.weightOrFuel": "M [kg] / paliwo [L]",
+  "plan.wb.weightOrFuel": "M [kg] / paliwo [{unit}]",
   "plan.wb.arm": "Ramię [m]",
   "plan.wb.moment": "Moment [kgm]",
   "plan.wb.weightAxis": "Masa [kg]",
@@ -248,6 +264,7 @@ const pl = {
   "map.basemap": "Mapa podkładowa",
   "map.basemapDark": "Ciemne tło",
   "map.basemapNight": "Ciemna mapa",
+  "map.basemapBright": "Bright",
   "map.basemapFjord": "Fjord",
   "map.basemapDarkMatter": "Dark Matter",
   "map.plan": "Plan przestrzeni",
@@ -265,6 +282,8 @@ const pl = {
   "mapinsert.hint":
     "Kliknij punkt, aby wstawić nowy punkt przed nim. Trasa zmieni się dopiero po Insert here.",
   "mapinsert.plan": "Kolejność punktów Flight Plan",
+  "mapinsert.patternProtected":
+    "Punkt można dodać tylko po kręgu odlotowym i przed kręgiem dolotowym.",
   "mapinsert.before": "Wstaw przed {point}",
   "mapinsert.new": "Nowy punkt {point}",
   "mapinsert.pending": "NOWY",
@@ -465,8 +484,8 @@ const pl = {
   "fly.freda.subtitle": "Czas lotu {time} • kontrola co 30 minut",
   "fly.freda.fuel": "F — Paliwo",
   "fly.freda.noPrediction": "Brak prognozy",
-  "fly.freda.predicted": "Prognoza {litres} L",
-  "fly.freda.burn": "planowane zużycie {flow} L/h",
+  "fly.freda.predicted": "Prognoza {litres} {unit}",
+  "fly.freda.burn": "planowane zużycie {flow} {unit}/h",
   "fly.freda.radio": "R — Radio",
   "fly.freda.current": "Bieżąca",
   "fly.freda.next": "Następna",
@@ -830,6 +849,9 @@ const pl = {
 export type MessageKey = keyof typeof pl;
 
 const en: Record<MessageKey, string> = {
+  ...fplProfileEn,
+  ...flightSyncEn,
+  ...debriefEn,
   ...aircraftReferenceEn,
   ...flightPopupsEn,
   ...connectorEn,
@@ -839,6 +861,9 @@ const en: Record<MessageKey, string> = {
   ...holdingEn,
   ...trafficPatternEn,
   ...atisConsensusEn,
+  ...inspireEn,
+  ...authEn,
+  ...sessionSyncEn,
   ...mapToolsEn,
   ...aircraftEditorEn,
   "maplegacy.airspace": "Airspaces",
@@ -869,6 +894,7 @@ const en: Record<MessageKey, string> = {
   "plan.aircraft.type": "Aircraft type",
   "plan.aircraft.placeholder": "Select an aircraft",
   "plan.aircraft.registration": "Registration",
+  "plan.aircraft.registrationList": "Registration list",
   "plan.aircraft.registrationPlaceholder": "e.g. SP-ABC",
   "plan.aircraft.fuelIndication": "FREDA fuel indication",
   "plan.aircraft.fuelIndication.auto": "Auto (aircraft profile)",
@@ -902,14 +928,17 @@ const en: Record<MessageKey, string> = {
   "plan.navlog.empty": "Select a departure and a destination.",
   "plan.fuel.title": "Fuel",
   "plan.fuel.onBoard": "Fuel on Board",
-  "plan.fuel.added": "Fuel Added (L)",
+  "plan.fuel.added": "Fuel Added ({unit})",
   "plan.fuel.addedNote":
     "Fuel Added updates Fuel on Board, Block Fuel and W&B usable fuel.",
   "plan.fuel.calculation": "Fuel calculation",
   "plan.fuel.flightTime": "Flight Time",
   "plan.fuel.litres": "Fuel (L)",
+  "plan.fuel.column": "Fuel",
+  "plan.fuel.unit": "Fuel unit",
   "plan.fuel.timeOf": "{row} flight time",
   "plan.fuel.fuelOf": "{row} fuel litres",
+  "plan.fuel.fuelOfGallons": "{row} fuel US gallons",
   "plan.fuel.minHold": "{minutes} min hold",
   "plan.fuel.row.plannedTrip": "Trip Time",
   "plan.fuel.row.contingency": "Contingency (5% / 5 min hold)",
@@ -921,25 +950,25 @@ const en: Record<MessageKey, string> = {
   "plan.fuel.minimum": "Min. Fuel Requirement",
   "plan.fuel.block": "Block Fuel",
   "plan.fuel.outOfRange": "Out of range",
-  "plan.fuel.margin": "Fuel margin: +{litres} L.",
-  "plan.fuel.below": "Fuel below minimum requirement by {litres} L.",
+  "plan.fuel.margin": "Fuel margin: +{litres} {unit}.",
+  "plan.fuel.below": "Fuel below minimum requirement by {litres} {unit}.",
   "plan.fuel.note.contingency":
-    "Contingency: using {basis} ({trip} L vs {hold} L hold, base {base} L/h, buffered {buffered} L/h, {source}).",
+    "Contingency: using {basis} ({trip} {unit} vs {hold} {unit} hold, base {base} {unit}/h, buffered {buffered} {unit}/h, {source}).",
   "plan.fuel.note.contingency.trip": "5% trip fuel",
   "plan.fuel.note.contingency.hold": "5 min holding at 1500 ft",
   "plan.fuel.note.contingency.table": "1500 ft table + 20%",
-  "plan.fuel.note.contingency.fallback": "fallback 30 L/h",
+  "plan.fuel.note.contingency.fallback": "fallback {flow} {unit}/h",
   "plan.fuel.note.alternate":
     "Alternate: Alternate {from} -> {to}: missed approach 5 min, climb {climb} ft at {rate}, DCT {distance} NM at GS {gs} kt, approach/landing 10 min. If two alternates are required, use the greater fuel case.",
   "plan.fuel.note.alternate.fallbackRate": "fallback 500 ft/min",
   "plan.fuel.note.alternate.tableRate":
     "{rate} ft/min (80% best rate from climb table)",
   "plan.fuel.note.noAlternate":
-    "Alternate: no alternate selected. Reciprocating: 45 min + min(15% of planned cruise time, 2h). Cruise time used: {cruise} min; addition {addition} min. This row excludes the separate Final Reserve row to avoid double-counting. Fuel flow {flow} L/h at current cruise setting. Total no-alternate fuel {total} L minus Final Reserve {reserve} L.",
+    "Alternate: no alternate selected. Reciprocating: 45 min + min(15% of planned cruise time, 2h). Cruise time used: {cruise} min; addition {addition} min. This row excludes the separate Final Reserve row to avoid double-counting. Fuel flow {flow} {unit}/h at current cruise setting. Total no-alternate fuel {total} {unit} minus Final Reserve {reserve} {unit}.",
   "plan.fuel.note.noAlternateTurbine":
-    "Alternate: no alternate selected. Turbine/jet: 2h normal cruise consumption above destination, including final reserve; this row excludes the separate Final Reserve row. Fuel flow {flow} L/h. Total {total} L minus Final Reserve {reserve} L.",
+    "Alternate: no alternate selected. Turbine/jet: 2h normal cruise consumption above destination, including final reserve; this row excludes the separate Final Reserve row. Fuel flow {flow} {unit}/h. Total {total} {unit} minus Final Reserve {reserve} {unit}.",
   "plan.fuel.note.reserve":
-    "Final Reserve: {powerplant}: {minutes} min at holding speed, {source} adjusted -2 C/1000 ft, {airport} + 1500 ft. Surface {surface} C -> holding {holding} C, {flow} L/h.",
+    "Final Reserve: {powerplant}: {minutes} min at holding speed, {source} adjusted -2 C/1000 ft, {airport} + 1500 ft. Surface {surface} C -> holding {holding} C, {flow} {unit}/h.",
   "plan.fuel.note.reserve.metar": "METAR temp from {icao}",
   "plan.fuel.note.reserve.standard": "standard 15 °C",
   "plan.fuel.note.sync":
@@ -950,7 +979,7 @@ const en: Record<MessageKey, string> = {
   "plan.wb.lwBasis": "(MTOW - trip fuel)",
   "plan.wb.alwBasis": "(LW - alternate fuel)",
   "plan.wb.station": "Station",
-  "plan.wb.weightOrFuel": "W [kg] / Fuel [L]",
+  "plan.wb.weightOrFuel": "W [kg] / Fuel [{unit}]",
   "plan.wb.arm": "Arm [m]",
   "plan.wb.moment": "Moment [kgm]",
   "plan.wb.weightAxis": "Weight [kg]",
@@ -1066,6 +1095,7 @@ const en: Record<MessageKey, string> = {
   "map.basemap": "Base map",
   "map.basemapDark": "Dark background",
   "map.basemapNight": "Dark map",
+  "map.basemapBright": "Bright",
   "map.basemapFjord": "Fjord",
   "map.basemapDarkMatter": "Dark Matter",
   "map.plan": "Airspace plan",
@@ -1082,6 +1112,8 @@ const en: Record<MessageKey, string> = {
   "mapinsert.hint":
     "Select a point to insert the new waypoint before it. The route changes only after Insert here.",
   "mapinsert.plan": "Flight Plan point order",
+  "mapinsert.patternProtected":
+    "Waypoints can only be added after the departure circuit and before the arrival circuit.",
   "mapinsert.before": "Insert before {point}",
   "mapinsert.new": "New waypoint {point}",
   "mapinsert.pending": "NEW",
@@ -1281,8 +1313,8 @@ const en: Record<MessageKey, string> = {
   "fly.freda.subtitle": "Air Time {time} • 30-minute check",
   "fly.freda.fuel": "F — Fuel",
   "fly.freda.noPrediction": "Prediction unavailable",
-  "fly.freda.predicted": "{litres} L predicted",
-  "fly.freda.burn": "{flow} L/h planned burn",
+  "fly.freda.predicted": "{litres} {unit} predicted",
+  "fly.freda.burn": "{flow} {unit}/h planned burn",
   "fly.freda.radio": "R — Radio",
   "fly.freda.current": "Current",
   "fly.freda.next": "Next",

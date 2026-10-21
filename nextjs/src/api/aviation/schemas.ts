@@ -11,6 +11,17 @@ export const sourcesSchema = z.record(z.string(), z.string());
 
 const timestamp = z.iso.datetime({ offset: true });
 
+/** `role` stays a plain string: a role the API adds later must not break login. */
+export const meResponseSchema = z.object({
+  username: z.string(),
+  role: z.string(),
+});
+export const loginResponseSchema = meResponseSchema.extend({
+  token: z.string().min(1),
+  /** Seconds; 30 days today. */
+  expires_in: z.number(),
+});
+
 export const placeKinds = [
   "vfr_point",
   "airfield_grass",
@@ -35,6 +46,46 @@ export const placeSchema = z.object({
 export const placesResponseSchema = z.object({
   /** null when the request had no lat/lon. */
   places: z.array(placeSchema.extend({ distance_nm: z.number().nullable() })),
+  sources: sourcesSchema,
+});
+
+const httpsUrl = z.string().startsWith("https://");
+
+/** `kind` and `interests` stay plain strings: a value the API adds later must not break the whole list. */
+export const inspirationSpotSchema = z.object({
+  id: z.string(),
+  kind: z.string(),
+  name: z.string(),
+  lat: z.number(),
+  lon: z.number(),
+  icao: z.string().nullable(),
+  interests: z.array(z.string()),
+  summary: z.string().nullable(),
+  photo_url: httpsUrl.nullable(),
+  page_url: httpsUrl.nullable(),
+  license: z.string().nullable(),
+  distance_nm: z.number().nullable(),
+});
+
+export const inspirationRouteSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  interests: z.array(z.string()),
+  distance_nm: z.number(),
+  stops: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      lat: z.number(),
+      lon: z.number(),
+      icao: z.string().nullable(),
+    }),
+  ),
+});
+
+export const inspirationResponseSchema = z.object({
+  spots: z.array(inspirationSpotSchema),
+  routes: z.array(inspirationRouteSchema),
   sources: sourcesSchema,
 });
 
@@ -183,6 +234,8 @@ export const activationsResponseSchema = z.object({
 
 export type Place = z.infer<typeof placeSchema>;
 export type PlaceKind = Place["kind"];
+export type InspirationSpot = z.infer<typeof inspirationSpotSchema>;
+export type InspirationRoute = z.infer<typeof inspirationRouteSchema>;
 export type Metar = z.infer<typeof metarSchema>;
 export type Atis = z.infer<typeof atisSchema>;
 export type Notam = z.infer<typeof notamSchema>;

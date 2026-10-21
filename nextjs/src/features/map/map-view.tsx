@@ -6,7 +6,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { SearchIcon } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { api } from "~/api";
@@ -29,7 +29,9 @@ import {
   routeWithTrafficPattern,
   activeRouteWithTrafficPattern,
 } from "~/domain/traffic-pattern";
+import { routeHistoryPaths } from "~/domain/route-history";
 import { flyByRoute } from "~/domain/fly-by";
+import { navigationRoute } from "~/domain/navigation-route";
 import { ownRegistration } from "~/domain/traffic-identity";
 import { useTurnPerformance } from "~/features/fly/use-turn-performance";
 import { FlightNotifications } from "~/features/fly/flight-notifications";
@@ -49,6 +51,7 @@ import {
   pointKey,
   formatRoutePoint,
   speedRestrictionKt,
+  buildRoutePlan,
 } from "~/domain/route-plan";
 import { type FlightPoint } from "~/data/flight";
 import { distanceNm, initialBearingDeg } from "~/domain/geo";
@@ -81,10 +84,14 @@ import { useMapAnimation } from "./use-map-animation";
 import { planAirportFixes } from "~/domain/plan-airport-fixes";
 import type { DeckMap, DeckScene } from "./deck";
 import type { PointDatum, TrafficDatum } from "./deck/scene";
+import { isDeparturePatternTarget } from "~/domain/departure-pattern";
+import { mapProfilePoints } from "~/domain/map-profile";
+import { withoutRoutePoints } from "~/domain/map-route-points";
 import { AirspaceCaptions } from "./deck/captions";
 import { coordinatePaths, toPaths, toPoints, zoneDatum } from "./deck/data";
 import { airportLabels, minuteLabels, pointNameLabels } from "./deck/labels";
 import { MarkerLayer } from "./deck/markers";
+import { BRIGHT_BACKGROUND } from "./deck/bright";
 import { FJORD_BACKGROUND } from "./deck/fjord";
 import { DARK_MATTER_BACKGROUND } from "./deck/dark-matter";
 import { palettes, themeOf } from "./deck/theme";
@@ -154,10 +161,41 @@ export function MapView({
   const mapRef = useRef<DeckMap | null>(null);
   const sceneRef = useRef<DeckScene | null>(null);
   const markers = useRef<MarkerLayer | null>(null);
+  const profileMarkers = useRef<MarkerLayer | null>(null);
   const captions = useRef(new AirspaceCaptions());
   const [ready, setReady] = useState(false);
   const [notificationHistoryOpen, setNotificationHistoryOpen] = useState(false);
-  const [click, setClick] = useState<Click | null>(null);
+  const [localClick, setLocalClick] = useState<Click | null>(null);
+  const pointRequest = useMapSettings((s) => s.pointRequest);
+  const click = useMemo<Click | null>(
+    () =>
+      pointRequest
+        ? pointRequest.centerOnly
+          ? null
+          : {
+              kind: "point",
+              point: pointRequest,
+              lngLat: { lng: pointRequest.lon, lat: pointRequest.lat },
+            }
+        : localClick,
+    [pointRequest, localClick],
+  );
+  const setClick = useCallback((value: Click | null) => {
+    useMapSettings.getState().inspectPoint(null);
+    setLocalClick(value);
+  }, []);
+  useEffect(() => {
+    if (!ready || !pointRequest || !mapRef.current) return;
+    mapRef.current.animateTo(
+      {
+        longitude: pointRequest.lon,
+        latitude: pointRequest.lat,
+        zoom: Math.max(9, mapRef.current.getZoom()),
+      },
+      700,
+      true,
+    );
+  }, [ready, pointRequest]);
   const [holdingPreview, setHoldingPreview] = useState<Holding | null>(null);
   const [patternPreview, setPatternPreview] = useState<TrafficPattern | null>(
     null,
@@ -172,6 +210,8 @@ export function MapView({
     plan: routePlan,
     cruiseSpeedKt,
     aircraft: ownAircraft,
+    routeInput,
+    routeData,
   } = usePlan();
   const registration = ownRegistration(
     flight.registration,
@@ -212,12 +252,15 @@ export function MapView({
     });
   }, [ready, holding, holdingEntry, holdingPreview]);
   const patternPosition = fix ?? navigation.track.at(-1) ?? null;
+  useEffect(() => {
+    mapRef.current?.setFollowing(settings.following);
+  }, [ready, settings.following]);
   const turns = useTurnPerformance(navigation.startedAt ? fix : null);
   // The hook returns a new object each render; the geometry only depends on these numbers.
-  const { tasKt, windDirectionDeg, windSpeedKt } = turns;
+  const { tasKt, windDirectionDeg, windSpeedKt, departureTasKt } = turns;
   const turnPerformance = useMemo(
-    () => ({ tasKt, windDirectionDeg, windSpeedKt }),
-    [tasKt, windDirectionDeg, windSpeedKt],
+    () => ({ tasKt, windDirectionDeg, windSpeedKt, departureTasKt }),
+    [tasKt, windDirectionDeg, windSpeedKt, departureTasKt],
   );
   const routePath = useMemo(
     () =>
@@ -253,7 +296,19 @@ export function MapView({
               patternPreview,
               patternPosition,
             ).route
-          : routeWithTrafficPattern(plannedRoute, patternPreview)
+          : routeData && routeInput
+            ? (() => {
+                const preview = buildRoutePlan(routeData, {
+                  ...routeInput,
+                  ...(patternPreview.operation === "leave"
+                    ? { departurePattern: patternPreview }
+                    : { trafficPattern: patternPreview }),
+                });
+                return preview
+                  ? navigationRoute(preview)
+                  : routeWithTrafficPattern(plannedRoute, patternPreview);
+              })()
+            : routeWithTrafficPattern(plannedRoute, patternPreview)
         : [],
     [
       patternPreview,
@@ -262,6 +317,8 @@ export function MapView({
       navigation.activeLeg,
       patternPosition,
       plannedRoute,
+      routeInput,
+      routeData,
     ],
   );
   const previewPath = useMemo(
@@ -351,6 +408,18 @@ export function MapView({
       flight.destination?.ident,
       diversionAirport,
     ],
+  );
+  const markedRoute = useMemo(
+    () => [...route, ...(flight.alternate ? [flight.alternate] : [])],
+    [route, flight.alternate],
+  );
+  const chartNavpoints = useMemo(
+    () => withoutRoutePoints(visibleNavpoints, markedRoute, layers.route),
+    [visibleNavpoints, markedRoute, layers.route],
+  );
+  const chartAirports = useMemo(
+    () => withoutRoutePoints(airports.data ?? [], markedRoute, layers.route),
+    [airports.data, markedRoute, layers.route],
   );
   const airspace = useQuery(
     api.airspace.around.queryOptions({
@@ -500,6 +569,7 @@ export function MapView({
       map.on("move", syncZoom);
       map.on("moveend", syncZoom);
       markers.current = new MarkerLayer(map, root);
+      profileMarkers.current = new MarkerLayer(map, root);
       map.on("dragstart", () => useMapSettings.getState().follow(false));
       let lastViewportUpdate = 0;
       map.on("moveend", () => {
@@ -594,6 +664,8 @@ export function MapView({
       map.on("move", camera);
       teardown = () => {
         markers.current?.destroy();
+        profileMarkers.current?.destroy();
+        profileMarkers.current = null;
         scene.destroy();
         map.destroy();
         markers.current = sceneRef.current = mapRef.current = null;
@@ -604,7 +676,7 @@ export function MapView({
       cancelled = true;
       teardown?.();
     };
-  }, []);
+  }, [setClick]);
 
   const theme = themeOf(basemap);
   useEffect(() => {
@@ -616,6 +688,7 @@ export function MapView({
     });
     mapRef.current?.setTerrain(settings.terrain3d);
     markers.current?.setVisible(layers.route);
+    profileMarkers.current?.setVisible(layers.route);
   }, [ready, basemap, theme, layers, settings.terrain3d]);
 
   useEffect(() => {
@@ -625,38 +698,37 @@ export function MapView({
   }, [ready, zones, theme]);
 
   useEffect(() => {
-    if (airports.data)
-      sceneRef.current?.set({
-        airports: toPoints(
-          airports.data.map((a) => ({
-            ...a,
-            kind: "airport",
-            symbol:
-              a.type === "controlled"
-                ? "controlled"
-                : a.isIcao
-                  ? "runway"
-                  : "airport",
-            heading: a.runways[0]?.trueHeadingDeg ?? 0,
-          })),
-        ),
-      });
-  }, [ready, airports.data]);
+    sceneRef.current?.set({
+      airports: toPoints(
+        chartAirports.map((a) => ({
+          ...a,
+          kind: "airport",
+          symbol:
+            a.type === "controlled"
+              ? "controlled"
+              : a.isIcao
+                ? "runway"
+                : "airport",
+          heading: a.runways[0]?.trueHeadingDeg ?? 0,
+        })),
+      ),
+    });
+  }, [ready, chartAirports]);
 
   useEffect(() => {
     sceneRef.current?.set({
       vfr: toPoints(
-        visibleNavpoints
+        chartNavpoints
           .filter((p) => p.kind === "vfr-reporting-point")
           .map((p) => ({ ...p, symbol: "reporting" })),
       ),
       ifr: toPoints(
-        visibleNavpoints.filter(
+        chartNavpoints.filter(
           (p) => p.kind !== "vfr-reporting-point" && p.kind !== "navaid",
         ),
       ),
       navaids: toPoints(
-        visibleNavpoints
+        chartNavpoints
           .filter((p) => p.kind === "navaid")
           .map((p) => ({
             ...p,
@@ -672,7 +744,7 @@ export function MapView({
           })),
       ),
     });
-  }, [ready, visibleNavpoints]);
+  }, [ready, chartNavpoints]);
 
   useEffect(() => {
     const aircraft = layers.traffic ? (traffic.data?.aircraft ?? []) : [];
@@ -691,14 +763,13 @@ export function MapView({
     observe(traffic.data?.aircraft ?? []);
   }, [traffic.data, observe]);
 
+  const ownTrack = navigation.startedAt ? navigation.track : settings.gpsTrack;
+  const showOwnTrack = navigation.startedAt !== null || settings.gpsEnabled;
   useEffect(() => {
     sceneRef.current?.set({
-      gpsTrail:
-        settings.gpsEnabled && settings.gpsTrack.length >= 2
-          ? toPaths([settings.gpsTrack])
-          : [],
+      gpsTrail: showOwnTrack && ownTrack.length >= 2 ? toPaths([ownTrack]) : [],
     });
-  }, [ready, settings.gpsTrack, settings.gpsEnabled]);
+  }, [ready, ownTrack, showOwnTrack]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -737,7 +808,7 @@ export function MapView({
       if (key !== stage) {
         stage = key;
         const airportText = airportLabels(
-          airports.data ?? [],
+          chartAirports,
           settings.labels && layers.airports,
           visibility,
           theme,
@@ -746,7 +817,7 @@ export function MapView({
           airportTitles: airportText.titles,
           airportDetails: airportText.details,
           pointNames: pointNameLabels(
-            visibleNavpoints,
+            chartNavpoints,
             layers,
             visibility,
             theme,
@@ -773,8 +844,8 @@ export function MapView({
     };
   }, [
     ready,
-    airports.data,
-    visibleNavpoints,
+    chartAirports,
+    chartNavpoints,
     zones,
     layers,
     settings.labels,
@@ -808,6 +879,11 @@ export function MapView({
   // The route line, and its waypoints as DOM labels (keyboard- and screen-reader-reachable).
   useEffect(() => {
     sceneRef.current?.set({
+      routeHistory: toPaths(
+        navigation.startedAt
+          ? routeHistoryPaths(navigation.routeHistory, route)
+          : [],
+      ),
       route: toPaths([
         routePath.points,
         ...(flight.destination && flight.alternate
@@ -815,10 +891,26 @@ export function MapView({
           : []),
       ]),
       plannedRoute:
-        route[0]?.ident === "DCT" && !navigation.trafficPattern
+        route[0]?.ident === "DCT" &&
+        !navigation.trafficPattern &&
+        !navigation.routeHistory
           ? toPaths([plannedPath])
           : [],
     });
+  }, [
+    ready,
+    route,
+    routePath.points,
+    navigation.startedAt,
+    navigation.routeHistory,
+    flight.destination,
+    flight.alternate,
+    plannedPath,
+    navigation.trafficPattern,
+  ]);
+
+  // Camera/speed updates redraw geometry without replacing a button during a click/tap.
+  useEffect(() => {
     markers.current?.set(
       [
         ...route.filter((p) => !p.patternId),
@@ -834,6 +926,10 @@ export function MapView({
               (point.ident === p.ident || point.aliases.includes(p.ident)),
           )?.aliases[0] ?? p.ident;
         el.style.cursor = "pointer";
+        const hitTarget = document.createElement("span");
+        hitTarget.className = "legacy-route-hit-target";
+        hitTarget.setAttribute("aria-hidden", "true");
+        el.append(hitTarget);
         el.tabIndex = 0;
         el.setAttribute("role", "button");
         el.setAttribute("aria-label", p.ident);
@@ -860,17 +956,32 @@ export function MapView({
         return { element: el, lon: p.lon, lat: p.lat };
       }),
     );
-  }, [
-    ready,
-    route,
-    flight.destination,
-    flight.alternate,
-    airports.data,
-    plannedPath,
-    navpoints.data,
-    routePath.points,
-    navigation.trafficPattern,
-  ]);
+  }, [ready, route, flight.alternate, airports.data, navpoints.data, setClick]);
+
+  useEffect(() => {
+    profileMarkers.current?.set(
+      mapProfilePoints(
+        routePlan?.points ?? [],
+        navigation.startedAt ? route : undefined,
+        routePath.points,
+      ).map((point) => {
+        const element = document.createElement("div");
+        element.className = "legacy-route-marker";
+        element.dataset.profileMarker = point.id;
+        const label = document.createElement("span");
+        label.className = "legacy-route-label";
+        label.textContent = point.id;
+        label.style.position = "relative";
+        label.style.top = point.id === "TOC" ? "-12px" : "12px";
+        element.append(label);
+        element.title = t(
+          point.id === "TOC" ? "maptools.topOfClimb" : "maptools.topOfDescent",
+        );
+        element.setAttribute("aria-label", element.title);
+        return { element, lat: point.lat, lon: point.lon, interactive: false };
+      }),
+    );
+  }, [ready, routePlan, navigation.startedAt, route, routePath, t]);
 
   const segmentTime = (index: number) => {
     const target = route[index + 1],
@@ -1128,6 +1239,12 @@ export function MapView({
         "legacy-map absolute inset-0",
         theme === "dark" && "legacy-map--dark",
       )}
+      data-route-history-paths={
+        navigation.startedAt
+          ? routeHistoryPaths(navigation.routeHistory, route).length
+          : 0
+      }
+      data-route-history-last-fix={navigation.routeHistory?.lastPassed.ident}
       data-pattern-preview={patternPreview ? "true" : "false"}
       data-holding-preview={holdingPreview ? "true" : "false"}
       data-terrain-3d={settings.terrain3d ? "true" : "false"}
@@ -1208,10 +1325,21 @@ export function MapView({
           insert={(index) => {
             const point = anchoredWaypoint(route, insertingPoint, index);
             update({ waypoints: [...flight.waypoints, point] });
-            if (navigation.startedAt) navigation.insertWaypoint(index, point);
+            if (navigation.startedAt)
+              navigation.insertWaypoint(index, point, gpsError ? null : fix);
             setInsertingPoint(null);
           }}
         />
+      )}
+      {fix && !gpsError && !settings.following && (
+        <Button
+          className="bg-card/95 absolute bottom-5 left-1/2 z-30 -translate-x-1/2 rounded-full text-white shadow-lg backdrop-blur"
+          variant="outline"
+          data-testid="map-recenter"
+          onClick={() => settings.follow(true)}
+        >
+          {t("maptools.center")}
+        </Button>
       )}
       {!embedded && (
         <Button
@@ -1270,14 +1398,17 @@ export function MapView({
         className="relative h-full w-full overflow-hidden"
         style={{
           backgroundColor:
-            basemap === "fjord"
-              ? FJORD_BACKGROUND
-              : basemap === "dark-matter"
-                ? DARK_MATTER_BACKGROUND
-                : palettes[theme].background,
+            basemap === "bright"
+              ? BRIGHT_BACKGROUND
+              : basemap === "fjord"
+                ? FJORD_BACKGROUND
+                : basemap === "dark-matter"
+                  ? DARK_MATTER_BACKGROUND
+                  : palettes[theme].background,
         }}
         data-testid="map"
         data-map-ready={ready}
+        data-track-points={showOwnTrack ? ownTrack.length : 0}
         data-selected-kind={click?.kind}
         data-selected-ident={
           click?.kind === "point"
@@ -1302,6 +1433,18 @@ export function MapView({
       )}
       {(basemap !== "dark" || settings.terrain3d) && (
         <div className="legacy-map-attribution">
+          {basemap === "bright" && (
+            <>
+              <a
+                href="/bright-attribution.html"
+                target="_blank"
+                rel="noreferrer"
+              >
+                OSM OpenMapTiles
+              </a>
+              {" · "}
+            </>
+          )}
           {basemap === "dark-matter" && (
             <>
               <a
@@ -1314,7 +1457,9 @@ export function MapView({
               {" · "}
             </>
           )}
-          {(basemap === "fjord" || basemap === "dark-matter") && (
+          {(basemap === "bright" ||
+            basemap === "fjord" ||
+            basemap === "dark-matter") && (
             <>
               <a
                 href="https://openmaptiles.org/"
@@ -1568,7 +1713,11 @@ export function MapView({
                   setClick(null);
                 }}
                 removePattern={() => {
-                  const leaving = click.point.ident === flight.departure?.ident;
+                  const leaving = isDeparturePatternTarget(
+                    flight,
+                    navigation,
+                    click.point.ident,
+                  );
                   update(
                     leaving
                       ? { departurePattern: null }

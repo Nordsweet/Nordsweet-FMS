@@ -8,8 +8,9 @@ position/follow. Disconnect preserves the selected source without falling back t
 Use Connector v0.1's schemaVersion 1 `/ws?token=...` endpoint. HTTPS pages require HTTPS/WSS.
 Tailscale Serve must run on the Prepar3D PC, and Connector must be launched with `--host` matching
 its Tailscale DNS name, with the exact Windows URL ACL reserved. The app is static; no server relay,
-REST CORS or backend credentials are involved. The token and connection preferences are persisted
-only in sessionStorage, not in flights, exported files or localStorage. Never log the WebSocket URL.
+REST CORS or backend credentials are involved. At the owner’s request (2026-10-19), the address, token and connection preferences are persisted
+in localStorage on this browser/device, including after closing and reopening the app. Existing
+sessionStorage preferences migrate once; saved flights and exported files never contain them. Never log the WebSocket URL.
 
 Connector frames are validated at the API boundary. Missing/invalid/old frames clear the active fix;
 silence marks it stale after 2.5 seconds and closes the socket after 5 seconds. Closure reconnects
@@ -20,7 +21,9 @@ Simulator altitude is already MSL in feet, and speed is GS in knots. It is not c
 ellipsoidal height or passed through EGM96 correction. IAS, TAS, AGL and vertical speed are carried
 as separate optional fields. `accuracyM: 0` is a sentinel for exact simulated position, not measured
 GNSS accuracy; Connector fixes are explicitly excluded from native-GPS wind estimation and GNSS
-emergency trend measurements. The Fly status uses a simulator label rather than claiming GNSS
+emergency trend measurements. The wind tile now has its own P3D path: actual TAS/true heading
+and GS/true track produce a horizontal wind-vector estimate in flight, without a GPS circle.
+The existing `onGround` flag is exposed to the position adapter to prevent taxi/ground estimates. The Fly status uses a simulator label rather than claiming GNSS
 accuracy. Demo packets retain a distinct source and display a DEMO label.
 
 Paused positions stay visible without extrapolation and do not drive automatic flight observations

@@ -1,4 +1,6 @@
 export const mapToolsEn = {
+  "maptools.topOfClimb": "Top of climb",
+  "maptools.topOfDescent": "Top of descent",
   "maptools.parachuting": "Parachuting (PJE)",
   "maptools.trafficUnavailable": "Traffic unavailable",
   "maptools.loading": "Loading map data…",
@@ -45,6 +47,7 @@ export const mapToolsEn = {
   "maptools.below": "Below",
   "maptools.apply": "Apply",
   "maptools.weather": "Weather",
+  "maptools.insertPirep": "Insert PIREP",
   "maptools.notams": "NOTAM",
   "maptools.charts": "Charts",
   "maptools.noData": "No data available",
@@ -81,6 +84,8 @@ export const mapToolsEn = {
   "maptools.plan": "plan",
 } as const;
 export const mapToolsPl: Record<keyof typeof mapToolsEn, string> = {
+  "maptools.topOfClimb": "Koniec wznoszenia",
+  "maptools.topOfDescent": "Początek zniżania",
   "maptools.parachuting": "Skoki spadochronowe (PJE)",
   "maptools.trafficUnavailable": "Ruch niedostępny",
   "maptools.loading": "Wczytywanie danych mapy…",
@@ -127,6 +132,7 @@ export const mapToolsPl: Record<keyof typeof mapToolsEn, string> = {
   "maptools.below": "Poniżej",
   "maptools.apply": "Zastosuj",
   "maptools.weather": "Pogoda",
+  "maptools.insertPirep": "Insert PIREP",
   "maptools.notams": "NOTAM",
   "maptools.charts": "Mapy",
   "maptools.noData": "Brak danych",

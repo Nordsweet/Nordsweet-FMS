@@ -4,6 +4,7 @@ import { type Aircraft } from "~/data/aircraft";
 
 import {
   aircraftTypes,
+  aircraftForRegistration,
   defaultFuelIndicationMode,
   formatMth,
   resolveAircraft,
@@ -22,6 +23,25 @@ const list = [
 ];
 
 describe("aircraft", () => {
+  it("matches airframes and remembered models; ambiguous C172 subtypes remain manual", () => {
+    expect(aircraftForRegistration(list, "sp-ant")?.type).toBe("FR172H");
+    expect(aircraftForRegistration(list, "SP-ABC", ["P2006T"])?.type).toBe(
+      "P2006T",
+    );
+    const cessnas = [
+      { ...profile("C172S", "C172S", null, 1), icaoType: "C172" },
+      { ...profile("C172M", "C172M", null, 2), icaoType: "C172" },
+    ];
+    expect(
+      aircraftForRegistration(cessnas, "SP-ABC", [], { icaoType: "C172" }),
+    ).toBeNull();
+    expect(
+      aircraftForRegistration(cessnas, "SP-ABC", [], {
+        icaoType: "C172",
+        model: "Cessna 172S Skyhawk",
+      })?.type,
+    ).toBe("C172S");
+  });
   it("lists one entry per type in the legacy order", () => {
     expect(aircraftTypes(list).map((a) => a.id)).toEqual(["P2006T", "FR172H"]);
   });

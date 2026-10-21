@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
+import { navigationRoute } from "~/domain/navigation-route";
 
 import { api } from "~/api";
 import { type Airport, type Navpoint, type Procedure } from "~/data/schemas";
@@ -186,6 +187,7 @@ export function usePlan(snapshot?: Flight) {
           alternate: alternateAirport,
           altitudeFt: flight.cruiseAltitudeFt,
           routeText: flight.routeText,
+          removedRoutePoints: flight.removedRoutePoints,
           selections: {
             SID: flight.sid,
             STAR: flight.star,
@@ -275,25 +277,7 @@ export function usePlan(snapshot?: Flight) {
 
   // Map, fly mode and export: the route's fixes (TOC/TOD are profile events, not points to fly to).
   const baseRoute: NavPoint[] = plan
-    ? plan.points
-        .filter((p) => !p.isProfilePoint)
-        .map((p) => ({
-          ident: formatRoutePoint({ ...p, profileLabels: undefined }),
-          lat: p.lat,
-          lon: p.lon,
-          flyOver: p.flyOver,
-          ...(p.patternId
-            ? {
-                patternId: p.patternId,
-                patternOperation: p.patternOperation,
-                altitudeFt:
-                  p.patternOperation === "leave"
-                    ? plan.pointAltitudeByKey[pointKey(p)]
-                    : p.patternAltitudeFt,
-                turnPerformance: p.turnPerformance,
-              }
-            : {}),
-        }))
+    ? navigationRoute(plan)
     : fallbackFlightRoute(flight);
   const arrivalRoute =
     !plan &&

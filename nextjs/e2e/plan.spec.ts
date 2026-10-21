@@ -1,4 +1,4 @@
-import { type Page, expect, test } from "@playwright/test";
+import { selectFlightPhase, type Page, expect, test } from "./test";
 
 test.beforeEach(async ({ page }) => {
   // Deterministic: no live API (VFR points degrade gracefully), English UI.
@@ -14,7 +14,7 @@ test.beforeEach(async ({ page }) => {
 async function flightPanel(page: Page, phase: string, panel: string) {
   if (!page.url().endsWith("/fly"))
     await page.getByRole("link", { name: "Start a flight" }).click();
-  await page.getByRole("button", { name: phase, exact: true }).click();
+  await selectFlightPhase(page, phase);
   const button = page.getByRole("button", { name: panel, exact: true });
   if ((await button.getAttribute("aria-expanded")) !== "true")
     await button.click();
@@ -103,6 +103,7 @@ test("imports a legacy .nord flight", async ({ page }) => {
   await tab(page, "Current flight");
   await tab(page, "Route");
   await expect(page.getByTestId("route-summary")).toContainText("EPNT -> EPML");
+  await page.getByRole("textbox", { name: "Route", exact: true }).focus();
   await expect(
     page.getByRole("textbox", { name: "Route", exact: true }),
   ).toHaveValue("epnta epmlr epmls");

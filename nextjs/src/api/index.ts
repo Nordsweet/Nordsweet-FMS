@@ -1,4 +1,5 @@
 import { mutationOptions, queryOptions } from "@tanstack/react-query";
+import { flightSyncApi } from "./flight-sync";
 
 import { type Flight } from "~/data/flight";
 import { type AircraftDraft } from "~/domain/custom-aircraft";
@@ -11,7 +12,12 @@ import {
   aviationApi,
 } from "./aviation/client";
 import { loadAircraft, readCustomDrafts, writeCustomDrafts } from "./aircraft";
-import { loadGeoid, loadTerrainRegion, prepareTerrain } from "./terrain";
+import {
+  loadGeoid,
+  loadTerrainRegion,
+  loadTerrainProfile,
+  prepareTerrain,
+} from "./terrain";
 import { loadDataset } from "./datasets";
 import {
   listFlights,
@@ -93,7 +99,25 @@ type Search = { query: string; limit?: number };
 type Icao = { icao: string };
 
 export const api = {
+  auth: {
+    // Credentials and the session never enter the persisted query cache.
+    login: mutation("auth.login", aviationApi.login),
+    // Called directly: it must read the token before sign-out clears it.
+    logout: { call: aviationApi.logout },
+    me: { call: aviationApi.me },
+  },
+  flightSync: {
+    // Recovery includes a private capability: never place it in the persisted query cache.
+    latest: { call: flightSyncApi.latest },
+    get: { call: flightSyncApi.get },
+    save: mutation("flightSync.save", flightSyncApi.save),
+    close: mutation("flightSync.close", flightSyncApi.close),
+  },
   terrain: {
+    profile: query("terrain.profile", loadTerrainProfile, {
+      staleTime: 5 * MINUTE,
+      gcTime: MINUTE,
+    }),
     prepare: mutation("terrain.prepare", prepareTerrain),
     region: query("terrain.region", loadTerrainRegion, {
       staleTime: 5 * MINUTE,
@@ -296,6 +320,13 @@ export const api = {
         staleTime: 5 * SECOND,
         gcTime: MINUTE, // positions are worthless after a minute; do not persist them
       },
+    ),
+  },
+  inspiration: {
+    ideas: query(
+      "inspiration.ideas",
+      (input: { lang: "pl" | "en" }) => aviationApi.inspiration(input),
+      live(HOUR),
     ),
   },
   airspace: {

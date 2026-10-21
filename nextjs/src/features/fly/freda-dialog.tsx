@@ -12,7 +12,15 @@ import {
   DialogTitle,
 } from "~/components/ui/dialog";
 import { Input } from "~/components/ui/input";
+import {
+  fuelUnit,
+  fuelFromLitres,
+  fuelToLitres,
+  formatFuel,
+} from "~/domain/fuel-units";
 import { timerElapsed } from "~/domain/flight-timers";
+import { fredaFuelRemaining } from "~/domain/freda";
+import { useFlightSync } from "~/stores/flight-sync";
 import { navigationProgress } from "~/domain/holding";
 import { fmt } from "~/features/plan/fields";
 import { usePlan } from "~/features/plan/use-plan";
@@ -41,6 +49,7 @@ export function FredaDialog({ fix, now }: { fix: GpsFix | null; now: number }) {
   const t = useT();
   const { flight, aircraft, fuelPlanning, plan } = usePlan();
   const inFlight = useInFlight();
+  const recoveryReady = useFlightSync((s) => s.phase === "ready");
   const turns = useTurnPerformance(fix);
   const frequencies = useQuery(
     api.frequencies.list.queryOptions(undefined),
@@ -48,28 +57,38 @@ export function FredaDialog({ fix, now }: { fix: GpsFix | null; now: number }) {
   const [tanks, setTanks] = useState<number[] | null>(null);
   const [engine, setEngine] = useState<"yes" | "no" | null>(null);
 
-  // Fuel: block fuel less the planned burn rate (trip fuel over trip time) over the air time.
+  // Cruise burn since the last confirmed reading; initial fuel is the fallback before the first FREDA.
   const trip = fuelPlanning?.rows.plannedTrip;
   const plannedFlow =
     trip?.fuelL && trip.minutes ? trip.fuelL / (trip.minutes / 60) : null;
-  const flow = plannedFlow ?? fuelPlanning?.cruise.fuelFlowLph ?? null;
+  const flow = fuelPlanning?.cruise.fuelFlowLph ?? plannedFlow;
   const air = inFlight.timers.airTime;
-  const airHours =
-    air.startedAt === null
-      ? 0
-      : ((air.stoppedAt ?? now) - air.startedAt) / 3_600_000;
-  const predicted =
-    flow !== null ? Math.max(0, flight.fuel.blockL - flow * airHours) : null;
+  const predicted = fredaFuelRemaining(
+    flight.fuel.blockL,
+    flow,
+    air,
+    now,
+    inFlight.fredaFuel,
+  );
+  const unit = fuelUnit(aircraft?.type, flight.fuelDisplayUnit);
   const capacity = aircraft?.fuelTankCapacityL ?? aircraft?.usableFuelL ?? 999;
   const labels = TANKS[aircraft?.type ?? ""] ?? ["Left tank", "Right tank"];
   const values =
     tanks ??
-    labels.map(() => (predicted === null ? 0 : Math.round(predicted / 2)));
+    labels.map(() =>
+      predicted === null ? 0 : Math.round(fuelFromLitres(predicted / 2, unit)),
+    );
   const setTank = (i: number, liters: number) =>
     setTanks(
       values.map((v, j) =>
         j === i
-          ? Math.max(0, Math.min(Math.floor(capacity), Math.round(liters)))
+          ? Math.max(
+              0,
+              Math.min(
+                Math.floor(fuelFromLitres(capacity, unit)),
+                Math.round(liters),
+              ),
+            )
           : v,
       ),
     );
@@ -111,8 +130,19 @@ export function FredaDialog({ fix, now }: { fix: GpsFix | null; now: number }) {
     setEngine(null);
     inFlight.closeFreda();
   };
+  const freshForArrival =
+    !["descent", "landing", "taxiin"].includes(inFlight.phase) ||
+    (!!fix && !fix.paused && Math.abs(now - Date.parse(fix.time)) <= 20000);
   return (
-    <Dialog open={inFlight.fredaOpen} onOpenChange={(open) => !open && close()}>
+    <Dialog
+      open={
+        inFlight.fredaOpen &&
+        inFlight.fredaAvailable &&
+        recoveryReady &&
+        freshForArrival
+      }
+      onOpenChange={(open) => !open && close()}
+    >
       <DialogContent className="max-h-[90dvh] w-[min(44rem,calc(100vw-2rem))] overflow-y-auto">
         <DialogTitle>FREDA</DialogTitle>
         <DialogDescription>
@@ -124,18 +154,21 @@ export function FredaDialog({ fix, now }: { fix: GpsFix | null; now: number }) {
               <p className="text-sm">
                 {predicted === null
                   ? t("fly.freda.noPrediction")
-                  : t("fly.freda.predicted", { litres: Math.round(predicted) })}
+                  : t("fly.freda.predicted", {
+                      litres: formatFuel(predicted, unit),
+                      unit,
+                    })}
                 {flow !== null &&
-                  ` • ${t("fly.freda.burn", { flow: fmt(flow, 1) })}`}
+                  ` • ${t("fly.freda.burn", { flow: formatFuel(flow, unit), unit })}`}
               </p>
               <div className="grid gap-2 sm:grid-cols-2">
                 {labels.map((label, i) => (
                   <label key={label} className="grid gap-1 text-sm">
-                    {label} [L]
+                    {label} [{unit}]
                     <Input
                       type="number"
                       min={0}
-                      max={Math.floor(capacity)}
+                      max={Math.floor(fuelFromLitres(capacity, unit))}
                       inputMode="numeric"
                       value={values[i]}
                       onChange={(e) => setTank(i, Number(e.target.value))}
@@ -241,7 +274,14 @@ export function FredaDialog({ fix, now }: { fix: GpsFix | null; now: number }) {
           </Button>
           <Button
             onClick={() => {
-              inFlight.completeFreda(values.reduce((a, b) => a + b, 0));
+              inFlight.completeFreda(
+                tanks === null && predicted !== null
+                  ? predicted
+                  : fuelToLitres(
+                      values.reduce((a, b) => a + b, 0),
+                      unit,
+                    ),
+              );
               setTanks(null);
               setEngine(null);
             }}

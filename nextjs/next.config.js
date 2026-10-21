@@ -6,6 +6,15 @@ import "./src/env.js";
 
 /** @type {import("next").NextConfig} */
 const config = {
+  // `next dev` has no nginx in front: forward the tile proxy path (not applied to the static export).
+  ...(process.env.NODE_ENV === "development" && {
+    rewrites: () => [
+      {
+        source: "/tiles/:z/:x/:y.png",
+        destination: "https://tile.openstreetmap.org/:z/:x/:y.png",
+      },
+    ],
+  }),
   output: "export",
   trailingSlash: false,
   images: { unoptimized: true },

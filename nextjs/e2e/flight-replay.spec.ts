@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./test";
 
 // A short local flight from EPKK (792 ft): taxi, take-off roll, climb to
 // 3000 ft, cruise, descent, landing roll and stop. Altitudes are MSL.
@@ -25,9 +25,9 @@ function flightGpx() {
   go(20, 100, 250, 0); // cruise
   go(200, 90, 70, -700); // descent back towards the field
   go(20, 20, 70, 0); // landing roll
-  go(20, 0, 70, 0); // stopped
+  go(35, 0, 70, 0); // stopped: allow 20 continuous seconds after the first zero-speed sample
   const trkpts = points
-    // Keep source time/distance/altitude, but avoid 432 React commits at 20x on a CPU-only CI map.
+    // Keep source time/distance/altitude, but avoid per-second React commits at 20x on a CPU-only CI map.
     // Five-second GPS samples still cover every phase and the stopped/on-block dwell.
     .map(
       (p, i) =>

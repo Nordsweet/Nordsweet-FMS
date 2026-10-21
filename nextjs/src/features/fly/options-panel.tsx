@@ -132,6 +132,7 @@ export function OptionsPanel() {
   const timers = useInFlight((s) => s.timers);
   const addEvent = useInFlight((s) => s.addEvent);
   const openFreda = useInFlight((s) => s.openFreda);
+  const fredaAvailable = useInFlight((s) => s.fredaAvailable);
   const replayEnabled = useInFlight((s) => s.replayEnabled);
   const setReplayEnabled = useInFlight((s) => s.setReplayEnabled);
   const [now, setNow] = useState(() => Date.now());
@@ -179,7 +180,11 @@ export function OptionsPanel() {
       <UtilityCard index={0} now={now} />
       <UtilityCard index={1} now={now} />
       <div>
-        <Button variant="outline" onClick={openFreda}>
+        <Button
+          variant="outline"
+          onClick={openFreda}
+          disabled={!fredaAvailable}
+        >
           {t("fly.freda.open")}
         </Button>
       </div>

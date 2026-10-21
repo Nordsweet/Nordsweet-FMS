@@ -28,6 +28,31 @@ http
       res.writeHead(400).end();
       return;
     }
+    if (pathname.startsWith("/flight-sync/")) {
+      if (!process.env.FLIGHT_STORE_URL) {
+        res
+          .writeHead(503, {
+            "Content-Type": "application/json",
+            "Cache-Control": "no-store",
+          })
+          .end('{"detail":"Flight storage not configured"}');
+        return;
+      }
+      const upstream = http.request(
+        new URL(req.url, process.env.FLIGHT_STORE_URL),
+        {
+          method: req.method,
+          headers: req.headers,
+        },
+        (reply) => {
+          res.writeHead(reply.statusCode ?? 502, reply.headers);
+          reply.pipe(res);
+        },
+      );
+      upstream.on("error", () => res.writeHead(503).end());
+      req.pipe(upstream);
+      return;
+    }
     let target = path.resolve(root, "." + pathname);
     if (target !== root && !target.startsWith(root + path.sep)) {
       res.writeHead(403).end();

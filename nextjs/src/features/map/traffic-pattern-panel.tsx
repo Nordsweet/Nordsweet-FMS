@@ -12,7 +12,11 @@ import {
 } from "~/domain/traffic-pattern";
 import { patternPlanningPerformance } from "~/domain/pattern-performance";
 import { patternRunwaySuggestion } from "~/domain/traffic-pattern-runway";
-import { departureRunwayChoice } from "~/domain/departure-pattern";
+import {
+  departureRunwayChoice,
+  isDeparturePatternTarget,
+} from "~/domain/departure-pattern";
+import { useInFlight } from "~/stores/inflight";
 import { atisValue } from "~/domain/atis-pad";
 import { useAtis } from "~/stores/atis";
 import { useFlight } from "~/stores/flight";
@@ -40,7 +44,8 @@ export function TrafficPatternPanel({
 }) {
   const t = useT();
   const flight = useFlight((s) => s.flight);
-  const leaving = flight.departure?.ident === airport.ident;
+  const navigation = useInFlight();
+  const leaving = isDeparturePatternTarget(flight, navigation, airport.ident);
   const existing = leaving ? flight.departurePattern : flight.trafficPattern;
   const ground = useQuery({
     ...api.ground.byAirport.queryOptions({ airport: airport.ident }),

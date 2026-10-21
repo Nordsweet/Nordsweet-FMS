@@ -63,6 +63,7 @@ export const flightSchema = z.object({
   pointRestrictions: z.record(z.string(), pointRestrictionSchema).default({}),
   /** Legacy route text: DCT, airways, procedures ("SID NAVUR"), coordinates. */
   routeText: z.string().default(""),
+  removedRoutePoints: z.array(z.string()).default([]),
   /** Procedure selects: null = none, "AUTO" = suggested for the runway, else a procedure id. */
   sid: z.string().nullable().default(null),
   star: z.string().nullable().default(null),
@@ -93,6 +94,7 @@ export const flightSchema = z.object({
     .object({ departure: z.string(), destination: z.string() })
     .default({ departure: "", destination: "" }),
   fuel: z.object({ blockL: z.number().nonnegative() }),
+  fuelDisplayUnit: z.enum(["L", "US gal"]).nullable().default(null),
   /** Fuel table rows the pilot typed over the planner's suggestion (legacy fuel planning). */
   fuelOverrides: z
     .partialRecord(
@@ -155,6 +157,7 @@ export function newFlight(): Flight {
     departureRunway: null,
     pointRestrictions: {},
     routeText: "",
+    removedRoutePoints: [],
     sid: null,
     star: null,
     approach: null,
@@ -166,6 +169,7 @@ export function newFlight(): Flight {
     waypointWx: {},
     schedule: { departure: "", destination: "" },
     fuel: { blockL: 0 },
+    fuelDisplayUnit: null,
     fuelOverrides: {},
     cruiseOatC: 15,
     checklistChecked: {},

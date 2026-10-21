@@ -1,7 +1,7 @@
 import fs from "node:fs";
-import { test, expect, type Page } from "@playwright/test";
+import { selectFlightPhase, test, expect, type Page } from "./test";
 import { airportSchema } from "../src/data/schemas";
-import { newFlight } from "../src/data/flight";
+import { newFlight, type Flight } from "../src/data/flight";
 import {
   trafficPatternGeometry,
   patternRunwayGeometry,
@@ -29,7 +29,16 @@ const pattern: TrafficPattern = {
   altitudeAalFt: 1000,
   finalDistanceNm: 2,
 };
-async function mocks(page: Page, atis = true) {
+async function mocks(
+  page: Page,
+  atis = true,
+  flight: Flight = {
+    ...newFlight(),
+    aircraftId: "P2006T",
+    departure,
+    destination: airport,
+  },
+) {
   await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => route.abort());
   await page.route("https://aviation.lab.vibecde.com/**", (route) => {
     const path = new URL(route.request().url()).pathname;
@@ -75,17 +84,97 @@ async function mocks(page: Page, atis = true) {
       });
     return route.fulfill({ json: { places: [], sources: {} } });
   });
-  await page.addInitScript(
-    (flight) => {
-      localStorage.setItem("nordsweet.language.v1", "en");
-      if (!localStorage.getItem("nordsweet.flight.v2"))
-        localStorage.setItem(
-          "nordsweet.flight.v2",
-          JSON.stringify({ version: 1, state: { flight } }),
-        );
-    },
-    { ...newFlight(), aircraftId: "P2006T", departure, destination: airport },
-  );
+  await page.addInitScript((flight) => {
+    localStorage.setItem("nordsweet.language.v1", "en");
+    if (!localStorage.getItem("nordsweet.flight.v2"))
+      localStorage.setItem(
+        "nordsweet.flight.v2",
+        JSON.stringify({ version: 1, state: { flight } }),
+      );
+  }, flight);
+}
+
+for (const [join, direction, label, direct] of [
+  ["downwind", "left", "Downwind", false],
+  ["crosswind", "right", "Crosswind", false],
+  ["downwind", "right", "Downwind", true],
+] as const) {
+  test(`Mielec ${direction} ${label}${direct ? " from EPKC at 100 KIAS" : ""} has smooth turns in preview, accepted route and reload`, async ({
+    page,
+  }, testInfo) => {
+    test.setTimeout(60_000);
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    const mielec = airportSchema.parse(raw.find((a) => a.ident === "EPML"));
+    const runway = mielec.runways.find((r) => r.designator === "09")!;
+    const runwayGeometry = patternRunwayGeometry(mielec, runway)!;
+    const sample: TrafficPattern = {
+      ...pattern,
+      airport: mielec,
+      runway: { ...runway, ...runwayGeometry },
+      join,
+      direction,
+      turnPerformance: { tasKt: 100 },
+    };
+    const start = trafficPatternGeometry(sample).positions[join];
+    const inbound = { ident: "INBOUND", ...destinationPoint(start, 255, 20) };
+    await mocks(page, false, {
+      ...newFlight(),
+      aircraftId: "P2006T",
+      departure: direct
+        ? airportSchema.parse(raw.find((a) => a.ident === "EPKC"))
+        : departure,
+      destination: mielec,
+      waypoints: direct ? [] : [inbound],
+      cruiseTasKt: direct ? 100 : 120,
+    });
+    await page.route("**/EPML/weather", (r) =>
+      r.fulfill({
+        json: { icao: "EPML", metar: null, taf: null, sources: {} },
+      }),
+    );
+    await page.goto("/map");
+    const panel = await open(page, "EPML");
+    await choose(
+      page,
+      "Pattern direction",
+      direction === "right" ? "Right" : "Left",
+    );
+    await choose(page, "Join position", label);
+    await expect(page.locator("[data-pattern-preview='true']")).toBeVisible();
+    await expect(page.getByTestId("turn-constraint")).toHaveCount(0);
+    for (let i = 0; i < 2; i++)
+      await page.getByRole("button", { name: "Zoom in", exact: true }).click();
+    await page.getByRole("button", { name: "Layers", exact: true }).click();
+    await page.screenshot({
+      path: testInfo.outputPath(`mielec-${join}-preview.png`),
+    });
+    await panel
+      .getByRole("button", { name: "Accept traffic pattern", exact: true })
+      .click();
+    const accepted = await savedPattern(page);
+    expect(accepted?.airport.ident).toBe("EPML");
+    expect(accepted?.join).toBe(join);
+    expect(accepted?.direction).toBe(direction);
+    await expect(page.getByTestId("map-planner-points")).toContainText(
+      "TPJ1/EPML",
+    );
+    await expect(
+      page.getByRole("dialog", { name: "Details", exact: true }),
+    ).toBeHidden();
+    await page.screenshot({
+      path: testInfo.outputPath(`mielec-${join}-accepted.png`),
+    });
+    await page.reload();
+    expect(await savedPattern(page)).toEqual(accepted);
+    await expect(page.getByTestId("map-planner-points")).toContainText(
+      "TPJ1/EPML",
+    );
+    await expect(page.getByTestId("turn-constraint")).toHaveCount(0);
+    const reopened = await open(page, "EPML");
+    await expect(
+      reopened.getByRole("combobox", { name: "Join position", exact: true }),
+    ).toHaveText(label);
+  });
 }
 async function open(page: Page, code = "EPNT") {
   await page.getByRole("button", { name: "Search", exact: true }).click();
@@ -250,7 +339,7 @@ test("automatic departure circuit follows Take-off then Taxi-out runway selectio
     { departure, airport },
   );
   await page.goto("/fly");
-  await page.getByRole("button", { name: "Take-off", exact: true }).click();
+  await selectFlightPhase(page, "Take-off");
   await page.getByRole("button", { name: "RWY", exact: true }).click();
   await page
     .getByTestId("perf-takeoff")
@@ -266,7 +355,7 @@ test("automatic departure circuit follows Take-off then Taxi-out runway selectio
     .getByRole("button", { name: "Accept traffic pattern", exact: true })
     .click();
   await page.goto("/fly");
-  await page.getByRole("button", { name: "Taxi-Out", exact: true }).click();
+  await selectFlightPhase(page, "Taxi-Out");
   await page.getByRole("button", { name: "Route", exact: true }).click();
   await page
     .getByTestId("taxi-departure")
@@ -609,6 +698,7 @@ test("accepting a Base join during flight preserves the flight and reports halfw
   await page.goto("/fly");
   const panel = await open(page);
   await choose(page, "Join position", "Base");
+  await page.screenshot({ path: "test-results/base-entry-preview.png" });
   await panel
     .getByRole("button", { name: "Accept traffic pattern", exact: true })
     .click();
@@ -619,7 +709,7 @@ test("accepting a Base join during flight preserves the flight and reports halfw
           state: {
             startedAt: string;
             phase: string;
-            route: { ident: string }[];
+            route: { ident: string; lat: number; lon: number }[];
             trafficPattern: TrafficPattern;
           };
         }
@@ -629,7 +719,30 @@ test("accepting a Base join during flight preserves the flight and reports halfw
   expect(active.phase).toBe("cruise");
   expect(active.route[0]?.ident).toBe("DCT");
   expect(active.trafficPattern.join).toBe("base");
+  await page.screenshot({ path: "test-results/base-entry-accepted.png" });
   const g = trafficPatternGeometry(active.trafficPattern);
+  // Fly the added rate-one entry guides before reaching the beginning of Base.
+  const baseIndex = active.route.findIndex((p) => p.ident === "TP1/EPNT");
+  for (let i = 1; i < baseIndex; i++) {
+    const point = active.route[i]!;
+    await context.setGeolocation({
+      latitude: point.lat,
+      longitude: point.lon,
+      accuracy: 5,
+    });
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () =>
+            (
+              JSON.parse(localStorage.getItem("nordsweet.inflight.v1")!) as {
+                state: { activeLeg: number };
+              }
+            ).state.activeLeg,
+        ),
+      )
+      .toBeGreaterThanOrEqual(i);
+  }
   await context.setGeolocation({
     latitude: g.positions.base.lat,
     longitude: g.positions.base.lon,
@@ -646,7 +759,7 @@ test("accepting a Base join during flight preserves the flight and reports halfw
           ).state.activeLeg,
       ),
     )
-    .toBe(1);
+    .toBe(baseIndex);
   await context.setGeolocation({
     latitude: (g.positions.base.lat + g.positions.final.lat) / 2,
     longitude: (g.positions.base.lon + g.positions.final.lon) / 2,

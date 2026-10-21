@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./test";
 import { newFlight } from "../src/data/flight";
 import { destinationPoint } from "../src/domain/geo";
 

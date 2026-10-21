@@ -1,3 +1,5 @@
+import { type TurnPerformance } from "~/domain/fly-by";
+import { isDeparturePatternTarget } from "~/domain/departure-pattern";
 import { type TrafficPattern } from "~/data/traffic-pattern";
 import { TrafficPatternPanel } from "./traffic-pattern-panel";
 import { HoldingPanel } from "./holding-panel";
@@ -35,6 +37,7 @@ const KIND_LABEL: Record<string, MessageKey> = {
 
 export function PointDetails({
   point,
+  turnPerformance,
   addPoint,
   now,
   previewPattern,
@@ -46,6 +49,7 @@ export function PointDetails({
 }: {
   point: FlightPoint & { name: string; kind: string };
   now: number;
+  turnPerformance?: TurnPerformance;
   previewPattern: (pattern: TrafficPattern | null) => void;
   acceptPattern: (pattern: TrafficPattern) => void;
   removePattern: () => void;
@@ -140,7 +144,7 @@ export function PointDetails({
             variant="outline"
             disabled={!fix || !!error || now - Date.parse(fix.time) > 20000}
             onClick={() => {
-              if (fix) navigation.goToPoint(point, fix);
+              if (fix) navigation.goToPoint(point, fix, turnPerformance);
             }}
           >
             {t("fly.directTo")}
@@ -152,7 +156,7 @@ export function PointDetails({
             variant="outline"
             disabled={!fix || !!error || now - Date.parse(fix.time) > 20000}
             onClick={() => {
-              if (fix) navigation.divertTo(point, fix);
+              if (fix) navigation.divertTo(point, fix, turnPerformance);
             }}
           >
             {t("fly.divert")}
@@ -198,7 +202,8 @@ export function PointDetails({
                     (_, i) => i !== waypointIndex,
                   ),
                 });
-              if (activeIndex >= 0) navigation.removeWaypoint(activeIndex);
+              if (activeIndex >= 0)
+                navigation.removeWaypoint(activeIndex, error ? null : fix);
             }}
           >
             {t("maptools.removePoint")}
@@ -206,11 +211,6 @@ export function PointDetails({
         ) : (
           <Button size="sm" onClick={() => addPoint(point, "waypoint")}>
             {t("plan.route.addWaypoint")}
-          </Button>
-        )}
-        {onRoute && (
-          <Button size="sm" variant="outline" onClick={() => setWxOpen(true)}>
-            WX
           </Button>
         )}
         {onRoute && (
@@ -224,8 +224,17 @@ export function PointDetails({
             {t("maptools.restriction")}
           </Button>
         )}
+        {(airport || onRoute) && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setMode(mode === "weather" ? null : "weather")}
+          >
+            {t("maptools.weather")}
+          </Button>
+        )}
         {airport &&
-          (["weather", "notams", "charts"] as const).map((action) => (
+          (["notams", "charts"] as const).map((action) => (
             <Button
               size="sm"
               variant="outline"
@@ -248,6 +257,7 @@ export function PointDetails({
       )}
       {mode === "pattern" && airportRecord && (
         <TrafficPatternPanel
+          key={`${airportRecord.ident}:${isDeparturePatternTarget(flight, navigation, airportRecord.ident)}`}
           airport={airportRecord}
           departureTargetAltitudeFt={departureTargetAltitudeFt}
           preview={previewPattern}
@@ -350,8 +360,10 @@ export function PointDetails({
       )}
       {mode === "weather" && (
         <AirportBriefing
-          point={{ ...point, ident: airportCode }}
+          point={{ ...point, ident: airport ? airportCode : point.ident }}
           role="selected"
+          onInsertPirep={onRoute ? () => setWxOpen(true) : undefined}
+          showAtis={airport}
         />
       )}
       {mode === "notams" && <AirportNotams icao={airportCode} />}

@@ -19,7 +19,7 @@ type SettingsStore = Settings & {
   update: (patch: Partial<Settings>) => void;
 };
 
-const defaults: Settings = {
+export const settingsDefaults: Settings = {
   language: "pl",
   homeAirportIcao: "",
   pilotWeightKg: null,
@@ -70,7 +70,7 @@ export function readLegacySettings(
 export const useSettings = create<SettingsStore>()(
   persist(
     (set) => ({
-      ...defaults,
+      ...settingsDefaults,
       update: (patch) => set(patch),
     }),
     {

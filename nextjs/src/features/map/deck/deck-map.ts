@@ -41,6 +41,21 @@ const EASE = new LinearInterpolator([
   "zoom",
   "bearing",
 ]);
+// deck.gl renders the interpolated viewport itself, before the app's view-state callback.
+// Supply its anchored centre too; correcting only the callback leaves the canvas jumping.
+class AnchoredZoomInterpolator extends LinearInterpolator {
+  constructor(private readonly anchor: (zoom: number) => MapViewState) {
+    super(["zoom"]);
+  }
+
+  override interpolateProps(
+    start: Record<string, number>,
+    end: Record<string, number>,
+    t: number,
+  ) {
+    return this.anchor(start.zoom! + (end.zoom! - start.zoom!) * t);
+  }
+}
 
 /**
  * The map: a deck.gl `Deck` with a Web Mercator view (the OSM tiles and every overlay are layers).
@@ -57,6 +72,21 @@ export class DeckMap {
   private readonly observer: ResizeObserver;
   private settle = 0;
   private pressed: Point | null = null;
+  private following = false;
+  private touches = 0;
+  private singleTouch: Point | null = null;
+  private followTarget: {
+    position: [number, number];
+    bearing: number;
+    anchor: [number, number];
+  } | null = null;
+  private readonly followZoom = new AnchoredZoomInterpolator((zoom) => {
+    const view = { ...this.view, zoom };
+    const target = this.followTarget;
+    return this.following && target
+      ? this.anchoredView(view, target.position, target.bearing, target.anchor)
+      : view;
+  });
   /** True while a gesture or its inertia is running. */
   interacting = false;
   private fitted: { bounds: Bounds; padding: number } | null;
@@ -82,7 +112,7 @@ export class DeckMap {
       controller: {
         scrollZoom: { speed: 0.01, smooth: true },
         dragRotate: true,
-        touchRotate: true,
+        touchRotate: false,
         inertia: true,
       },
       // Everything is flat and drawn in layer order: depth testing would only hide coplanar layers.
@@ -90,7 +120,20 @@ export class DeckMap {
       pickingRadius: PICK_RADIUS,
       getCursor: ({ isDragging, isHovering }) =>
         isDragging ? "grabbing" : isHovering ? "pointer" : "grab",
-      onViewStateChange: ({ viewState }) => this.setView(viewState),
+      onViewStateChange: ({ viewState, interactionState }) => {
+        if (this.following && interactionState.isZooming && this.followTarget) {
+          const target = this.followTarget;
+          this.setView({
+            ...this.anchoredView(
+              { ...viewState, pitch: this.view.pitch },
+              target.position,
+              target.bearing,
+              target.anchor,
+            ),
+            transitionInterpolator: this.followZoom,
+          });
+        } else this.setView(viewState);
+      },
       onInteractionStateChange: (state) => {
         const was = this.interacting;
         this.interacting = [
@@ -100,7 +143,8 @@ export class DeckMap {
           state.inTransition,
         ].some(Boolean);
         if (was && !this.interacting) this.emit("moveend", undefined);
-        if (state.isDragging) this.emit("dragstart", undefined);
+        if (state.isDragging && !state.isZooming && this.touches === 0)
+          this.emit("dragstart", undefined);
       },
       onHover: (info) => {
         if (info.x < 0 || info.y < 0) return;
@@ -112,6 +156,22 @@ export class DeckMap {
     // the first pick compiles shaders, so a quick tap could be dropped. The browser's click is robust.
     container.addEventListener("wheel", this.onWheel, { capture: true });
     container.addEventListener("pointerdown", this.onPointerDown);
+    container.addEventListener("touchstart", this.onTouchCount, {
+      capture: true,
+      passive: true,
+    });
+    container.addEventListener("touchend", this.onTouchCount, {
+      capture: true,
+      passive: true,
+    });
+    container.addEventListener("touchcancel", this.onTouchCount, {
+      capture: true,
+      passive: true,
+    });
+    container.addEventListener("touchmove", this.onTouchMove, {
+      capture: true,
+      passive: true,
+    });
     container.addEventListener("click", this.onClick);
     this.observer = new ResizeObserver(() => {
       this.viewport = null;
@@ -138,6 +198,33 @@ export class DeckMap {
   private readonly onPointerDown = (event: PointerEvent) => {
     this.pressed = { x: event.clientX, y: event.clientY };
   };
+  private readonly onTouchCount = (event: TouchEvent) => {
+    this.touches = event.touches.length;
+    const touch = event.touches[0];
+    this.singleTouch =
+      this.touches === 1 && touch
+        ? { x: touch.clientX, y: touch.clientY }
+        : null;
+  };
+  private readonly onTouchMove = (event: TouchEvent) => {
+    const touch = event.touches[0];
+    if (
+      event.touches.length === 1 &&
+      touch &&
+      this.singleTouch &&
+      Math.hypot(
+        touch.clientX - this.singleTouch.x,
+        touch.clientY - this.singleTouch.y,
+      ) > CLICK_TOLERANCE_PX
+    ) {
+      this.following = false;
+      this.singleTouch = null;
+      this.emit("dragstart", undefined);
+    }
+  };
+  setFollowing(enabled: boolean) {
+    this.following = enabled;
+  }
 
   private readonly onClick = (event: MouseEvent) => {
     if (event.target !== this.deck.getCanvas()) return;
@@ -350,26 +437,44 @@ export class DeckMap {
     bearing: number,
     anchor: [number, number],
   ) {
+    this.followTarget = { position, bearing, anchor };
+    this.setView({
+      ...this.anchoredView(this.view, position, bearing, anchor),
+      transitionDuration: 0,
+    });
+  }
+
+  private anchoredView(
+    view: MapViewState,
+    position: [number, number],
+    bearing: number,
+    anchor: [number, number],
+  ): MapViewState {
     const { width, height } = this.size;
     const next = new WebMercatorViewport({
-      ...this.view,
+      ...view,
       ...this.size,
       bearing,
     });
     const pixel = [width * anchor[0], height * anchor[1]];
     const { longitude, latitude } =
-      (this.view.maxPitch ?? 0) > 0
+      (view.maxPitch ?? 0) > 0
         ? next.panByPosition3D(
             [
               ...position,
               cachedTerrainElevation({ lon: position[0], lat: position[1] }) ??
-                this.view.position?.[2] ??
+                view.position?.[2] ??
                 0,
             ],
             pixel,
           )
         : next.panByPosition(position, pixel);
-    this.jumpTo({ longitude, latitude, bearing });
+    return {
+      ...view,
+      longitude: longitude ?? view.longitude,
+      latitude: latitude ?? view.latitude,
+      bearing,
+    };
   }
 
   setLayers(layers: Layer[]) {
@@ -394,6 +499,10 @@ export class DeckMap {
   destroy() {
     this.container.removeEventListener("wheel", this.onWheel, true);
     this.container.removeEventListener("pointerdown", this.onPointerDown);
+    this.container.removeEventListener("touchstart", this.onTouchCount, true);
+    this.container.removeEventListener("touchend", this.onTouchCount, true);
+    this.container.removeEventListener("touchcancel", this.onTouchCount, true);
+    this.container.removeEventListener("touchmove", this.onTouchMove, true);
     this.container.removeEventListener("click", this.onClick);
     clearTimeout(this.settle);
     this.observer.disconnect();

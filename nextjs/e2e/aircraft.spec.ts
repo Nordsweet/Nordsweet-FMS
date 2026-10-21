@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./test";
 
 test.beforeEach(async ({ page }) => {
   await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => route.abort());
@@ -23,7 +23,7 @@ test("an aircraft entered on the Aircraft page can be chosen in the planner", as
   await page.goto("/");
   await page.getByRole("combobox", { name: "Aircraft type" }).click();
   await page.getByRole("option", { name: "TST1 (TST1)" }).click();
-  await expect(page.getByLabel("Registration")).toBeVisible();
+  await expect(page.getByLabel("Registration", { exact: true })).toBeVisible();
 });
 
 test("a half-filled table row is reported, nothing is saved", async ({

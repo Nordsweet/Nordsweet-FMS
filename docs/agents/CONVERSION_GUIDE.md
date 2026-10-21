@@ -23,6 +23,8 @@ start, then claim your area in [LEGACY_MAP.md](LEGACY_MAP.md).
   - The [Aviation API Collector](https://aviation.lab.vibecde.com/llms.txt) is the single source for
     everything it provides (weather, ATIS, NOTAM, traffic, airspace, VFR points). Never reintroduce
     client-side API tokens, the codetabs CORS proxy or page scraping that the collector replaced.
+  - The collector needs a login. Call it only through `aviationApi` / `aviationFetch`
+    (`src/api/aviation/client.ts`), which adds the bearer token and handles 401; never `fetch` it directly.
   - UI in Polish and English (every string through i18n).
   - Offline must keep working.
 - **Legacy bugs:** don't silently copy *or* silently fix them. Port the behaviour; if it's clearly
@@ -196,6 +198,10 @@ git -c user.name="Jakub Kosciukiewicz" -c user.email="jakub.kosciukiewicz@vibecd
   within 250 ms of the press and the press runs a synchronous GPU pick whose first run compiles shaders.
 - `prettier-plugin-tailwindcss` trims the space in a `className={`a ${x ? " b" : ""}`}` template literal and
   merges the class names; build conditional classes with `cn(...)`.
+- Specs start signed in (`e2e/test.ts` stubs the token) and unmocked Aviation API calls are aborted,
+  so a spec never reaches the live API (it would answer the stub token with 401 and sign the test out).
+  Specs that import `@playwright/test` directly call `stubSession(page)`; use
+  `test.use({ signedIn: false })` to test the login screen. `E2E_PORT` changes the e2e server port.
 - The legacy runtime's numbers depend on hidden defaults (`state.cruiseOatTens = "1"`,
   `cruiseOatOnes = "5"` → cruise OAT 15 °C; performance temp input defaults 15; QNH 1013). Find
   them before concluding a number differs.

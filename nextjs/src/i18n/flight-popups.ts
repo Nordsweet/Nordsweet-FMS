@@ -1,4 +1,21 @@
 export const flightPopupsEn = {
+  "fly.popup.thousandToGo": "1000ft to go",
+  "fly.popup.descentTo": "Descent to {altitude}ft",
+  "fly.popup.descentInSeconds": "in {seconds}s",
+  "plan.route.clear": "Clear route",
+  "plan.route.textHint":
+    "Expanded route. Click to edit the route instructions (DCT, fixes, airways or procedures).",
+  "fly.debrief.close": "Close flight debrief",
+  "fly.popup.changeCruise":
+    "Do You want to change Cruise Altitude to {altitude}ft?",
+  "fly.popup.cruiseYes": "YES",
+  "fly.popup.cruiseNo": "No",
+  "fly.fpl.remove": "Remove {point} from route",
+  "fly.fpl.options": "Point options: {point}",
+  "fly.fpl.center": "Center",
+  "fly.fpl.skip": "Skip",
+  "fly.fpl.setNext": "Set Next",
+  "fly.fpl.details": "Point details",
   "fly.traffic.ta":
     "Traffic advisory: {callsign}, {clock} o'clock, {distance} NM, {altitude} ft",
   "fly.traffic.close":
@@ -19,6 +36,8 @@ export const flightPopupsEn = {
   "fly.panel.notifications": "Notifications",
   "fly.history.unread": "New notifications: {count}",
   "fly.history.empty": "No notifications in this flight yet.",
+  "fly.popup.inSeconds": "in {seconds} seconds",
+  "fly.popup.now": "now",
   "fly.popup.heading": "Heading",
   "fly.popup.altitude": "Altitude",
   "fly.popup.comms": "Comms",
@@ -31,6 +50,22 @@ export const flightPopupsEn = {
   "fly.popup.descend": "Descend {altitude} ft",
 };
 export const flightPopupsPl: typeof flightPopupsEn = {
+  "fly.popup.thousandToGo": "1000ft do zadanej wysokości",
+  "fly.popup.descentTo": "Zniżanie do {altitude}ft",
+  "fly.popup.descentInSeconds": "za {seconds}s",
+  "plan.route.clear": "Wyczyść trasę",
+  "plan.route.textHint":
+    "Rozwinięta trasa. Kliknij, aby edytować zapis trasy (DCT, punkty, drogi lub procedury).",
+  "fly.debrief.close": "Zamknij podsumowanie lotu",
+  "fly.popup.changeCruise": "Czy zmienić wysokość przelotową na {altitude}ft?",
+  "fly.popup.cruiseYes": "YES",
+  "fly.popup.cruiseNo": "No",
+  "fly.fpl.remove": "Usuń {point} z trasy",
+  "fly.fpl.options": "Opcje punktu: {point}",
+  "fly.fpl.center": "Wyśrodkuj",
+  "fly.fpl.skip": "Pomiń",
+  "fly.fpl.setNext": "Ustaw jako następny",
+  "fly.fpl.details": "Informacje o punkcie",
   "fly.traffic.ta":
     "Traffic advisory: {callsign}, godzina {clock}, {distance} NM, {altitude} ft",
   "fly.traffic.close":
@@ -52,6 +87,8 @@ export const flightPopupsPl: typeof flightPopupsEn = {
   "fly.panel.notifications": "Powiadomienia",
   "fly.history.unread": "Nowe powiadomienia: {count}",
   "fly.history.empty": "Brak powiadomień w tym locie.",
+  "fly.popup.inSeconds": "za {seconds} sekund",
+  "fly.popup.now": "teraz",
   "fly.popup.heading": "Kurs",
   "fly.popup.altitude": "Wysokość",
   "fly.popup.comms": "Łączność",

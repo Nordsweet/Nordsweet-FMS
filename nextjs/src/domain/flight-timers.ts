@@ -1,4 +1,5 @@
 import { type FlightPhase } from "./flight-phase";
+import { distanceNm, trackOffset, type LatLon } from "./geo";
 
 /**
  * Legacy flight timers (handleFlightTimerGpsSample): Block Time and Air Time with GPS detection,
@@ -30,6 +31,8 @@ export type Sample = {
   altitudeFt: number | null;
   speedKt: number | null;
   headingDeg: number | null;
+  /** Explicit simulator contact state; absent for native GPS observations. */
+  onGround?: boolean;
 };
 export type Timers = {
   offBlock: Timer;
@@ -193,6 +196,7 @@ export function stepTimers(
     cruiseAltitudeFt: number;
     /** The ground under the aircraft (nearest planned airport). */
     groundElevationFt: number;
+    departureRunway?: { threshold: LatLon; departureEnd: LatLon } | null;
   },
 ): { timers: Timers; phase: FlightPhase | null } {
   const previous = t.last;
@@ -201,7 +205,28 @@ export function stepTimers(
   let phase: FlightPhase | null = null;
   const speed = s.speedKt;
   const alt = s.altitudeFt;
-  if (speed === null) return { timers: next, phase };
+  if (speed === null || !Number.isFinite(speed)) {
+    next.onBlockCandidateAt = null;
+    return { timers: next, phase };
+  }
+  if (
+    ctx.phase === "taxiout" &&
+    next.airTime.startedAt === null &&
+    alt !== null &&
+    Math.abs(alt - ctx.departureElevationFt) <= 150 &&
+    speed <= 35 &&
+    ctx.departureRunway
+  ) {
+    const { threshold, departureEnd } = ctx.departureRunway;
+    const offset = trackOffset(threshold, departureEnd, s);
+    if (
+      distanceNm(s, threshold) <= 0.15 ||
+      (Math.abs(offset.crossTrackNm) <= 0.08 &&
+        offset.alongTrackNm >= 0 &&
+        offset.alongTrackNm <= distanceNm(threshold, departureEnd))
+    )
+      phase = "takeoff";
+  }
 
   // Off-block: groundspeed above 2 kt for 5 s.
   const off = next.offBlock;
@@ -213,9 +238,12 @@ export function stepTimers(
     } else off.candidateAt = null;
   }
 
-  // Take-off: a 10 s accelerating run within 10° of track, confirmed passing +50 ft.
   const air = next.airTime;
-  if (air.autoArmed && air.startedAt === null) {
+  // Simulator ground contact is authoritative, even if a slower device missed the roll.
+  if (air.autoArmed && air.startedAt === null && s.onGround === false)
+    start("airTime", s.at, "auto");
+  // Native GPS: a 10 s accelerating run within 10° of track, confirmed passing +50 ft.
+  if (air.autoArmed && air.startedAt === null && s.onGround === undefined) {
     if (alt !== null && speed <= 35) {
       next.groundSamples = [...next.groundSamples, alt].slice(-25);
       next.groundReferenceFt = median(next.groundSamples);
@@ -285,6 +313,8 @@ export function stepTimers(
       if (s.at - next.todCandidateAt >= 10_000) {
         event("Top of Descent", next.todCandidateAt, "auto");
         next.todCandidateAt = null;
+        if (next.pendingPhase?.phase === "climb") next.pendingPhase = null;
+        phase = "descent";
       }
     } else next.todCandidateAt = null;
   }
@@ -302,10 +332,12 @@ export function stepTimers(
     } else next.landingCandidateAt = null;
   }
 
-  // On-block: after landing, 2 kt or less for 5 s.
-  if (air.stoppedAt !== null && isRunning(next.offBlock) && speed <= 2) {
+  // On-block: after landing, strictly below 2 kt for 20 seconds of continuous fresh samples.
+  if (previous && (s.at - previous.at > 5000 || s.at <= previous.at))
+    next.onBlockCandidateAt = null;
+  if (air.stoppedAt !== null && isRunning(next.offBlock) && speed < 2) {
     next.onBlockCandidateAt ??= s.at;
-    if (s.at - next.onBlockCandidateAt >= 5000) {
+    if (s.at - next.onBlockCandidateAt >= 20000) {
       stop("offBlock", next.onBlockCandidateAt, "auto");
       next.onBlockCandidateAt = null;
     }

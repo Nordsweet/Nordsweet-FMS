@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { SearchIcon } from "lucide-react";
+import { SearchIcon, Trash2, Ellipsis, ChevronDown } from "lucide-react";
 import { useMapSettings } from "~/stores/map";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 
 import { Button } from "~/components/ui/button";
 import {
@@ -20,7 +20,7 @@ import {
 } from "~/domain/flight-phase";
 import { magneticVariationDeg, trueToMagneticDeg } from "~/domain/magnetic";
 import { navigationProgress } from "~/domain/holding";
-import { type TrackPoint, summarizeTrack, toGpx } from "~/domain/track";
+import { summarizeTrack } from "~/domain/track";
 import { ChecklistsPage } from "~/features/checklists/checklists";
 import { fmt, fmtMinutes } from "~/features/plan/fields";
 import { PerformanceSection } from "~/features/plan/performance";
@@ -29,6 +29,9 @@ import { usePlan } from "~/features/plan/use-plan";
 import { useT } from "~/i18n/use-t";
 import { cn } from "~/lib/utils";
 import { MapWorkspace } from "~/features/map/map-workspace";
+import { useFlight } from "~/stores/flight";
+import { sameFlightPoint } from "~/domain/waypoint-insertion";
+import type { FplAction } from "~/domain/fpl-actions";
 import { useInFlight } from "~/stores/inflight";
 import { useEmergency, emergencyScope } from "~/stores/emergency";
 
@@ -46,9 +49,21 @@ import { useGps } from "./use-gps";
 import { useTurnPerformance } from "./use-turn-performance";
 import { PositionSourcePanel } from "./position-source-panel";
 import { FlightStatusBar } from "./flight-status-bar";
-import { useWindowDrag } from "./use-window-drag";
+import { Debrief } from "./debrief";
+import {
+  FlightPlanTable,
+  FlightPlanCells,
+  flightPlanRowClass,
+} from "./flight-plan-table";
+import { flightPlanProfile } from "~/domain/flight-plan-profile";
+import { FplVerticalProfile } from "./fpl-vertical-profile";
 import { NotificationBell, NotificationHistory } from "./notification-history";
-import { usePositionSource } from "~/stores/position-source";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "~/components/ui/dropdown-menu";
 
 const PHASES = FLIGHT_PHASES;
 type Phase = FlightPhase;
@@ -64,7 +79,8 @@ type Panel =
   | "checklist"
   | "info"
   | "options"
-  | "notifications";
+  | "notifications"
+  | "position";
 /** Legacy rail per phase, in legacy order. */
 const RAIL: { id: Panel; phases?: Phase[] }[] = [
   { id: "emer" },
@@ -120,14 +136,25 @@ export function FlyPage() {
   const searchOpen = useMapSettings((state) => state.searchOpen);
   const setSearchOpen = useMapSettings((state) => state.setSearchOpen);
   const t = useT();
-  const { flight, route: planRoute, departurePattern, aircraft } = usePlan();
+  const {
+    flight,
+    route: planRoute,
+    departurePattern,
+    aircraft,
+    plan,
+    routeData,
+  } = usePlan();
   const inFlight = useInFlight();
   const flying = inFlight.startedAt !== null;
-  const { fix, connectorStatus } = useGps(true);
-  const positionSource = usePositionSource((s) => s.source);
+  const { fix, connectorStatus, error: gpsError } = useGps(true);
   const turns = useTurnPerformance(flying ? fix : null);
   const [now, setNow] = useState(() => Date.now());
   const [debrief, setDebrief] = useState(false);
+  const [dismissedDebrief, setDismissedDebrief] = useState<number | null>(null);
+  const debriefOpen =
+    debrief ||
+    (inFlight.debrief?.endedAt != null &&
+      inFlight.debrief.endedAt !== dismissedDebrief);
   // shortcut: the phase is picked by hand; legacy also switched it automatically.
   const { phase, setPhase, config } = inFlight;
   const comms = useCommsPlan(phase, fix, now, flying);
@@ -170,13 +197,16 @@ export function FlyPage() {
   const rail = RAIL.filter((r) => !r.phases || r.phases.includes(phase));
   const panelLabel = (id: Panel) =>
     t(
-      id === "chart"
-        ? phase === "taxiout" || phase === "taxiin"
-          ? "fly.panel.taxi"
-          : "fly.panel.proc"
-        : `fly.panel.${id}`,
+      id === "position"
+        ? "connector.title"
+        : id === "chart"
+          ? phase === "taxiout" || phase === "taxiin"
+            ? "fly.panel.taxi"
+            : "fly.panel.proc"
+          : `fly.panel.${id}`,
     );
-  const open = rail.some((r) => r.id === panel) ? panel : null;
+  const open =
+    panel === "position" || rail.some((r) => r.id === panel) ? panel : null;
 
   const navigation = (
     <>
@@ -236,7 +266,7 @@ export function FlyPage() {
       <div className="flex flex-wrap items-center gap-2">
         <Select
           value=""
-          onValueChange={(v) => fix && inFlight.goDirect(Number(v), fix)}
+          onValueChange={(v) => fix && inFlight.goDirect(Number(v), fix, turns)}
           disabled={!fix}
         >
           <SelectTrigger className="w-48" aria-label={t("fly.directTo")}>
@@ -279,33 +309,205 @@ export function FlyPage() {
         inFlight.startedAt,
         flight.registration,
       ) && emergency.endedAt === null;
+  const fplProfile = useMemo(
+    () =>
+      open === "fpl"
+        ? flightPlanProfile(
+            inFlight.route,
+            plan,
+            {
+              tasKt: turns.tasKt,
+              departureTasKt: turns.departureTasKt,
+              windDirectionDeg: turns.windDirectionDeg,
+              windSpeedKt: turns.windSpeedKt,
+            },
+            flight.cruiseAltitudeFt,
+          )
+        : null,
+    [
+      open,
+      inFlight.route,
+      plan,
+      turns.tasKt,
+      turns.departureTasKt,
+      turns.windDirectionDeg,
+      turns.windSpeedKt,
+      flight.cruiseAltitudeFt,
+    ],
+  );
+  const fplPosition =
+    fix &&
+    !gpsError &&
+    !fix.paused &&
+    Math.abs(now - Date.parse(fix.time)) <= 20000
+      ? fix
+      : null;
+  const editFplWaypoint = (index: number, action: FplAction) => {
+    const position =
+      fplPosition &&
+      Math.abs(Date.now() - Date.parse(fplPosition.time)) <= 20000
+        ? fplPosition
+        : null;
+    inFlight.editFplPoint(index, action, position, turns);
+  };
   const content: Record<Panel, React.ReactNode> = {
     emer: <EmergencyPanel phase={phase} />,
-    fpl: inFlight.route.length ? (
-      <ol
-        aria-label={t("mapplanner.points")}
-        className="grid max-h-[60vh] gap-2 overflow-y-auto"
-      >
-        {inFlight.route.map((point, index) => (
-          <li
-            key={`${index}-${point.ident}`}
-            aria-current={index === inFlight.activeLeg + 1 ? "step" : undefined}
-            className={cn(
-              "flex items-center gap-3 rounded-lg border p-3 text-sm",
-              index === inFlight.activeLeg + 1 &&
-                "border-primary bg-primary/10 text-primary",
-            )}
+    fpl:
+      fplProfile && inFlight.route.some((p) => p.ident !== "DCT") ? (
+        <>
+          <FlightPlanTable
+            actions
+            label={t("mapplanner.points")}
+            listClassName="max-h-[30dvh]"
           >
-            <span className="text-muted-foreground w-6 text-right tabular-nums">
-              {index + 1}
-            </span>
-            <strong className="min-w-0 break-words">{point.ident}</strong>
-          </li>
-        ))}
-      </ol>
-    ) : (
-      <p className="text-muted-foreground text-sm">{t("plan.navlog.empty")}</p>
-    ),
+            {fplProfile.rows.map(
+              (
+                { point, routeIndex: index, event, altitudeFt },
+                displayIndex,
+              ) =>
+                point.ident === "DCT" ? null : (
+                  <div
+                    role="listitem"
+                    key={`${index ?? "profile"}-${displayIndex}-${point.ident}`}
+                    data-profile-event={event}
+                    aria-current={
+                      index !== null && index === inFlight.activeLeg + 1
+                        ? "step"
+                        : undefined
+                    }
+                    className={flightPlanRowClass(
+                      index !== null && index === inFlight.activeLeg + 1,
+                      true,
+                    )}
+                  >
+                    <FlightPlanCells
+                      point={point}
+                      actions
+                      previous={fplProfile.rows[displayIndex - 1]?.point}
+                      altitudeFt={altitudeFt}
+                      selected={
+                        index !== null && index === inFlight.activeLeg + 1
+                      }
+                    />
+                    {index !== null && (
+                      <div className="absolute top-1 right-2 flex justify-end gap-1 sm:static">
+                        <button
+                          type="button"
+                          aria-label={t("fly.fpl.remove", {
+                            point: point.ident,
+                          })}
+                          className="flex size-9 items-center justify-center rounded-lg text-red-500 hover:bg-red-500/15 focus-visible:ring-2"
+                          onClick={() => {
+                            const draft = useFlight.getState();
+                            const waypointIndex =
+                              draft.flight.waypoints.findIndex((p) =>
+                                sameFlightPoint(p, point),
+                              );
+                            if (waypointIndex >= 0)
+                              draft.update({
+                                waypoints: draft.flight.waypoints.filter(
+                                  (_, i) => i !== waypointIndex,
+                                ),
+                              });
+                            inFlight.removeWaypoint(
+                              index,
+                              fix &&
+                                !gpsError &&
+                                !fix.paused &&
+                                Date.now() - Date.parse(fix.time) <= 20000
+                                ? fix
+                                : null,
+                            );
+                          }}
+                        >
+                          <Trash2 className="size-4" aria-hidden="true" />
+                        </button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              type="button"
+                              aria-label={t("fly.fpl.options", {
+                                point: point.ident,
+                              })}
+                              className="flex size-9 items-center justify-center rounded-lg text-white hover:bg-white/10 focus-visible:ring-2"
+                            >
+                              <Ellipsis className="size-5" aria-hidden="true" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onSelect={() => {
+                                useMapSettings.getState().inspectPoint({
+                                  ...point,
+                                  name: point.ident,
+                                  kind: "point",
+                                  centerOnly: true,
+                                });
+                                setPanel(null);
+                              }}
+                            >
+                              {t("fly.fpl.center")}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              disabled={
+                                index <= inFlight.activeLeg ||
+                                index === inFlight.route.length - 1 ||
+                                (index === inFlight.activeLeg + 1 &&
+                                  !fplPosition)
+                              }
+                              onSelect={() => editFplWaypoint(index, "skip")}
+                            >
+                              {t("fly.fpl.skip")}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              disabled={
+                                index === inFlight.activeLeg + 1 && !fplPosition
+                              }
+                              onSelect={() =>
+                                editFplWaypoint(index, "set-next")
+                              }
+                            >
+                              {t("fly.fpl.setNext")}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onSelect={() => {
+                                const airport = routeData?.airport(point.ident);
+                                useMapSettings.getState().inspectPoint({
+                                  ...point,
+                                  name: airport?.name ?? point.ident,
+                                  kind: airport ? "airport" : "point",
+                                });
+                                setPanel(null);
+                              }}
+                            >
+                              {t("fly.fpl.details")}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    )}
+                  </div>
+                ),
+            )}
+          </FlightPlanTable>
+          <FplVerticalProfile
+            profile={fplProfile}
+            activeLeg={inFlight.activeLeg}
+            fix={
+              fix &&
+              !gpsError &&
+              !fix.paused &&
+              now - Date.parse(fix.time) <= 20000
+                ? fix
+                : null
+            }
+          />
+        </>
+      ) : (
+        <p className="text-muted-foreground text-sm">
+          {t("plan.navlog.empty")}
+        </p>
+      ),
     route: (flying
       ? phase === "taxiin"
         ? flight.destination
@@ -339,6 +541,7 @@ export function FlyPage() {
       </>
     ),
     options: <OptionsPanel />,
+    position: <PositionSourcePanel />,
     notifications: <NotificationHistory />,
   };
 
@@ -346,14 +549,56 @@ export function FlyPage() {
   // the right; each tool opens its panel beside the rail.
   return (
     <div className="bg-background fixed inset-0 z-40">
-      <FlightStatusBar fix={fix} progress={progress} />
+      <FlightStatusBar
+        fix={fix}
+        progress={progress}
+        positionOpen={open === "position"}
+        positionStatus={t(`connector.${connectorStatus}`)}
+        onPositionClick={() => {
+          setSearchOpen(false);
+          setPanel(open === "position" ? null : "position");
+        }}
+        phaseControl={
+          flying ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  data-testid="flight-phase"
+                  aria-pressed="true"
+                  className="min-w-36"
+                >
+                  {t(`fly.phase.${phase}`)}{" "}
+                  <ChevronDown className="size-4" aria-hidden="true" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="center">
+                {PHASES.map((p) => (
+                  <DropdownMenuItem key={p} onSelect={() => setPhase(p)}>
+                    {t(`fly.phase.${p}`)}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : null
+        }
+        endControl={
+          flying ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                inFlight.end();
+                setPanel(null);
+                setDebrief(true);
+              }}
+            >
+              {t("fly.end")}
+            </Button>
+          ) : null
+        }
+      />
       <div className="absolute inset-x-0 top-24 bottom-0">
         <MapWorkspace embedded />
-        {!flying && (
-          <div className="bg-card/95 absolute top-40 left-3 z-30 max-h-[calc(100%-15rem)] w-[min(25rem,calc(100%-1.5rem))] overflow-y-auto rounded-xl backdrop-blur">
-            <PositionSourcePanel />
-          </div>
-        )}
         <div
           className="fly-scrim"
           aria-hidden="true"
@@ -361,71 +606,30 @@ export function FlyPage() {
         />
         {flying && !emergencyActive && <FredaDialog fix={fix} now={now} />}
         {flying && inFlight.replayEnabled && <GpxReplayDock />}
-        <div className="bg-card/90 absolute top-3 left-1/2 z-30 flex max-w-[calc(100%-1.5rem)] -translate-x-1/2 gap-2 overflow-x-auto rounded-3xl border p-2 backdrop-blur">
-          {flying && positionSource === "connector" && (
+        {!flying && (
+          <div className="bg-card/90 absolute top-3 left-1/2 z-30 flex max-w-[calc(100%-1.5rem)] -translate-x-1/2 gap-2 overflow-x-auto rounded-3xl border p-2 backdrop-blur">
+            <Button variant="outline" className="shrink-0" asChild>
+              <Link href="/">{t("nav.plan")}</Link>
+            </Button>
             <Button
-              variant="outline"
-              className="max-w-48 shrink-0"
-              title={t(`connector.${connectorStatus}`)}
+              className="shrink-0"
+              disabled={planRoute.length < 2}
               onClick={() => {
-                setSearchOpen(false);
-                setPanel(open === "options" ? null : "options");
+                inFlight.start(
+                  planRoute,
+                  flight.trafficPattern,
+                  departurePattern,
+                  aircraft?.type,
+                );
+                inFlight.setHolding(flight.holding);
+                setPhase("taxiout");
+                setDebrief(false);
               }}
             >
-              <span className="truncate">
-                {t(`connector.${connectorStatus}`)}
-              </span>
+              {t("fly.start")}
             </Button>
-          )}
-          {flying ? (
-            <>
-              {PHASES.map((p) => (
-                <Button
-                  key={p}
-                  variant={p === phase ? "default" : "outline"}
-                  aria-pressed={p === phase}
-                  className="shrink-0"
-                  onClick={() => setPhase(p)}
-                >
-                  {t(`fly.phase.${p}`)}
-                </Button>
-              ))}
-              <Button
-                variant="outline"
-                className="border-primary shrink-0"
-                onClick={() => {
-                  inFlight.end();
-                  setPanel(null);
-                  setDebrief(true);
-                }}
-              >
-                {t("fly.end")}
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button variant="outline" className="shrink-0" asChild>
-                <Link href="/">{t("nav.plan")}</Link>
-              </Button>
-              <Button
-                className="shrink-0"
-                disabled={planRoute.length < 2}
-                onClick={() => {
-                  inFlight.start(
-                    planRoute,
-                    flight.trafficPattern,
-                    departurePattern,
-                  );
-                  inFlight.setHolding(flight.holding);
-                  setPhase("taxiout");
-                  setDebrief(false);
-                }}
-              >
-                {t("fly.start")}
-              </Button>
-            </>
-          )}
-        </div>
+          </div>
+        )}
 
         {flying && (
           <nav
@@ -483,15 +687,22 @@ export function FlyPage() {
           </nav>
         )}
 
-        {(open ?? (!flying && (debrief || planRoute.length < 2))) && (
+        {(open ?? (!flying && (debriefOpen || planRoute.length < 2))) && (
           <section
             role="dialog"
             aria-label={open ? panelLabel(open) : t("fly.title")}
             className="fly-popover"
             data-panel={open ?? "none"}
+            data-debrief={!open && debriefOpen ? "true" : undefined}
             style={
               {
-                "--top": `calc(5.15rem + ${rail.findIndex((r) => r.id === open)} * 3.93rem)`,
+                "--top":
+                  open === "position"
+                    ? "0.75rem"
+                    : `calc(5.15rem + ${rail.findIndex((r) => r.id === open)} * 3.93rem)`,
+                ...(open === "fpl"
+                  ? { width: "min(42rem, calc(100vw - 6.5rem))" }
+                  : {}),
               } as React.CSSProperties
             }
           >
@@ -518,11 +729,16 @@ export function FlyPage() {
                 )}
                 {content[open]}
               </>
-            ) : debrief ? (
+            ) : debriefOpen ? (
               <Debrief
+                key={inFlight.debrief?.endedAt ?? "legacy"}
                 summary={summary}
                 track={inFlight.track}
                 name={flight.name}
+                onClose={() => {
+                  setDebrief(false);
+                  setDismissedDebrief(inFlight.debrief?.endedAt ?? null);
+                }}
               />
             ) : (
               <p className="text-muted-foreground text-sm">
@@ -533,61 +749,5 @@ export function FlyPage() {
         )}
       </div>
     </div>
-  );
-}
-
-function Debrief({
-  summary,
-  track,
-  name,
-}: {
-  summary: ReturnType<typeof summarizeTrack>;
-  track: TrackPoint[];
-  name: string;
-}) {
-  const t = useT();
-  const drag = useWindowDrag();
-  return (
-    <>
-      <h2 className="text-primary font-semibold tracking-[0.08em] uppercase">
-        <span
-          role="button"
-          tabIndex={0}
-          aria-label={t("fly.status.dragDebrief")}
-          className="block cursor-grab touch-none select-none active:cursor-grabbing"
-          {...drag}
-        >
-          {t("fly.debrief")}
-        </span>
-      </h2>
-      <p data-testid="debrief" className="text-sm">
-        {t("fly.debriefSummary", {
-          time: fmtMinutes(summary.minutes),
-          distance: fmt(summary.distanceNm, 1),
-          altitude:
-            summary.maxAltitudeFt === null ? "—" : fmt(summary.maxAltitudeFt),
-          points: track.length,
-        })}
-      </p>
-      <div>
-        <Button
-          variant="outline"
-          disabled={track.length === 0}
-          onClick={() => {
-            const file = name.trim() === "" ? "flight" : name;
-            const url = URL.createObjectURL(
-              new Blob([toGpx(track, file)], { type: "application/gpx+xml" }),
-            );
-            Object.assign(document.createElement("a"), {
-              href: url,
-              download: `${file}.gpx`,
-            }).click();
-            URL.revokeObjectURL(url);
-          }}
-        >
-          {t("fly.exportGpx")}
-        </Button>
-      </div>
-    </>
   );
 }

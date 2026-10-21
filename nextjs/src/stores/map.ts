@@ -1,3 +1,4 @@
+import { type FlightPoint } from "~/data/flight";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { distanceNm } from "~/domain/geo";
@@ -21,13 +22,14 @@ export const trafficNetworks = [
   "ogn",
 ] as const;
 export type LayerId = (typeof mapLayers)[number];
-export type Basemap = "osm" | "dark" | "night" | "fjord" | "dark-matter";
+export type Basemap =
+  "osm" | "bright" | "dark" | "night" | "fjord" | "dark-matter";
 export const mapPreferencesSchema = z.object({
   terrain3d: z.boolean().default(false),
   gpsEnabled: z.boolean().default(false),
   basemap: z
-    .enum(["osm", "dark", "night", "fjord", "dark-matter"])
-    .default("osm"),
+    .enum(["osm", "bright", "dark", "night", "fjord", "dark-matter"])
+    .default("bright"),
   plan: z.enum(["current", "next", "none"]).default("current"),
   layers: z
     .object({
@@ -57,6 +59,13 @@ export const mapPreferencesSchema = z.object({
 });
 type Preferences = z.infer<typeof mapPreferencesSchema>;
 type MapState = Preferences & {
+  pointRequest:
+    (FlightPoint & { name: string; kind: string; centerOnly?: boolean }) | null;
+  inspectPoint: (
+    point:
+      | (FlightPoint & { name: string; kind: string; centerOnly?: boolean })
+      | null,
+  ) => void;
   searchOpen: boolean;
   setSearchOpen: (open: boolean) => void;
   gpsTrack: TrackPoint[];
@@ -81,12 +90,26 @@ export function readLegacyMap(
       : {};
 }
 
+/** Every browser stored the default it was first given ("osm", then "fjord"); the vector Bright map is the default since v3. */
+export const migrateMap = (persisted: unknown, version: number) => {
+  const value = (persisted ?? {}) as Partial<Preferences>;
+  return version < 3 && (value.basemap === "osm" || value.basemap === "fjord")
+    ? { ...value, basemap: "bright" }
+    : value;
+};
+
 export const useMapSettings = create<MapState>()(
   persist(
     (set) => ({
       ...mapPreferencesSchema.parse({}),
       gpsEnabled: false,
       following: false,
+      pointRequest: null,
+      inspectPoint: (pointRequest) =>
+        set({
+          pointRequest,
+          ...(pointRequest ? { following: false, searchOpen: false } : {}),
+        }),
       searchOpen: false,
       setSearchOpen: (searchOpen) => set({ searchOpen }),
       command: null,
@@ -109,7 +132,8 @@ export const useMapSettings = create<MapState>()(
     }),
     {
       name: "nordsweet.map.v1",
-      version: 1,
+      version: 3,
+      migrate: migrateMap,
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => mapPreferencesSchema.parse(state),
       merge: (persisted, current) => {

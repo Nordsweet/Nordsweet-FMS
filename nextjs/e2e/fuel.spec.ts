@@ -1,4 +1,4 @@
-import { type Page, expect, test } from "@playwright/test";
+import { type Page, expect, test } from "./test";
 
 test.beforeEach(async ({ page }) => {
   // No live API: no METAR, so 15 °C / 1013 hPa, as in the legacy recording below.

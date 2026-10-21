@@ -5,6 +5,251 @@ Reference: <https://nordsweet-performance-calculator.mrnordsweet.chatgpt.site/> 
 `5265bc5de9510aa3d83cc469860a730962b96c78`. Starting develop: `2f289ed6dc8d7b7c3186b100577c787c64df1de2`.
 Branch: `codex/preflight-parity-audit`.
 
+## Flight guidance refinements (2026-10-20)
+
+- Anchor TOC/TOD dots on the rendered route, including fly-by segments; offset the labels only.
+  Use that same path for the TOD countdown. Add a fresh climbing-sample "1000ft to go" callout
+  near 1000 ft remaining; descent uses "Descent to XXXXXft in XXs", then NOW and one clean history entry.
+- HOLD headings now come from fix passage and the persisted outbound deadline, including the
+  opposite initial parallel turn. HOLD/circuit countdowns cannot increase after their first prediction;
+  holding phase changes retain the instruction identity. The HOLD status panel follows the app palette.
+- Add an internal phase/leg speed schedule with stored IAS restrictions converted to TAS. C172S
+  take-off/climb uses the owner's 72 KIAS Vy, including old departure-circuit turn overrides.
+- COMMs use geographic ATZ/FIS/CTR/TMA services during climb/cruise/descent, active status and
+  known AMSL/AGL limits. Prefer local/control service to FIS; retain two-minute boundary suggestions
+  and announce actual service crossings when a boundary prediction was missed.
+- Tablet navigation handles stationary taps independently of suppressed synthetic clicks after map
+  gestures. Centered pinch keeps the ownship anchor and zooms; single-finger pan releases follow;
+  free pinch zooms/pans around the fingers. Disable touch rotation. Keep the phase tile clear of ETE
+  at smaller desktop widths. Touch behaviour verified with emulated tablet/CDP gestures.
+
+- Route: add Clear route beside Load route; clear navigation endpoints, fixes, procedures,
+  circuits, holding and per-point overrides while retaining aircraft/fuel/performance data.
+  Show the expanded route in the text field when idle, synchronized with the strip and map;
+  focus retains the existing DCT/airway/procedure source editor with a PL/EN hint.
+  Add red delete and white point-options controls matching flight FPL to real leg destinations;
+  TOC/TOD stay calculated annotations. Options open the existing map point dialog. Stable
+  occurrence exclusions keep deleted airway/procedure fixes out of recalculations and saved files;
+  editing route instructions resets exclusions so fixes can be explicitly reintroduced.
+
+- Replace the expanded in-flight phase strip with one current-phase dropdown in the instrument
+  bar. Keep manual selection and automatic phase updates. Move Close Flight beneath the device
+  indicators, beside AGL. The antenna opens/closes the position-source dialog, including Connector
+  settings and connection status; remove the separate connection-status button and always-open
+  preparation panel from Fly. Preparation/start controls remain available before flight.
+
+- Flight Debrief has an accessible X close button in its draggable header. Dismissal stays in
+  effect while using the current Fly view; saved readings, aircraft state and track remain intact.
+  Reloading can show the saved summary again, and the next completed flight opens automatically.
+
+- Keep separate departure/arrival airport occurrences for graphical round trips, even before an
+  intermediate waypoint is inserted. On a same-airport flight, after sequencing the last departure
+  pattern point, Traffic Pattern configures/edits/removes the arrival pattern; pre-flight still plans
+  departure. Direct-to routes that have skipped the departure circuit also use arrival mode.
+- Add distinct TOC/TOD map annotations from the existing vertical profile, including events at real
+  fixes. These annotations do not become FPL waypoints, follow the route layer and disappear when
+  their planned leg was abandoned by a Direct/Divert.
+- TA uses the complete yellow traffic sprite; proximity uses the complete red sprite. Both symbols
+  are 36 px (1.5 times the normal 24 px), retaining the warning outlines and existing advisory logic.
+- FREDA in descent, landing or taxi-in is suppressed unless above both half the planned cruise
+  altitude (AMSL) and 2000 ft AGL. Unknown/stale terrain/height cannot qualify. Manual opening and
+  automatic due checks share the gate; lowering below it closes an existing check without losing its
+  due schedule. The height tile and notification gate share instrument/DEM/geoid datum handling.
+- A confirmed FREDA fuel reading now persists as a fuel/elapsed-air-time baseline. Future prediction
+  burns from that reading at the planned cruise flow (trip average fallback), not from original block
+  fuel. At 24 L/h a 60 L reading predicts 48 L after 30 airborne minutes; gallons continue converting
+  internally to litres. An unchanged rounded tank display does not round away the predicted baseline.
+- Recovery preserves route-history fix metadata and unexpired pattern notices. Explicitly opened
+  library/map pages stay open when resuming; FREDA cannot cover the restart choice dialog.
+
+## Server track and restart recovery (2026-10-20)
+
+- Persist each flight under registration + local DDMMYYHHmm (for example SPOKO1910262330), with a
+  separate UUID to prevent collisions. Keep ordered track and full flight/runtime checkpoints in
+  SQLite on a persistent Docker volume behind the app's same-origin API.
+- Upload new recorded positions during the flight, retry offline batches, persist the exact request
+  before sending, and replay lost acknowledgements without duplicate points. Attempt a final small
+  keepalive upload when the page hides/closes; crashes retain the last durable server acknowledgement.
+- On startup ask YES/No before advancing the saved flight. YES downloads the server prefix and restores
+  the plan, route/active leg, timers/events, holding/pattern/config and track, retaining an agreeing
+  unsent local tail. No and End flight archive the record without deleting its track. Offline final
+  checkpoints are not offered as active flights again.
+- The map now renders the active flight's full restored track, rather than the transient GPS buffer
+  collected only since opening the page.
+- An anonymous per-browser capability protects each browser's records; no global registration lookup.
+  Recovery requires the same browser profile/capability. Exclude this API from the service worker and
+  persisted query cache. Connector credentials/device settings never enter the upload.
+- Add backend storage/HTTP tests, frontend outbox/recovery tests and browser cases for live uploads,
+  remote-only recovery, offline catch-up and declining recovery. Existing flight regression fixtures
+  explicitly continue saved flights. See [contract, durability and limitations](FLIGHT_SYNC.md).
+
+## P3D wind tile (2026-10-20)
+
+- Fix the missing Connector wind path: P3D readings were excluded from native GPS circle fitting,
+  but no separate instrument calculation populated the tile.
+- Calculate wind immediately from actual TAS/true heading and GS/true track. Reuse FROM-direction,
+  whole-knot readout and map-rotation-aware downwind arrow. No circle or app air-time timer is needed
+  when the simulator itself confirms airborne state; no planned TAS/magnetic heading is substituted.
+- Expose the existing Connector `onGround` field, reject ground/taxi, pause, DEMO, invalid and stale
+  samples, and keep simulator results separate from GPS fitting when sources/sessions change.
+- Simulator tooltip identifies the P3D calculation and waits for current instrument data rather
+  than asking for a full GPS turn. Native GPS estimation and planning weather remain unchanged.
+- Unit coverage recovers cardinal/crosswinds at multiple headings and TAS values; Connector browser
+  regression checks the live tile before starting an app flight, FROM/knots and clearing on DEMO/pause.
+
+## Higher cruise altitude confirmation (2026-10-19)
+
+- While climbing/cruising above the planned cruise level, monitor fresh moving-aircraft readings
+  for two continuous minutes within a fixed ±100 ft band. Prefer full thousands within that
+  tolerance, otherwise round to the nearest hundred. Continued climb, stale/missing data, source
+  changes, other flight phases, an active hold or circuit legs restart the observation.
+- Show an Altitude popup with YES / No, using the shared notification style and bell history.
+  No/close suppresses that level for the current flight/cruise setting. Another level can be
+  suggested after its own full observation. Reload starts a new observation rather than counting
+  unobserved time; a stale prompt cannot change the plan.
+- YES saves the cruise altitude and recalculates the derived vertical profile. Cruise-based future
+  waypoint overrides and active navigation levels follow the change; passed readings, distinct
+  manual levels, published/user restrictions, airport thresholds and circuit altitudes are retained.
+- Validation: format/lint/typecheck/static build, 502 unit tests, and browser YES/No timing,
+  active-route/restriction preservation, repeat suppression and existing notification regression.
+  Full CI gates run on the latest integrated develop before merge.
+
+## Registration state, fuel units and Connector persistence (2026-10-19)
+
+- Last known MTH/fuel readings belong to the normalized registration. An unknown registration no
+  longer inherits readings from the model's DEFAULT record. The last-state heading identifies the airframe.
+- Registration is an editable dropdown of profile and remembered airframes. Known registrations
+  automatically choose their model; the existing identity lookup can match supported models from
+  the database. Specific C172 variants require a matching model description rather than guessing
+  performance from the shared ICAO code. Manual model choices are remembered per registration.
+- C172S defaults to US gallons (1 US gal = 3.785411784 L). Fuel's column selector switches litres/US
+  gallons and converts quantities, inputs, notes, W&B, FREDA and postflight readings to whole numbers.
+  Calculation/storage fields retain litres, and switching units or blurring an unchanged rounded
+  input does not rewrite the exact quantity. The preference survives reload and .nord round trips.
+- Debrief captures the flight's unit alongside its immutable aircraft/start readings; accepted gallon
+  readings convert back to litres for consumption and the next flight's airframe state.
+- At the owner's explicit request, Connector address/token/preferences now persist in this browser's
+  localStorage after reopening. Existing session credentials migrate; credentials remain outside
+  saved/exported flights. Disconnect still retains the address/token for the next connection.
+- Pulled and read the current remote AGENTS.md and integrated the latest develop changes before
+  completing this work. Validation includes unit coverage, static export and affected browser flows;
+  the full browser suite runs in PR CI before merging develop.
+
+## Point Weather / Insert PIREP and exact EPKC regression (2026-10-19)
+
+- Remove the separate WX action from point details. For route points, Weather now contains
+  Insert PIREP immediately below TAF, opening the existing waypoint weather editor with the
+  same altitude/wind rows, calculations and persisted data. The action remains available
+  when the automatic weather briefing is unavailable.
+- Non-airport route points also have Weather access, using the existing nearest-station
+  briefing. Their manual editor remains tied to the point; airport-only Insert ATIS is hidden
+  there. Existing airport Insert ATIS and other briefing screens retain their behavior.
+- Add exact EPKC → EPML right Downwind/Crosswind regressions at 100 KIAS, including IAS-to-TAS
+  circuit planning, the derived FPL and entry/Base/Final arcs. Browser checks confirm the
+  reported right Downwind route is smooth in preview, acceptance and after reload.
+
+## Smooth Crosswind capture at EPML (2026-10-19)
+
+- Crosswind previously skipped the shared entry-connector solver. An oblique arrival could
+  require more tangent distance than the short Crosswind leg offered, causing the entry and
+  adjacent Downwind fly-by arcs to be rejected and drawn as square corners.
+- Include Crosswind in the existing rate-one connector solver when adjacent turns do not fit.
+  Establish the selected leg before its start, retaining full turn radii, circuit altitude,
+  existing dimensions and the subsequent smooth Downwind turn.
+- Regression cases cover EPML RWY 09, left/right circuits at 100/120 kt. Browser coverage
+  includes the right Crosswind preview, acceptance, entry guides and saved-plan reload.
+
+## Downwind capture at EPML (2026-10-19)
+
+- A near-reciprocal inbound course could produce a large entry fly-by tangent that consumed
+  Downwind past runway abeam, despite the raw circuit having the correct dimensions.
+- Check the end of the entry turn against the far runway end. If Downwind would be captured
+  too late, reuse the rate-one entry connector to establish the selected leg before its start.
+  Ordinary entries that still cover the runway retain their existing geometry.
+- The shared connector applies to dashed previews, planned and active-flight acceptance.
+  Guide points retain the circuit altitude and turn performance. Guide points are regenerated
+  when an inserted waypoint changes the inbound course; the circuit legs remain intact.
+- Regression coverage reproduces EPML RWY 09 at 100/120 kt with left/right patterns, verifies
+  a straight segment across runway abeam, and exercises preview, acceptance and saved-plan reload.
+
+## Protect traffic-pattern insertion (2026-10-19)
+
+- Add waypoint treats the departure and arrival circuits as protected blocks, including their
+  threshold, exit guides and ARP. The first permitted slot is after the departure circuit;
+  the last is before the arrival circuit. With adjacent circuits this is a single slot.
+- Optimal insertion searches only permitted legs. Clicking protected rows is disabled;
+  Move up/down stops at the permitted boundaries. The dialog explains the restriction in EN/PL.
+- The active-flight store and persisted anchors apply the same rule. Recalculation preserves
+  the selected side of an en-route fix when generated circuit targets are temporarily absent,
+  and moves legacy endpoint anchors into the permitted en-route section.
+- Regression coverage includes adjacent circuits, independent departure/arrival protection,
+  legacy anchors, saved-plan recalculation, direct store calls, and browser acceptance/reload.
+
+## FPL point actions and Direct/Divert continuity (2026-10-19)
+
+- Every actual FPL fix has a red remove action and white three-dot options action. Removal
+  updates the exact active row and matching manually inserted draft point; endpoint removal
+  is supported without discarding airport metadata used by flight phases and weather.
+- Options open the existing anchored point/airport inspector, including HOLD, Direct, Divert,
+  restrictions and weather. The FPL closes and the map centers on the selected fix. The request
+  is transient, while existing selection/close/map-click behavior is retained.
+- Desktop uses inline actions; phone rows keep readable identifiers and DTK/DIS/ALT values.
+  The synthetic DCT GPS origin remains internal rather than becoming a removable FPL fix.
+- Direct/Divert freeze completed FPL geometry in a separate persisted map history layer, with
+  the same solid route styling and a straight connector from the last passed fix to the DCT
+  origin. Remaining navigation retains its existing ownship-to-target behavior. Repeated
+  redirects before the next real fix replace that connector; passed DCT legs are retained once
+  the next fix is passed. Skipped future fixes are not restored as flown or navigation targets.
+- New-flight start clears history; reload restores it. Current-leg insertion/removal also retains
+  completed geometry. History is not a source of navigation leg indices or map segment editing.
+- Validation: formatting, lint, TypeScript/static export, 447 unit tests, 11 affected browser
+  scenarios and both new scenarios rechecked on the final build. Phone/desktop FPL screenshots
+  inspected; complete browser suite runs in PR CI before merge to develop.
+  Focused FPL scenarios disable reference layers (covered separately), allow a 60-second software
+  WebGL budget, and pass four parallel repeat runs; all functional assertions remain enabled.
+
+## Circuit previews, flight phases and advance guidance (2026-10-19)
+
+- Preparation previews now use the same route planner and navigation conversion as the accepted
+  FPL, preserving fly-over flags and replacing arrival/departure procedures consistently.
+  Tight Base entries get rate-one connector guides without shrinking the turn radius.
+- Arrival entry fixes carry circuit AMSL altitude; descent follows TOD so the aircraft reaches
+  that altitude by entry. Fly-over sequencing retains the fix instead of switching 0.3 NM early.
+- Approaching the departure runway on the ground selects Take-off. Explicit pattern/Take-off/
+  Taxi-out runway choices take precedence; without a selection use the nearest runway geometry.
+  On-block now requires GS strictly below 2 kt for 20 continuous seconds; missing/stale samples
+  and GS at/above 2 kt reset the candidate.
+- Position source selection/Connector setup is available in Aircraft preparation before Start.
+  Home Start passes the accepted patterns and aircraft type to the existing flight session.
+- FPL and waypoint insertion share the same G1000-inspired DTK/DIS/ALT table, active-row styling
+  and magnetic heading readouts. CENTER has white text and sits closer to the bottom edge.
+- Route Heading/Altitude commands look ahead 30 seconds to the actual fly-by tangent, the next
+  planned level or TOD. Countdown changes to NOW when due; history records only the clean
+  instruction with its first NOW timestamp. Invalid/paused samples cancel pending predictions;
+  already-required corrections are displayed immediately, with no invented past countdown.
+
+- Validation: formatting, lint, TypeScript/static export, 444 unit tests and 90 E2E scenarios.
+  Full browser run passed 88; the new 20-second On-block dwell required a longer stopped GPX
+  fixture, and the unchanged Engine Fire scenario passed on isolated rerun after a local timeout.
+  Final-build countdown/history test passed again. FPL/CENTER and Base previews inspected visually.
+
+## Postflight readings and debrief statistics (2026-10-18)
+
+- Debrief now accepts actual ending MTH and remaining fuel (litres). Accept switches to four
+  responsive groups: MTH used/after, fuel used/after, Off-block→On-block UTC/Block Time,
+  Take-off→Landing UTC/Air Time. Editing, window dragging and GPX export remain available.
+- Capture the preflight airframe/MTH and planned starting block fuel at Start flight (both controls).
+  These baselines remain immutable even if the planner or last-state record changes during flight.
+  Accept records the ending state for the captured registration, clears the consumed fuel-added
+  amount, and keeps the debrief and its accepted statistics through reload until the next flight.
+- Actual stopped timers determine operational times, including midnight crossings. Closing a
+  flight does not fabricate landing/on-block events. Unknown baselines or incomplete event pairs
+  show unavailable consumption/duration; legacy sessions without a snapshot are supported.
+- Validate required decimal readings, decreasing MTH and remaining fuel above starting fuel;
+  preserve genuine zero values. Source fuel is the preflight block-fuel entry, not an estimated burn.
+- Tests cover snapshots/airframe isolation, validation, missing and zero readings, midnight timing,
+  accepted-statistic reload/editing, recorded remaining fuel and phone overflow.
+
 ## C172S from owner-supplied Carenado PDFs — 2026-10-18
 
 - Added independent C172S (ICAO C172) selection, operating/stall reference speeds, all 111 cruise

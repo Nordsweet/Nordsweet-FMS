@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./test";
 
 test("legacy chart controls use the app palette and proportional zoom", async ({
   page,
@@ -71,6 +71,9 @@ test("the dark map darkens the basemap and its overlays and is remembered", asyn
   await expect(map).toHaveAttribute("data-map-ready", "true", {
     timeout: 20000,
   });
+  // Fjord is the default; the light OpenStreetMap map is a choice.
+  await page.getByRole("combobox", { name: "Base map" }).click();
+  await page.getByRole("option", { name: "OpenStreetMap" }).click();
   await expect(map).toHaveCSS("background-color", "rgb(250, 249, 244)");
   await expect(page.locator(".legacy-map--dark")).toHaveCount(0);
   await expect(page.getByText("© OpenStreetMap contributors")).toBeVisible();
@@ -178,4 +181,22 @@ test("Dark Matter renders vector tiles, persists and works over 3D terrain", asy
     timeout: 20000,
   });
   expect(errors).toEqual([]);
+});
+
+test("a browser that stored the old OpenStreetMap default opens on Bright", async ({
+  page,
+}) => {
+  await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => route.abort());
+  await page.addInitScript(() =>
+    localStorage.setItem(
+      "nordsweet.map.v1",
+      JSON.stringify({ version: 1, state: { basemap: "osm" } }),
+    ),
+  );
+  await page.goto("/fly");
+  await expect(page.getByTestId("map")).toHaveCSS(
+    "background-color",
+    "rgb(242, 239, 233)",
+    { timeout: 20000 },
+  );
 });

@@ -12,6 +12,7 @@ import {
   patternRunwayGeometry,
   routeWithTrafficPattern,
   trafficPatternGeometry,
+  trafficPatternEntryPoints,
   trafficPatternReport,
   activeRouteWithTrafficPattern,
 } from "./traffic-pattern";
@@ -27,6 +28,10 @@ import {
   taxiDepartureRunway,
 } from "./departure-pattern";
 import type { Ground } from "~/data/schemas";
+import { anchoredWaypoint, waypointInsertionSlots } from "./waypoint-insertion";
+import { navigationRoute } from "./navigation-route";
+import type { FlightPoint } from "~/data/flight";
+import { patternPlanningPerformance } from "./pattern-performance";
 
 const threshold = { lat: 50, lon: 20, elevationFt: 500 };
 const end = destinationPoint(threshold, 90, 1000 / 1852);
@@ -91,6 +96,249 @@ const middle = (
   lon: a.lon + (b.lon - a.lon) * fraction,
 });
 const original = useInFlight.getState();
+
+test.each(["downwind", "crosswind"] as const)(
+  "EPKC to EPML right %s at 100 KIAS keeps all entry and circuit arcs",
+  (join) => {
+    const departure = airportSchema.parse(
+      airports.find((a) => a.ident === "EPKC"),
+    );
+    const destination = airportSchema.parse(
+      airports.find((a) => a.ident === "EPML"),
+    );
+    const runway = destination.runways.find((r) => r.designator === "09")!;
+    const arrival: TrafficPattern = {
+      ...pattern,
+      airport: destination,
+      runway: { ...runway, ...patternRunwayGeometry(destination, runway)! },
+      direction: "right",
+      join,
+      speedKias: 100,
+      turnPerformance: patternPlanningPerformance(
+        100,
+        destination.elevationFt,
+        1000,
+        null,
+      ),
+    };
+    const plan = buildRoutePlan(
+      {
+        airport: () => null,
+        point: () => null,
+        procedures: () => [],
+        airways: {},
+      },
+      {
+        departure,
+        destination,
+        alternate: null,
+        altitudeFt: 3000,
+        routeText: "",
+        selections: { SID: null, STAR: null, APPROACH: null },
+        inlineSelections: {},
+        insertedWaypoints: [],
+        trafficPattern: arrival,
+        waypointAltitudes: {},
+        waypointWx: {},
+        conditionsWind: null,
+        runwayWind: () => null,
+        climbGradientFtPerNm: 500,
+      },
+    )!;
+    const route = navigationRoute(plan);
+    const path = flyByRoute(route, { tasKt: 100 });
+    expect(path.issues).toEqual([]);
+    expect(path.turns.has(1)).toBe(true);
+    const geometry = trafficPatternGeometry(arrival);
+    for (const position of [
+      geometry.positions.base,
+      geometry.positions.final,
+    ]) {
+      const at = route.findIndex((p) => distanceNm(p, position) < 0.0005);
+      expect(path.turns.has(at)).toBe(true);
+    }
+  },
+);
+
+test.each([
+  ["left", 100],
+  ["left", 120],
+  ["right", 100],
+  ["right", 120],
+] as const)(
+  "EPML %s Crosswind at %i kt fits both entry and Downwind turns",
+  (direction, tasKt) => {
+    const mielec = airportSchema.parse(
+      airports.find((a) => a.ident === "EPML"),
+    );
+    const runway = mielec.runways.find((r) => r.designator === "09")!;
+    const geometry = patternRunwayGeometry(mielec, runway)!;
+    const arrival: TrafficPattern = {
+      ...pattern,
+      airport: mielec,
+      runway: { ...runway, ...geometry },
+      direction,
+      join: "crosswind",
+      turnPerformance: { tasKt },
+    };
+    const g = trafficPatternGeometry(arrival);
+    const inbound = [
+      {
+        ident: "INBOUND",
+        ...destinationPoint(
+          g.positions.crosswind,
+          direction === "right" ? 255 : 285,
+          20,
+        ),
+      },
+    ];
+    const joining = trafficPatternEntryPoints(arrival, inbound);
+    const route = [...inbound, ...joining];
+    const path = flyByRoute(route, { tasKt });
+    expect(path.issues).toEqual([]);
+    expect(path.turns.has(1)).toBe(true);
+    const downwind = route.findIndex((p) => p.ident === "TP2/EPML");
+    expect(path.turns.has(downwind)).toBe(true);
+    expect(path.turns.size).toBeGreaterThanOrEqual(3);
+    // Entry guides must not replace either the selected leg or its planned altitude.
+    expect(joining.some((p) => p.ident === "TP1/EPML")).toBe(true);
+    expect(joining.every((p) => p.altitudeFt !== undefined)).toBe(true);
+  },
+);
+
+test.each([
+  ["left", 100],
+  ["left", 120],
+  ["right", 100],
+  ["right", 120],
+] as const)(
+  "EPML %s Downwind at %i kt retains its start and runway abeam after an acute entry",
+  (direction, tasKt) => {
+    const mielec = airportSchema.parse(
+      airports.find((a) => a.ident === "EPML"),
+    );
+    const runway = mielec.runways.find((r) => r.designator === "09")!;
+    const geometry = patternRunwayGeometry(mielec, runway)!;
+    const arrival: TrafficPattern = {
+      ...pattern,
+      airport: mielec,
+      runway: { ...runway, ...geometry },
+      direction,
+      join: "downwind",
+      turnPerformance: { tasKt },
+    };
+    const g = trafficPatternGeometry(arrival);
+    const inbound = [
+      { ident: "INBOUND", ...destinationPoint(g.positions.downwind, 255, 20) },
+    ];
+    const route = [...inbound, ...trafficPatternEntryPoints(arrival, inbound)];
+    const path = flyByRoute(route, { tasKt });
+    expect(path.issues).toEqual([]);
+    expect(
+      path.points.some((p) => distanceNm(p, g.positions.downwind) < 0.0005),
+    ).toBe(true);
+    const offset = (p: { lat: number; lon: number }) =>
+      trackOffset(geometry.threshold, geometry.departureEnd, p);
+    const abeam = offset(mielec).alongTrackNm;
+    // A straight Downwind segment must pass alongside the airport, not finish upstream of it.
+    expect(
+      path.points.some((p, i) => {
+        const next = path.points[i + 1];
+        if (!next) return false;
+        const a = offset(p),
+          b = offset(next);
+        return (
+          Math.abs(Math.abs(a.crossTrackNm) - g.lateralOffsetNm) < 0.01 &&
+          Math.abs(Math.abs(b.crossTrackNm) - g.lateralOffsetNm) < 0.01 &&
+          a.alongTrackNm > abeam &&
+          b.alongTrackNm < abeam
+        );
+      }),
+    ).toBe(true);
+  },
+);
+
+test("insertion between circuits preserves the selected side of an en-route fix after recalculation", () => {
+  const destination = { ...airport, ident: "EPBB", lat: 51 };
+  const departure = {
+    ...pattern,
+    id: "departure",
+    operation: "leave" as const,
+  };
+  const arrival = { ...pattern, id: "arrival", airport: destination };
+  const build = (insertedWaypoints: FlightPoint[]) =>
+    navigationRoute(
+      buildRoutePlan(
+        {
+          airport: () => null,
+          point: () => ({ lat: 50.5, lon: 20 }),
+          procedures: () => [],
+          airways: {},
+        },
+        {
+          departure: airport,
+          destination,
+          alternate: null,
+          altitudeFt: 6000,
+          routeText: "NEXT",
+          selections: { SID: null, STAR: null, APPROACH: null },
+          inlineSelections: {},
+          insertedWaypoints,
+          departurePattern: departure,
+          trafficPattern: arrival,
+          waypointAltitudes: {},
+          waypointWx: {},
+          conditionsWind: null,
+          runwayWind: () => null,
+          climbGradientFtPerNm: 500,
+        },
+      )!,
+    );
+  const route = build([]);
+  const next = route.findIndex((p) => p.ident === "NEXT");
+  const point = { ident: "NEW", lat: 50.4, lon: 20.1 };
+  expect(waypointInsertionSlots(route)).toEqual([next, next + 1]);
+  for (const index of [next, next + 1]) {
+    const saved = flightSchema.shape.waypoints.parse([
+      anchoredWaypoint(route, point, index),
+    ]);
+    const rebuilt = build(saved);
+    expect(
+      rebuilt.findIndex((p) => p.ident === "NEW") <
+        rebuilt.findIndex((p) => p.ident === "NEXT"),
+    ).toBe(index === next);
+    expect(
+      rebuilt.filter((p) => p.patternOperation === "leave").map((p) => p.ident),
+    ).toEqual(
+      route.filter((p) => p.patternOperation === "leave").map((p) => p.ident),
+    );
+    expect(
+      rebuilt
+        .filter(
+          (p) => p.patternOperation === "join" && !p.ident.startsWith("TPJ"),
+        )
+        .map((p) => p.ident),
+    ).toEqual(
+      route
+        .filter(
+          (p) => p.patternOperation === "join" && !p.ident.startsWith("TPJ"),
+        )
+        .map((p) => p.ident),
+    );
+  }
+  // Saved endpoint anchors created before protection must not discard the new fix.
+  for (const index of [0, 2]) {
+    const saved = anchoredWaypoint([airport, destination], point, index);
+    const rebuilt = build([saved]);
+    const at = rebuilt.findIndex((p) => p.ident === "NEW");
+    expect(at).toBeGreaterThan(
+      rebuilt.map((p) => p.patternOperation).lastIndexOf("leave"),
+    );
+    expect(at).toBeLessThan(
+      rebuilt.findIndex((p) => p.patternOperation === "join"),
+    );
+  }
+});
 
 test.each(["left", "right"] as const)(
   "%s Overhead departure completes all four circuit turns before flying over the runway",
