@@ -24,8 +24,7 @@ export type RadioPosition = LatLon & {
   altitudeAglFt?: number | null;
 };
 
-const rowKey = (r: RadioRow) =>
-  [r.frequencyMhz, r.callsign, r.sector].join("|");
+const rowKey = (r: RadioRow) => [r.frequencyMhz, r.callsign].join("|");
 
 export function uniqueRows(rows: RadioRow[]) {
   const seen = new Set<string>();
@@ -36,19 +35,54 @@ export function uniqueRows(rows: RadioRow[]) {
     return true;
   });
 }
-const rowsKey = (rows: RadioRow[]) =>
+export const radioRowsKey = (rows: RadioRow[]) =>
   uniqueRows(rows).map(rowKey).sort().join(";");
+const rowsKey = radioRowsKey;
 
 const isEnrouteInfo = (z: AirspaceFeature) =>
   /FIS|FIR/.test((z.properties.name + " " + z.properties.class).toUpperCase());
 const kind = (z: AirspaceFeature) =>
-  airspaceKind(z.properties.name, z.properties.class);
+  /^(?:EP\s*)?TR(?:A)?\s*\d/i.test(z.properties.name) ||
+  /^(TR|TRA)$/.test(z.properties.class)
+    ? "TRA"
+    : airspaceKind(z.properties.name, z.properties.class);
 
-/** The zones the radio plan looks at: FIS/FIR sectors and ATZs. */
-export const commsZones = (zones: AirspaceFeature[]) =>
-  zones.filter(
-    (z) => isEnrouteInfo(z) || ["ATZ", "CTR", "TMA"].includes(kind(z)),
+/** Lotnik can append the exact closed ring in reverse; its two traversals cancel ray casting. */
+function withoutRetrace(ring: [number, number][]) {
+  const clean = ring.filter(
+    (p, i) => i === 0 || p[0] !== ring[i - 1]![0] || p[1] !== ring[i - 1]![1],
   );
+  const end = clean.findIndex(
+    (p, i) => i > 0 && p[0] === clean[0]![0] && p[1] === clean[0]![1],
+  );
+  if (
+    end >= 3 &&
+    clean.length === 2 * end + 1 &&
+    clean.every(
+      (p, i) =>
+        i <= end ||
+        (p[0] === clean[2 * end - i]![0] && p[1] === clean[2 * end - i]![1]),
+    )
+  )
+    return clean.slice(0, end + 1);
+  return ring;
+}
+
+/** Local service volumes and FIS/FIR background, including cached retraced OpenAir boundaries. */
+export const commsZones = (zones: AirspaceFeature[]) =>
+  zones
+    .filter(
+      (z) =>
+        isEnrouteInfo(z) ||
+        ["ATZ", "CTR", "TMA", "TRA", "MATZ", "MCTR", "MTMA"].includes(kind(z)),
+    )
+    .map((z) => ({
+      ...z,
+      geometry: {
+        ...z.geometry,
+        coordinates: z.geometry.coordinates.map(withoutRetrace),
+      },
+    }));
 
 const FIS_UNITS: [RegExp, string][] = [
   [/KRAK[OÓ]W/i, "EPKK"],
@@ -66,21 +100,21 @@ const SECTORS: Record<string, string> = {
 /** Legacy commsZoneRows: ATZ → its aerodrome's radio/tower, FIS sector → its unit's sector rows. */
 export function zoneRows(z: AirspaceFeature, airport: AirportRows) {
   const name = z.properties.name;
+  // A sector's own channel is more specific than an aerodrome's complete service list.
+  const embedded = zoneRadioRows(z.properties);
+  if (embedded.length) return embedded;
   if (["CTR", "TMA"].includes(kind(z))) {
-    const embedded = zoneRadioRows(z.properties);
     const icao =
       /\bEP[A-Z0-9]{2}\b/.exec(name.toUpperCase())?.[0] ??
       FIS_UNITS.find(([pattern]) => pattern.test(name))?.[1];
-    return embedded.length
-      ? embedded
-      : icao
-        ? airport(
-            icao,
-            kind(z) === "TMA"
-              ? ["zblizanie", "radar", "approach"]
-              : ["tower", "zblizanie"],
-          )
-        : [];
+    return icao
+      ? airport(
+          icao,
+          kind(z) === "TMA"
+            ? ["zblizanie", "radar", "approach"]
+            : ["tower", "zblizanie"],
+        )
+      : [];
   }
   if (kind(z) === "ATZ") {
     const icao = /\bEP[A-Z0-9]{2}\b/.exec(name.toUpperCase())?.[0];
@@ -92,7 +126,8 @@ export function zoneRows(z: AirspaceFeature, airport: AirportRows) {
   }
   // Legacy mapped only Kraków FIS West/East to EPKK; every Polish FIS unit has sector rows.
   const unit = FIS_UNITS.find(([pattern]) => pattern.test(name));
-  if (unit && isEnrouteInfo(z)) {
+  // A FIR identifies the national airspace, not the responsible regional FIS unit.
+  if (unit && kind(z) === "FIS") {
     const rows = airport(unit[1], ["fiss"]);
     const word = /\b([NSEW])(?:ORTH|OUTH|AST|EST)?\b/.exec(
       name.toUpperCase(),
@@ -131,19 +166,30 @@ export function rowsAt(
       point.lat <= n &&
       polygonContainsPoint(geometry.coordinates, point),
   );
-  const fis = containing.filter((z) => kind(z) === "FIS");
-  const atz = containing.filter((z) => kind(z) === "ATZ");
-  for (const type of ["CTR", "TMA"]) {
-    const controlled = containing
-      .filter((z) => kind(z) === type)
-      .flatMap((z) => zoneRows(z, airport));
-    if (controlled.length) return uniqueRows(controlled);
+  // Resolve the most specific local service before the enclosing FIS/FIR background.
+  // Smaller published sectors override umbrella polygons of the same service.
+  const area = (z: AirspaceFeature) =>
+    (z.bbox[2] - z.bbox[0]) * (z.bbox[3] - z.bbox[1]);
+  for (const types of [
+    ["TRA"],
+    ["CTR", "MCTR"],
+    ["TMA", "MTMA"],
+    ["ATZ", "MATZ"],
+    ["FIS"],
+    ["OTHER"],
+  ]) {
+    const candidates = containing
+      .filter(
+        (z) =>
+          types.includes(kind(z)) && (kind(z) !== "OTHER" || isEnrouteInfo(z)),
+      )
+      .sort((a, b) => area(a) - area(b));
+    for (const zone of candidates) {
+      const rows = zoneRows(zone, airport);
+      if (rows.length) return uniqueRows(rows);
+    }
   }
-  const background = fis.length ? fis : containing.filter(isEnrouteInfo);
-  const local = atz.flatMap((z) => zoneRows(z, airport));
-  return uniqueRows(
-    local.length ? local : background.flatMap((z) => zoneRows(z, airport)),
-  );
+  return [];
 }
 
 /** "FIS / ATZ on route": every crossed zone with its rows, without repeats. */
@@ -204,7 +250,10 @@ export function estimateComms(
     position: RadioPosition | null;
     gpsSpeedKt: number | null;
     plannedSpeedKt: number;
-    route: LatLon[];
+    route: RadioPosition[];
+    /** Sequenced leg prevents a returning route from projecting onto its earlier crossing. */
+    activeLeg?: number;
+    activeLegEnd?: number;
   },
   api: {
     dep: (services: string[]) => RadioRow[];
@@ -231,7 +280,7 @@ export function estimateComms(
   };
   if (
     phase !== "cruise" &&
-    !(position && ["climb", "descent"].includes(phase) && enroute.length)
+    !(position && !["taxiout", "taxiin"].includes(phase))
   ) {
     const pairs: Record<Exclude<FlightPhase, "cruise">, () => RadioRow[][]> = {
       taxiout: () => [first(dep(["ground"]), dep(tower)), dep(tower)],
@@ -254,6 +303,11 @@ export function estimateComms(
 
   let best = { distance: Infinity, index: 0, t: 0 };
   for (let i = 0; i < route.length - 1; i++) {
+    if (
+      input.activeLeg !== undefined &&
+      (i < input.activeLeg || i >= (input.activeLegEnd ?? input.activeLeg + 1))
+    )
+      continue;
     const t = segmentFraction(position, route[i]!, route[i + 1]!);
     const distance = distanceNm(position, along(route[i]!, route[i + 1]!, t));
     if (distance < best.distance) best = { distance, index: i, t };
@@ -274,12 +328,12 @@ export function estimateComms(
       const rows = uniqueRows(
         api.at({
           ...along(a, b, t),
-          ...(position && "altitudeFt" in position
-            ? { altitudeFt: position.altitudeFt }
-            : {}),
-          ...(position?.altitudeAglFt != null
-            ? { altitudeAglFt: position.altitudeAglFt }
-            : {}),
+          altitudeFt:
+            a.altitudeFt != null && b.altitudeFt != null
+              ? a.altitudeFt + (b.altitudeFt - a.altitudeFt) * t
+              : position.altitudeFt,
+          // AGL at a distant point is unknown without its terrain, not the current AGL.
+          altitudeAglFt: null,
         }),
       );
       if (rowsKey(rows) !== initial) {
