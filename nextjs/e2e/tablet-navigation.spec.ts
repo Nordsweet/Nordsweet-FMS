@@ -191,6 +191,8 @@ test("tablet planner link works; centered pinch preserves ownship anchor and one
     });
   }
   const beforePan = Number(await map.getAttribute("data-center-lon"));
+  const panScale =
+    (512 * 2 ** Number(await map.getAttribute("data-zoom"))) / 360;
   await client.send("Input.dispatchTouchEvent", {
     type: "touchStart",
     touchPoints: [{ id: 1, x, y }],
@@ -205,10 +207,13 @@ test("tablet planner link works; centered pinch preserves ownship anchor and one
     touchPoints: [],
   });
   await expect
-    .poll(async () =>
-      Math.abs(Number(await map.getAttribute("data-center-lon")) - beforePan),
+    .poll(
+      async () =>
+        Math.abs(
+          Number(await map.getAttribute("data-center-lon")) - beforePan,
+        ) * panScale,
     )
-    .toBeGreaterThan(0.001);
+    .toBeGreaterThan(20);
   expect(errors).toEqual([]);
   await page.getByRole("link", { name: "Flight Planner", exact: true }).tap();
   await expect(page).toHaveURL(/\/$/);
