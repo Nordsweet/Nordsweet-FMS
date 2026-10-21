@@ -625,6 +625,9 @@ export const useInFlight = create<InFlight>()(
                     accepted: null,
                   }),
                   endedAt: Date.now(),
+                  landingCount: s.timers.events.filter(
+                    (e) => e.name === "Landing",
+                  ).length,
                   arrival:
                     s.divertAirport ??
                     s.debrief?.arrival ??

@@ -194,6 +194,7 @@ export function FlightRuntime() {
         speedKt: fix.groundSpeedKt,
         headingDeg: fix.trackDeg,
         onGround: fix.onGround,
+        altitudeAglFt: fix.altitudeAglFt,
       },
       {
         departureElevationFt: departure?.elevationFt ?? 0,

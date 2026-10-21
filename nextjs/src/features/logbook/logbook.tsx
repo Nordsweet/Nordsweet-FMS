@@ -123,6 +123,7 @@ export function Logbook() {
                       "aircraft",
                       "departure",
                       "arrival",
+                      "landings",
                       "pic",
                       "block",
                       "air",
@@ -176,6 +177,7 @@ export function Logbook() {
                         {t("logbook.onBlock")}: <Time at={e.onBlockAt} />
                       </div>
                     </td>
+                    <td>{e.landingCount ?? (e.landingAt !== null ? 1 : 0)}</td>
                     <td className="max-w-48 break-words">{e.pic}</td>
                     <td>
                       {duration(logbookDuration(e.offBlockAt, e.onBlockAt))}

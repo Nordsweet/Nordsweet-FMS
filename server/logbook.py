@@ -63,7 +63,10 @@ def validate(entry, flight_id):
             value = entry[field]
             if value is not None and (type(value) not in (int, float) or not math.isfinite(value) or value < 0):
                 raise ValueError()
-        return {key: entry[key] for key in ("id", "startedAt", *limits, "endedAt", "offBlockAt", "takeoffAt", "landingAt", "onBlockAt", "mthBefore", "mthAfter", "fuelBeforeL", "fuelAfterL")}
+        landing_count = entry.get("landingCount", 1 if entry["landingAt"] is not None else 0)
+        if type(landing_count) is not int or landing_count < 0 or landing_count > 100000:
+            raise ValueError()
+        return {"landingCount": landing_count, **{key: entry[key] for key in ("id", "startedAt", *limits, "endedAt", "offBlockAt", "takeoffAt", "landingAt", "onBlockAt", "mthBefore", "mthAfter", "fuelBeforeL", "fuelAfterL")}}
     except (KeyError, TypeError, ValueError, AttributeError):
         raise LogbookError(422, "Invalid logbook entry") from None
 
@@ -76,6 +79,7 @@ def save(db, owner, flight_id, body):
         old = json.loads(previous[0])
         if old["startedAt"] != entry["startedAt"]:
             raise LogbookError(409, "Flight identity changed")
+        entry["landingCount"] = max(entry["landingCount"], old.get("landingCount", 1 if old["landingAt"] is not None else 0))
         if old["endedAt"] is not None and entry["endedAt"] is None:
             return {**old, "pic": previous[1]}
     pic = previous[1] if previous else entry["pic"].strip()

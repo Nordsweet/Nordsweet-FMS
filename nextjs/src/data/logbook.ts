@@ -13,6 +13,7 @@ export const logbookEntrySchema = z.object({
   offBlockAt: instant,
   takeoffAt: instant,
   landingAt: instant,
+  landingCount: z.number().int().nonnegative().optional(),
   onBlockAt: instant,
   mthBefore: instant,
   mthAfter: instant,
