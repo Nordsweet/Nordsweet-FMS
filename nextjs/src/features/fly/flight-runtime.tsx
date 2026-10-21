@@ -7,6 +7,7 @@ import { departureRunwayChoice } from "~/domain/departure-pattern";
 import { patternRunwayGeometry } from "~/domain/traffic-pattern";
 import { navigationProgress } from "~/domain/holding";
 import { useFlight } from "~/stores/flight";
+import { useEngineTimers } from "~/stores/engine-timers";
 import { useInFlight } from "~/stores/inflight";
 import { useMapSettings } from "~/stores/map";
 import { playChime } from "./chime";
@@ -58,6 +59,21 @@ export function FlightRuntime() {
   const height = useTerrainHeight(
     ["descent", "landing", "taxiin"].includes(flight.phase) ? fresh : null,
   );
+  useEffect(() => {
+    useEngineTimers.getState().observe({
+      session: flight.startedAt,
+      phase: flight.phase,
+      now,
+      sample: fresh
+        ? {
+            at: fresh.receivedAt ?? Date.parse(fresh.time),
+            groundSpeedKt: fresh.groundSpeedKt,
+            onGround: fresh.onGround,
+            paused: fresh.paused,
+          }
+        : null,
+    });
+  }, [flight.startedAt, flight.phase, now, fresh]);
   useEffect(() => {
     setFredaAvailable(
       fredaAvailable(

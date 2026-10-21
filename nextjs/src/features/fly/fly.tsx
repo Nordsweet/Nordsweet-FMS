@@ -55,6 +55,7 @@ import { useGps } from "./use-gps";
 import { useTurnPerformance } from "./use-turn-performance";
 import { PositionSourcePanel } from "./position-source-panel";
 import { FlightStatusBar } from "./flight-status-bar";
+import { EngineTimerAssistant } from "./engine-timer-assistant";
 import { Debrief } from "./debrief";
 import {
   FlightPlanTable,
@@ -632,6 +633,9 @@ export function FlyPage() {
       />
       <div className="absolute inset-x-0 top-24 bottom-0">
         <MapWorkspace embedded />
+        {inFlight.startedAt && !emergencyActive && (
+          <EngineTimerAssistant session={inFlight.startedAt} phase={phase} />
+        )}
         <div
           className="fly-scrim"
           aria-hidden="true"
