@@ -274,6 +274,61 @@ test("departure offers Leave, ignores circuit altitude, and coexists with the ar
   expect((await saved()).trafficPattern?.airport.ident).toBe("EPNT");
 });
 
+test("departure Straight-out replaces Final, exits before the first turn and survives reload", async ({
+  page,
+}) => {
+  test.setTimeout(60000);
+  await mocks(page);
+  await page.goto("/map");
+  const panel = await open(page, "EPKK");
+  await choose(page, "Runway", "RWY 25");
+  await page
+    .getByRole("combobox", { name: "Leave traffic pattern", exact: true })
+    .click();
+  await expect(
+    page.getByRole("option", { name: "Final", exact: true }),
+  ).toHaveCount(0);
+  await page.getByRole("option", { name: "Straight-out", exact: true }).click();
+  await expect(
+    panel.getByRole("combobox", { name: "Final distance", exact: true }),
+  ).toHaveCount(0);
+  await expect(page.getByTestId("turn-constraint")).toHaveCount(0);
+  await panel
+    .getByRole("button", { name: "Accept traffic pattern", exact: true })
+    .click();
+  const stored = await page.evaluate(() => {
+    const value = JSON.parse(localStorage.getItem("nordsweet.flight.v2")!) as {
+      state: { flight: { departurePattern: TrafficPattern } };
+    };
+    return value.state.flight.departurePattern;
+  });
+  expect(stored).toMatchObject({
+    operation: "leave",
+    join: "final",
+    runway: { designator: "25" },
+  });
+  expect(trafficPatternGeometry(stored).points).toHaveLength(2);
+  await expect(page.getByTestId("map-planner-points")).toContainText(
+    "TPD1/EPKK",
+  );
+  await expect(page.getByTestId("map-planner-points")).not.toContainText(
+    "TPD2/EPKK",
+  );
+  await page.reload();
+  const reopened = await open(page, "EPKK");
+  await expect(
+    reopened.getByRole("combobox", {
+      name: "Leave traffic pattern",
+      exact: true,
+    }),
+  ).toHaveText("Straight-out");
+  const arrival = await open(page);
+  await choose(page, "Join position", "Final");
+  await expect(
+    arrival.getByRole("combobox", { name: "Final distance", exact: true }),
+  ).toBeVisible();
+});
+
 test("Overhead departure completes the circuit before runway overflight and survives reload", async ({
   page,
 }, testInfo) => {

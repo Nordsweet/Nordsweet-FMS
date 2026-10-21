@@ -183,7 +183,14 @@ export function TrafficPatternPanel({
         onChange={setJoin}
         options={(
           ["overhead", "crosswind", "downwind", "base", "final"] as const
-        ).map((value) => ({ value, label: t(`pattern.${value}`) }))}
+        ).map((value) => ({
+          value,
+          label: t(
+            leaving && value === "final"
+              ? "pattern.straightOut"
+              : `pattern.${value}`,
+          ),
+        }))}
       />
       {!leaving && join === "final" && (
         <>
