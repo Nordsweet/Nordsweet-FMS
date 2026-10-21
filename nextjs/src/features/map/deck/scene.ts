@@ -36,6 +36,7 @@ import {
 } from "./fjord";
 import type { BakeRequest, BakeResponse, WorkerMessage } from "./tile-worker";
 import { reuseLayers } from "./reuse-layers";
+import { terrainClearanceLayer } from "./terrain-clearance";
 import { vectorStyles, type VectorStyle } from "./vector-styles";
 
 type Pos = [number, number];
@@ -73,6 +74,7 @@ export type TextDatum = {
 export type ParachuteDatum = { position: Pos; offset: Pos };
 
 export type Scene = {
+  terrainAltitudeFt: number | null;
   terrain3d: boolean;
   emergencyBoundary: Path[];
   basemap: Basemap;
@@ -121,6 +123,7 @@ export type Scene = {
 };
 
 export const emptyScene = (): Scene => ({
+  terrainAltitudeFt: null,
   terrain3d: false,
   emergencyBoundary: [],
   basemap: "osm",
@@ -574,6 +577,9 @@ export function buildLayers(
         : vector
           ? vectorLayers
           : [basemap(s.basemap === "night")]),
+    ...(s.terrainAltitudeFt === null
+      ? []
+      : [terrainClearanceLayer(s.terrainAltitudeFt)]),
     new PolygonLayer<ZoneDatum>({
       id: "airspace",
       data: s.zones,

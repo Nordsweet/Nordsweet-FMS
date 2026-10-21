@@ -76,9 +76,12 @@ async function seed(
                   latitude: 49.7,
                   longitude: 19.9,
                   accuracy: 5,
-                  altitude: gnss
-                    ? 1200 - (2.54 * (Date.now() - altitudeStart)) / 1000
-                    : 900,
+                  altitude:
+                    (window as Window & { terrainTestAltitudeM?: number })
+                      .terrainTestAltitudeM ??
+                    (gnss
+                      ? 1200 - (2.54 * (Date.now() - altitudeStart)) / 1000
+                      : 900),
                   altitudeAccuracy: gnss ? 5 : null,
                   speed: (90 * 1852) / 3600,
                   heading: 180,
@@ -154,6 +157,100 @@ test("TerrainLayer toggles 3D with local workers, keeps overlays and survives re
   await expect(page.getByLabel("Terrain 3D", { exact: true })).toBeChecked();
   await page.getByLabel("Terrain 3D", { exact: true }).uncheck();
   await expect(page.locator("[data-terrain-3d='false']")).toBeVisible();
+});
+
+test("terrain clearance changes with actual altitude on flat and 3D maps", async ({
+  page,
+}) => {
+  test.setTimeout(90000);
+  await seed(page, true, true);
+  const terrainPng = await page.evaluate(() => {
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = 256;
+    const ctx = canvas.getContext("2d")!;
+    ctx.fillStyle = "rgb(131,232,0)"; // Terrarium: 1000 m AMSL everywhere.
+    ctx.fillRect(0, 0, 256, 256);
+    return canvas.toDataURL().split(",")[1]!;
+  });
+  await page.route(
+    "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/**",
+    (r) =>
+      r.fulfill({
+        body: Buffer.from(terrainPng, "base64"),
+        contentType: "image/png",
+        headers: { "Access-Control-Allow-Origin": "*" },
+      }),
+  );
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.addInitScript(() => {
+    (
+      window as Window & { terrainTestAltitudeM?: number }
+    ).terrainTestAltitudeM = 0;
+  });
+  await page.goto("/map");
+  const overlay = page.locator("[data-terrain-altitude-ft]");
+  await expect(overlay).not.toHaveAttribute("data-terrain-altitude-ft", "", {
+    timeout: 30000,
+  });
+  await expect(
+    page.getByRole("link", { name: /Terrain: Mapzen/ }),
+  ).toBeVisible();
+  const colouredPixels = async (colour: "red" | "yellow" = "red") => {
+    const png = (await page.getByTestId("map").screenshot()).toString("base64");
+    return page.evaluate(
+      async ({ png, colour }) => {
+        const image = new Image();
+        image.src = `data:image/png;base64,${png}`;
+        await image.decode();
+        const canvas = document.createElement("canvas");
+        canvas.width = image.width;
+        canvas.height = image.height;
+        const ctx = canvas.getContext("2d")!;
+        ctx.drawImage(image, 0, 0);
+        const pixels = ctx.getImageData(0, 0, image.width, image.height).data;
+        let red = 0;
+        for (let i = 0; i < pixels.length; i += 4)
+          if (
+            pixels[i]! > 130 &&
+            (colour === "red"
+              ? pixels[i]! > pixels[i + 1]! * 1.8
+              : pixels[i + 1]! > 110) &&
+            pixels[i]! > pixels[i + 2]! * 1.8
+          )
+            red++;
+        return red;
+      },
+      { png, colour },
+    );
+  };
+  await expect
+    .poll(() => colouredPixels(), { timeout: 30000 })
+    .toBeGreaterThan(10000);
+  await page.evaluate(() => {
+    (
+      window as Window & { terrainTestAltitudeM?: number }
+    ).terrainTestAltitudeM = 1250;
+  });
+  await expect
+    .poll(() => colouredPixels("yellow"), { timeout: 30000 })
+    .toBeGreaterThan(10000);
+  await page.getByLabel("Terrain 3D", { exact: true }).check();
+  await expect
+    .poll(() => colouredPixels("yellow"), { timeout: 30000 })
+    .toBeGreaterThan(10000);
+  await page.evaluate(() => {
+    (
+      window as Window & { terrainTestAltitudeM?: number }
+    ).terrainTestAltitudeM = 10000;
+  });
+  await expect
+    .poll(() => colouredPixels(), { timeout: 30000 })
+    .toBeLessThan(10000);
+  await expect
+    .poll(() => colouredPixels("yellow"), { timeout: 30000 })
+    .toBeLessThan(10000);
+  expect(errors).toEqual([]);
 });
 
 test("Engine Out renders a terrain/wind footprint, removes stale guidance and uses cached DEM offline", async ({
