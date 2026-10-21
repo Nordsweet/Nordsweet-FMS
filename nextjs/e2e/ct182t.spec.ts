@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./test";
 
 test("CT182T selection and supplied procedures are available", async ({
   page,
