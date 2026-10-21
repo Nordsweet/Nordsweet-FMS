@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Plane } from "lucide-react";
 import { api } from "~/api";
 import {
   terrainProfileSections,
@@ -187,16 +186,14 @@ export function FplVerticalProfile({
             <title>
               {t("fly.profile.aircraft", { altitude: Math.round(mslFt) })}
             </title>
-            <Plane
-              x={-10}
-              y={-10}
-              width={20}
-              height={20}
-              transform="rotate(45)"
+            <path
+              d="M-14 1l3-1-2-7h3l5 6h6l3-3h4l3 3 3 1q3 1 0 3H4L0 6h-4l2-3h-10Z"
               fill="#5ed4ff"
               stroke="#07111f"
               strokeWidth={1.5}
+              strokeLinejoin="round"
             />
+            <path d="M4-3h3l2 2H2Z" fill="#07111f" />
           </g>
         )}
       </svg>
