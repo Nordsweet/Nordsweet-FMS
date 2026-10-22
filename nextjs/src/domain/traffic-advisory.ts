@@ -28,13 +28,20 @@ export const TRAFFIC_THRESHOLDS = {
   close: { seconds: 25, verticalFt: 600, dmodNm: 0.55 },
 } as const;
 
+export const TRAFFIC_CLOCK_LOOKAHEAD_SECONDS = 120;
+
+type TrafficSituation = {
+  advisory: TrafficAdvisory | null;
+  clockVisible: boolean;
+};
+
 /** Time-aligned CPA, vertical convergence and slow-closure DMOD reject nearby but non-conflicting tracks. */
-export function trafficAdvisory(
+export function trafficSituation(
   own: TrafficMotion | null,
   target: TrafficAircraft,
   now: number,
   identity?: AircraftIdentity,
-): TrafficAdvisory | null {
+): TrafficSituation | null {
   if (!own || own.paused || target.on_ground || isOwnTraffic(target, identity))
     return null;
   if (
@@ -115,6 +122,15 @@ export function trafficAdvisory(
     (targetVs * Math.max(0, age)) / 60 -
     own.altitudeFt -
     (ownVs * Math.max(0, ownAge)) / 60;
+  // The visual search aid starts earlier; it does not promote a two-minute encounter to a TA.
+  const clockVisible =
+    dot < 0 &&
+    seconds >= 0 &&
+    seconds <= TRAFFIC_CLOCK_LOOKAHEAD_SECONDS &&
+    missNm <= TRAFFIC_THRESHOLDS.ta.dmodNm &&
+    (Math.abs(vertical) <= TRAFFIC_THRESHOLDS.ta.verticalFt ||
+      Math.abs(vertical + ((targetVs - ownVs) * seconds) / 60) <=
+        TRAFFIC_THRESHOLDS.ta.verticalFt);
   for (const level of ["close", "ta"] as const) {
     const threshold = TRAFFIC_THRESHOLDS[level];
     const modifiedTau =
@@ -134,13 +150,26 @@ export function trafficAdvisory(
         Math.abs(predicted) <= threshold.verticalFt)
     )
       return {
-        hex: target.hex,
-        level,
-        distanceNm: range,
-        relativeAltitudeFt: vertical,
-        bearingDeg: initialBearingDeg(position, intruder),
-        seconds: Math.max(0, seconds),
+        clockVisible,
+        advisory: {
+          hex: target.hex,
+          level,
+          distanceNm: range,
+          relativeAltitudeFt: vertical,
+          bearingDeg: initialBearingDeg(position, intruder),
+          seconds: Math.max(0, seconds),
+        },
       };
   }
-  return null;
+  return { clockVisible, advisory: null };
+}
+
+/** Existing alert thresholds are independent of the earlier visual traffic-search cue. */
+export function trafficAdvisory(
+  own: TrafficMotion | null,
+  target: TrafficAircraft,
+  now: number,
+  identity?: AircraftIdentity,
+): TrafficAdvisory | null {
+  return trafficSituation(own, target, now, identity)?.advisory ?? null;
 }

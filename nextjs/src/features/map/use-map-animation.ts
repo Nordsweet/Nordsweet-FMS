@@ -3,7 +3,7 @@ import { type TrafficAircraft } from "~/api/aviation/schemas";
 import { destinationPoint } from "~/domain/geo";
 import { mapLabelVisibility } from "~/domain/map-labels";
 import { projectedPosition } from "~/domain/map-navigation";
-import { trafficAdvisory } from "~/domain/traffic-advisory";
+import { trafficSituation } from "~/domain/traffic-advisory";
 import { type GpsFix } from "~/features/fly/use-gps";
 import type { AircraftIdentity } from "~/domain/traffic-identity";
 import type { DeckMap, DeckScene, Scene } from "./deck";
@@ -44,7 +44,8 @@ export function useMapAnimation({
     let request = 0,
       lastFrame = 0,
       lastTraffic = -Infinity,
-      lastCamera = "";
+      lastCamera = "",
+      trafficClock = false;
     // Identical data is skipped: every update re-uploads to the GPU and redraws the whole map.
     const sent = new Map<string, string>();
     let patch: Partial<Scene> = {};
@@ -74,6 +75,7 @@ export function useMapAnimation({
       const trafficDue = frame - lastTraffic >= 1000 / 8;
       if (trafficDue) lastTraffic = frame;
       if (trafficDue) {
+        trafficClock = false;
         const traffic: TrafficDatum[] = [],
           callsigns: TextDatum[] = [],
           details: TextDatum[] = [],
@@ -95,7 +97,9 @@ export function useMapAnimation({
             if (!position) continue;
             const at: [number, number] = [position.lon, position.lat];
             estimates.push({ path: [[a.lon, a.lat], at] });
-            const alert = trafficAdvisory(fix, a, now, ownIdentity);
+            const situation = trafficSituation(fix, a, now, ownIdentity);
+            const alert = situation?.advisory;
+            trafficClock ||= situation?.clockVisible ?? false;
             traffic.push({
               position: at,
               hex: a.hex,
@@ -155,6 +159,7 @@ export function useMapAnimation({
                 position: [position.lon, position.lat],
                 alpha: position.alpha,
                 track: fix?.trackDeg ?? 0,
+                trafficClock,
               },
             ]
           : [],
