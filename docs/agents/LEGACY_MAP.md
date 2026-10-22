@@ -197,7 +197,7 @@ merged to `develop`. One owner per row.
 
 | FPL predicted fuel column | done | Codex 2026-10-22 | PR #94 merged. Remaining fuel per upcoming FPL waypoint and TOC/TOD, curved route, per-leg wind/speed/flow, current FREDA baseline and selected litres/US gallons. Past/unavailable rows show a dash. Full CI 39772890952 passed (721 unit tests, server, lint/format/types/build, complete browser suite); desktop/iPad and narrow-screen/GPS recovery checks passed. |
 
-| Fuel reserve breach popups | in progress | Codex 2026-10-22 | Actual remaining fuel warnings at Alternate + Final Reserve and Final Reserve thresholds; unified popups, escalation, dismissal and notification history. |
+| Fuel reserve breach popups | done | Codex 2026-10-22 | PR #95 merged. Using Alternate Fuel below Alternate + Final Reserve; red Using Final Reserve Fuel below Final Reserve. Current FREDA-adjusted fuel, persisted acknowledgement, escalation/rearm and timestamped history. Full CI 39779650145 passed (728 unit tests and complete browser suite); automatic burn and popup appearance also checked locally. |
 
 ## 5. Known legacy bugs / intended differences
 
