@@ -47,6 +47,13 @@ test("Connector source feeds Fly, survives reload and clears stale fixes without
     page.once("close", () => clearInterval(heartbeat));
   });
   await page.goto("/");
+  await expect(
+    page.getByRole("combobox", { name: "Position source", exact: true }),
+  ).toHaveCount(0);
+  await page.goto("/fly");
+  await page
+    .getByRole("button", { name: "Position source", exact: true })
+    .click();
   await page
     .getByRole("combobox", { name: "Position source", exact: true })
     .selectOption("connector");
@@ -94,14 +101,10 @@ test("Connector source feeds Fly, survives reload and clears stale fixes without
   await expect(page.getByTestId("connector-status")).toHaveText(
     "Prepar3D — connected",
   );
-  // Select and connect the source in preparation, before starting a flight.
+  // The connection shortcut can select the source before starting a flight.
   expect(
     await page.evaluate(() => localStorage.getItem("nordsweet.inflight.v1")),
   ).not.toContain('"startedAt":"');
-  await page.goto("/fly");
-  await page
-    .getByRole("button", { name: "Position source", exact: true })
-    .click();
   await expect(page.getByTestId("wind-tile")).toContainText("308°/006");
   await expect(page.getByTestId("wind-tile")).toHaveAttribute(
     "data-wind-state",
@@ -174,7 +177,10 @@ test("Connector source feeds Fly, survives reload and clears stale fixes without
   await reopened.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) =>
     route.abort(),
   );
-  await reopened.goto("/");
+  await reopened.goto("/fly");
+  await reopened
+    .getByRole("button", { name: "Position source", exact: true })
+    .click();
   await expect(reopened.getByLabel("Connector HTTPS address")).toHaveValue(
     "https://pc.example.ts.net:8767",
   );
