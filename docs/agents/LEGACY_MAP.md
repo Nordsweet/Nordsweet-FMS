@@ -193,6 +193,8 @@ merged to `develop`. One owner per row.
 
 ## 5. Known legacy bugs / intended differences
 
+| Telephone ATIS requests and tokens | claimed | Codex 2026-10-22 | Server-side balance/queue, Grzes initial 10000 tokens, WX request and completion notification; Zadarma disabled pending verification. Companion Aviation API changes. |
+
 | Croatia significant VFR points | claimed | Codex 2026-10-22 | Import user-supplied Croatia VFR Manual ENR 4.4 (15 MAY 2025), verify coordinates, uniqueness and map/search availability. |
 
 Record every one you find here (and assert it in a test).
