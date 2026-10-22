@@ -205,7 +205,7 @@ merged to `develop`. One owner per row.
 
 ## 5. Known legacy bugs / intended differences
 
-| Aircraft Config and Checklist tabs | claimed | Codex 2026-10-22 | Move Config and Checklist from the flight rail into the aircraft panel; preserve phase-aware configuration and checklist state. |
+| Aircraft Config and Checklist tabs | done | Codex 2026-10-22 | PR #98 merged: Aircraft, Config and Checklist tabs inside the aircraft tile; separate rail buttons removed. Existing phase availability, flap callouts, settings and checklist progress retained. Format, lint, types, 733 unit tests, build and all 161 browser tests passed locally without retries; direct Config/checklist state and desktop/iPad UI checks passed. |
 
 | In-flight airport endpoint actions | done | Codex 2026-10-22 | PR #92 merged. Departure/Destination point actions hidden while a flight is active, retained before flight. Direct browser check confirmed both states. Full CI 39762036517 passed (706 unit tests, lint/types/format/build and browser suite). |
 
