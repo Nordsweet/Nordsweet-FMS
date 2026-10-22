@@ -61,10 +61,21 @@ export const mapPreferencesSchema = z.object({
 type Preferences = z.infer<typeof mapPreferencesSchema>;
 type MapState = Preferences & {
   pointRequest:
-    (FlightPoint & { name: string; kind: string; centerOnly?: boolean }) | null;
+    | (FlightPoint & {
+        name: string;
+        kind: string;
+        centerOnly?: boolean;
+        weather?: boolean;
+      })
+    | null;
   inspectPoint: (
     point:
-      | (FlightPoint & { name: string; kind: string; centerOnly?: boolean })
+      | (FlightPoint & {
+          name: string;
+          kind: string;
+          centerOnly?: boolean;
+          weather?: boolean;
+        })
       | null,
   ) => void;
   searchOpen: boolean;

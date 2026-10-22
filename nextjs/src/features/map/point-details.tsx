@@ -48,7 +48,7 @@ export function PointDetails({
   acceptHolding,
   removeHolding,
 }: {
-  point: FlightPoint & { name: string; kind: string };
+  point: FlightPoint & { name: string; kind: string; weather?: boolean };
   now: number;
   turnPerformance?: TurnPerformance;
   previewPattern: (pattern: TrafficPattern | null) => void;
@@ -92,7 +92,7 @@ export function PointDetails({
   );
   const [mode, setMode] = useState<
     "restriction" | "weather" | "notams" | "charts" | "pattern" | "hold" | null
-  >(null);
+  >(point.weather ? "weather" : null);
   const airportCode =
     routePoint?.airportIcao ?? (point.kind === "airport" ? point.ident : "");
   const airport = /^[A-Z]{4}$/.test(airportCode);

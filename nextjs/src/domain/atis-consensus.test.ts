@@ -37,6 +37,14 @@ describe("community ATIS consensus", () => {
       }),
     ).toBe(false);
     expect(reliableAtis({ ...report, source: "atis.guru" })).toBe(true);
+    expect(
+      reliableAtis({
+        ...report,
+        source: "telephone-atis",
+        verified: true,
+        confirmation_count: 0,
+      }),
+    ).toBe(true);
   });
   it("keeps single-device structured data available as editor hints without trusting it", () => {
     expect(atisHints(report, "EPKK")).toMatchObject({

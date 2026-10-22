@@ -20,6 +20,7 @@ import { FlightRuntime } from "~/features/fly/flight-runtime";
 import { LogbookRuntime } from "~/features/logbook/runtime";
 import { FlightRecovery } from "~/features/fly/flight-recovery";
 import { SessionSync } from "~/features/sync/session-sync";
+import { AtisCallNotifications } from "~/features/plan/atis-call-notifications";
 import { api } from "~/api";
 import { useAuth } from "~/stores/auth";
 import { useFlightSync } from "~/stores/flight-sync";
@@ -73,6 +74,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-dvh flex-col">
       <FlightRecovery />
+      <AtisCallNotifications />
       <LogbookRuntime />
       {recoveryReady && <FlightRuntime />}
       <header

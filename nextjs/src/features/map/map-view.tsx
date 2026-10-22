@@ -142,7 +142,7 @@ type Click =
   | {
       kind: "point";
       lngLat: { lng: number; lat: number };
-      point: FlightPoint & { name: string; kind: string };
+      point: FlightPoint & { name: string; kind: string; weather?: boolean };
     }
   | {
       kind: "traffic";
@@ -1717,7 +1717,9 @@ export function MapView({
               />
             ) : click.kind === "point" ? (
               <PointDetails
-                key={click.point.ident}
+                key={
+                  click.point.ident + (click.point.weather ? ":weather" : "")
+                }
                 point={click.point}
                 now={now}
                 addPoint={addPoint}
