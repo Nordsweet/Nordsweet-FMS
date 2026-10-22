@@ -30,6 +30,7 @@ import {
   pointKey,
 } from "~/domain/route-plan";
 import { PerformanceSection } from "~/features/plan/performance";
+import { AircraftSection } from "~/features/plan/aircraft";
 import { usePlan } from "~/features/plan/use-plan";
 import { useT } from "~/i18n/use-t";
 import { cn } from "~/lib/utils";
@@ -568,7 +569,7 @@ export function FlyPage() {
     options: <OptionsPanel />,
     position: <PositionSourcePanel />,
     notifications: <NotificationHistory />,
-    aircraft: null,
+    aircraft: <AircraftSection />,
   };
 
   // Legacy flight view: the airspace map full screen, the phase bar on top, the phase's tools on
@@ -681,11 +682,9 @@ export function FlyPage() {
                   variant={r.id === "emer" ? "destructive" : "outline"}
                   aria-expanded={open === r.id}
                   aria-label={panelLabel(r.id)}
-                  aria-disabled={r.id === "aircraft" || undefined}
                   title={panelLabel(r.id)}
                   className="legacy-flight-tool backdrop-blur"
                   onClick={() => {
-                    if (r.id === "aircraft") return;
                     setSearchOpen(false);
                     setPanel(open === r.id ? null : r.id);
                   }}
@@ -734,7 +733,7 @@ export function FlyPage() {
                   open === "position"
                     ? "0.75rem"
                     : `calc(5.15rem + ${rail.findIndex((r) => r.id === open)} * 3.93rem)`,
-                ...(open === "fpl"
+                ...(open === "fpl" || open === "aircraft"
                   ? { width: "min(42rem, calc(100vw - 6.5rem))" }
                   : {}),
               } as React.CSSProperties

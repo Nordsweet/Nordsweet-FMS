@@ -146,5 +146,29 @@ test("airport cards predict FPL or Direct arrival, show runway use, shortages an
   await page.getByRole("option", { name: "RWY 27", exact: true }).click();
   await expect(card).toContainText("Published LDA unavailable");
   await expect(card.getByTestId("landing-percent")).toHaveText("—");
+  await page
+    .getByRole("dialog", { name: "Details", exact: true })
+    .getByRole("button", { name: "Close", exact: true })
+    .click();
+  const aircraftTile = page
+    .getByRole("navigation", { name: "In flight", exact: true })
+    .getByRole("button", { name: "Aircraft", exact: true });
+  await aircraftTile.click();
+  const aircraftPanel = page.getByRole("dialog", {
+    name: "Aircraft",
+    exact: true,
+  });
+  await expect(
+    aircraftPanel.getByRole("combobox", { name: "Aircraft type", exact: true }),
+  ).toContainText("R172K");
+  await aircraftPanel.getByLabel("MTH", { exact: true }).fill("1234.5");
+  await aircraftPanel.getByLabel("MTH", { exact: true }).blur();
+  await aircraftPanel
+    .getByRole("button", { name: "Close", exact: true })
+    .click();
+  await aircraftTile.click();
+  await expect(aircraftPanel.getByLabel("MTH", { exact: true })).toHaveValue(
+    "01234.50",
+  );
   expect(errors).toEqual([]);
 });
