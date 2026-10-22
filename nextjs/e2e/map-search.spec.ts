@@ -93,6 +93,27 @@ async function search(page: Page, text: string) {
   await panel.getByRole("button", { name: "Search", exact: true }).click();
 }
 
+test("bundled Croatian VFR point is available on the map without remote place data", async ({
+  page,
+}) => {
+  await page.goto("/map");
+  const map = page.getByTestId("map");
+  await expect(map).toHaveAttribute("data-map-ready", "true");
+  await search(page, "L7");
+  const details = page.getByRole("dialog", { name: "Details", exact: true });
+  await expect(details).toContainText("L7");
+  await expect(details).toContainText("VFR");
+  await expect(
+    details.getByRole("button", { name: "Add waypoint", exact: true }),
+  ).toBeVisible();
+  await expect
+    .poll(async () => Number(await map.getAttribute("data-center-lat")))
+    .toBeCloseTo(45 + 46 / 60 + 46 / 3600, 3);
+  await expect
+    .poll(async () => Number(await map.getAttribute("data-center-lon")))
+    .toBeCloseTo(15 + 56 / 60 + 6 / 3600, 3);
+});
+
 async function expectDetailsAtMapCenter(page: Page) {
   await expect
     .poll(async () => {
