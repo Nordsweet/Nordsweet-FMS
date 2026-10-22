@@ -193,6 +193,8 @@ merged to `develop`. One owner per row.
 
 | Airport arrival landing-performance card | in progress | Codex 2026-10-22 | Airport popup LDA visualization, remaining active-route versus Direct arrival fuel/weight, existing POH calculations and weather. |
 
+| Aircraft tile data and settings | in progress | Codex 2026-10-22 | Connect the existing aircraft tile to the selected flight aircraft settings; user clarified the action. |
+
 ## 5. Known legacy bugs / intended differences
 
 | In-flight airport endpoint actions | done | Codex 2026-10-22 | PR #92 merged. Departure/Destination point actions hidden while a flight is active, retained before flight. Direct browser check confirmed both states. Full CI 39762036517 passed (706 unit tests, lint/types/format/build and browser suite). |
