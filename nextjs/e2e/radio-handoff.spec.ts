@@ -8,6 +8,41 @@ test("climb crossing ATZ to FIS and entering TMA both suggest the current local 
   await page.clock.install({ time: new Date("2026-10-20T12:00:00Z") });
   await page.clock.pauseAt(new Date("2026-10-20T12:00:01Z"));
   await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (r) => r.abort());
+  await page.route("**/data/frequencies.json", (r) =>
+    r.fulfill({
+      json: [
+        {
+          airport: "LZTT",
+          service: "tower",
+          callsign: "Tatry Tower",
+          frequencyMhz: "122.305",
+          sector: null,
+          notes: null,
+          primary: false,
+        },
+      ],
+    }),
+  );
+  await page.route("https://aviation.lab.vibecde.com/airports/LZTT/atis", (r) =>
+    r.fulfill({
+      json: {
+        icao: "LZTT",
+        sources: {},
+        atis: [
+          {
+            kind: "combined",
+            letter: "B",
+            qnh_hpa: 1015,
+            stale: false,
+            received_at: "2026-10-20T11:45:00Z",
+            age_minutes: 15,
+            qnh_matches_metar: null,
+            text: "LZTT ATIS B QNH 1015",
+          },
+        ],
+      },
+    }),
+  );
   const zone = (
     name: string,
     west: number,
@@ -118,6 +153,9 @@ test("climb crossing ATZ to FIS and entering TMA both suggest the current local 
       route,
     },
   );
+  const atisLoaded = page.waitForResponse(
+    "https://aviation.lab.vibecde.com/airports/LZTT/atis",
+  );
   await page.goto("/fly");
   await expect(page.getByTestId("flight-status-bar")).toBeVisible();
   await page.getByRole("button", { name: "COMMs", exact: true }).click();
@@ -140,6 +178,11 @@ test("climb crossing ATZ to FIS and entering TMA both suggest the current local 
     .getByTestId("flight-notifications")
     .getByRole("status", { name: "Frequency", exact: true });
   await expect(frequency).toContainText("Switch to Tatry-Tower, 122.305 MHz");
+  await atisLoaded;
+  await page.clock.runFor(100);
+  await expect(frequency).toContainText(
+    "(Information B, QNH 1015, updated 15 min ago)",
+  );
   await frequency
     .getByRole("button", { name: "Dismiss Frequency", exact: true })
     .click();
@@ -148,6 +191,7 @@ test("climb crossing ATZ to FIS and entering TMA both suggest the current local 
   await expect(frequency).toContainText(
     "Switch to Bratislava Information, 119.275 MHz",
   );
+  await expect(frequency).not.toContainText("Information B");
   await frequency
     .getByRole("button", { name: "Dismiss Frequency", exact: true })
     .click();

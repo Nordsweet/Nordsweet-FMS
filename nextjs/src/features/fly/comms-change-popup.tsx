@@ -1,6 +1,9 @@
 "use client";
 import { useEffect } from "react";
 import { create } from "zustand";
+import { useQueries, useQuery } from "@tanstack/react-query";
+import { api } from "~/api";
+import { commsAtisAirport, commsAtisContext } from "~/domain/comms-atis";
 import { useInFlight } from "~/stores/inflight";
 import { type CommsEstimate } from "~/domain/comms";
 import {
@@ -74,14 +77,39 @@ export function CommsChangePopup({
       : live && anticipated && !dismissed.has(anticipated.key)
         ? anticipated
         : null;
+  const frequencies = useQuery({
+    ...api.frequencies.list.queryOptions(undefined),
+    enabled: !!suggestion,
+  });
+  const airports = [
+    ...new Set(
+      (suggestion?.rows ?? [])
+        .map((r) => commsAtisAirport(r, frequencies.data ?? []))
+        .filter((icao): icao is string => !!icao),
+    ),
+  ];
+  const reports = useQueries({
+    queries: airports.map((icao) => ({
+      ...api.weather.atis.queryOptions({ icao }),
+      refetchInterval: 60_000,
+    })),
+  });
   if (!suggestion) return null;
   const message = suggestion.rows
-    .map((r) =>
-      t("fly.comms.suggestion", {
-        frequency: r.frequencyMhz,
-        callsign: r.callsign || t("fly.comms.noCallsign"),
-      }),
-    )
+    .map((r) => {
+      const icao = commsAtisAirport(r, frequencies.data ?? []);
+      const result = icao ? reports[airports.indexOf(icao)] : undefined;
+      const context =
+        icao && result?.data?.icao === icao
+          ? commsAtisContext(result.data.atis, icao, now)
+          : null;
+      return (
+        t("fly.comms.suggestion", {
+          frequency: r.frequencyMhz,
+          callsign: r.callsign || t("fly.comms.noCallsign"),
+        }) + (context ? t("fly.comms.atisContext", context) : "")
+      );
+    })
     .join("\n");
   return (
     <FlightPopup
