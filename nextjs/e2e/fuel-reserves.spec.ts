@@ -5,10 +5,10 @@ async function enterFuel(page: Page, fuelL: number) {
   await page.getByRole("button", { name: "Options", exact: true }).click();
   await page.getByRole("button", { name: "FREDA CHECK", exact: true }).click();
   await page
-    .getByLabel("Left tank [L]", { exact: true })
+    .getByRole("spinbutton", { name: /^Left tank \[L\]/ })
     .fill(String(fuelL / 2));
   await page
-    .getByLabel("Right tank [L]", { exact: true })
+    .getByRole("spinbutton", { name: /^Right tank \[L\]/ })
     .fill(String(fuelL / 2));
   await page
     .getByRole("button", { name: "Complete FREDA check", exact: true })
