@@ -102,6 +102,16 @@ export function PointDetails({
     }),
     enabled: point.kind === "airport",
   }).data;
+  const navpoints = useQuery({
+    ...api.navpoints.list.queryOptions(undefined),
+    enabled: point.kind === "navaid" || point.kind === "route",
+  });
+  const navaid =
+    point.kind === "navaid" || point.kind === "route"
+      ? navpoints.data?.find(
+          (p) => p.kind === "navaid" && sameFlightPoint(p, point),
+        )?.navaid
+      : null;
   const outbound = plan?.points.find(
     (p, i) => i > 0 && !p.patternId && !p.isProfilePoint,
   );
@@ -126,6 +136,18 @@ export function PointDetails({
         <EmergencyAirportChoice airport={airportRecord} now={now} />
       )}
       {point.name !== point.ident && <span>{point.name}</span>}
+      {navaid && (
+        <div
+          className="text-primary font-mono text-sm font-semibold"
+          data-testid="navaid-details"
+        >
+          {navaid.type}
+          {navaid.frequency &&
+            `, ${navaid.frequency} ${/NDB/i.test(navaid.type) ? "kHz" : "MHz"}`}
+          {` ${point.ident}`}
+          {navaid.channel && ` · ${navaid.channel}`}
+        </div>
+      )}
       <span className="text-muted-foreground text-xs font-bold">
         {t(KIND_LABEL[point.kind] ?? "maptools.kind.point")} |{" "}
         {point.lat.toFixed(5)}, {point.lon.toFixed(5)}
