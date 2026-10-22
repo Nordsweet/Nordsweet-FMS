@@ -627,7 +627,10 @@ function appendProcedure(
       });
       return false;
     }
-    procedurePoints.push(entry);
+    // A published IF already carries the entry's coordinates and restrictions.
+    // Prepending a bare entry would make appendPoint drop that duplicate IF.
+    if (procedure.legs[0]?.ident.toUpperCase() !== entry.id.toUpperCase())
+      procedurePoints.push(entry);
   }
   for (const [i, leg] of procedure.legs.entries()) {
     const p = legPoint(ctx, leg, procedure);

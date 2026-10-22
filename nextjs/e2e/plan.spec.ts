@@ -180,3 +180,22 @@ test("Poprad Charts lists the official AIP documents and serves the original PDF
     expect((await response.body()).subarray(0, 5).toString()).toBe("%PDF-");
   }
 });
+
+test("Poprad RNAV SID and STAR can be selected and add their published fixes", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await tab(page, "Route");
+  await pickPoint(page, "Departure", "LZTT", "LZTT");
+  await pickPoint(page, "Arrival", "EPKK", "EPKK");
+  await page.getByRole("combobox", { name: "SID", exact: true }).click();
+  await page.getByRole("option", { name: /^UMARY 1R/ }).click();
+  await expect(page.getByTestId("route-strip")).toContainText("TT511");
+  await expect(page.getByTestId("route-strip")).toContainText("TT516");
+  await pickPoint(page, "Departure", "EPKK", "EPKK");
+  await pickPoint(page, "Arrival", "LZTT", "LZTT");
+  await page.getByRole("combobox", { name: "STAR", exact: true }).click();
+  await page.getByRole("option", { name: /^UMARY 2S/ }).click();
+  await expect(page.getByTestId("route-strip")).toContainText("TT631");
+  await expect(page.getByTestId("route-strip")).toContainText("BREST");
+});
