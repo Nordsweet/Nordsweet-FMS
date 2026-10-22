@@ -185,7 +185,7 @@ export function PointDetails({
             {t("fly.divert")}
           </Button>
         )}
-        {point.kind === "airport" && (
+        {!navigation.startedAt && point.kind === "airport" && (
           <>
             <Button
               size="sm"

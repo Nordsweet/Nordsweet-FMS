@@ -193,6 +193,8 @@ merged to `develop`. One owner per row.
 
 ## 5. Known legacy bugs / intended differences
 
+| In-flight airport endpoint actions | claimed | Codex 2026-10-22 | Hide Departure/Destination point actions during an active flight; retain preflight planning actions. |
+
 | Aircraft icon tile | done | Codex 2026-10-22 | PR #91 merged. White aircraft icon tile directly below the notification bell in every flight phase; localized accessible label, inactive placeholder pending user choice of click action. Visual screenshot and local Fly browser assertions checked. Full CI 39757993767 passed (706 unit tests, lint/types/format/build and browser suite). |
 
 | Single taxi phase tile | done | Codex 2026-10-22 | PR #90 merged: removed duplicate Route tile/panel in Taxi-Out and Taxi-In; TAXI retains taxi editor and chart links. Existing taxi selection, persistence and departure-runway E2E flows now use TAXI. Full CI 39753899094 passed (706 unit tests, lint/types/format/build and browser suite). |
