@@ -121,11 +121,11 @@ test("adds a SID, shows the taxi route and charts", async ({ page }) => {
     "EPKK THR07 → KK801",
   );
 
-  await flightPanel(page, "Taxi-Out", "Route");
+  await flightPanel(page, "Taxi-Out", "TAXI");
   await expect(page.getByTestId("taxi-departure-route")).toHaveText(
     "Stand 1 → Taxiway G → Taxiway B4 → Taxiway C → HP07",
   );
-  await flightPanel(page, "Taxi-In", "Route");
+  await flightPanel(page, "Taxi-In", "TAXI");
   await expect(page.getByTestId("taxi-arrival")).toContainText("EPNT");
 
   await flightPanel(page, "Taxi-Out", "WX");

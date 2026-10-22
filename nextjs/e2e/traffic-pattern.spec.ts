@@ -409,7 +409,7 @@ test("automatic departure circuit follows Take-off then Taxi-out runway selectio
     .click();
   await page.goto("/fly");
   await selectFlightPhase(page, "Taxi-Out");
-  await page.getByRole("button", { name: "Route", exact: true }).click();
+  await page.getByRole("button", { name: "TAXI", exact: true }).click();
   await page
     .getByTestId("taxi-departure")
     .getByRole("combobox", { name: "To", exact: true })
