@@ -193,6 +193,8 @@ merged to `develop`. One owner per row.
 
 ## 5. Known legacy bugs / intended differences
 
+| Croatia significant VFR points | claimed | Codex 2026-10-22 | Import user-supplied Croatia VFR Manual ENR 4.4 (15 MAY 2025), verify coordinates, uniqueness and map/search availability. |
+
 Record every one you find here (and assert it in a test).
 
 - Route economy suggests "S.L." for every waypoint (below the airports) — don't copy.
