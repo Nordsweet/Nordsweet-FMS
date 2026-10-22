@@ -5,12 +5,21 @@ import { distanceNm, initialBearingDeg } from "~/domain/geo";
 import { magneticVariationDeg, trueToMagneticDeg } from "~/domain/magnetic";
 import { cn } from "~/lib/utils";
 
-export const flightPlanRowClass = (selected: boolean, actions = false) =>
+const columns = (actions: boolean, fuel: boolean) =>
+  fuel
+    ? "grid-cols-4 sm:grid-cols-[minmax(0,1fr)_3rem_3.5rem_3.5rem_4.5rem_5rem]"
+    : actions
+      ? "grid-cols-3 sm:grid-cols-[minmax(0,1fr)_3rem_4rem_4rem_5rem]"
+      : "grid-cols-[minmax(0,1fr)_3rem_4rem_4rem] sm:grid-cols-[minmax(0,1fr)_4rem_5rem_6rem]";
+
+export const flightPlanRowClass = (
+  selected: boolean,
+  actions = false,
+  fuel = false,
+) =>
   cn(
     "relative grid w-full items-center gap-2 border-b border-l-4 px-3 py-3 text-left font-mono text-sm last:border-b-0",
-    actions
-      ? "grid-cols-3 sm:grid-cols-[minmax(0,1fr)_3rem_4rem_4rem_5rem]"
-      : "grid-cols-[minmax(0,1fr)_3rem_4rem_4rem] sm:grid-cols-[minmax(0,1fr)_4rem_5rem_6rem]",
+    columns(actions, fuel),
     selected
       ? "bg-primary/15 text-primary border-l-fuchsia-400 font-bold"
       : "border-l-transparent",
@@ -23,12 +32,14 @@ export function FlightPlanTable({
   interactive = false,
   actions = false,
   listClassName,
+  fuelLabel,
 }: {
   children: ReactNode;
   listClassName?: string;
   label: string;
   interactive?: boolean;
   actions?: boolean;
+  fuelLabel?: string;
 }) {
   return (
     <div
@@ -38,17 +49,24 @@ export function FlightPlanTable({
       <div
         className={cn(
           "text-muted-foreground grid gap-2 border-b px-3 py-2 font-mono text-xs font-semibold",
-          actions
-            ? "grid-cols-3 sm:grid-cols-[minmax(0,1fr)_3rem_4rem_4rem_5rem]"
-            : "grid-cols-[minmax(0,1fr)_3rem_4rem_4rem] sm:grid-cols-[minmax(0,1fr)_4rem_5rem_6rem]",
+          columns(actions, !!fuelLabel),
         )}
       >
-        <span className={actions ? "col-span-3 sm:col-span-1" : undefined}>
+        <span
+          className={
+            actions
+              ? fuelLabel
+                ? "col-span-4 sm:col-span-1"
+                : "col-span-3 sm:col-span-1"
+              : undefined
+          }
+        >
           FPL
         </span>
         <span className="text-right">DTK °M</span>
         <span className="text-right">DIS NM</span>
         <span className="text-right">ALT FT</span>
+        {fuelLabel && <span className="text-right">{fuelLabel}</span>}
         {actions && <span aria-hidden="true" className="hidden sm:block" />}
       </div>
       <div
@@ -68,6 +86,7 @@ export function FlightPlanCells({
   selected = false,
   pendingLabel,
   actions = false,
+  fuel,
 }: {
   point: FlightPoint;
   previous?: FlightPoint;
@@ -75,6 +94,7 @@ export function FlightPlanCells({
   selected?: boolean;
   pendingLabel?: string;
   actions?: boolean;
+  fuel?: string;
 }) {
   const heading = previous
     ? Math.round(
@@ -90,7 +110,8 @@ export function FlightPlanCells({
         className={cn(
           "flex min-w-0 items-center gap-2",
           actions &&
-            "col-span-3 min-h-6 max-w-[calc(100%-5rem)] sm:col-span-1 sm:max-w-none",
+            "min-h-6 max-w-[calc(100%-5rem)] sm:col-span-1 sm:max-w-none",
+          actions && (fuel !== undefined ? "col-span-4" : "col-span-3"),
         )}
       >
         {selected && (
@@ -108,6 +129,11 @@ export function FlightPlanCells({
       <span className="text-right">
         {altitudeFt === null ? "—" : Math.round(altitudeFt)}
       </span>
+      {fuel !== undefined && (
+        <span className="text-right" data-testid="fpl-fuel">
+          {fuel}
+        </span>
+      )}
     </>
   );
 }

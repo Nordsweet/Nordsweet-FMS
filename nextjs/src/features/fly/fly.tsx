@@ -62,6 +62,10 @@ import {
   FlightPlanCells,
   flightPlanRowClass,
 } from "./flight-plan-table";
+import { arrivalFuelModel } from "~/domain/arrival-fuel-model";
+import { fredaFuelRemaining } from "~/domain/freda";
+import { fplFuel } from "~/domain/fpl-fuel";
+import { fuelUnit, formatFuel } from "~/domain/fuel-units";
 import { flightPlanProfile } from "~/domain/flight-plan-profile";
 import { FplVerticalProfile } from "./fpl-vertical-profile";
 import { NotificationBell, NotificationHistory } from "./notification-history";
@@ -150,6 +154,8 @@ export function FlyPage() {
     aircraft,
     plan,
     routeData,
+    cruiseSpeedKt,
+    fuelPlanning,
   } = usePlan();
   const inFlight = useInFlight();
   const flying = inFlight.startedAt !== null;
@@ -351,6 +357,32 @@ export function FlyPage() {
     Math.abs(now - Date.parse(fix.time)) <= 20000
       ? fix
       : null;
+  const fplFuelUnit = fuelUnit(aircraft?.type, flight.fuelDisplayUnit);
+  const fuelModel = arrivalFuelModel({
+    aircraft,
+    flight,
+    plan,
+    route: inFlight.route,
+    cruiseSpeedKt,
+    fuelPlanning,
+    turns,
+  });
+  const fuelAtPoints = fplProfile
+    ? fplFuel({
+        profile: fplProfile,
+        position: holdingActive ? null : fplPosition,
+        activeLeg: inFlight.activeLeg,
+        currentFuelL: fredaFuelRemaining(
+          flight.fuel.blockL,
+          fuelModel.flow,
+          inFlight.timers.airTime,
+          now,
+          inFlight.fredaFuel,
+        ),
+        legs: fuelModel.legs,
+        fallback: fuelModel.direct,
+      })
+    : [];
   const editFplWaypoint = (index: number, action: FplAction) => {
     const position =
       fplPosition &&
@@ -392,6 +424,7 @@ export function FlyPage() {
             />
           </div>
           <FlightPlanTable
+            fuelLabel={t("fly.fpl.fuel", { unit: fplFuelUnit })}
             actions
             label={t("mapplanner.points")}
             listClassName="max-h-[30dvh]"
@@ -414,10 +447,16 @@ export function FlyPage() {
                     className={flightPlanRowClass(
                       index !== null && index === inFlight.activeLeg + 1,
                       true,
+                      true,
                     )}
                   >
                     <FlightPlanCells
                       point={point}
+                      fuel={
+                        fuelAtPoints[displayIndex] == null
+                          ? "—"
+                          : formatFuel(fuelAtPoints[displayIndex], fplFuelUnit)
+                      }
                       actions
                       previous={fplProfile.rows[displayIndex - 1]?.point}
                       altitudeFt={altitudeFt}
@@ -526,6 +565,9 @@ export function FlyPage() {
                 ),
             )}
           </FlightPlanTable>
+          <p className="text-muted-foreground text-xs">
+            {t("fly.fpl.fuelNote")}
+          </p>
           <FplVerticalProfile
             profile={fplProfile}
             activeLeg={inFlight.activeLeg}
