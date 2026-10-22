@@ -774,6 +774,11 @@
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.34);
 }
 /* Top right, beside the rail. */
+.fly-popover[data-panel="aircraft"] {
+  top: 0.75rem;
+  right: 5.5rem;
+  max-height: calc(100% - 1.5rem);
+}
 .fly-popover[data-panel="position"] {
   top: 0.75rem;
   right: 1rem;

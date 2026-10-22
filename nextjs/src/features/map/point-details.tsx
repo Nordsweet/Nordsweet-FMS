@@ -3,6 +3,7 @@ import { isDeparturePatternTarget } from "~/domain/departure-pattern";
 import { type TrafficPattern } from "~/data/traffic-pattern";
 import { ArrivalPanel } from "./arrival-panel";
 import { AirportFuel } from "./airport-fuel";
+import { AirportLandingCard } from "./airport-landing-card";
 import { HoldingPanel } from "./holding-panel";
 import { type Holding } from "~/data/holding";
 import { useState } from "react";
@@ -67,7 +68,7 @@ export function PointDetails({
     update = useFlight((s) => s.update),
     navigation = useInFlight();
   const { fix, error } = useGps(navigation.startedAt !== null);
-  const { plan, route } = usePlan();
+  const { plan, route, routeData } = usePlan();
   const displayedRoute = navigation.startedAt ? navigation.route : route;
   const waypointIndex = flight.waypoints.findIndex((p) =>
     sameFlightPoint(p, point),
@@ -96,11 +97,15 @@ export function PointDetails({
   const airportCode =
     routePoint?.airportIcao ?? (point.kind === "airport" ? point.ident : "");
   const airport = /^[A-Z]{4}$/.test(airportCode);
+  const selectedAirport =
+    point.kind === "airport" ||
+    point.kind === "airfield" ||
+    (point.kind === "route" && !!routeData?.airport(point.ident));
   const airportRecord = useQuery({
     ...api.airports.get.queryOptions({
-      code: point.kind === "airport" ? point.ident : "",
+      code: selectedAirport ? point.ident : "",
     }),
-    enabled: point.kind === "airport",
+    enabled: selectedAirport,
   }).data;
   const navpoints = useQuery({
     ...api.navpoints.list.queryOptions(undefined),
@@ -269,6 +274,15 @@ export function PointDetails({
           ))}
       </div>
       {airport && <AirportFuel icao={airportCode} />}
+      {airportRecord && navigation.startedAt && (
+        <AirportLandingCard
+          key={airportRecord.ident}
+          airport={airportRecord}
+          fix={error ? null : fix}
+          now={now}
+          turns={turnPerformance}
+        />
+      )}
       {mode === "hold" && (
         <HoldingPanel
           point={point}
