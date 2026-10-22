@@ -1,5 +1,8 @@
 import { expect, it } from "vitest";
-import { trafficAdvisory } from "../src/domain/traffic-advisory";
+import {
+  trafficAdvisory,
+  trafficSituation,
+} from "../src/domain/traffic-advisory";
 import { destinationPoint } from "../src/domain/geo";
 import { type TrafficAircraft } from "../src/api/aviation/schemas";
 const now = Date.parse("2026-10-18T12:00:00Z");
@@ -73,6 +76,51 @@ it("rejects stale, missing, ground and own-aircraft reports", () => {
   ).toBeNull();
   expect(
     trafficAdvisory(own, target(2, 0), now, {
+      hex: "abc123",
+      registration: "",
+    }),
+  ).toBeNull();
+});
+
+it("shows the clock within two minutes of a close encounter without an early TA", () => {
+  expect(trafficSituation(own, target(9.99, 700), now)).toEqual({
+    clockVisible: true,
+    advisory: null,
+  });
+  expect(trafficSituation(own, target(10.01, 700), now)?.clockVisible).toBe(
+    false,
+  );
+  expect(trafficSituation(own, target(3.3, 700), now)?.clockVisible).toBe(true);
+});
+
+it("hides the clock for diverging tracks, a lateral miss and separated levels", () => {
+  for (const aircraft of [
+    { ...target(9, 0), track_deg: 0, ground_speed_kt: 300 },
+    { ...target(9, 0), track_deg: 0 },
+    { ...target(9, 0), ...destinationPoint(own, 30, 9) },
+    target(9, 2000),
+  ]) {
+    expect(trafficSituation(own, aircraft, now)?.clockVisible).toBe(false);
+  }
+  expect(
+    trafficSituation(own, { ...target(9, 2000), vertical_rate_fpm: -1000 }, now)
+      ?.clockVisible,
+  ).toBe(true);
+});
+
+it("the earlier cue rejects stale, paused, unknown-altitude, ground and own traffic", () => {
+  expect(trafficSituation(own, target(9, 0), now + 21000)).toBeNull();
+  expect(
+    trafficSituation({ ...own, paused: true }, target(9, 0), now),
+  ).toBeNull();
+  expect(
+    trafficSituation(own, { ...target(9, 0), altitude_ft: null }, now),
+  ).toBeNull();
+  expect(
+    trafficSituation(own, { ...target(9, 0), on_ground: true }, now),
+  ).toBeNull();
+  expect(
+    trafficSituation(own, target(9, 0), now, {
       hex: "abc123",
       registration: "",
     }),

@@ -64,7 +64,12 @@ export type TrafficDatum = {
   track: number;
   alpha: number;
 };
-export type OwnshipDatum = { position: Pos; track: number; alpha: number };
+export type OwnshipDatum = {
+  position: Pos;
+  track: number;
+  alpha: number;
+  trafficClock?: boolean;
+};
 export type TextDatum = {
   position: Pos;
   text: string;
@@ -745,6 +750,21 @@ export function buildLayers(
       filled: true,
     }),
     paths("gps-ticks", s.gpsTicks, withAlpha(ownship, 230), 2, true),
+    new IconLayer<OwnshipDatum>({
+      id: "traffic-clock",
+      data: s.ownship.filter((d) => d.trafficClock),
+      visible: traffic,
+      iconAtlas: atlas.url,
+      iconMapping: atlas.mapping,
+      getIcon: () => "traffic-clock",
+      getPosition: (d) => d.position,
+      getAngle: (d) => -d.track,
+      getColor: (d) => [255, 255, 255, Math.round(d.alpha * 255)],
+      getSize: 104,
+      sizeUnits: "pixels",
+      billboard: false,
+      pickable: false,
+    }),
     new IconLayer<OwnshipDatum>({
       id: "ownship",
       data: s.ownship,

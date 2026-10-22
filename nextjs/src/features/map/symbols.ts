@@ -67,6 +67,28 @@ export function aircraftSymbol(
     }
   });
 }
+/** Twelve hour dots, with twelve o'clock ahead of the matching ownship symbol. */
+export function trafficClockSymbol() {
+  return sprite(104, (ctx) => {
+    ctx.fillStyle = "#244f86";
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 1.5;
+    for (let hour = 0; hour < 12; hour++) {
+      const angle = (hour * Math.PI) / 6;
+      ctx.beginPath();
+      ctx.arc(
+        Math.sin(angle) * 42,
+        -Math.cos(angle) * 42,
+        hour === 0 ? 4 : 2.8,
+        0,
+        Math.PI * 2,
+      );
+      ctx.fill();
+      ctx.stroke();
+    }
+  });
+}
+
 export const pointSymbols = [
   "airport",
   "controlled",

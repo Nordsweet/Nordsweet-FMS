@@ -5,6 +5,7 @@ import {
   PARACHUTE_PATH,
   pointSymbol,
   pointSymbols,
+  trafficClockSymbol,
 } from "../symbols";
 
 export type IconName =
@@ -14,6 +15,7 @@ export type IconName =
   | "aircraft-amber"
   | "aircraft-caution"
   | "ownship"
+  | "traffic-clock"
   | "parachute";
 type Frame = { x: number; y: number; width: number; height: number };
 
@@ -49,6 +51,7 @@ function build(theme: Theme) {
     ["aircraft-amber", aircraftSymbol([250, 204, 21])],
     ["aircraft-caution", aircraftSymbol([255, 255, 255])],
     ["ownship", aircraftSymbol([36, 79, 134], true)],
+    ["traffic-clock", trafficClockSymbol()],
     ["parachute", parachute()],
   ];
   const mapping = {} as Record<IconName, Frame>;
