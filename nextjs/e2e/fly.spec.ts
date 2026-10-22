@@ -106,6 +106,9 @@ test("flies the route: sequencing, direct-to and debrief", async ({
   await selectFlightPhase(page, "Cruise");
   await expect(rail.getByRole("button").nth(1)).toHaveText("FPL");
   await page.getByRole("button", { name: "Options", exact: true }).click();
+  await expect(
+    page.getByRole("combobox", { name: "Position source", exact: true }),
+  ).toBeVisible();
   await page.getByRole("button", { name: "OFF-BLOCK" }).click();
   await expect(page.getByTestId("timer-offBlock")).not.toHaveText("--:--:--");
   await page.reload();
