@@ -1,4 +1,6 @@
 export const flightPopupsEn = {
+  "fly.fuelReserve.alternate": "Using Alternate Fuel",
+  "fly.fuelReserve.final": "Using Final Reserve Fuel",
   "fly.popup.thousandToGo": "1000ft to go",
   "fly.popup.descentTo": "Descent to {altitude}ft",
   "fly.popup.descentInSeconds": "in {seconds}s",
@@ -53,6 +55,8 @@ export const flightPopupsEn = {
   "fly.popup.descend": "Descend {altitude} ft",
 };
 export const flightPopupsPl: typeof flightPopupsEn = {
+  "fly.fuelReserve.alternate": "Using Alternate Fuel",
+  "fly.fuelReserve.final": "Using Final Reserve Fuel",
   "fly.popup.thousandToGo": "1000ft do zadanej wysokości",
   "fly.popup.descentTo": "Zniżanie do {altitude}ft",
   "fly.popup.descentInSeconds": "za {seconds}s",

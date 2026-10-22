@@ -216,6 +216,7 @@ export function MapView({
     aircraft: ownAircraft,
     routeInput,
     routeData,
+    fuelPlanning,
   } = usePlan();
   const registration = ownRegistration(
     flight.registration,
@@ -1312,6 +1313,12 @@ export function MapView({
     >
       {navigation.startedAt && !emergencyMap.active && (
         <FlightNotifications
+          fuel={{
+            blockL: flight.fuel.blockL,
+            flowLph: fuelPlanning?.cruise.fuelFlowLph ?? null,
+            alternateL: fuelPlanning?.rows.alternate.fuelL ?? null,
+            finalReserveL: fuelPlanning?.reserve.fuelL ?? null,
+          }}
           plan={routePlan}
           cruiseAltitudeFt={flight.cruiseAltitudeFt}
           fix={fix}

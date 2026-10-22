@@ -197,6 +197,8 @@ merged to `develop`. One owner per row.
 
 | FPL predicted fuel column | done | Codex 2026-10-22 | PR #94 merged. Remaining fuel per upcoming FPL waypoint and TOC/TOD, curved route, per-leg wind/speed/flow, current FREDA baseline and selected litres/US gallons. Past/unavailable rows show a dash. Full CI 39772890952 passed (721 unit tests, server, lint/format/types/build, complete browser suite); desktop/iPad and narrow-screen/GPS recovery checks passed. |
 
+| Fuel reserve breach popups | in progress | Codex 2026-10-22 | Actual remaining fuel warnings at Alternate + Final Reserve and Final Reserve thresholds; unified popups, escalation, dismissal and notification history. |
+
 ## 5. Known legacy bugs / intended differences
 
 | In-flight airport endpoint actions | done | Codex 2026-10-22 | PR #92 merged. Departure/Destination point actions hidden while a flight is active, retained before flight. Direct browser check confirmed both states. Full CI 39762036517 passed (706 unit tests, lint/types/format/build and browser suite). |
