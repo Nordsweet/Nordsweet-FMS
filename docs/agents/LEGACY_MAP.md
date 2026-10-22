@@ -191,6 +191,8 @@ merged to `develop`. One owner per row.
 
 | Poprad LZTT airport and procedures | done | Codex 2026-10-22 | PR #85: official 01 OCT 2026 AIP runway/frequency/navdata audit, eight VFR points, 12 RNAV SID and 16 RNAV STAR; first STAR fix restrictions retained. Conventional procedures remain original Charts PDFs. Full CI 39720682360 passed: lint, format, types, unit/server tests, build and browser suite. |
 
+| Airport arrival landing-performance card | in progress | Codex 2026-10-22 | Airport popup LDA visualization, remaining active-route versus Direct arrival fuel/weight, existing POH calculations and weather. |
+
 ## 5. Known legacy bugs / intended differences
 
 | In-flight airport endpoint actions | done | Codex 2026-10-22 | PR #92 merged. Departure/Destination point actions hidden while a flight is active, retained before flight. Direct browser check confirmed both states. Full CI 39762036517 passed (706 unit tests, lint/types/format/build and browser suite). |
