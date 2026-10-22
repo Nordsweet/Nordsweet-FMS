@@ -34,6 +34,7 @@ import { type TrafficAircraft } from "~/api/aviation/schemas";
 import { type AircraftIdentity } from "~/domain/traffic-identity";
 import { CruiseAltitudePopup } from "./cruise-altitude-popup";
 import { AirspaceEntryPopups } from "./airspace-entry-popups";
+import { FuelReservePopup, type FuelReserveInputs } from "./fuel-reserve-popup";
 
 // Shared across Map and Fly, deliberately transient after reload.
 const useGuidanceNotices = create<
@@ -96,6 +97,7 @@ export function FlightNotifications({
   turns,
   aircraft,
   identity,
+  fuel,
 }: {
   plan: ReturnType<typeof buildRoutePlan> | null;
   cruiseAltitudeFt: number;
@@ -103,6 +105,7 @@ export function FlightNotifications({
   turns: TurnPerformance;
   aircraft?: TrafficAircraft[];
   identity: AircraftIdentity;
+  fuel: FuelReserveInputs;
 }) {
   const t = useT();
   const navigation = useInFlight();
@@ -202,6 +205,7 @@ export function FlightNotifications({
       data-testid="flight-notifications"
     >
       <div className="pointer-events-auto flex w-full max-w-md flex-col gap-2">
+        <FuelReservePopup fuel={fuel} now={now} />
         <CruiseAltitudePopup now={now} plan={plan} />
         <AirspaceEntryPopups
           session={navigation.startedAt}
