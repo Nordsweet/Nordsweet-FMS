@@ -27,3 +27,15 @@ For updates, reconcile this list with the new effective AD 2.24, replace the ori
 | Visual Approach Chart - ICAO | [LZ_AD_2_LZTT_8-1_en.pdf](https://aim.lps.sk/web/eAIP_SR/AIP_SR_EFF_01OCT2026_amdt/pdf/aip/LZ_AD_2_LZTT_8-1_en.pdf) | c0f4528949a9cab7b444543372a543fe9401da4426f28816ee40b3cfc6203df3 |
 | Bird Concentrations | [LZ_AD_2_LZTT_8-3_en.pdf](https://aim.lps.sk/web/eAIP_SR/AIP_SR_EFF_01OCT2026_amdt/pdf/aip/LZ_AD_2_LZTT_8-3_en.pdf) | 38bb6278a3665ba0017439b3965f41a52954d272a4e5b590e2bcbaafd95bb8f9 |
 | ATC Surveillance Minimum Altitude Chart | [LZ_AD_2_LZTT_9-1_en.pdf](https://aim.lps.sk/web/eAIP_SR/AIP_SR_EFF_01OCT2026_amdt/pdf/aip/LZ_AD_2_LZTT_9-1_en.pdf) | c7e62a0adad016b49ffc65e3c9e5c201a261445ac66bdcbcde301143a22cee79 |
+
+## Airport and navigable data
+
+Run `python scripts/import-lztt-aip.py` from `nextjs/` with pdfplumber to reproduce the data import from bundled PDF coding tables. PDF duplicate glyphs are removed before table extraction.
+
+AD 2.2/2.12/2.13: corrected ARP, open-runway true bearings, dimensions, concrete surface, threshold positions/elevations and declared distances. The schema stores one average longitudinal slope (computed from threshold elevation difference), while the AIP publishes individual slope segments. Closed 07L/25R are omitted from selectable runways and described in airport remarks. 07R/25L remain subject to operator approval and the published weight restriction.
+
+AD 2.18: primary TWR/APP 121.350, alternates 118.950 and 118.630, ATIS channel 133.130. Emergency 121.500 and vehicle-control 121.705 are not suggested as routine pilot frequencies. The obsolete unverified 122.700 service is removed from LZTT.
+
+AD 2.22.6: eight VFR points (four intermediate holding points and four CTR entry/exit points), plus open runway threshold fixes. RNAV coding tables: 12 SID / 16 STAR, with all published point coordinates, altitude and speed constraints, tracks and distances. PPD VOR/DME is 112.100 MHz / CH 58X. Terminal TT fixes belong to LZTT; shared en-route fix ownership and existing airway memberships are retained.
+
+Navigable import covers RNAV 1 IF/CF/TF point legs only (all are published fly-by). Conventional DME-arc/altitude-triggered procedures and instrument approaches remain original charts; the current route schema cannot faithfully encode those leg types. SID initial clearance is by ATC; required climb gradients and GNSS/RNAV 1 applicability remain in the original chart descriptions and airport remarks. No invented initial clearance or simplified DME arc is added.

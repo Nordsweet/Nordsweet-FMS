@@ -189,6 +189,8 @@ merged to `develop`. One owner per row.
 
 | OpenFlightMaps overlay | done | Codex 2026-10-22 | PR #84: persisted optional transparent aviation layer over any basemap in Map/Fly and 3D terrain, current UTC AIRAC, visited-tile cache, OFM attribution and correction email link. Full CI 39697648898 passed; 696 unit tests and 2D/3D browser coverage. |
 
+| Poprad LZTT airport and procedures | claimed | Codex 2026-10-22 | Official AIP runway/frequency/navdata audit and SID/STAR import. |
+
 ## 5. Known legacy bugs / intended differences
 
 Record every one you find here (and assert it in a test).
