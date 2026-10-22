@@ -79,6 +79,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
           // DEM Float32Arrays have their own structured-clone IndexedDB cache.
           shouldDehydrateQuery: (query) =>
             query.queryKey[0] !== "terrain.region" &&
+            query.queryKey[0] !== "atisCalls.account" &&
             defaultShouldDehydrateQuery(query),
         },
         maxAge: DAY_MS,

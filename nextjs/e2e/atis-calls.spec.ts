@@ -1,0 +1,156 @@
+import { expect, test, type Page } from "./test";
+
+async function setup(page: Page, enabled: boolean) {
+  let balance = 10000;
+  let id = "";
+  let status: "queued" | "ready" = "queued";
+  let posts = 0;
+  const account = () => ({
+    username: "grzes",
+    tokens_available: balance,
+    enabled,
+    airports: ["EPKK"],
+    requests: id
+      ? [
+          {
+            id,
+            icao: "EPKK",
+            status,
+            created_at: Date.now() / 1000,
+            updated_at: Date.now() / 1000,
+            error: null,
+          },
+        ]
+      : [],
+  });
+  await page.addInitScript(() =>
+    localStorage.setItem("nordsweet.language.v1", "en"),
+  );
+  await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => route.abort());
+  await page.route("https://aviation.lab.vibecde.com/**", (route) => {
+    const path = new URL(route.request().url()).pathname;
+    if (path === "/atis-calls") return route.fulfill({ json: account() });
+    if (path === "/airports/EPKK/atis-call") {
+      posts++;
+      id = (route.request().postDataJSON() as { request_id: string })
+        .request_id;
+      balance = 9999;
+      return route.fulfill({
+        status: 202,
+        json: { ...account(), request_id: id },
+      });
+    }
+    if (path === "/airports/EPKK/weather")
+      return route.fulfill({
+        json: { icao: "EPKK", metar: null, taf: "TAF TEST", sources: {} },
+      });
+    if (path === "/airports/EPKK/atis")
+      return route.fulfill({
+        json: {
+          icao: "EPKK",
+          sources: {},
+          atis:
+            status === "ready"
+              ? [
+                  {
+                    id,
+                    kind: "combined",
+                    source: "telephone-atis",
+                    letter: "A",
+                    received_at: new Date().toISOString(),
+                    observed_at: new Date().toISOString(),
+                    age_minutes: 0,
+                    stale: false,
+                    qnh_hpa: 1013,
+                    qnh_matches_metar: null,
+                    verified: true,
+                    confirmation_count: 0,
+                    text: "TELEPHONE ATIS WIND 27010KT QNH 1013",
+                    fields: { wind: "27010KT", qnh: "1013" },
+                  },
+                ]
+              : [],
+        },
+      });
+    return route.fulfill({
+      json: {
+        places: [],
+        sources: {},
+        aircraft: [],
+        count: 0,
+        type: "FeatureCollection",
+        features: [],
+      },
+    });
+  });
+  return {
+    ready: () => {
+      status = "ready";
+    },
+    posts: () => posts,
+  };
+}
+
+async function weather(page: Page) {
+  await page.goto("/map");
+  await expect(page.getByTestId("map")).toHaveAttribute(
+    "data-map-ready",
+    "true",
+  );
+  await page.getByRole("button", { name: "Search", exact: true }).click();
+  const search = page.getByRole("dialog", { name: "Search", exact: true });
+  await search.getByRole("textbox").fill("EPKK");
+  await search.getByRole("button", { name: "Search", exact: true }).click();
+  const details = page.getByRole("dialog", { name: "Details", exact: true });
+  await details.getByRole("button", { name: "Weather", exact: true }).click();
+  return details;
+}
+
+test("telephone request charges once, survives navigation/reload and View opens airport Weather", async ({
+  page,
+}) => {
+  const server = await setup(page, true);
+  const details = await weather(page);
+  await details
+    .getByRole("button", {
+      name: "Request ATIS Call (Cost = 1 token)",
+      exact: true,
+    })
+    .click();
+  await expect(
+    details.getByRole("button", { name: "Requesting", exact: true }),
+  ).toBeDisabled();
+  await page.goto("/settings");
+  await expect(page.getByTestId("atis-tokens")).toHaveText("9999");
+  await page.reload();
+  await expect(page.getByTestId("atis-tokens")).toHaveText("9999");
+  server.ready();
+  const popup = page.getByTestId("atis-call-notice");
+  await expect(popup).toContainText("EPKK ATIS available", { timeout: 15000 });
+  await popup.getByRole("button", { name: "View", exact: true }).click();
+  await expect(page).toHaveURL(/\/map$/);
+  const wx = page.getByTestId("wx-selected");
+  await expect(wx).toContainText("Telephone ATIS");
+  await wx.getByText(/ATIS \/ D-ATIS/).click();
+  await expect(wx).toContainText("TELEPHONE ATIS WIND 27010KT QNH 1013");
+  expect(server.posts()).toBe(1);
+  await page.reload();
+  await expect(page.getByTestId("atis-call-notice")).toHaveCount(0);
+});
+
+test("pending provider verification keeps balance visible and never submits a paid request", async ({
+  page,
+}) => {
+  const server = await setup(page, false);
+  await page.goto("/settings");
+  await expect(page.getByTestId("atis-tokens")).toHaveText("10000");
+  const details = await weather(page);
+  await expect(
+    details.getByRole("button", {
+      name: "Request ATIS Call (Cost = 1 token)",
+      exact: true,
+    }),
+  ).toBeDisabled();
+  await expect(details).toContainText("awaiting provider activation");
+  expect(server.posts()).toBe(0);
+});

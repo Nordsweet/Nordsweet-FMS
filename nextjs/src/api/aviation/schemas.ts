@@ -132,6 +132,23 @@ export const atisResponseSchema = z.object({
   sources: sourcesSchema,
 });
 
+export const atisCallAccountSchema = z.object({
+  username: z.string(),
+  tokens_available: z.number().int().nonnegative(),
+  enabled: z.boolean(),
+  airports: z.array(z.string()),
+  requests: z.array(
+    z.object({
+      id: z.string(),
+      icao: z.string(),
+      status: z.enum(["queued", "requesting", "ready", "failed"]),
+      created_at: z.number(),
+      updated_at: z.number(),
+      error: z.string().nullable(),
+    }),
+  ),
+});
+
 export const notamSchema = z.object({
   id: z.string(),
   number: z.string().nullable(),

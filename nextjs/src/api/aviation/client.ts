@@ -11,6 +11,7 @@ import {
   fuelResponseSchema,
   airspaceResponseSchema,
   atisResponseSchema,
+  atisCallAccountSchema,
   type PlaceKind,
   placesResponseSchema,
   sourcesSchema,
@@ -125,6 +126,13 @@ export type CommunityAtisReport = {
 };
 
 export const aviationApi = {
+  atisCallAccount: () => get("/atis-calls", atisCallAccountSchema),
+  requestAtisCall: ({ icao, requestId }: { icao: string; requestId: string }) =>
+    post(
+      icaoPath(icao, "/atis-call"),
+      atisCallAccountSchema.extend({ request_id: z.string() }),
+      { request_id: requestId },
+    ),
   submitAirrep: (report: Airrep, signal?: AbortSignal) =>
     send(
       "/community/airrep",

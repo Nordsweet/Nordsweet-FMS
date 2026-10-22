@@ -14,6 +14,7 @@ import { useFlight } from "~/stores/flight";
 import { AtisPadDialog } from "./atis-pad";
 import { Section, fmt } from "./fields";
 import { useBriefing } from "./weather";
+import { RequestAtisCall } from "./atis-call";
 
 function Age({ minutes, stale }: { minutes: number | null; stale: boolean }) {
   const t = useT();
@@ -87,6 +88,9 @@ export function AirportBriefing({
           </Button>
         </div>
       )}
+      {showAtis && /^[A-Z]{4}$/.test(point.ident) && (
+        <RequestAtisCall icao={point.ident} />
+      )}
       {atisOpen && (
         <AtisPadDialog point={point} open onOpenChange={setAtisOpen} />
       )}
@@ -149,6 +153,11 @@ export function AirportBriefing({
                 <span className="font-medium">
                   ATIS / D-ATIS {t(`plan.wx.atis.${atis.kind}`)} {atis.letter}
                 </span>{" "}
+                {atis.source === "telephone-atis" && (
+                  <span className="text-muted-foreground text-xs">
+                    {t("atisCall.source")}{" "}
+                  </span>
+                )}
                 {atis.source === "community" && (
                   <span className="text-ok text-xs">
                     {t("atisConsensus.trusted", {

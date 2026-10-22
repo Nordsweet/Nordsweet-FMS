@@ -280,6 +280,18 @@ export const api = {
       (report: CommunityAtisReport) => aviationApi.submitAtis(report),
     ),
   },
+  atisCalls: {
+    account: query(
+      "atisCalls.account",
+      (_input: { username: string }) => aviationApi.atisCallAccount(),
+      { staleTime: 0, gcTime: 0 },
+    ),
+    request: mutation(
+      "atisCalls.request",
+      (input: { icao: string; requestId: string }) =>
+        aviationApi.requestAtisCall(input),
+    ),
+  },
   weather: {
     briefing: query(
       "weather.briefing",

@@ -17,6 +17,7 @@ import { playChime } from "./chime";
 import { Group, Row } from "./emergency-panel";
 import { PositionSourcePanel } from "./position-source-panel";
 import { usePositionSource } from "~/stores/position-source";
+import { AtisTokens } from "~/features/plan/atis-call";
 
 const time = (at: number) =>
   new Date(at).toLocaleTimeString([], {
@@ -146,6 +147,7 @@ export function OptionsPanel() {
   return (
     <>
       <PositionSourcePanel />
+      <AtisTokens />
       <div className="flex flex-wrap gap-2">
         <Button
           aria-pressed={settings.gpsEnabled}
