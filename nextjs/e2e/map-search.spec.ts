@@ -93,6 +93,25 @@ async function search(page: Page, text: string) {
   await panel.getByRole("button", { name: "Search", exact: true }).click();
 }
 
+test("navaid details show tuning data for the selected aid", async ({
+  page,
+}) => {
+  await page.goto("/map");
+  await expect(page.getByTestId("map")).toHaveAttribute(
+    "data-map-ready",
+    "true",
+  );
+  const details = page.getByRole("dialog", { name: "Details", exact: true });
+  for (const [ident, text] of [
+    ["KAK", "DVOR/DME, 112.800 MHz KAK · CH75X"],
+    ["CHO", "NDB, 375.000 kHz CHO"],
+    ["CZA", "DME CZA · CH117X"],
+  ]) {
+    await search(page, ident!);
+    await expect(details.getByTestId("navaid-details")).toHaveText(text!);
+  }
+});
+
 test("bundled Croatian VFR point is available on the map without remote place data", async ({
   page,
 }) => {
