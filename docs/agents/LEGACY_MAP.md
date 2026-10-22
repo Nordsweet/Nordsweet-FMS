@@ -195,7 +195,7 @@ merged to `develop`. One owner per row.
 
 | Aircraft tile data and settings | done | Codex 2026-10-22 | PR #93 merged: aircraft tile opens shared selected-aircraft settings, registration, reference data and airframe MTH; scrollable panel. Desktop and iPad-size visual checks plus browser MTH persistence passed. Full CI 39768263056 passed. |
 
-| FPL predicted fuel column | in progress | Codex 2026-10-22 | Remaining fuel per FPL waypoint and TOC/TOD, current/FREDA baseline, wind and phase performance, selected fuel units. |
+| FPL predicted fuel column | done | Codex 2026-10-22 | PR #94 merged. Remaining fuel per upcoming FPL waypoint and TOC/TOD, curved route, per-leg wind/speed/flow, current FREDA baseline and selected litres/US gallons. Past/unavailable rows show a dash. Full CI 39772890952 passed (721 unit tests, server, lint/format/types/build, complete browser suite); desktop/iPad and narrow-screen/GPS recovery checks passed. |
 
 ## 5. Known legacy bugs / intended differences
 
