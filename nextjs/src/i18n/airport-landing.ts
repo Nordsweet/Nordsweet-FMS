@@ -1,6 +1,7 @@
 export const airportLandingEn = {
   "airportLanding.title": "Landing at arrival",
   "airportLanding.ldaUsed": "LDA USED",
+  "airportLanding.runway": "Landing runway",
   "airportLanding.remaining": "{meters} m remaining",
   "airportLanding.short": "{meters} m short",
   "airportLanding.noLda": "Published LDA unavailable",
@@ -24,6 +25,7 @@ export const airportLandingEn = {
 export const airportLandingPl: Record<keyof typeof airportLandingEn, string> = {
   "airportLanding.title": "Lądowanie przy dolocie",
   "airportLanding.ldaUsed": "WYKORZYSTANIE LDA",
+  "airportLanding.runway": "Pas do lądowania",
   "airportLanding.remaining": "{meters} m zapasu",
   "airportLanding.short": "brakuje {meters} m",
   "airportLanding.noLda": "Brak opublikowanej LDA",

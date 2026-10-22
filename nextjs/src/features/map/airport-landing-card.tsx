@@ -267,7 +267,7 @@ export function AirportLandingCard({
         <Select value={runway.designator} onValueChange={setSelectedRunway}>
           <SelectTrigger
             className="mt-2 h-8 w-full"
-            aria-label={t("plan.perf.runway")}
+            aria-label={t("airportLanding.runway")}
           >
             <SelectValue />
           </SelectTrigger>

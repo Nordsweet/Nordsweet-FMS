@@ -121,7 +121,9 @@ test("airport cards predict FPL or Direct arrival, show runway use, shortages an
   const card = page.getByTestId("airport-landing-card");
   await expect(card).toBeVisible();
   await expect(card.getByTestId("landing-arrival")).toContainText("Along FPL");
-  await expect(card.getByRole("combobox")).toContainText("07");
+  await expect(
+    card.getByRole("combobox", { name: "Landing runway", exact: true }),
+  ).toContainText("07");
   await expect(card).toContainText("QNH 1015");
   await expect(card.getByTestId("landing-distances")).toHaveText(
     /^\d+ m \/ 2550 m$/,
