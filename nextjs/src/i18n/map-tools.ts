@@ -1,4 +1,6 @@
 export const mapToolsEn = {
+  "maptools.setDeparture": "Set as departure",
+  "maptools.setDestination": "Set as destination",
   "maptools.topOfClimb": "Top of climb",
   "maptools.topOfDescent": "Top of descent",
   "maptools.parachuting": "Parachuting (PJE)",
@@ -86,6 +88,8 @@ export const mapToolsEn = {
   "maptools.plan": "plan",
 } as const;
 export const mapToolsPl: Record<keyof typeof mapToolsEn, string> = {
+  "maptools.setDeparture": "Ustaw jako lotnisko startu",
+  "maptools.setDestination": "Ustaw jako lotnisko lądowania",
   "maptools.topOfClimb": "Koniec wznoszenia",
   "maptools.topOfDescent": "Początek zniżania",
   "maptools.parachuting": "Skoki spadochronowe (PJE)",

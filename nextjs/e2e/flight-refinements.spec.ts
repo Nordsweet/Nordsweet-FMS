@@ -9,7 +9,7 @@ import {
 import { type TrafficPattern } from "../src/data/traffic-pattern";
 import { newTimers } from "../src/domain/flight-timers";
 
-test("a round trip shows TOC/TOD and home-airport Traffic Pattern changes to arrival after the departure exit", async ({
+test("a round trip shows TOC/TOD and home-airport Arrival joins the circuit after the departure exit", async ({
   page,
 }) => {
   await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (r) => r.abort());
@@ -68,6 +68,9 @@ test("a round trip shows TOC/TOD and home-airport Traffic Pattern changes to arr
   await expect(page.locator('[data-profile-marker="TOC"]')).toBeVisible();
   await expect(page.locator('[data-profile-marker="TOD"]')).toBeVisible();
   await page.locator('[data-route-marker="EPNT"]').last().click();
+  await expect(
+    page.getByRole("button", { name: "Departure", exact: true }),
+  ).toBeVisible();
   await page.getByRole("button", { name: "Arrival", exact: true }).click();
   await expect(
     page.getByRole("combobox", { name: "Join position", exact: true }),

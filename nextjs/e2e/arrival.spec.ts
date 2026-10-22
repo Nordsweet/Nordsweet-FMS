@@ -11,17 +11,21 @@ const destination = airportSchema.parse(
   airports.find((a) => a.ident === "EPWA"),
 );
 
-async function openArrival(page: Page, code: string) {
+async function openProcedure(
+  page: Page,
+  code: string,
+  action: "Departure" | "Arrival",
+) {
   await page.getByRole("button", { name: "Search", exact: true }).click();
   const search = page.getByRole("dialog", { name: "Search", exact: true });
   await search.getByRole("textbox").fill(code);
   await search.getByRole("button", { name: "Search", exact: true }).click();
   const details = page.getByRole("dialog", { name: "Details", exact: true });
-  await details.getByRole("button", { name: "Arrival", exact: true }).click();
-  return details.getByRole("region", { name: "Arrival", exact: true });
+  await details.getByRole("button", { name: action, exact: true }).click();
+  return details.getByRole("region", { name: action, exact: true });
 }
 
-test("planner ICAO rules persist; Arrival defaults by airport and applies SID/STAR", async ({
+test("planner ICAO rules persist; Departure and Arrival default by operation and applies SID/STAR", async ({
   page,
 }) => {
   test.setTimeout(90000);
@@ -51,7 +55,7 @@ test("planner ICAO rules persist; Arrival defaults by airport and applies SID/ST
     page.getByRole("combobox", { name: "Flight rules", exact: true }),
   ).toHaveText("Y - IFR then VFR");
   await page.goto("/map");
-  let arrival = await openArrival(page, "EPKK");
+  let arrival = await openProcedure(page, "EPKK", "Departure");
   await expect(
     arrival.getByRole("button", { name: "IFR", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
@@ -69,7 +73,27 @@ test("planner ICAO rules persist; Arrival defaults by airport and applies SID/ST
     )
     .toBeTruthy();
   await page.goto("/map");
-  arrival = await openArrival(page, "EPWA");
+  arrival = await openProcedure(page, "EPKK", "Arrival");
+  await expect(
+    arrival.getByRole("button", { name: "VFR", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await expect(
+    arrival.getByRole("combobox", { name: "Join position", exact: true }),
+  ).toBeVisible();
+  await arrival.getByRole("button", { name: "IFR", exact: true }).click();
+  await expect(
+    arrival.getByRole("combobox", { name: "STAR", exact: true }),
+  ).toBeVisible();
+  await expect(
+    arrival.getByRole("combobox", { name: "SID", exact: true }),
+  ).toHaveCount(0);
+  await page.goto("/map");
+  arrival = await openProcedure(page, "EPWA", "Arrival");
+  await expect(
+    page
+      .getByRole("dialog", { name: "Details", exact: true })
+      .getByRole("button", { name: "Departure", exact: true }),
+  ).toHaveCount(0);
   await expect(
     arrival.getByRole("button", { name: "VFR", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");

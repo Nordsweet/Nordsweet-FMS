@@ -12,11 +12,7 @@ import {
 } from "~/domain/traffic-pattern";
 import { patternPlanningPerformance } from "~/domain/pattern-performance";
 import { patternRunwaySuggestion } from "~/domain/traffic-pattern-runway";
-import {
-  departureRunwayChoice,
-  isDeparturePatternTarget,
-} from "~/domain/departure-pattern";
-import { useInFlight } from "~/stores/inflight";
+import { departureRunwayChoice } from "~/domain/departure-pattern";
 import { atisValue } from "~/domain/atis-pad";
 import { useAtis } from "~/stores/atis";
 import { useFlight } from "~/stores/flight";
@@ -29,6 +25,7 @@ import { MapSelect } from "./map-select";
 /** All edits stay in the dashed map preview until explicit acceptance. */
 export function TrafficPatternPanel({
   airport,
+  operation,
   departureTargetAltitudeFt,
   preview,
   accept,
@@ -36,6 +33,7 @@ export function TrafficPatternPanel({
   remove,
 }: {
   airport: Airport;
+  operation: "leave" | "join";
   departureTargetAltitudeFt: number;
   preview: (pattern: TrafficPattern | null) => void;
   accept: (pattern: TrafficPattern) => void;
@@ -44,8 +42,7 @@ export function TrafficPatternPanel({
 }) {
   const t = useT();
   const flight = useFlight((s) => s.flight);
-  const navigation = useInFlight();
-  const leaving = isDeparturePatternTarget(flight, navigation, airport.ident);
+  const leaving = operation === "leave";
   const existing = leaving ? flight.departurePattern : flight.trafficPattern;
   const ground = useQuery({
     ...api.ground.byAirport.queryOptions({ airport: airport.ident }),

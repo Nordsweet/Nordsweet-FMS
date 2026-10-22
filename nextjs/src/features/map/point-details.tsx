@@ -1,7 +1,6 @@
 import { type TurnPerformance } from "~/domain/fly-by";
-import { isDeparturePatternTarget } from "~/domain/departure-pattern";
 import { type TrafficPattern } from "~/data/traffic-pattern";
-import { ArrivalPanel } from "./arrival-panel";
+import { AirportProcedurePanel } from "./airport-procedure-panel";
 import { AirportFuel } from "./airport-fuel";
 import { AirportLandingCard } from "./airport-landing-card";
 import { HoldingPanel } from "./holding-panel";
@@ -54,7 +53,7 @@ export function PointDetails({
   turnPerformance?: TurnPerformance;
   previewPattern: (pattern: TrafficPattern | null) => void;
   acceptPattern: (pattern: TrafficPattern) => void;
-  removePattern: () => void;
+  removePattern: (operation: "leave" | "join") => void;
   previewHolding: (holding: Holding | null) => void;
   acceptHolding: (holding: Holding) => void;
   removeHolding: () => void;
@@ -92,7 +91,14 @@ export function PointDetails({
     restriction?.altitudeMode ?? "at",
   );
   const [mode, setMode] = useState<
-    "restriction" | "weather" | "notams" | "charts" | "pattern" | "hold" | null
+    | "restriction"
+    | "weather"
+    | "notams"
+    | "charts"
+    | "departure"
+    | "arrival"
+    | "hold"
+    | null
   >(point.weather ? "weather" : null);
   const airportCode =
     routePoint?.airportIcao ?? (point.kind === "airport" ? point.ident : "");
@@ -197,23 +203,33 @@ export function PointDetails({
               variant="outline"
               onClick={() => addPoint(point, "departure")}
             >
-              {t("plan.route.departure")}
+              {t("maptools.setDeparture")}
             </Button>
             <Button
               size="sm"
               variant="outline"
               onClick={() => addPoint(point, "destination")}
             >
-              {t("plan.route.destination")}
+              {t("maptools.setDestination")}
             </Button>
           </>
         )}
-        {point.kind === "airport" && (
+        {selectedAirport && point.ident === flight.departure?.ident && (
           <Button
             size="sm"
             variant="outline"
-            aria-expanded={mode === "pattern"}
-            onClick={() => setMode(mode === "pattern" ? null : "pattern")}
+            aria-expanded={mode === "departure"}
+            onClick={() => setMode(mode === "departure" ? null : "departure")}
+          >
+            {t("departure.title")}
+          </Button>
+        )}
+        {selectedAirport && (
+          <Button
+            size="sm"
+            variant="outline"
+            aria-expanded={mode === "arrival"}
+            onClick={() => setMode(mode === "arrival" ? null : "arrival")}
           >
             {t("arrival.title")}
           </Button>
@@ -293,15 +309,16 @@ export function PointDetails({
           cancel={() => setMode(null)}
         />
       )}
-      {mode === "pattern" && airportRecord && (
-        <ArrivalPanel
-          key={`${airportRecord.ident}:${flight.flightRules}:${isDeparturePatternTarget(flight, navigation, airportRecord.ident)}`}
+      {(mode === "departure" || mode === "arrival") && airportRecord && (
+        <AirportProcedurePanel
+          key={`${airportRecord.ident}:${flight.flightRules}:${mode}`}
           airport={airportRecord}
+          operation={mode === "departure" ? "leave" : "join"}
           departureTargetAltitudeFt={departureTargetAltitudeFt}
           preview={previewPattern}
           accept={acceptPattern}
           cancel={() => setMode(null)}
-          remove={removePattern}
+          remove={() => removePattern(mode === "departure" ? "leave" : "join")}
         />
       )}
       {mode === "restriction" && (

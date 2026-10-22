@@ -186,7 +186,7 @@ test("airport and waypoint search center and open the existing route options", a
   await expect(details).toContainText("EPKK");
   await expect(page.getByLabel("Airports", { exact: true })).toBeChecked();
   await expect(
-    details.getByRole("button", { name: "Departure", exact: true }),
+    details.getByRole("button", { name: "Set as departure", exact: true }),
   ).toBeVisible();
   await expect
     .poll(async () =>
@@ -345,9 +345,14 @@ test("search tile is immediately below Options in the flight rail", async ({
     ),
   );
   await page.goto("/fly");
+  // Restoring the persisted flight and initializing WebGL can outlast the default assertion budget.
+  await expect(page.getByTestId("flight-phase")).toBeVisible({
+    timeout: 15000,
+  });
   await expect(page.getByTestId("map")).toHaveAttribute(
     "data-map-ready",
     "true",
+    { timeout: 15000 },
   );
   const options = page.getByRole("button", { name: "Options", exact: true });
   await expect(
