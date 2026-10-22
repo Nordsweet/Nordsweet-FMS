@@ -38,6 +38,7 @@ import type { BakeRequest, BakeResponse, WorkerMessage } from "./tile-worker";
 import { reuseLayers } from "./reuse-layers";
 import { terrainClearanceLayer } from "./terrain-clearance";
 import { vectorStyles, type VectorStyle } from "./vector-styles";
+import { openFlightMapsTiles } from "~/data/openflightmaps";
 
 type Pos = [number, number];
 export type Path = { path: Pos[] };
@@ -74,6 +75,7 @@ export type TextDatum = {
 export type ParachuteDatum = { position: Pos; offset: Pos };
 
 export type Scene = {
+  openFlightMapsCycle: string | null;
   terrainAltitudeFt: number | null;
   terrain3d: boolean;
   emergencyBoundary: Path[];
@@ -124,6 +126,7 @@ export type Scene = {
 };
 
 export const emptyScene = (): Scene => ({
+  openFlightMapsCycle: null,
   terrainAltitudeFt: null,
   terrain3d: false,
   emergencyBoundary: [],
@@ -312,14 +315,14 @@ function text(
   });
 }
 
-/** The OpenStreetMap raster tiles; the service worker keeps visited ones for offline use. */
-function basemap(dark: boolean) {
+/** Raster base or transparent OFM chart; the service worker keeps visited tiles offline. */
+function basemap(dark: boolean, cycle?: string) {
   return new TileLayer<ImageBitmap>({
-    id: dark ? "osm-night" : "osm",
-    data: OSM_TILES,
+    id: cycle ? `openflightmaps-${cycle}` : dark ? "osm-night" : "osm",
+    data: cycle ? openFlightMapsTiles(cycle) : OSM_TILES,
     tileSize: 256,
-    minZoom: 0,
-    maxZoom: 18,
+    minZoom: cycle ? 7 : 0,
+    maxZoom: cycle ? 13 : 18,
     onTileError: () => {
       // Offline or blocked tiles simply stay blank.
     },
@@ -579,6 +582,7 @@ export function buildLayers(
         : vector
           ? vectorLayers
           : [basemap(s.basemap === "night")]),
+    ...(s.openFlightMapsCycle ? [basemap(false, s.openFlightMapsCycle)] : []),
     ...(s.terrainAltitudeFt === null
       ? []
       : [terrainClearanceLayer(s.terrainAltitudeFt)]),

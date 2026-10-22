@@ -224,6 +224,16 @@ export function MapWorkspace({ embedded = false }: { embedded?: boolean }) {
           <Label>
             <input
               type="checkbox"
+              checked={settings.openFlightMaps}
+              onChange={(e) =>
+                settings.update({ openFlightMaps: e.target.checked })
+              }
+            />
+            OpenFlightMaps
+          </Label>
+          <Label>
+            <input
+              type="checkbox"
               checked={settings.terrain3d}
               onChange={(e) => settings.update({ terrain3d: e.target.checked })}
             />
