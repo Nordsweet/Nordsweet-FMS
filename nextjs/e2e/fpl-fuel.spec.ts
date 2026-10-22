@@ -86,7 +86,8 @@ for (const litres of [true, false]) {
       .nth(1)
       .getByRole("button", { name: "Remove CORNER from route" })
       .click();
-    await expect(rows).toHaveCount(2);
+    // Removing the active target creates a present-position DCT; that virtual origin is hidden in FPL.
+    await expect(rows).toHaveCount(1);
     await expect
       .poll(async () =>
         Number(await rows.last().getByTestId("fpl-fuel").innerText()),
