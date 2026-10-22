@@ -199,7 +199,7 @@ merged to `develop`. One owner per row.
 
 | Fuel reserve breach popups | done | Codex 2026-10-22 | PR #95 merged. Using Alternate Fuel below Alternate + Final Reserve; red Using Final Reserve Fuel below Final Reserve. Current FREDA-adjusted fuel, persisted acknowledgement, escalation/rearm and timestamped history. Full CI 39779650145 passed (728 unit tests and complete browser suite); automatic burn and popup appearance also checked locally. |
 
-| Position source in Options | claimed | Codex 2026-10-22 | Remove the duplicated position-source controls from the shared Aircraft section; retain Options and connector settings persistence. |
+| Position source in Options | done | Codex 2026-10-22 | PR #96 merged: removed the duplicated position-source controls from the shared Aircraft section in planner and Fly; Options and connection shortcut retained. Format, lint, types, 728 unit tests, build and all 161 browser tests passed locally; direct in-flight Aircraft/Options check passed. |
 
 ## 5. Known legacy bugs / intended differences
 
