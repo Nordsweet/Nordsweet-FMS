@@ -193,7 +193,7 @@ merged to `develop`. One owner per row.
 
 ## 5. Known legacy bugs / intended differences
 
-| Single taxi phase tile | claimed | Codex 2026-10-22 | Remove duplicate Route tile/panel in Taxi-Out and Taxi-In; retain TAXI editor and chart access. |
+| Single taxi phase tile | done | Codex 2026-10-22 | PR #90 merged: removed duplicate Route tile/panel in Taxi-Out and Taxi-In; TAXI retains taxi editor and chart links. Existing taxi selection, persistence and departure-runway E2E flows now use TAXI. Full CI 39753899094 passed (706 unit tests, lint/types/format/build and browser suite). |
 
 | Navaid popup tuning details | done | Codex 2026-10-22 | PR #89 merged. Point details resolve published navaid data for map/search and route selections: type, identifier, MHz for VOR or kHz for NDB, optional DME channel; missing values omitted. Full CI 39749584221 passed (706 unit tests, lint/types/format/build and browser suite with KAK DVOR/DME, CHO NDB and CZA DME assertions). |
 
