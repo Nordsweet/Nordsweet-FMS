@@ -193,6 +193,8 @@ merged to `develop`. One owner per row.
 
 ## 5. Known legacy bugs / intended differences
 
+| Navaid popup tuning details | claimed | Codex 2026-10-22 | Display navaid type, tuning frequency, identifier and DME channel in point details. |
+
 | Frequency popup ATIS context | done | Codex 2026-10-22 | PR #88 merged. Latest reliable airport ATIS adds information letter, QNH and timestamp-derived age up to 60 minutes; excludes FIS, ambiguous stations, future/stale/incomplete reports and unconfirmed community reports. Full CI 39732203347 passed: lint, format, types, 706 unit tests, build and browser suite including handoff ATIS/FIS assertions. |
 
 | Telephone ATIS requests and tokens | done | Codex 2026-10-22 | FMS PR #87 / collector PR #9 merged; full FMS CI 39728812444 passed (702 unit tests and browser suite), API test/deploy 39728864574 passed. Server ledger grants grzes 10000 once; durable requests cost 1/refund on failure; WX pending state, global View notification and trusted shared ATIS. Telephony disabled pending Zadarma and private-source ATIS_SOURCE_SSH_KEY; live calls not tested. |
