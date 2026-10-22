@@ -2,18 +2,17 @@
 
 import { useState } from "react";
 import type { Airport } from "~/data/schemas";
-import { airportArrival, type ArrivalLeg } from "~/domain/airport-arrival";
+import { airportArrival } from "~/domain/airport-arrival";
 import { pressureAltitudeFt } from "~/domain/atmosphere";
 import {
   applyPerformanceAtis,
   performanceAtis,
 } from "~/domain/atis-performance";
-import { cruisePerformance } from "~/domain/cruise-performance";
+import { arrivalFuelModel } from "~/domain/arrival-fuel-model";
 import { fredaFuelRemaining } from "~/domain/freda";
 import { fuelUnit, formatFuel } from "~/domain/fuel-units";
 import { parseMetar } from "~/domain/metar";
 import { computeDistance } from "~/domain/performance";
-import { routeSpeedProfile } from "~/domain/route-speed-profile";
 import { computeLoading } from "~/domain/weight-balance";
 import { windComponents } from "~/domain/wind";
 import type { TurnPerformance } from "~/domain/fly-by";
@@ -103,19 +102,15 @@ export function AirportLandingCard({
     perf.configurations.find(
       (c) => c.id === (inputs.configId ?? perf.defaultConfiguration),
     ) ?? perf.configurations[0]!;
-  const trip = fuelPlanning?.rows.plannedTrip;
-  const flow =
-    fuelPlanning?.cruise.fuelFlowLph ??
-    (aircraft.cruise
-      ? cruisePerformance(
-          aircraft.cruise,
-          flight.cruiseAltitudeFt,
-          flight.cruiseOatC,
-          0,
-          "eco-time",
-        )?.fuelFlowLph
-      : null) ??
-    (trip?.fuelL && trip.minutes ? trip.fuelL / (trip.minutes / 60) : null);
+  const { flow, performance, direct, legs } = arrivalFuelModel({
+    aircraft,
+    flight,
+    plan,
+    route: navigation.route,
+    cruiseSpeedKt,
+    fuelPlanning,
+    turns,
+  });
   const currentFuel = fredaFuelRemaining(
     flight.fuel.blockL,
     flow,
@@ -123,48 +118,6 @@ export function AirportLandingCard({
     now,
     navigation.fredaFuel,
   );
-  const performance = turns ?? { tasKt: cruiseSpeedKt };
-  const direct: ArrivalLeg = {
-    tasKt: cruiseSpeedKt,
-    fuelFlowLph: flow ?? NaN,
-    wind: {
-      directionDeg: performance.windDirectionDeg ?? 0,
-      speedKt: performance.windSpeedKt ?? 0,
-    },
-  };
-  const speeds = routeSpeedProfile(
-    plan,
-    aircraft,
-    cruiseSpeedKt,
-    flight.cruiseAltitudeFt,
-  );
-  const legs = navigation.route.slice(1).map((point): ArrivalLeg => {
-    const plannedIndex =
-      plan?.legs.findIndex((leg) => leg.to.id === point.ident) ?? -1;
-    const planned = speeds.legs[plannedIndex];
-    const plannedWind = plan?.legWinds[plannedIndex]?.wind;
-    const climbing =
-      point.patternOperation === "leave" || planned?.phase === "climb";
-    return {
-      tasKt:
-        point.turnPerformance?.tasKt ??
-        planned?.tasKt ??
-        (climbing
-          ? speeds.phases.climb
-          : point.patternOperation === "join"
-            ? speeds.phases.landing
-            : cruiseSpeedKt),
-      fuelFlowLph: climbing
-        ? (aircraft.climb?.fuelFlowLph ?? direct.fuelFlowLph)
-        : direct.fuelFlowLph,
-      wind: plannedWind
-        ? {
-            directionDeg: plannedWind.windDirection,
-            speedKt: plannedWind.windSpeed,
-          }
-        : direct.wind,
-    };
-  });
   const fresh = fix && Math.abs(now - Date.parse(fix.time)) <= 20000;
   const arrival =
     fresh && currentFuel !== null

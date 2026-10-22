@@ -13,6 +13,9 @@ export const flightPopupsEn = {
   "fly.fpl.remove": "Remove {point} from route",
   "fly.fpl.options": "Point options: {point}",
   "fly.fpl.center": "Center",
+  "fly.fpl.fuel": "Fuel {unit}",
+  "fly.fpl.fuelNote":
+    "Estimated fuel remaining on arrival. — = passed point or estimate unavailable.",
   "fly.fpl.skip": "Skip",
   "fly.fpl.setNext": "Set Next",
   "fly.fpl.details": "Point details",
@@ -63,6 +66,9 @@ export const flightPopupsPl: typeof flightPopupsEn = {
   "fly.fpl.remove": "Usuń {point} z trasy",
   "fly.fpl.options": "Opcje punktu: {point}",
   "fly.fpl.center": "Wyśrodkuj",
+  "fly.fpl.fuel": "Paliwo {unit}",
+  "fly.fpl.fuelNote":
+    "Przewidywane paliwo pozostałe przy dolocie. — = punkt minięty lub brak prognozy.",
   "fly.fpl.skip": "Pomiń",
   "fly.fpl.setNext": "Ustaw jako następny",
   "fly.fpl.details": "Informacje o punkcie",
