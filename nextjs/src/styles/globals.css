@@ -707,7 +707,6 @@
 }
 /* Beside the tool's own rail button (set --top inline). */
 .fly-popover[data-panel="emer"],
-.fly-popover[data-panel="config"],
 .fly-popover[data-panel="rwy"] {
   top: var(--top);
   right: 4.85rem;
@@ -723,9 +722,6 @@
 }
 .fly-popover[data-panel="emer"] > * {
   min-width: 0;
-}
-.fly-popover[data-panel="config"] {
-  width: min(560px, calc(100vw - 2rem));
 }
 .fly-popover[data-panel="rwy"] {
   width: min(360px, calc(100vw - 2rem));
@@ -819,15 +815,6 @@
   border-color: rgba(141, 190, 255, 0.24);
   border-radius: 22px;
   background: rgba(7, 17, 31, 0.98);
-}
-.fly-popover[data-panel="checklist"] {
-  --head: #5dc1ff;
-  top: clamp(4rem, 8vh, 5.5rem);
-  right: max(1rem, calc((100vw - min(1180px, 100vw - 2rem)) / 2));
-  width: min(430px, calc(100vw - 2rem));
-  max-height: min(620px, calc(100% - 7rem));
-  border-color: rgba(118, 242, 164, 0.26);
-  background: rgba(10, 18, 30, 0.99);
 }
 @media (max-width: 860px) {
   .fly-popover[data-panel="comms"],
