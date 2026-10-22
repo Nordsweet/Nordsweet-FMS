@@ -193,7 +193,7 @@ merged to `develop`. One owner per row.
 
 ## 5. Known legacy bugs / intended differences
 
-| Telephone ATIS requests and tokens | claimed | Codex 2026-10-22 | Server-side balance/queue, Grzes initial 10000 tokens, WX request and completion notification; Zadarma disabled pending verification. Companion Aviation API changes. |
+| Telephone ATIS requests and tokens | done | Codex 2026-10-22 | FMS PR #87 / collector PR #9 merged; full FMS CI 39728812444 passed (702 unit tests and browser suite), API test/deploy 39728864574 passed. Server ledger grants grzes 10000 once; durable requests cost 1/refund on failure; WX pending state, global View notification and trusted shared ATIS. Telephony disabled pending Zadarma and private-source ATIS_SOURCE_SSH_KEY; live calls not tested. |
 
 | Croatia significant VFR points | done | Codex 2026-10-22 | PR #86: all 84 points from supplied ENR 4.4 (15 MAY 2025), original PDF/checksum and reproducible importer; published IDs, two remarks, no inferred airport assignments. Previous 912 points unchanged. Full CI 39723741885 passed, including 700 unit tests and browser map/search coverage. |
 
