@@ -193,7 +193,7 @@ merged to `develop`. One owner per row.
 
 ## 5. Known legacy bugs / intended differences
 
-| Croatia significant VFR points | claimed | Codex 2026-10-22 | Import user-supplied Croatia VFR Manual ENR 4.4 (15 MAY 2025), verify coordinates, uniqueness and map/search availability. |
+| Croatia significant VFR points | done | Codex 2026-10-22 | PR #86: all 84 points from supplied ENR 4.4 (15 MAY 2025), original PDF/checksum and reproducible importer; published IDs, two remarks, no inferred airport assignments. Previous 912 points unchanged. Full CI 39723741885 passed, including 700 unit tests and browser map/search coverage. |
 
 Record every one you find here (and assert it in a test).
 
