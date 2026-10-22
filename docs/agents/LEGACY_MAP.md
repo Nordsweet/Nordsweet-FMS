@@ -193,7 +193,7 @@ merged to `develop`. One owner per row.
 
 ## 5. Known legacy bugs / intended differences
 
-| Aircraft icon tile | claimed | Codex 2026-10-22 | Add aircraft icon directly below the notification bell in the flight tool rail. |
+| Aircraft icon tile | done | Codex 2026-10-22 | PR #91 merged. White aircraft icon tile directly below the notification bell in every flight phase; localized accessible label, inactive placeholder pending user choice of click action. Visual screenshot and local Fly browser assertions checked. Full CI 39757993767 passed (706 unit tests, lint/types/format/build and browser suite). |
 
 | Single taxi phase tile | done | Codex 2026-10-22 | PR #90 merged: removed duplicate Route tile/panel in Taxi-Out and Taxi-In; TAXI retains taxi editor and chart links. Existing taxi selection, persistence and departure-runway E2E flows now use TAXI. Full CI 39753899094 passed (706 unit tests, lint/types/format/build and browser suite). |
 
