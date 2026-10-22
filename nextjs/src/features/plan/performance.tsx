@@ -52,7 +52,7 @@ const surfaceOf = (runway: Runway): RunwaySurface =>
       ? "unknown"
       : "paved";
 
-function WarningList({ warnings }: { warnings: PerformanceWarning[] }) {
+export function WarningList({ warnings }: { warnings: PerformanceWarning[] }) {
   const t = useT();
   if (!warnings.length) return null;
   return (
