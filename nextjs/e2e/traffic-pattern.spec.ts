@@ -176,13 +176,17 @@ for (const [join, direction, label, direct] of [
     ).toHaveText(label);
   });
 }
-async function open(page: Page, code = "EPNT") {
+async function open(
+  page: Page,
+  code = "EPNT",
+  action: "Departure" | "Arrival" = "Arrival",
+) {
   await page.getByRole("button", { name: "Search", exact: true }).click();
   const search = page.getByRole("dialog", { name: "Search", exact: true });
   await search.getByRole("textbox").fill(code);
   await search.getByRole("button", { name: "Search", exact: true }).click();
   const details = page.getByRole("dialog", { name: "Details", exact: true });
-  await details.getByRole("button", { name: "Arrival", exact: true }).click();
+  await details.getByRole("button", { name: action, exact: true }).click();
   return details.getByRole("region", { name: "Traffic Pattern", exact: true });
 }
 async function choose(page: Page, label: string, option: string) {
@@ -205,7 +209,7 @@ test("departure offers Leave, ignores circuit altitude, and coexists with the ar
   test.setTimeout(60000);
   await mocks(page);
   await page.goto("/map");
-  const panel = await open(page, "EPKK");
+  const panel = await open(page, "EPKK", "Departure");
   await expect(
     panel.getByRole("combobox", { name: "Leave traffic pattern", exact: true }),
   ).toBeVisible();
@@ -264,7 +268,7 @@ test("departure offers Leave, ignores circuit altitude, and coexists with the ar
   await page.reload();
   expect((await saved()).departurePattern?.operation).toBe("leave");
   expect((await saved()).trafficPattern?.airport.ident).toBe("EPNT");
-  const departure = await open(page, "EPKK");
+  const departure = await open(page, "EPKK", "Departure");
   await departure
     .getByRole("button", { name: "Remove traffic pattern", exact: true })
     .click();
@@ -272,13 +276,150 @@ test("departure offers Leave, ignores circuit altitude, and coexists with the ar
   expect((await saved()).trafficPattern?.airport.ident).toBe("EPNT");
 });
 
+for (const active of [false, true]) {
+  test(`same-airport Departure and Arrival are independent ${active ? "during taxi-out" : "in the planner"}`, async ({
+    page,
+  }) => {
+    test.setTimeout(90000);
+    const waypoint = {
+      ident: "TURN",
+      lat: airport.lat + 0.4,
+      lon: airport.lon,
+    };
+    const flight = {
+      ...newFlight(),
+      departure: airport,
+      destination: airport,
+      waypoints: [waypoint],
+    };
+    await mocks(page, true, flight);
+    if (active) {
+      await page.addInitScript(
+        ({ airport, waypoint }) => {
+          if (!localStorage.getItem("nordsweet.inflight.v1"))
+            localStorage.setItem(
+              "nordsweet.inflight.v1",
+              JSON.stringify({
+                version: 1,
+                state: {
+                  startedAt: new Date().toISOString(),
+                  phase: "taxiout",
+                  route: [airport, waypoint, airport],
+                  activeLeg: 0,
+                },
+              }),
+            );
+        },
+        { airport, waypoint },
+      );
+    }
+    const saved = () =>
+      page.evaluate(() => {
+        const flight = (
+          JSON.parse(localStorage.getItem("nordsweet.flight.v2")!) as {
+            state: { flight: Flight };
+          }
+        ).state.flight;
+        const navigation = (
+          JSON.parse(
+            localStorage.getItem("nordsweet.inflight.v1") ?? "null",
+          ) as {
+            state: { route: { ident: string; patternOperation?: string }[] };
+          } | null
+        )?.state;
+        return { flight, route: navigation?.route };
+      });
+    await page.goto(active ? "/fly" : "/map");
+    const departurePanel = await open(page, "EPNT", "Departure");
+    await expect(
+      departurePanel.getByRole("combobox", {
+        name: "Leave traffic pattern",
+        exact: true,
+      }),
+    ).toBeVisible();
+    const details = page.getByRole("dialog", { name: "Details", exact: true });
+    await details.getByRole("button", { name: "Arrival", exact: true }).click();
+    await expect(
+      details.getByRole("combobox", { name: "Join position", exact: true }),
+    ).toBeVisible();
+    await expect(
+      details.getByRole("combobox", {
+        name: "Leave traffic pattern",
+        exact: true,
+      }),
+    ).toHaveCount(0);
+    expect((await saved()).flight.departurePattern).toBeNull();
+    expect((await saved()).flight.trafficPattern).toBeNull();
+    await details
+      .getByRole("button", { name: "Departure", exact: true })
+      .click();
+    await departurePanel
+      .getByRole("button", { name: "Accept traffic pattern", exact: true })
+      .click();
+    const departurePattern = (await saved()).flight.departurePattern;
+    expect(departurePattern?.operation).toBe("leave");
+
+    const arrivalPanel = await open(page, "EPNT", "Arrival");
+    await expect(
+      arrivalPanel.getByRole("combobox", {
+        name: "Join position",
+        exact: true,
+      }),
+    ).toBeVisible();
+    await arrivalPanel
+      .getByRole("button", { name: "Accept traffic pattern", exact: true })
+      .click();
+    expect((await saved()).flight.departurePattern).toEqual(departurePattern);
+    expect((await saved()).flight.trafficPattern?.operation).toBe("join");
+    await page.reload();
+    await open(page, "EPNT", "Arrival");
+    await arrivalPanel
+      .getByRole("button", { name: "Remove traffic pattern", exact: true })
+      .click();
+    let state = await saved();
+    expect(state.flight.trafficPattern).toBeNull();
+    expect(state.flight.departurePattern).toEqual(departurePattern);
+    if (active) {
+      expect(state.route?.some((p) => p.patternOperation === "leave")).toBe(
+        true,
+      );
+      expect(state.route?.some((p) => p.patternOperation === "join")).toBe(
+        false,
+      );
+      expect(state.route?.at(-1)?.ident).toBe("EPNT");
+    }
+
+    await open(page, "EPNT", "Arrival");
+    await arrivalPanel
+      .getByRole("button", { name: "Accept traffic pattern", exact: true })
+      .click();
+    const arrivalPattern = (await saved()).flight.trafficPattern;
+    await open(page, "EPNT", "Departure");
+    await departurePanel
+      .getByRole("button", { name: "Remove traffic pattern", exact: true })
+      .click();
+    state = await saved();
+    expect(state.flight.departurePattern).toBeNull();
+    expect(state.flight.trafficPattern).toEqual(arrivalPattern);
+    if (active) {
+      expect(state.route?.some((p) => p.patternOperation === "leave")).toBe(
+        false,
+      );
+      expect(state.route?.some((p) => p.patternOperation === "join")).toBe(
+        true,
+      );
+      expect(state.route?.at(-1)?.ident).toBe("EPNT");
+    }
+  });
+}
+
 test("departure Straight-out replaces Final, exits before the first turn and survives reload", async ({
   page,
 }) => {
   test.setTimeout(60000);
   await mocks(page);
   await page.goto("/map");
-  const panel = await open(page, "EPKK");
+  const panel = await open(page, "EPKK", "Departure");
   await choose(page, "Runway", "RWY 25");
   await page
     .getByRole("combobox", { name: "Leave traffic pattern", exact: true })
@@ -313,7 +454,7 @@ test("departure Straight-out replaces Final, exits before the first turn and sur
     "TPD2/EPKK",
   );
   await page.reload();
-  const reopened = await open(page, "EPKK");
+  const reopened = await open(page, "EPKK", "Departure");
   await expect(
     reopened.getByRole("combobox", {
       name: "Leave traffic pattern",
@@ -333,7 +474,7 @@ test("Overhead departure completes the circuit before runway overflight and surv
   test.setTimeout(60000);
   await mocks(page);
   await page.goto("/map");
-  const panel = await open(page, "EPKK");
+  const panel = await open(page, "EPKK", "Departure");
   await choose(page, "Runway", "RWY 25");
   await choose(page, "Pattern direction", "Right");
   await choose(page, "Leave traffic pattern", "Overhead");
@@ -400,7 +541,7 @@ test("automatic departure circuit follows Take-off then Taxi-out runway selectio
     .click();
   await page.getByRole("option", { name: /^07\s/ }).click();
   await page.goto("/map");
-  const panel = await open(page, "EPKK");
+  const panel = await open(page, "EPKK", "Departure");
   await expect(
     panel.getByRole("combobox", { name: "Runway", exact: true }),
   ).toContainText("07 · Take-off");
@@ -416,7 +557,7 @@ test("automatic departure circuit follows Take-off then Taxi-out runway selectio
     .click();
   await page.getByRole("option", { name: "HP25", exact: true }).click();
   await page.goto("/map");
-  const updated = await open(page, "EPKK");
+  const updated = await open(page, "EPKK", "Departure");
   await expect(
     updated.getByRole("combobox", { name: "Runway", exact: true }),
   ).toContainText("25 · Taxi-out");
@@ -425,7 +566,7 @@ test("automatic departure circuit follows Take-off then Taxi-out runway selectio
     .getByRole("button", { name: "Accept traffic pattern", exact: true })
     .click();
   await page.reload();
-  const manual = await open(page, "EPKK");
+  const manual = await open(page, "EPKK", "Departure");
   await expect(
     manual.getByRole("combobox", { name: "Runway", exact: true }),
   ).toContainText("RWY 07");

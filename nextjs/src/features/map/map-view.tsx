@@ -88,7 +88,6 @@ import { useMapAnimation } from "./use-map-animation";
 import { planAirportFixes } from "~/domain/plan-airport-fixes";
 import type { DeckMap, DeckScene } from "./deck";
 import type { PointDatum, TrafficDatum } from "./deck/scene";
-import { isDeparturePatternTarget } from "~/domain/departure-pattern";
 import { mapProfilePoints } from "~/domain/map-profile";
 import { withoutRoutePoints } from "~/domain/map-route-points";
 import { AirspaceCaptions } from "./deck/captions";
@@ -1801,14 +1800,9 @@ export function MapView({
                   setPatternPreview(null);
                   setClick(null);
                 }}
-                removePattern={() => {
-                  const leaving = isDeparturePatternTarget(
-                    flight,
-                    navigation,
-                    click.point.ident,
-                  );
+                removePattern={(operation) => {
                   update(
-                    leaving
+                    operation === "leave"
                       ? { departurePattern: null }
                       : {
                           trafficPattern: null,
@@ -1818,10 +1812,7 @@ export function MapView({
                         },
                   );
                   if (navigation.startedAt)
-                    navigation.clearTrafficPattern(
-                      leaving ? "leave" : "join",
-                      patternPosition,
-                    );
+                    navigation.clearTrafficPattern(operation, patternPosition);
                   setPatternPreview(null);
                   setClick(null);
                 }}

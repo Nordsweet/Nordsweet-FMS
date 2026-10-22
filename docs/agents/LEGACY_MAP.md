@@ -207,6 +207,8 @@ merged to `develop`. One owner per row.
 
 | Server connection age in flight status | claimed | Codex 2026-10-22 | Replace the device Wi-Fi indicator with actual Aviation API connection status and seconds since the latest server communication. |
 
+| Separate airport Departure and Arrival actions | done | Codex 2026-10-22 | Departure on the origin opens SID / leave pattern; Arrival on every airport opens STAR / join pattern, including the origin before and during flight. Explicit operation for preview, acceptance and removal; repeated round-trip circuit edits retain the opposite circuit and en-route fixes. Endpoint assignment actions use separate Set as departure/destination labels. Format, lint, types, 734 unit tests and build pass. All 163 browser scenarios verified: 162 passed in the full suite; recovered-flight map readiness exceeded the old 5s wait, then passed 3/3 reruns after waiting for recovery and WebGL readiness. |
+
 | Aircraft Config and Checklist tabs | done | Codex 2026-10-22 | PR #98 merged: Aircraft, Config and Checklist tabs inside the aircraft tile; separate rail buttons removed. Existing phase availability, flap callouts, settings and checklist progress retained. Format, lint, types, 733 unit tests, build and all 161 browser tests passed locally without retries; direct Config/checklist state and desktop/iPad UI checks passed. |
 
 | In-flight airport endpoint actions | done | Codex 2026-10-22 | PR #92 merged. Departure/Destination point actions hidden while a flight is active, retained before flight. Direct browser check confirmed both states. Full CI 39762036517 passed (706 unit tests, lint/types/format/build and browser suite). |

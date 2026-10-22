@@ -326,14 +326,17 @@ export function routeWithTrafficPattern(
   const clean = route.filter(
     (p) => !p.patternId || (p.patternOperation ?? "join") !== operation,
   );
+  const replacing = clean.length !== route.length;
   if (operation === "leave") {
-    const start = clean.findIndex(
-      (p) =>
-        p.ident === pattern.airport.ident ||
-        p.ident.startsWith(pattern.airport.ident + " THR"),
-    );
-    // Replacing a departure must retain both the outbound fixes and any arrival pattern.
-    const outbound = clean.slice(start >= 0 ? start + 1 : 0);
+    const first = clean[0];
+    // On a round trip the same airport/threshold also occurs at the arrival end.
+    const hasOrigin =
+      !replacing &&
+      first &&
+      !first.patternId &&
+      (first.ident === pattern.airport.ident ||
+        first.ident.startsWith(pattern.airport.ident + " THR"));
+    const outbound = hasOrigin ? clean.slice(1) : clean;
     return [
       ...trafficPatternGeometry(pattern, outbound[0]).points,
       ...outbound,
@@ -343,11 +346,12 @@ export function routeWithTrafficPattern(
     .reverse()
     .findIndex(
       (p) =>
-        p.ident === pattern.airport.ident ||
-        p.ident.startsWith(pattern.airport.ident + " THR"),
+        !p.patternId &&
+        (p.ident === pattern.airport.ident ||
+          p.ident.startsWith(pattern.airport.ident + " THR")),
     );
   const at = reverseIndex < 0 ? -1 : clean.length - reverseIndex - 1;
-  const prefix = at >= 0 ? clean.slice(0, at) : clean;
+  const prefix = !replacing && at >= 0 ? clean.slice(0, at) : clean;
   return [...prefix, ...trafficPatternEntryPoints(pattern, prefix)];
 }
 

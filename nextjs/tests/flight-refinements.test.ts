@@ -1,6 +1,5 @@
 import { afterEach, expect, test, vi } from "vitest";
 import { newFlight } from "~/data/flight";
-import { isDeparturePatternTarget } from "~/domain/departure-pattern";
 import { fredaAvailable, fredaFuelRemaining } from "~/domain/freda";
 import { newTimers } from "~/domain/flight-timers";
 import { mapProfilePoints } from "~/domain/map-profile";
@@ -46,45 +45,6 @@ test("same-airport graphical flight plan retains departure and arrival around in
     "TOD",
   ]);
 });
-test("a round-trip airport changes from departure to arrival exactly after the departure pattern exit", () => {
-  const airport = { ident: "EPNT", lat: 50, lon: 20 };
-  const flight = { ...newFlight(), departure: airport, destination: airport };
-  const nav = {
-    startedAt: "2026-10-20T08:00:00Z",
-    phase: "climb" as const,
-    activeLeg: 1,
-    departurePattern: { id: "leave" },
-    route: [
-      { ...airport, patternId: "leave" },
-      { ident: "TPD1", lat: 50.1, lon: 20, patternId: "leave" },
-      { ident: "TPX1", lat: 50.2, lon: 20, patternId: "leave" },
-      { ident: "OUT", lat: 51, lon: 20 },
-      airport,
-    ],
-  };
-  expect(isDeparturePatternTarget(flight, nav, "EPNT")).toBe(true);
-  expect(
-    isDeparturePatternTarget(flight, { ...nav, activeLeg: 2 }, "EPNT"),
-  ).toBe(false);
-  expect(
-    isDeparturePatternTarget(
-      flight,
-      { ...nav, route: [nav.route[3]!, airport], activeLeg: 0 },
-      "EPNT",
-    ),
-  ).toBe(false);
-  expect(
-    isDeparturePatternTarget(flight, { ...nav, startedAt: null }, "EPNT"),
-  ).toBe(true);
-  expect(
-    isDeparturePatternTarget(
-      { ...flight, destination: { ...airport, ident: "EPKK" } },
-      nav,
-      "EPNT",
-    ),
-  ).toBe(true);
-});
-
 test("FREDA fuel uses the confirmed reading, including subsequent readings and stopped air time", () => {
   const air = { ...newTimers().airTime, startedAt: 0 };
   expect(

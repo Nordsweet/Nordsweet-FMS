@@ -608,6 +608,64 @@ test("a degenerate threshold pair retains the stored heading fallback", () => {
   ).toBeLessThan(0.000001);
 });
 
+test.each([true, false])(
+  "round-trip pattern edits retain the opposite circuit and en-route fixes (waypoint: %s)",
+  (withWaypoint) => {
+    const departure = {
+      ...pattern,
+      id: "departure",
+      operation: "leave" as const,
+    };
+    const arrival = { ...pattern, id: "arrival", operation: "join" as const };
+    const waypoints = withWaypoint ? [{ ident: "TURN", lat: 51, lon: 21 }] : [];
+    let route = routeWithTrafficPattern(
+      [airport, ...waypoints, airport],
+      departure,
+    );
+    route = routeWithTrafficPattern(route, arrival);
+    const originalDeparture = route.filter(
+      (p) => p.patternOperation === "leave",
+    );
+    const revisedArrival = {
+      ...arrival,
+      id: "arrival-revised",
+      direction: "right" as const,
+    };
+    route = routeWithTrafficPattern(route, revisedArrival);
+    expect(route.filter((p) => p.patternOperation === "leave")).toEqual(
+      originalDeparture,
+    );
+    expect(route.filter((p) => !p.patternId)).toEqual(waypoints);
+    expect(route.at(-1)?.patternId).toBe(revisedArrival.id);
+    const originalArrival = route.filter((p) => p.patternOperation === "join");
+    route = routeWithTrafficPattern(route, {
+      ...departure,
+      id: "departure-revised",
+      direction: "right",
+    });
+    expect(route[0]?.patternId).toBe("departure-revised");
+    expect(route.filter((p) => !p.patternId)).toEqual(waypoints);
+    expect(route.filter((p) => p.patternOperation === "join")).toEqual(
+      originalArrival,
+    );
+    // Changing the departure must also retain a plain return-to-ARP endpoint.
+    const plain = routeWithTrafficPattern(
+      routeWithTrafficPattern([airport, ...waypoints, airport], departure),
+      departure,
+    );
+    expect(plain.filter((p) => !p.patternId)).toEqual([...waypoints, airport]);
+    const arrivalOnly = routeWithTrafficPattern(
+      routeWithTrafficPattern([airport, ...waypoints, airport], arrival),
+      revisedArrival,
+    );
+    expect(arrivalOnly.filter((p) => !p.patternId)).toEqual([
+      airport,
+      ...waypoints,
+    ]);
+    expect(arrivalOnly.at(-1)?.patternId).toBe(revisedArrival.id);
+  },
+);
+
 test.each(["overhead", "crosswind", "downwind", "base", "final"] as const)(
   "%s arrival continues through the threshold to an off-axis ARP",
   (join) => {

@@ -1,4 +1,5 @@
 export const arrivalEn = {
+  "departure.title": "Departure",
   "arrival.title": "Arrival",
   "arrival.rules": "Flight rules",
   "arrival.Y": "Y - IFR then VFR",
@@ -7,6 +8,7 @@ export const arrivalEn = {
   "arrival.noProcedures": "No published procedures available for this airport.",
 };
 export const arrivalPl: typeof arrivalEn = {
+  "departure.title": "Departure",
   "arrival.title": "Arrival",
   "arrival.rules": "Zasady wykonywania lotu",
   "arrival.Y": "Y - IFR, następnie VFR",

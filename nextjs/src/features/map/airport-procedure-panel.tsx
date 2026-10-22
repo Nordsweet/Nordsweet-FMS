@@ -9,7 +9,6 @@ import {
   airportFlightRules,
   type LocalFlightRules,
 } from "~/domain/flight-rules";
-import { isDeparturePatternTarget } from "~/domain/departure-pattern";
 import { procedureRoute } from "~/domain/procedure-route";
 import { useT } from "~/i18n/use-t";
 import { Button } from "~/components/ui/button";
@@ -18,20 +17,18 @@ import { TrafficPatternPanel } from "./traffic-pattern-panel";
 type Props = ComponentProps<typeof TrafficPatternPanel>;
 
 /** ICAO rules seed the local choice; switching modes never accepts an unfinished preview. */
-export function ArrivalPanel(props: Props) {
+export function AirportProcedurePanel(props: Props) {
   const t = useT();
   const flight = useFlight((s) => s.flight);
-  const navigation = useInFlight();
-  const departure = isDeparturePatternTarget(
-    flight,
-    navigation,
-    props.airport.ident,
-  );
+  const departure = props.operation === "leave";
   const [rules, setRules] = useState<LocalFlightRules>(() =>
     airportFlightRules(flight.flightRules, departure),
   );
   return (
-    <section className="grid gap-3" aria-label={t("arrival.title")}>
+    <section
+      className="grid gap-3"
+      aria-label={t(departure ? "departure.title" : "arrival.title")}
+    >
       <div
         className="grid grid-cols-2 gap-2"
         role="group"

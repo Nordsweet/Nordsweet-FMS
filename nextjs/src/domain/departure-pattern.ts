@@ -1,36 +1,6 @@
 import type { Flight } from "~/data/flight";
 import type { Airport, Ground } from "~/data/schemas";
 import { patternRunwayGeometry } from "./traffic-pattern";
-import type { NavPoint } from "./progress";
-import type { FlightPhase } from "./flight-phase";
-
-/** On a round trip the home airport becomes an arrival once the departure pattern's final fix is passed. */
-export function isDeparturePatternTarget(
-  flight: Pick<Flight, "departure" | "destination">,
-  navigation: {
-    startedAt: string | null;
-    route: NavPoint[];
-    activeLeg: number;
-    phase: FlightPhase;
-    departurePattern: { id: string } | null;
-  },
-  airport: string,
-) {
-  if (flight.departure?.ident !== airport) return false;
-  if (flight.destination?.ident !== airport || !navigation.startedAt)
-    return true;
-  const last = navigation.departurePattern
-    ? navigation.route
-        .map((p) => p.patternId)
-        .lastIndexOf(navigation.departurePattern.id)
-    : -1;
-  if (last >= 0) return navigation.activeLeg < last;
-  return (
-    !navigation.departurePattern &&
-    ["taxiout", "takeoff"].includes(navigation.phase)
-  );
-}
-
 /** Recognise a runway only when a selected taxi endpoint identifies one unambiguous runway end. */
 export function taxiDepartureRunway(
   airport: Airport,
