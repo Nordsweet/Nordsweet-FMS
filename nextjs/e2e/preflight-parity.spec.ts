@@ -100,7 +100,7 @@ test("keeps preparation conditions, taxi selections and legacy preferences acros
   await takeoff.getByLabel("QNH").fill("1025");
   await takeoff.getByLabel("Wind speed").fill("12");
   await takeoff.getByLabel("Wind speed").blur();
-  await panel("Taxi-Out", "Route");
+  await panel("Taxi-Out", "TAXI");
   const taxi = page.getByTestId("taxi-departure");
   await taxi.getByRole("combobox", { name: "To", exact: true }).click();
   await page.getByRole("option", { name: "HP25", exact: true }).click();
@@ -109,7 +109,7 @@ test("keeps preparation conditions, taxi selections and legacy preferences acros
   await panel("Take-off", "RWY");
   await expect(takeoff.getByLabel("QNH")).toHaveValue("1025");
   await expect(takeoff.getByLabel("Wind speed")).toHaveValue("12");
-  await panel("Taxi-Out", "Route");
+  await panel("Taxi-Out", "TAXI");
   await expect(
     taxi.getByRole("combobox", { name: "To", exact: true }),
   ).toContainText("HP25");

@@ -30,7 +30,6 @@ import {
   pointKey,
 } from "~/domain/route-plan";
 import { PerformanceSection } from "~/features/plan/performance";
-import { AirportTaxi } from "~/features/plan/taxi";
 import { usePlan } from "~/features/plan/use-plan";
 import { useT } from "~/i18n/use-t";
 import { cn } from "~/lib/utils";
@@ -77,7 +76,6 @@ type Phase = FlightPhase;
 type Panel =
   | "emer"
   | "fpl"
-  | "route"
   | "comms"
   | "wx"
   | "config"
@@ -93,7 +91,6 @@ const RAIL: { id: Panel; phases?: Phase[] }[] = [
   { id: "emer" },
   { id: "fpl" },
   { id: "notifications" },
-  { id: "route", phases: ["taxiout", "taxiin"] },
   { id: "comms" },
   { id: "wx", phases: ["cruise"] },
   { id: "config", phases: ["takeoff", "climb", "cruise", "landing"] },
@@ -542,16 +539,6 @@ export function FlyPage() {
           {t("plan.navlog.empty")}
         </p>
       ),
-    route: (flying
-      ? phase === "taxiin"
-        ? flight.destination
-        : flight.departure
-      : null) && (
-      <AirportTaxi
-        point={(phase === "taxiin" ? flight.destination : flight.departure)!}
-        phase={phase === "taxiin" ? "arrival" : "departure"}
-      />
-    ),
     config: <ConfigPanel phase={phase} />,
     chart: <ChartPanel phase={phase} />,
     comms: <CommsPanel result={comms} />,
