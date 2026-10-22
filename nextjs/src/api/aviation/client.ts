@@ -4,6 +4,7 @@ import { airrepSchema, type Airrep } from "~/data/airrep";
 import { env } from "~/env";
 import { correctTrafficMetadata } from "~/domain/traffic-metadata";
 import { useAuth } from "~/stores/auth";
+import { useServerConnection } from "~/stores/server-connection";
 
 import {
   activationsResponseSchema,
@@ -44,7 +45,11 @@ export async function aviationFetch(url: URL, init: RequestInit = {}) {
   const token = useAuth.getState().session?.token;
   const headers = new Headers(init.headers);
   if (token) headers.set("Authorization", `Bearer ${token}`);
-  const response = await fetch(url, { ...init, headers });
+  const response = await fetch(url, { ...init, headers, cache: "no-store" });
+  // This transport also serves the separate local logbook proxy. Only API replies count here;
+  // even an HTTP error proves contact, while failed/aborted requests do not.
+  if (url.origin === new URL(env.NEXT_PUBLIC_AVIATION_API_URL).origin)
+    useServerConnection.getState().received();
   if (
     response.status === 401 &&
     token &&

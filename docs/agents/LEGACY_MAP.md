@@ -205,7 +205,7 @@ merged to `develop`. One owner per row.
 
 ## 5. Known legacy bugs / intended differences
 
-| Server connection age in flight status | claimed | Codex 2026-10-22 | Replace the device Wi-Fi indicator with actual Aviation API connection status and seconds since the latest server communication. |
+| Server connection age in flight status | done | Codex 2026-10-23 | Wi-Fi indicator shows seconds since the latest actual Aviation API response or sync-stream bytes, including ping comments; amber after 45 seconds without contact or when offline. Cached data and the separate local logbook proxy cannot refresh it; reload starts unknown. PL/EN labels. Format, lint, types, 739 unit tests, production build and all 164 browser tests passed without retries. |
 
 | Separate airport Departure and Arrival actions | done | Codex 2026-10-22 | Departure on the origin opens SID / leave pattern; Arrival on every airport opens STAR / join pattern, including the origin before and during flight. Explicit operation for preview, acceptance and removal; repeated round-trip circuit edits retain the opposite circuit and en-route fixes. Endpoint assignment actions use separate Set as departure/destination labels. Format, lint, types, 734 unit tests and build pass. All 163 browser scenarios verified: 162 passed in the full suite; recovered-flight map readiness exceeded the old 5s wait, then passed 3/3 reruns after waiting for recovery and WebGL readiness. |
 

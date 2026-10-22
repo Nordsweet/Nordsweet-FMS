@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { createSyncApi, deviceId, parseSse } from "./client";
 import { SyncError, type SyncHint } from "./contract";
+import { useServerConnection } from "~/stores/server-connection";
 
 const json = (
   body: unknown,
@@ -158,6 +159,20 @@ describe("stream", () => {
       sse(": ping\n\n", text.slice(0, 20), text.slice(20)),
     ).stream(new AbortController().signal, (h) => hints.push(h));
     expect(hints).toEqual([hint]);
+  });
+
+  it("refreshes server contact on ping comments without a data-change event", async () => {
+    useServerConnection.setState({ lastContactAt: null });
+    const before = Date.now();
+    const onHint = vi.fn();
+    await api(async () => sse(": ping\n\n")).stream(
+      new AbortController().signal,
+      onHint,
+    );
+    expect(useServerConnection.getState().lastContactAt).toBeGreaterThanOrEqual(
+      before,
+    );
+    expect(onHint).not.toHaveBeenCalled();
   });
 
   it("fails with the status of a refused stream and ends quietly when aborted", async () => {

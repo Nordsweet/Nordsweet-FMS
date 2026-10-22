@@ -16,6 +16,10 @@ import { useT } from "~/i18n/use-t";
 import { type GpsFix } from "./use-gps";
 import { useTerrainHeight } from "./use-terrain-height";
 import { Button } from "~/components/ui/button";
+import {
+  SERVER_CONTACT_TIMEOUT_MS,
+  useServerConnection,
+} from "~/stores/server-connection";
 
 const subscribeNetwork = (update: () => void) => {
   window.addEventListener("online", update);
@@ -56,6 +60,32 @@ export function FlightStatusBar({
     () => navigator.onLine,
     () => true,
   );
+  const lastContactAt = useServerConnection((s) => s.lastContactAt);
+  const contactAgeMs =
+    now !== null && lastContactAt !== null
+      ? Math.max(0, now - lastContactAt)
+      : null;
+  const contactSeconds =
+    contactAgeMs === null ? null : Math.floor(contactAgeMs / 1000);
+  const connectionState = !online
+    ? "offline"
+    : contactAgeMs === null
+      ? "unknown"
+      : contactAgeMs >= SERVER_CONTACT_TIMEOUT_MS
+        ? "stale"
+        : "connected";
+  const connectionTitle = `${t("fly.status.server")} — ${
+    contactSeconds === null
+      ? t("fly.status.serverUnknown")
+      : [
+          connectionState === "connected"
+            ? null
+            : t("fly.status.serverUnavailable"),
+          t("fly.status.serverAge", { seconds: contactSeconds }),
+        ]
+          .filter(Boolean)
+          .join(". ")
+  }`;
   useEffect(() => {
     const tick = () => setNow(Date.now());
     const id = setInterval(tick, 1000);
@@ -211,12 +241,22 @@ export function FlightStatusBar({
             <RadioTower className="size-5" />
             {value(current?.accuracyM, " m")}
           </Button>
-          <span title={t("fly.status.network")}>
-            {online ? (
-              <Wifi className="size-5" />
+          <span
+            data-testid="server-connection"
+            data-state={connectionState}
+            role="img"
+            aria-label={connectionTitle}
+            title={connectionTitle}
+            className="flex items-center gap-1"
+          >
+            {connectionState === "connected" ? (
+              <Wifi className="text-primary size-5" aria-hidden="true" />
             ) : (
-              <WifiOff className="size-5 text-amber-400" />
+              <WifiOff className="size-5 text-amber-400" aria-hidden="true" />
             )}
+            <span className="font-mono tabular-nums">
+              {contactSeconds === null ? "—" : `${contactSeconds} s`}
+            </span>
           </span>
           <span
             title={t("fly.status.battery")}

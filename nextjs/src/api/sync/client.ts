@@ -2,6 +2,10 @@ import { type z } from "zod";
 
 import { env } from "~/env";
 import { aviationFetch } from "~/api/aviation/client";
+import {
+  SERVER_CONTACT_TIMEOUT_MS,
+  useServerConnection,
+} from "~/stores/server-connection";
 
 import {
   changesSchema,
@@ -14,8 +18,6 @@ import {
 } from "./contract";
 
 const DEVICE_KEY = "nordsweet.deviceId.v1";
-/** No bytes (not even the 15 s ping) for this long: the connection is dead, reconnect. */
-const STREAM_SILENCE_MS = 45_000;
 
 /** One id per browser profile; tabs share it, so the server never sends them each other's hints. */
 export function deviceId(
@@ -121,7 +123,7 @@ export function createSyncApi({
       let silence: ReturnType<typeof setTimeout> | undefined;
       const watch = () => {
         clearTimeout(silence);
-        silence = setTimeout(abort, STREAM_SILENCE_MS);
+        silence = setTimeout(abort, SERVER_CONTACT_TIMEOUT_MS);
       };
       try {
         watch();
@@ -136,6 +138,7 @@ export function createSyncApi({
         for (;;) {
           const { done, value } = await reader.read();
           if (done) return;
+          if (value.byteLength) useServerConnection.getState().received();
           watch();
           const parsed = parseSse(
             buffer + decoder.decode(value, { stream: true }),
