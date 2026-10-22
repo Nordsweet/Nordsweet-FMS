@@ -201,7 +201,7 @@ merged to `develop`. One owner per row.
 
 | Position source in Options | done | Codex 2026-10-22 | PR #96 merged: removed the duplicated position-source controls from the shared Aircraft section in planner and Fly; Options and connection shortcut retained. Format, lint, types, 728 unit tests, build and all 161 browser tests passed locally; direct in-flight Aircraft/Options check passed. |
 
-| Approaching traffic clock dots | claimed | Codex 2026-10-22 | Twelve non-interactive dots around ownship for a close encounter within two minutes; follow aircraft orientation, retain TA/proximity thresholds, reject stale/receding/own traffic. |
+| Approaching traffic clock dots | done | Codex 2026-10-22 | PR #97 merged: twelve non-interactive dots around ownship for a close encounter within 120 seconds; rotate with aircraft, slightly larger twelve o'clock, flat/terrain parity. TA/proximity thresholds unchanged; stale/receding/ground/own traffic rejected. Format, lint, types, 733 unit tests, production build and all 161 browser tests passed locally without retries. Browser pixel check verifies twelve dots before TA and hiding after traffic recedes. |
 
 ## 5. Known legacy bugs / intended differences
 
