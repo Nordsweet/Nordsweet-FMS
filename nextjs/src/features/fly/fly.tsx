@@ -6,6 +6,7 @@ import { useMapSettings } from "~/stores/map";
 import { useEffect, useState, useMemo } from "react";
 
 import { Button } from "~/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -83,16 +84,14 @@ type Panel =
   | "fpl"
   | "comms"
   | "wx"
-  | "config"
   | "chart"
   | "rwy"
-  | "checklist"
   | "info"
   | "options"
   | "notifications"
   | "aircraft"
   | "position";
-/** Legacy rail per phase, in legacy order. */
+/** Flight tools available in each phase. */
 const RAIL: { id: Panel; phases?: Phase[] }[] = [
   { id: "emer" },
   { id: "fpl" },
@@ -100,14 +99,12 @@ const RAIL: { id: Panel; phases?: Phase[] }[] = [
   { id: "aircraft" },
   { id: "comms" },
   { id: "wx", phases: ["cruise"] },
-  { id: "config", phases: ["takeoff", "climb", "cruise", "landing"] },
   {
     id: "chart",
     phases: ["taxiout", "takeoff", "descent", "landing", "taxiin"],
   },
   { id: "rwy", phases: ["takeoff", "landing"] },
   { id: "wx", phases: ["taxiout", "takeoff", "descent", "landing", "taxiin"] },
-  { id: "checklist" },
   { id: "info" },
   { id: "options" },
 ];
@@ -172,6 +169,10 @@ export function FlyPage() {
   const { phase, setPhase, config } = inFlight;
   const comms = useCommsPlan(phase, fix, now, flying);
   const [panel, setPanel] = useState<Panel | null>(null);
+  const [aircraftTab, setAircraftTab] = useState("aircraft");
+  const configAvailable = ["takeoff", "climb", "cruise", "landing"].includes(
+    phase,
+  );
 
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 15000);
@@ -586,19 +587,10 @@ export function FlyPage() {
           {t("plan.navlog.empty")}
         </p>
       ),
-    config: <ConfigPanel phase={phase} />,
     chart: <ChartPanel phase={phase} />,
     comms: <CommsPanel result={comms} />,
     wx: <WxPanel phase={phase} />,
     rwy: <PerformanceSection />,
-    checklist: (
-      <ChecklistsPage
-        phase={phase}
-        expected={(checklist, action) =>
-          checklistFlaps(phase, checklist.name, action, config)
-        }
-      />
-    ),
     info: (
       <>
         <InfoPanel phase={phase} />
@@ -611,7 +603,42 @@ export function FlyPage() {
     options: <OptionsPanel />,
     position: <PositionSourcePanel />,
     notifications: <NotificationHistory />,
-    aircraft: <AircraftSection />,
+    aircraft: (
+      <Tabs
+        value={
+          aircraftTab === "config" && !configAvailable
+            ? "aircraft"
+            : aircraftTab
+        }
+        onValueChange={setAircraftTab}
+      >
+        <TabsList aria-label={t("plan.aircraft.title")}>
+          <TabsTrigger value="aircraft">{t("plan.aircraft.title")}</TabsTrigger>
+          {configAvailable && (
+            <TabsTrigger value="config">{t("fly.panel.config")}</TabsTrigger>
+          )}
+          <TabsTrigger value="checklist">
+            {t("fly.panel.checklist")}
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="aircraft">
+          <AircraftSection />
+        </TabsContent>
+        {configAvailable && (
+          <TabsContent value="config">
+            <ConfigPanel phase={phase} />
+          </TabsContent>
+        )}
+        <TabsContent value="checklist">
+          <ChecklistsPage
+            phase={phase}
+            expected={(checklist, action) =>
+              checklistFlaps(phase, checklist.name, action, config)
+            }
+          />
+        </TabsContent>
+      </Tabs>
+    ),
   };
 
   // Legacy flight view: the airspace map full screen, the phase bar on top, the phase's tools on
@@ -731,15 +758,8 @@ export function FlyPage() {
                     setPanel(open === r.id ? null : r.id);
                   }}
                 >
-                  {/* Legacy wraps the long label onto two lines: CHECK / LIST. */}
                   {r.id === "aircraft" ? (
                     <Plane className="size-6 text-white" aria-hidden="true" />
-                  ) : r.id === "checklist" ? (
-                    <span>
-                      {panelLabel(r.id).slice(0, 5)}
-                      <br />
-                      {panelLabel(r.id).slice(5)}
-                    </span>
                   ) : (
                     panelLabel(r.id)
                   )}
@@ -783,7 +803,7 @@ export function FlyPage() {
           >
             {open ? (
               <>
-                {open !== "config" && open !== "rwy" && (
+                {open !== "rwy" && (
                   <div className="fly-popover-head">
                     <div>
                       <h2>{panelLabel(open)}</h2>
