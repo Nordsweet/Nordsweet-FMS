@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { SearchIcon, Trash2, Ellipsis, ChevronDown } from "lucide-react";
+import { SearchIcon, Trash2, Ellipsis, ChevronDown, Plane } from "lucide-react";
 import { useMapSettings } from "~/stores/map";
 import { useEffect, useState, useMemo } from "react";
 
@@ -85,12 +85,14 @@ type Panel =
   | "info"
   | "options"
   | "notifications"
+  | "aircraft"
   | "position";
 /** Legacy rail per phase, in legacy order. */
 const RAIL: { id: Panel; phases?: Phase[] }[] = [
   { id: "emer" },
   { id: "fpl" },
   { id: "notifications" },
+  { id: "aircraft" },
   { id: "comms" },
   { id: "wx", phases: ["cruise"] },
   { id: "config", phases: ["takeoff", "climb", "cruise", "landing"] },
@@ -203,11 +205,13 @@ export function FlyPage() {
     t(
       id === "position"
         ? "connector.title"
-        : id === "chart"
-          ? phase === "taxiout" || phase === "taxiin"
-            ? "fly.panel.taxi"
-            : "fly.panel.proc"
-          : `fly.panel.${id}`,
+        : id === "aircraft"
+          ? "plan.aircraft.title"
+          : id === "chart"
+            ? phase === "taxiout" || phase === "taxiin"
+              ? "fly.panel.taxi"
+              : "fly.panel.proc"
+            : `fly.panel.${id}`,
     );
   const open =
     panel === "position" || rail.some((r) => r.id === panel) ? panel : null;
@@ -564,6 +568,7 @@ export function FlyPage() {
     options: <OptionsPanel />,
     position: <PositionSourcePanel />,
     notifications: <NotificationHistory />,
+    aircraft: null,
   };
 
   // Legacy flight view: the airspace map full screen, the phase bar on top, the phase's tools on
@@ -676,14 +681,19 @@ export function FlyPage() {
                   variant={r.id === "emer" ? "destructive" : "outline"}
                   aria-expanded={open === r.id}
                   aria-label={panelLabel(r.id)}
+                  aria-disabled={r.id === "aircraft" || undefined}
+                  title={panelLabel(r.id)}
                   className="legacy-flight-tool backdrop-blur"
                   onClick={() => {
+                    if (r.id === "aircraft") return;
                     setSearchOpen(false);
                     setPanel(open === r.id ? null : r.id);
                   }}
                 >
                   {/* Legacy wraps the long label onto two lines: CHECK / LIST. */}
-                  {r.id === "checklist" ? (
+                  {r.id === "aircraft" ? (
+                    <Plane className="size-6 text-white" aria-hidden="true" />
+                  ) : r.id === "checklist" ? (
                     <span>
                       {panelLabel(r.id).slice(0, 5)}
                       <br />
