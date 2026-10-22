@@ -201,6 +201,8 @@ merged to `develop`. One owner per row.
 
 | Position source in Options | done | Codex 2026-10-22 | PR #96 merged: removed the duplicated position-source controls from the shared Aircraft section in planner and Fly; Options and connection shortcut retained. Format, lint, types, 728 unit tests, build and all 161 browser tests passed locally; direct in-flight Aircraft/Options check passed. |
 
+| Approaching traffic clock dots | claimed | Codex 2026-10-22 | Twelve non-interactive dots around ownship for a close encounter within two minutes; follow aircraft orientation, retain TA/proximity thresholds, reject stale/receding/own traffic. |
+
 ## 5. Known legacy bugs / intended differences
 
 | In-flight airport endpoint actions | done | Codex 2026-10-22 | PR #92 merged. Departure/Destination point actions hidden while a flight is active, retained before flight. Direct browser check confirmed both states. Full CI 39762036517 passed (706 unit tests, lint/types/format/build and browser suite). |
