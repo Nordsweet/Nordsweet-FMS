@@ -1,5 +1,7 @@
 "use client";
 
+import { openFlightMapsCycle } from "~/data/openflightmaps";
+
 import {
   keepPreviousData,
   useQuery,
@@ -713,11 +715,21 @@ export function MapView({
       theme,
       visible: layers,
       terrain3d: settings.terrain3d,
+      openFlightMapsCycle: settings.openFlightMaps
+        ? openFlightMapsCycle()
+        : null,
     });
     mapRef.current?.setTerrain(settings.terrain3d);
     markers.current?.setVisible(layers.route);
     profileMarkers.current?.setVisible(layers.route);
-  }, [ready, basemap, theme, layers, settings.terrain3d]);
+  }, [
+    ready,
+    basemap,
+    theme,
+    layers,
+    settings.terrain3d,
+    settings.openFlightMaps,
+  ]);
 
   useEffect(() => {
     sceneRef.current?.set({
@@ -1481,8 +1493,26 @@ export function MapView({
           {t("terrain.source")}
         </a>
       )}
-      {(basemap !== "dark" || settings.terrain3d) && (
+      {(basemap !== "dark" ||
+        settings.terrain3d ||
+        settings.openFlightMaps) && (
         <div className="legacy-map-attribution">
+          {settings.openFlightMaps && (
+            <>
+              <a
+                href="https://openflightmaps.org/"
+                target="_blank"
+                rel="noreferrer"
+              >
+                © open flightmaps association · AIRAC {openFlightMapsCycle()}
+              </a>
+              {" · "}
+              <a href="mailto:info@openflightmaps.org?subject=OpenFlightMaps%20data%20correction">
+                {t("map.ofmReport")}
+              </a>
+              {" · "}
+            </>
+          )}
           {basemap === "bright" && (
             <>
               <a

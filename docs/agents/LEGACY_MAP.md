@@ -187,6 +187,8 @@ merged to `develop`. One owner per row.
 
 | Poprad LZTT AIP data | done | Codex 2026-10-22 | PR #83: 17 official AD 2.24 charts plus printable AD 2, original LPS PDFs from 01 OCT 2026 edition; provenance and checksums. LZTT Charts browser test verifies all 18 links/PDFs. Full CI 39694855854 passed. Airport-data/procedure geometry audit remains separate from chart import. |
 
+| OpenFlightMaps overlay | claimed | Codex 2026-10-22 | Optional aviation raster overlay, attribution and offline visited tiles. |
+
 ## 5. Known legacy bugs / intended differences
 
 Record every one you find here (and assert it in a test).

@@ -25,6 +25,7 @@ export type LayerId = (typeof mapLayers)[number];
 export type Basemap =
   "osm" | "bright" | "dark" | "night" | "fjord" | "dark-matter";
 export const mapPreferencesSchema = z.object({
+  openFlightMaps: z.boolean().default(false),
   terrain3d: z.boolean().default(false),
   gpsEnabled: z.boolean().default(false),
   basemap: z
