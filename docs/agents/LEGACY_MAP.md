@@ -191,9 +191,9 @@ merged to `develop`. One owner per row.
 
 | Poprad LZTT airport and procedures | done | Codex 2026-10-22 | PR #85: official 01 OCT 2026 AIP runway/frequency/navdata audit, eight VFR points, 12 RNAV SID and 16 RNAV STAR; first STAR fix restrictions retained. Conventional procedures remain original Charts PDFs. Full CI 39720682360 passed: lint, format, types, unit/server tests, build and browser suite. |
 
-| Airport arrival landing-performance card | in progress | Codex 2026-10-22 | Airport popup LDA visualization, remaining active-route versus Direct arrival fuel/weight, existing POH calculations and weather. |
+| Airport arrival landing-performance card | done | Codex 2026-10-22 | PR #93 merged: airport LDA diagram, required/available distance, utilization and shortage; remaining curved FPL or present-position Direct fuel/weight, FREDA baseline, landing ATIS/METAR/pilot conditions and explicit fallback labels. Full CI 39768263056 passed: 714 unit tests, server, lint/types/format/build and browser suite. |
 
-| Aircraft tile data and settings | in progress | Codex 2026-10-22 | Connect the existing aircraft tile to the selected flight aircraft settings; user clarified the action. |
+| Aircraft tile data and settings | done | Codex 2026-10-22 | PR #93 merged: aircraft tile opens shared selected-aircraft settings, registration, reference data and airframe MTH; scrollable panel. Desktop and iPad-size visual checks plus browser MTH persistence passed. Full CI 39768263056 passed. |
 
 ## 5. Known legacy bugs / intended differences
 
