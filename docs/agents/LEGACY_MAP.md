@@ -193,7 +193,7 @@ merged to `develop`. One owner per row.
 
 ## 5. Known legacy bugs / intended differences
 
-| Navaid popup tuning details | claimed | Codex 2026-10-22 | Display navaid type, tuning frequency, identifier and DME channel in point details. |
+| Navaid popup tuning details | done | Codex 2026-10-22 | PR #89 merged. Point details resolve published navaid data for map/search and route selections: type, identifier, MHz for VOR or kHz for NDB, optional DME channel; missing values omitted. Full CI 39749584221 passed (706 unit tests, lint/types/format/build and browser suite with KAK DVOR/DME, CHO NDB and CZA DME assertions). |
 
 | Frequency popup ATIS context | done | Codex 2026-10-22 | PR #88 merged. Latest reliable airport ATIS adds information letter, QNH and timestamp-derived age up to 60 minutes; excludes FIS, ambiguous stations, future/stale/incomplete reports and unconfirmed community reports. Full CI 39732203347 passed: lint, format, types, 706 unit tests, build and browser suite including handoff ATIS/FIS assertions. |
 
