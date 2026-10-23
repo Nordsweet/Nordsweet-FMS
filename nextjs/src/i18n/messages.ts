@@ -1,3 +1,4 @@
+import { myPlannerEn, myPlannerPl } from "./my-planner";
 import { terrainEn, terrainPl } from "./terrain";
 import { airportLandingEn, airportLandingPl } from "./airport-landing";
 import { atisCallsEn, atisCallsPl } from "./atis-calls";
@@ -24,6 +25,7 @@ import { authEn, authPl } from "./auth";
 import { sessionSyncEn, sessionSyncPl } from "./session-sync";
 
 const pl = {
+  ...myPlannerPl,
   ...airportLandingPl,
   ...atisCallsPl,
   ...logbookPl,
@@ -872,6 +874,7 @@ const pl = {
 export type MessageKey = keyof typeof pl;
 
 const en: Record<MessageKey, string> = {
+  ...myPlannerEn,
   ...airportLandingEn,
   ...atisCallsEn,
   ...logbookEn,

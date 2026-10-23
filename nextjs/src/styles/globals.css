@@ -355,6 +355,28 @@
 .legacy-map-details .text-muted-foreground {
   color: var(--muted-foreground);
 }
+.legacy-map-details:has([data-testid="airport-landing-card"]) {
+  width: 550px;
+  max-height: calc(100% - 16px);
+}
+.airport-details-columns:has([data-testid="airport-landing-card"]) {
+  display: grid;
+  grid-template-columns: minmax(0, 232px) minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+@media (max-width: 600px) {
+  .airport-details-columns:has([data-testid="airport-landing-card"]) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (min-width: 601px) {
+  .legacy-map-details:has([data-testid="airport-landing-card"])
+    > div:first-child {
+    right: auto;
+    width: 232px;
+  }
+}
 .legacy-traffic-card {
   gap: 5px;
 }

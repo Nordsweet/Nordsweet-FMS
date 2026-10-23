@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import { test, expect, type Page } from "./test";
+import { test, expect, selectFlightPhase, type Page } from "./test";
 import { newFlight } from "../src/data/flight";
 import { airportSchema } from "../src/data/schemas";
 
@@ -16,6 +16,86 @@ async function search(page: Page, ident: string) {
   await panel.getByRole("textbox").fill(ident);
   await panel.getByRole("button", { name: "Search", exact: true }).click();
 }
+
+test("runway sits beside airport actions; departure uses TODA without GPS and home arrival uses LDA", async ({
+  page,
+}) => {
+  test.setTimeout(60000);
+  const home = airports.find((a) => a.ident === "EPNT")!;
+  await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (r) => r.abort());
+  await page.addInitScript(
+    ({ flight, home }) => {
+      localStorage.setItem("nordsweet.language.v1", "en");
+      localStorage.setItem(
+        "nordsweet.flight.v2",
+        JSON.stringify({ version: 1, state: { flight } }),
+      );
+      localStorage.setItem(
+        "nordsweet.inflight.v1",
+        JSON.stringify({
+          version: 1,
+          state: {
+            startedAt: new Date().toISOString(),
+            phase: "taxiout",
+            phaseManual: true,
+            route: [home, { ident: "TURN", lat: 49.8, lon: 20.4 }, home],
+            activeLeg: 0,
+          },
+        }),
+      );
+      navigator.geolocation.watchPosition = (_success, error) => {
+        error?.({ code: 1, message: "denied" } as GeolocationPositionError);
+        return 1;
+      };
+      navigator.geolocation.clearWatch = () => undefined;
+    },
+    {
+      home,
+      flight: {
+        ...newFlight(),
+        aircraftId: "R172K",
+        departure: home,
+        destination: home,
+        fuel: { blockL: 100 },
+        departureRunway: { airport: "EPNT", designator: "12", source: "taxi" },
+      },
+    },
+  );
+  await page.goto("/fly");
+  await expect(page.getByTestId("map")).toHaveAttribute(
+    "data-map-ready",
+    "true",
+    { timeout: 15000 },
+  );
+  await search(page, "EPNT");
+  const card = page.getByTestId("airport-landing-card");
+  await expect(card).toHaveAttribute("data-operation", "takeoff");
+  await expect(card).toContainText("TODA USED");
+  await expect(card.getByTestId("landing-distances")).toHaveText(
+    /^\d+ m \/ \d+ m$/,
+  );
+  await expect(
+    card.getByRole("combobox", { name: "Take-off runway" }),
+  ).toContainText("12");
+  const left = await page.getByTestId("airport-point-actions").boundingBox();
+  const right = await card.boundingBox();
+  expect(right!.x).toBeGreaterThanOrEqual(left!.x + left!.width);
+  await page.screenshot({ path: "test-results/airport-toda-side-panel.png" });
+  await selectFlightPhase(page, "Landing");
+  await expect(card).toHaveAttribute("data-operation", "landing");
+  await expect(card).toContainText("LDA USED");
+  await expect(card).toContainText("A current position is needed");
+  await expect(
+    card.getByRole("combobox", { name: "Landing runway" }),
+  ).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(card).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+});
 
 test("airport cards predict FPL or Direct arrival, show runway use, shortages and missing LDA", async ({
   page,
@@ -116,6 +196,7 @@ test("airport cards predict FPL or Direct arrival, show runway use, shortages an
   await expect(page.getByTestId("map")).toHaveAttribute(
     "data-map-ready",
     "true",
+    { timeout: 15000 },
   );
   await search(page, "EPKK");
   const card = page.getByTestId("airport-landing-card");

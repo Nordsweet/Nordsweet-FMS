@@ -16,6 +16,7 @@ import {
   SavedFlightsSection,
 } from "~/features/plan/saved-flights";
 import { usePlan } from "~/features/plan/use-plan";
+import { MyPlanner, SavePlannerFlightButton } from "~/features/plan/my-planner";
 import { WeightBalanceSection } from "~/features/plan/weight-balance";
 import { type MessageKey } from "~/i18n/messages";
 import { useT } from "~/i18n/use-t";
@@ -75,12 +76,14 @@ export default function PlanPage() {
                   {t("plan.currentFlight")}
                 </TabsTrigger>
                 <TabsTrigger value="saved">{t("plan.saved.title")}</TabsTrigger>
+                <TabsTrigger value="planner">{t("planner.title")}</TabsTrigger>
               </TabsList>
               <p className="text-muted-foreground ml-auto">
                 {t("plan.tagline")}
               </p>
             </div>
             <TabsContent value="current" forceMount className={content}>
+              <SavePlannerFlightButton />
               <Tabs
                 value={section}
                 onValueChange={setSection}
@@ -107,6 +110,14 @@ export default function PlanPage() {
                   </TabsContent>
                 ))}
               </Tabs>
+            </TabsContent>
+            <TabsContent value="planner" className={content}>
+              <MyPlanner
+                onEdit={() => {
+                  setWorkspace("current");
+                  setSection("route");
+                }}
+              />
             </TabsContent>
             <TabsContent value="saved" forceMount className={content}>
               <SavedFlightsSection

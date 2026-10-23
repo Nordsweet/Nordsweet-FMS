@@ -47,18 +47,25 @@ export function AirportLandingCard({
   const t = useT();
   const { flight, aircraft, plan, cruiseSpeedKt, fuelPlanning } = usePlan();
   const navigation = useInFlight();
+  const departure =
+    airport.ident === flight.departure?.ident &&
+    (airport.ident !== flight.destination?.ident ||
+      ["taxiout", "takeoff", "climb"].includes(navigation.phase));
+  const operation = departure ? "takeoff" : "landing";
   const atis = useAtis();
-  const { station, briefing } = useBriefing(aircraft?.landing ? airport : null);
+  const { station, briefing } = useBriefing(
+    aircraft?.[operation] ? airport : null,
+  );
   const [selectedRunway, setSelectedRunway] = useState<string | null>(null);
-  if (!aircraft?.landing || !navigation.startedAt) return null;
+  if (!aircraft?.[operation] || !navigation.startedAt) return null;
 
-  const perf = aircraft.landing;
+  const perf = aircraft[operation];
   const pad =
     atis.records[airport.ident] ??
     (atis.airport === airport.ident ? atis.pad : null);
   const weather = performanceAtis(
     airport,
-    "landing",
+    operation,
     station?.icao === airport.ident ? (briefing.data?.atis ?? []) : [],
     pad,
   );
@@ -66,7 +73,7 @@ export function AirportLandingCard({
   const metar =
     metarReport && !metarReport.stale ? parseMetar(metarReport.raw) : null;
   const stored =
-    flight.performanceInputs[`landing|${airport.ident}|${aircraft.id}`];
+    flight.performanceInputs[`${operation}|${airport.ident}|${aircraft.id}`];
   const inputs = applyPerformanceAtis(
     stored ?? {
       runwayId: null,
@@ -79,8 +86,11 @@ export function AirportLandingCard({
     weather,
     airport,
   );
-  const patternRunway =
-    flight.trafficPattern?.airport.ident === airport.ident
+  const patternRunway = departure
+    ? flight.departureRunway?.airport === airport.ident
+      ? flight.departureRunway.designator
+      : flight.departurePattern?.runway.designator
+    : flight.trafficPattern?.airport.ident === airport.ident
       ? flight.trafficPattern.runway.designator
       : null;
   const wind = {
@@ -96,7 +106,8 @@ export function AirportLandingCard({
       (a, b) =>
         windComponents(b.trueHeadingDeg, wind).headwindKt -
           windComponents(a.trueHeadingDeg, wind).headwindKt ||
-        (b.ldaM ?? b.lengthM ?? 0) - (a.ldaM ?? a.lengthM ?? 0),
+        ((departure ? b.todaM : b.ldaM) ?? b.lengthM ?? 0) -
+          ((departure ? a.todaM : a.ldaM) ?? a.lengthM ?? 0),
     )[0];
   const config =
     perf.configurations.find(
@@ -133,10 +144,10 @@ export function AirportLandingCard({
         })
       : null;
   const weight =
-    aircraft.weightBalance && arrival
+    aircraft.weightBalance && (departure || arrival)
       ? computeLoading(aircraft.weightBalance, {
           stationsKg: flight.stationsKg,
-          fuelL: arrival.fuelL,
+          fuelL: departure ? flight.fuel.blockL : arrival!.fuelL,
         })
       : null;
   const surface =
@@ -168,7 +179,7 @@ export function AirportLandingCard({
           slopePct: runway.slopePct,
         })
       : null;
-  const availableM = runway?.ldaM ?? null;
+  const availableM = (departure ? runway?.todaM : runway?.ldaM) ?? null;
   const requiredM = result ? Math.ceil(result.obstacle50ftM) : null;
   const percent =
     requiredM !== null && availableM !== null
@@ -198,12 +209,17 @@ export function AirportLandingCard({
     <section
       className="bg-card rounded-xl border p-3 text-xs"
       data-testid="airport-landing-card"
-      aria-label={t("airportLanding.title")}
+      aria-label={t(
+        departure ? "airportLanding.takeoffTitle" : "airportLanding.title",
+      )}
+      data-operation={operation}
     >
       <div className="flex items-start justify-between gap-3 font-bold">
         <div>
           <div className="text-primary tracking-wider">
-            {t("airportLanding.ldaUsed")}
+            {t(
+              departure ? "airportLanding.todaUsed" : "airportLanding.ldaUsed",
+            )}
           </div>
           <div data-testid="landing-distances">
             {requiredM ?? "—"} m / {availableM ?? "—"} m
@@ -220,7 +236,11 @@ export function AirportLandingCard({
         <Select value={runway.designator} onValueChange={setSelectedRunway}>
           <SelectTrigger
             className="mt-2 h-8 w-full"
-            aria-label={t("airportLanding.runway")}
+            aria-label={t(
+              departure
+                ? "airportLanding.takeoffRunway"
+                : "airportLanding.runway",
+            )}
           >
             <SelectValue />
           </SelectTrigger>
@@ -233,10 +253,10 @@ export function AirportLandingCard({
           </SelectContent>
         </Select>
       )}
-      {result && runway && (
+      {runway && (
         <>
           <div
-            className="relative mx-auto my-3 flex h-48 w-48 items-center justify-center rounded-lg bg-black/10"
+            className="relative mx-auto my-3 flex h-80 w-full items-center justify-center rounded-lg bg-black/10"
             aria-hidden="true"
           >
             <span className="text-muted-foreground absolute top-1 text-[10px] font-bold uppercase">
@@ -244,7 +264,7 @@ export function AirportLandingCard({
             </span>
             <div
               className={cn(
-                "relative mt-4 h-40 w-16 overflow-hidden rounded-sm border border-white/30",
+                "relative mt-4 h-72 w-20 overflow-hidden rounded-sm border border-white/30",
                 surface === "grass" ? "bg-green-950" : "bg-slate-800",
               )}
             >
@@ -284,7 +304,11 @@ export function AirportLandingCard({
             <span>RWY {runway.designator}</span>
             <span className={cn(exceeded && "text-destructive")}>
               {remainingM === null
-                ? t("airportLanding.noLda")
+                ? t(
+                    departure
+                      ? "airportLanding.noToda"
+                      : "airportLanding.noLda",
+                  )
                 : t(
                     exceeded
                       ? "airportLanding.short"
@@ -297,14 +321,14 @@ export function AirportLandingCard({
       )}
       {!runway ? (
         <p>{t("plan.perf.noRunways")}</p>
-      ) : !fresh ? (
+      ) : !departure && !fresh ? (
         <p className="mt-2">{t("airportLanding.needPosition")}</p>
-      ) : !arrival ? (
+      ) : !departure && !arrival ? (
         <p className="mt-2">{t("airportLanding.needPrediction")}</p>
       ) : !weight ? (
         <p>{t("plan.perf.needWeight")}</p>
       ) : null}
-      {arrival && (
+      {!departure && arrival && (
         <div
           className="text-muted-foreground mt-3 grid gap-1"
           data-testid="landing-arrival"
@@ -348,12 +372,21 @@ export function AirportLandingCard({
           °/{inputs.windSpeedKt} kt
         </span>
         <span>
-          {t("airportLanding.weather", {
-            station: station?.icao ?? airport.ident,
-          })}
+          {t(
+            departure
+              ? "airportLanding.takeoffWeather"
+              : "airportLanding.weather",
+            {
+              station: station?.icao ?? airport.ident,
+            },
+          )}
         </span>
         {assumed && <span>{t("airportLanding.assumed")}</span>}
-        {availableM === null && <span>{t("airportLanding.noLda")}</span>}
+        {availableM === null && (
+          <span>
+            {t(departure ? "airportLanding.noToda" : "airportLanding.noLda")}
+          </span>
+        )}
       </div>
       {result && <WarningList warnings={result.warnings} />}
     </section>

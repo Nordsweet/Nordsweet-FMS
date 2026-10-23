@@ -137,306 +137,321 @@ export function PointDetails({
     enabled: airport && mode === "charts",
   });
   return (
-    <div className="grid gap-2">
-      <WaypointWxDialog
-        pointKey={wxOpen ? key : null}
-        onClose={() => setWxOpen(false)}
-      />
-      <strong>{point.ident}</strong>
-      {airportRecord && (
-        <EmergencyAirportChoice airport={airportRecord} now={now} />
-      )}
-      {point.name !== point.ident && <span>{point.name}</span>}
-      {navaid && (
-        <div
-          className="text-primary font-mono text-sm font-semibold"
-          data-testid="navaid-details"
-        >
-          {navaid.type}
-          {navaid.frequency &&
-            `, ${navaid.frequency} ${/NDB/i.test(navaid.type) ? "kHz" : "MHz"}`}
-          {` ${point.ident}`}
-          {navaid.channel && ` · ${navaid.channel}`}
-        </div>
-      )}
-      <span className="text-muted-foreground text-xs font-bold">
-        {t(KIND_LABEL[point.kind] ?? "maptools.kind.point")} |{" "}
-        {point.lat.toFixed(5)}, {point.lon.toFixed(5)}
-      </span>
-      <div className="flex flex-wrap gap-2">
-        <Button
-          size="sm"
-          variant="outline"
-          aria-expanded={mode === "hold"}
-          onClick={() => setMode(mode === "hold" ? null : "hold")}
-        >
-          {t("holding.title")}
-        </Button>
-        {navigation.startedAt && (
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={!fix || !!error || now - Date.parse(fix.time) > 20000}
-            onClick={() => {
-              if (fix) navigation.goToPoint(point, fix, turnPerformance);
-            }}
-          >
-            {t("fly.directTo")}
-          </Button>
-        )}
-        {navigation.startedAt && point.kind === "airport" && (
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={!fix || !!error || now - Date.parse(fix.time) > 20000}
-            onClick={() => {
-              if (fix) navigation.divertTo(point, fix, turnPerformance);
-            }}
-          >
-            {t("fly.divert")}
-          </Button>
-        )}
-        {!navigation.startedAt && point.kind === "airport" && (
-          <>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => addPoint(point, "departure")}
-            >
-              {t("maptools.setDeparture")}
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => addPoint(point, "destination")}
-            >
-              {t("maptools.setDestination")}
-            </Button>
-          </>
-        )}
-        {selectedAirport && point.ident === flight.departure?.ident && (
-          <Button
-            size="sm"
-            variant="outline"
-            aria-expanded={mode === "departure"}
-            onClick={() => setMode(mode === "departure" ? null : "departure")}
-          >
-            {t("departure.title")}
-          </Button>
-        )}
-        {selectedAirport && (
-          <Button
-            size="sm"
-            variant="outline"
-            aria-expanded={mode === "arrival"}
-            onClick={() => setMode(mode === "arrival" ? null : "arrival")}
-          >
-            {t("arrival.title")}
-          </Button>
-        )}
-        {/* Legacy "Add To Route" turns into "Remove From Route" once the point is on it. */}
-        {removable ? (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => {
-              if (waypointIndex >= 0)
-                update({
-                  waypoints: flight.waypoints.filter(
-                    (_, i) => i !== waypointIndex,
-                  ),
-                });
-              if (activeIndex >= 0)
-                navigation.removeWaypoint(activeIndex, error ? null : fix);
-            }}
-          >
-            {t("maptools.removePoint")}
-          </Button>
-        ) : (
-          <Button size="sm" onClick={() => addPoint(point, "waypoint")}>
-            {t("plan.route.addWaypoint")}
-          </Button>
-        )}
-        {onRoute && (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() =>
-              setMode(mode === "restriction" ? null : "restriction")
-            }
-          >
-            {t("maptools.restriction")}
-          </Button>
-        )}
-        {(airport || onRoute) && (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setMode(mode === "weather" ? null : "weather")}
-          >
-            {t("maptools.weather")}
-          </Button>
-        )}
-        {airport &&
-          (["notams", "charts"] as const).map((action) => (
-            <Button
-              size="sm"
-              variant="outline"
-              key={action}
-              onClick={() => setMode(mode === action ? null : action)}
-            >
-              {t(`maptools.${action}`)}
-            </Button>
-          ))}
-      </div>
-      {airport && <AirportFuel icao={airportCode} />}
-      {airportRecord && navigation.startedAt && (
-        <AirportLandingCard
-          key={airportRecord.ident}
-          airport={airportRecord}
-          fix={error ? null : fix}
-          now={now}
-          turns={turnPerformance}
+    <div
+      className={
+        airportRecord && navigation.startedAt
+          ? "airport-details-columns"
+          : undefined
+      }
+    >
+      <div
+        className="grid content-start gap-2"
+        data-testid="airport-point-actions"
+      >
+        <WaypointWxDialog
+          pointKey={wxOpen ? key : null}
+          onClose={() => setWxOpen(false)}
         />
-      )}
-      {mode === "hold" && (
-        <HoldingPanel
-          point={point}
-          now={now}
-          preview={previewHolding}
-          accept={acceptHolding}
-          remove={removeHolding}
-          cancel={() => setMode(null)}
-        />
-      )}
-      {(mode === "departure" || mode === "arrival") && airportRecord && (
-        <AirportProcedurePanel
-          key={`${airportRecord.ident}:${flight.flightRules}:${mode}`}
-          airport={airportRecord}
-          operation={mode === "departure" ? "leave" : "join"}
-          departureTargetAltitudeFt={departureTargetAltitudeFt}
-          preview={previewPattern}
-          accept={acceptPattern}
-          cancel={() => setMode(null)}
-          remove={() => removePattern(mode === "departure" ? "leave" : "join")}
-        />
-      )}
-      {mode === "restriction" && (
-        <form
-          key={key + JSON.stringify(restriction)}
-          className="grid gap-2"
-          noValidate
-          onSubmit={(e) => {
-            e.preventDefault();
-            const data = new FormData(e.currentTarget),
-              speed = data.get("speed") as string,
-              altitude = data.get("altitude") as string;
-            const next = {
-              speedKt:
-                speed && Number.isFinite(Number(speed)) && Number(speed) > 0
-                  ? Math.max(1, Math.round(Number(speed)))
-                  : null,
-              altitudeFt:
-                altitude &&
-                Number.isFinite(Number(altitude)) &&
-                Number(altitude) >= 0
-                  ? Math.round(Number(altitude))
-                  : null,
-              altitudeMode,
-            };
-            update({
-              pointRestrictions: { ...flight.pointRestrictions, [key]: next },
-            });
-          }}
-        >
-          <div className="grid grid-cols-2 gap-2">
-            <Label>
-              {t("maptools.speed")}
-              <Input
-                type="number"
-                name="speed"
-                min={1}
-                defaultValue={restriction?.speedKt ?? ""}
-              />
-            </Label>
-            <Label>
-              {t("maptools.altitude")}
-              <Input
-                type="number"
-                name="altitude"
-                min={0}
-                step={100}
-                defaultValue={restriction?.altitudeFt ?? ""}
-              />
-            </Label>
-          </div>
+        <strong>{point.ident}</strong>
+        {airportRecord && (
+          <EmergencyAirportChoice airport={airportRecord} now={now} />
+        )}
+        {point.name !== point.ident && <span>{point.name}</span>}
+        {navaid && (
           <div
-            role="group"
-            aria-label={t("maptools.altitudeRestriction")}
-            className="grid gap-1"
+            className="text-primary font-mono text-sm font-semibold"
+            data-testid="navaid-details"
           >
-            <span className="text-muted-foreground text-[10px] font-bold uppercase">
-              {t("maptools.altitudeRestriction")}
-            </span>
-            <div className="grid grid-cols-3 gap-1">
-              {(["below", "at", "above"] as const).map((value) => (
-                <Button
-                  key={value}
-                  size="sm"
-                  type="button"
-                  variant="outline"
-                  aria-pressed={altitudeMode === value}
-                  onClick={() => setAltitudeMode(value)}
-                >
-                  {t(`maptools.${value}`)}
-                </Button>
-              ))}
-            </div>
+            {navaid.type}
+            {navaid.frequency &&
+              `, ${navaid.frequency} ${/NDB/i.test(navaid.type) ? "kHz" : "MHz"}`}
+            {` ${point.ident}`}
+            {navaid.channel && ` · ${navaid.channel}`}
           </div>
-          <div className="flex gap-2">
-            <Button size="sm" type="submit">
-              {t("maptools.apply")}
-            </Button>
+        )}
+        <span className="text-muted-foreground text-xs font-bold">
+          {t(KIND_LABEL[point.kind] ?? "maptools.kind.point")} |{" "}
+          {point.lat.toFixed(5)}, {point.lon.toFixed(5)}
+        </span>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            aria-expanded={mode === "hold"}
+            onClick={() => setMode(mode === "hold" ? null : "hold")}
+          >
+            {t("holding.title")}
+          </Button>
+          {navigation.startedAt && (
             <Button
               size="sm"
-              type="button"
               variant="outline"
+              disabled={!fix || !!error || now - Date.parse(fix.time) > 20000}
               onClick={() => {
-                setAltitudeMode("at");
-                const entries = { ...flight.pointRestrictions };
-                delete entries[key];
-                update({ pointRestrictions: entries });
+                if (fix) navigation.goToPoint(point, fix, turnPerformance);
               }}
             >
-              {t("maptools.clear")}
+              {t("fly.directTo")}
             </Button>
-          </div>
-        </form>
-      )}
-      {mode === "weather" && (
-        <AirportBriefing
-          point={{ ...point, ident: airport ? airportCode : point.ident }}
-          role="selected"
-          onInsertPirep={onRoute ? () => setWxOpen(true) : undefined}
-          showAtis={airport}
-        />
-      )}
-      {mode === "notams" && <AirportNotams icao={airportCode} />}
-      {mode === "charts" &&
-        (charts.data?.length ? (
-          charts.data.map((chart) => (
-            <a
-              key={chart.src}
-              href={chart.src}
-              target="_blank"
-              rel="noreferrer"
+          )}
+          {navigation.startedAt && point.kind === "airport" && (
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={!fix || !!error || now - Date.parse(fix.time) > 20000}
+              onClick={() => {
+                if (fix) navigation.divertTo(point, fix, turnPerformance);
+              }}
             >
-              {chart.title}
-            </a>
-          ))
-        ) : (
-          <p>{t("maptools.noData")}</p>
-        ))}
+              {t("fly.divert")}
+            </Button>
+          )}
+          {!navigation.startedAt && point.kind === "airport" && (
+            <>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => addPoint(point, "departure")}
+              >
+                {t("maptools.setDeparture")}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => addPoint(point, "destination")}
+              >
+                {t("maptools.setDestination")}
+              </Button>
+            </>
+          )}
+          {selectedAirport && point.ident === flight.departure?.ident && (
+            <Button
+              size="sm"
+              variant="outline"
+              aria-expanded={mode === "departure"}
+              onClick={() => setMode(mode === "departure" ? null : "departure")}
+            >
+              {t("departure.title")}
+            </Button>
+          )}
+          {selectedAirport && (
+            <Button
+              size="sm"
+              variant="outline"
+              aria-expanded={mode === "arrival"}
+              onClick={() => setMode(mode === "arrival" ? null : "arrival")}
+            >
+              {t("arrival.title")}
+            </Button>
+          )}
+          {/* Legacy "Add To Route" turns into "Remove From Route" once the point is on it. */}
+          {removable ? (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                if (waypointIndex >= 0)
+                  update({
+                    waypoints: flight.waypoints.filter(
+                      (_, i) => i !== waypointIndex,
+                    ),
+                  });
+                if (activeIndex >= 0)
+                  navigation.removeWaypoint(activeIndex, error ? null : fix);
+              }}
+            >
+              {t("maptools.removePoint")}
+            </Button>
+          ) : (
+            <Button size="sm" onClick={() => addPoint(point, "waypoint")}>
+              {t("plan.route.addWaypoint")}
+            </Button>
+          )}
+          {onRoute && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() =>
+                setMode(mode === "restriction" ? null : "restriction")
+              }
+            >
+              {t("maptools.restriction")}
+            </Button>
+          )}
+          {(airport || onRoute) && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setMode(mode === "weather" ? null : "weather")}
+            >
+              {t("maptools.weather")}
+            </Button>
+          )}
+          {airport &&
+            (["notams", "charts"] as const).map((action) => (
+              <Button
+                size="sm"
+                variant="outline"
+                key={action}
+                onClick={() => setMode(mode === action ? null : action)}
+              >
+                {t(`maptools.${action}`)}
+              </Button>
+            ))}
+        </div>
+        {airport && <AirportFuel icao={airportCode} />}
+        {mode === "hold" && (
+          <HoldingPanel
+            point={point}
+            now={now}
+            preview={previewHolding}
+            accept={acceptHolding}
+            remove={removeHolding}
+            cancel={() => setMode(null)}
+          />
+        )}
+        {(mode === "departure" || mode === "arrival") && airportRecord && (
+          <AirportProcedurePanel
+            key={`${airportRecord.ident}:${flight.flightRules}:${mode}`}
+            airport={airportRecord}
+            operation={mode === "departure" ? "leave" : "join"}
+            departureTargetAltitudeFt={departureTargetAltitudeFt}
+            preview={previewPattern}
+            accept={acceptPattern}
+            cancel={() => setMode(null)}
+            remove={() =>
+              removePattern(mode === "departure" ? "leave" : "join")
+            }
+          />
+        )}
+        {mode === "restriction" && (
+          <form
+            key={key + JSON.stringify(restriction)}
+            className="grid gap-2"
+            noValidate
+            onSubmit={(e) => {
+              e.preventDefault();
+              const data = new FormData(e.currentTarget),
+                speed = data.get("speed") as string,
+                altitude = data.get("altitude") as string;
+              const next = {
+                speedKt:
+                  speed && Number.isFinite(Number(speed)) && Number(speed) > 0
+                    ? Math.max(1, Math.round(Number(speed)))
+                    : null,
+                altitudeFt:
+                  altitude &&
+                  Number.isFinite(Number(altitude)) &&
+                  Number(altitude) >= 0
+                    ? Math.round(Number(altitude))
+                    : null,
+                altitudeMode,
+              };
+              update({
+                pointRestrictions: { ...flight.pointRestrictions, [key]: next },
+              });
+            }}
+          >
+            <div className="grid grid-cols-2 gap-2">
+              <Label>
+                {t("maptools.speed")}
+                <Input
+                  type="number"
+                  name="speed"
+                  min={1}
+                  defaultValue={restriction?.speedKt ?? ""}
+                />
+              </Label>
+              <Label>
+                {t("maptools.altitude")}
+                <Input
+                  type="number"
+                  name="altitude"
+                  min={0}
+                  step={100}
+                  defaultValue={restriction?.altitudeFt ?? ""}
+                />
+              </Label>
+            </div>
+            <div
+              role="group"
+              aria-label={t("maptools.altitudeRestriction")}
+              className="grid gap-1"
+            >
+              <span className="text-muted-foreground text-[10px] font-bold uppercase">
+                {t("maptools.altitudeRestriction")}
+              </span>
+              <div className="grid grid-cols-3 gap-1">
+                {(["below", "at", "above"] as const).map((value) => (
+                  <Button
+                    key={value}
+                    size="sm"
+                    type="button"
+                    variant="outline"
+                    aria-pressed={altitudeMode === value}
+                    onClick={() => setAltitudeMode(value)}
+                  >
+                    {t(`maptools.${value}`)}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" type="submit">
+                {t("maptools.apply")}
+              </Button>
+              <Button
+                size="sm"
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setAltitudeMode("at");
+                  const entries = { ...flight.pointRestrictions };
+                  delete entries[key];
+                  update({ pointRestrictions: entries });
+                }}
+              >
+                {t("maptools.clear")}
+              </Button>
+            </div>
+          </form>
+        )}
+        {mode === "weather" && (
+          <AirportBriefing
+            point={{ ...point, ident: airport ? airportCode : point.ident }}
+            role="selected"
+            onInsertPirep={onRoute ? () => setWxOpen(true) : undefined}
+            showAtis={airport}
+          />
+        )}
+        {mode === "notams" && <AirportNotams icao={airportCode} />}
+        {mode === "charts" &&
+          (charts.data?.length ? (
+            charts.data.map((chart) => (
+              <a
+                key={chart.src}
+                href={chart.src}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {chart.title}
+              </a>
+            ))
+          ) : (
+            <p>{t("maptools.noData")}</p>
+          ))}
+      </div>
+      {airportRecord && navigation.startedAt && (
+        <aside data-testid="airport-runway-side-panel">
+          <AirportLandingCard
+            key={airportRecord.ident}
+            airport={airportRecord}
+            fix={error ? null : fix}
+            now={now}
+            turns={turnPerformance}
+          />
+        </aside>
+      )}
     </div>
   );
 }

@@ -19,6 +19,11 @@ test("copies a spoken ATIS by tapping tiles (legacy ATIS pad)", async ({
   await page.keyboard.press("Escape");
   // WX with Insert ATIS is in the flight view, as in legacy.
   await page.getByRole("link", { name: "Start a flight" }).click();
+  await expect(page.getByTestId("map")).toHaveAttribute(
+    "data-map-ready",
+    "true",
+    { timeout: 15000 },
+  );
   await page.getByRole("button", { name: "WX", exact: true }).click();
   await page.getByRole("button", { name: "Insert ATIS" }).first().click();
 

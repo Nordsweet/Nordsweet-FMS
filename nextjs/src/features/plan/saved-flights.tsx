@@ -42,7 +42,10 @@ export function SavedFlightsSection({ onLoaded }: { onLoaded?: () => void }) {
   const refresh = () =>
     queryClient.invalidateQueries({ queryKey: ["flights.list"] });
   const save = useMutation({
-    ...api.flights.snapshot.mutationOptions(),
+    ...(flight.schedule.departure
+      ? api.flights.save
+      : api.flights.snapshot
+    ).mutationOptions(),
     onSuccess: refresh,
     onError: () => setError(t("plan.saved.saveError")),
   });
@@ -231,7 +234,10 @@ export function SaveFlightButton() {
   const client = useQueryClient();
   const [message, setMessage] = useState("");
   const save = useMutation({
-    ...api.flights.snapshot.mutationOptions(),
+    ...(flight.schedule.departure
+      ? api.flights.save
+      : api.flights.snapshot
+    ).mutationOptions(),
     onMutate: () => ({ points: exportPoints }),
     onSuccess: async (saved, _flight, context) => {
       void client.invalidateQueries({ queryKey: ["flights.list"] });

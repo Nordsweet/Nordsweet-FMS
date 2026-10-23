@@ -1,4 +1,10 @@
 export const airportLandingEn = {
+  "airportLanding.takeoffTitle": "Departure take-off",
+  "airportLanding.todaUsed": "TODA USED",
+  "airportLanding.takeoffRunway": "Take-off runway",
+  "airportLanding.noToda": "Published TODA unavailable",
+  "airportLanding.takeoffWeather":
+    "Take-off mass and latest conditions / pilot inputs ({station}). Distance to 50 ft AGL.",
   "airportLanding.title": "Landing at arrival",
   "airportLanding.ldaUsed": "LDA USED",
   "airportLanding.runway": "Landing runway",
@@ -23,6 +29,12 @@ export const airportLandingEn = {
 };
 
 export const airportLandingPl: Record<keyof typeof airportLandingEn, string> = {
+  "airportLanding.takeoffTitle": "Start z lotniska odlotu",
+  "airportLanding.todaUsed": "WYKORZYSTANIE TODA",
+  "airportLanding.takeoffRunway": "Pas do startu",
+  "airportLanding.noToda": "Brak opublikowanej TODA",
+  "airportLanding.takeoffWeather":
+    "Masa startowa i ostatnie warunki / dane pilota ({station}). Dystans do 50 ft AGL.",
   "airportLanding.title": "Lądowanie przy dolocie",
   "airportLanding.ldaUsed": "WYKORZYSTANIE LDA",
   "airportLanding.runway": "Pas do lądowania",

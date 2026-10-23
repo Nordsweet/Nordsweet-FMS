@@ -58,9 +58,9 @@ State defaults: the `state = {…}` object (~line 1500). DOM refs: `refs = {…}
 
 ## 4. Work board
 
-Airport runway side panel and TODA/LDA — claimed, Codex 2026-10-23. Place runway visualization beside airport actions; use take-off performance and TODA at departure, arrival performance and LDA at landing, including same-airport flight phase distinction.
+Airport runway side panel and TODA/LDA — done, Codex 2026-10-23. Runway beside airport actions on desktop, stacked on narrow screens; full-height popup and close control over actions. Departure uses take-off mass/performance, selected Taxi-out/Take-off runway and TODA without requiring GPS; arrivals retain route/Direct prediction and LDA. Same-airport flights switch by phase. Runway remains drawn when prediction is unavailable. Format/lint/types, 742 unit tests, production build and all 166 browser scenarios passed without retries; desktop screenshot inspected.
 
-My Planner flight calendar — claimed, Codex 2026-10-23. Calendar beside Current/Saved Flights, planned departure and calculated duration, creation with previous-flight destination and predicted landing fuel, editing in Flight Planner with persistent saved schedules.
+My Planner flight calendar — done, Codex 2026-10-23. Week/month calendar beside Current/Saved Flights, local departure time and calculated flight duration; plus and time-slot creation inherit the preceding scheduled flight's destination, airframe and predicted landing fuel in internal litres. Complete/edit in Flight Planner, save the same calendar event without snapshot duplication, or remove its schedule while retaining the saved flight. Existing account sync/offline library reused, PL/EN labels. Format/lint/types, 742 unit tests, production build and all 166 browser scenarios passed without retries; persistence, fuel carry-over and narrow-screen layout covered. Existing ATIS-pad test now waits for map readiness before opening WX.
 
 Logbook — done, Codex 2026-10-21. Dedicated /logbook route, account-owned flight history with durable offline outbox, editable PIC and default pilot surname. Fly sessions retain independent identities, real UTC events and accepted MTH/fuel readings. Imports existing browser checkpoints. PIC corrections preserve newer flight data on other devices. See LOGBOOK.md.
 
