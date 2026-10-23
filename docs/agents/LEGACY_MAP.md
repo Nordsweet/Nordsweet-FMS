@@ -58,6 +58,8 @@ State defaults: the `state = {…}` object (~line 1500). DOM refs: `refs = {…}
 
 ## 4. Work board
 
+Airport runway side panel and TODA/LDA — claimed, Codex 2026-10-23. Place runway visualization beside airport actions; use take-off performance and TODA at departure, arrival performance and LDA at landing, including same-airport flight phase distinction.
+
 My Planner flight calendar — claimed, Codex 2026-10-23. Calendar beside Current/Saved Flights, planned departure and calculated duration, creation with previous-flight destination and predicted landing fuel, editing in Flight Planner with persistent saved schedules.
 
 Logbook — done, Codex 2026-10-21. Dedicated /logbook route, account-owned flight history with durable offline outbox, editable PIC and default pilot surname. Fly sessions retain independent identities, real UTC events and accepted MTH/fuel readings. Imports existing browser checkpoints. PIC corrections preserve newer flight data on other devices. See LOGBOOK.md.
