@@ -58,6 +58,8 @@ State defaults: the `state = {…}` object (~line 1500). DOM refs: `refs = {…}
 
 ## 4. Work board
 
+My Planner flight calendar — claimed, Codex 2026-10-23. Calendar beside Current/Saved Flights, planned departure and calculated duration, creation with previous-flight destination and predicted landing fuel, editing in Flight Planner with persistent saved schedules.
+
 Logbook — done, Codex 2026-10-21. Dedicated /logbook route, account-owned flight history with durable offline outbox, editable PIC and default pilot surname. Fly sessions retain independent identities, real UTC events and accepted MTH/fuel readings. Imports existing browser checkpoints. PIC corrections preserve newer flight data on other devices. See LOGBOOK.md.
 
 TOC/TOD anchors and altitude notices — done, Codex 2026-10-20. Dots follow rendered Mercator segments; labels move independently. Fresh-climb 1000-ft callout, TOD descent countdown/NOW/history. Browser regression measures both dot-to-route distances and checks countdown/history.
