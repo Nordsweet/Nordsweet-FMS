@@ -58,7 +58,7 @@ State defaults: the `state = {…}` object (~line 1500). DOM refs: `refs = {…}
 
 ## 4. Work board
 
-Hide FIS regions from map interaction — claimed, Codex 2026-10-23. Hide FIS geometry/labels from map rendering and picking while retaining complete airspace for frequency selection and handoffs.
+Hide FIS regions from map interaction — done, Codex 2026-10-23. FIS names/classes are excluded from map geometry, captions, picking and graphical search, including imported zones. Full source data remain available to COMMs, route frequencies and handoffs. Unit regression confirms retained sector frequency; browser test checks three clear-map clicks and absence from graphical search; existing ATZ/FIS/TMA handoff test passes. Format/lint/types, 743 unit tests, production build and all 167 browser tests passed without retries.
 
 Airport runway side panel and TODA/LDA — done, Codex 2026-10-23. Runway beside airport actions on desktop, stacked on narrow screens; full-height popup and close control over actions. Departure uses take-off mass/performance, selected Taxi-out/Take-off runway and TODA without requiring GPS; arrivals retain route/Direct prediction and LDA. Same-airport flights switch by phase. Runway remains drawn when prediction is unavailable. Format/lint/types, 742 unit tests, production build and all 166 browser scenarios passed without retries; desktop screenshot inspected.
 

@@ -12,6 +12,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { api } from "~/api";
+import { mapAirspaceVisible } from "~/domain/airspace-style";
 import { Button } from "~/components/ui/button";
 import { cn } from "cn";
 import { type AirspacePlan } from "~/api/aviation/client";
@@ -486,6 +487,7 @@ export function MapView({
         )
         .filter(
           (zone) =>
+            mapAirspaceVisible(zone.properties) &&
             !settings.hiddenClasses.includes(
               airspaceKind(zone.properties.name, zone.properties.class),
             ),
@@ -1133,7 +1135,7 @@ export function MapView({
     const allZones = [
       ...(airspace.data?.features ?? []),
       ...(imported.data ?? []),
-    ];
+    ].filter((zone) => mapAirspaceVisible(zone.properties));
     const base = {
       airports: fields,
       points: planAirportFixes(
@@ -1159,7 +1161,10 @@ export function MapView({
           retry: false,
         })
         .catch(() => null);
-      base.zones = [...(loaded?.features ?? []), ...(imported.data ?? [])];
+      base.zones = [
+        ...(loaded?.features ?? []),
+        ...(imported.data ?? []),
+      ].filter((zone) => mapAirspaceVisible(zone.properties));
       const matches = findMapObjects(text, base);
       if (
         matches.length &&

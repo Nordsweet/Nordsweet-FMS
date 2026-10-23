@@ -1,6 +1,13 @@
 import { type AirspaceFeature } from "~/api/aviation/schemas";
 import { airspaceKind } from "./map-navigation";
 
+/** FIS service areas remain in COMMs data but are not chart objects to draw or pick. */
+export function mapAirspaceVisible(
+  zone: Pick<AirspaceFeature["properties"], "name" | "class">,
+) {
+  return !/\bFIS\b/i.test(`${zone.name} ${zone.class}`);
+}
+
 export const airspacePalette: Record<string, { stroke: string; fill: string }> =
   {
     ATZ: { stroke: "#126cac", fill: "rgba(18, 108, 172, 0.13)" },

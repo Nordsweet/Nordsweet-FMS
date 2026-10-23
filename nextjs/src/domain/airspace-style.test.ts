@@ -1,6 +1,54 @@
 import { expect, test } from "vitest";
 import { airspaceFeatureSchema } from "~/api/aviation/schemas";
-import { airspaceStyle } from "./airspace-style";
+import { airspaceStyle, mapAirspaceVisible } from "./airspace-style";
+import { commsZones, rowsAt } from "./comms";
+
+test("FIS is hidden only from chart objects while its sector frequency stays available", () => {
+  const fis = airspaceFeatureSchema.parse({
+    type: "Feature",
+    bbox: [19, 49, 21, 51],
+    geometry: {
+      type: "Polygon",
+      coordinates: [
+        [
+          [19, 49],
+          [21, 49],
+          [21, 51],
+          [19, 51],
+          [19, 49],
+        ],
+      ],
+    },
+    properties: {
+      name: "FIS LOCAL",
+      class: "G",
+      lower: "GND",
+      upper: "FL95",
+      active_now: true,
+      activations: [],
+      frequencies: [
+        {
+          frequencyMhz: "119.275",
+          callsign: "Kraków Information",
+          sector: null,
+          serviceId: "fiss",
+        },
+      ],
+    },
+  });
+  expect(mapAirspaceVisible(fis.properties)).toBe(false);
+  expect(mapAirspaceVisible({ name: "Kraków West", class: "FIS" })).toBe(false);
+  for (const name of ["ATZ EPNT", "CTR EPKK", "TMA EPKK", "TR 165", "R 11"])
+    expect(mapAirspaceVisible({ name, class: "G" })).toBe(true);
+  const source = [fis];
+  expect(source.filter((z) => mapAirspaceVisible(z.properties))).toEqual([]);
+  expect(
+    rowsAt({ lat: 50, lon: 20 }, commsZones(source), () => []),
+  ).toMatchObject([
+    { frequencyMhz: "119.275", callsign: "Kraków Information" },
+  ]);
+  expect(source).toHaveLength(1);
+});
 
 const zone = (
   name: string,
