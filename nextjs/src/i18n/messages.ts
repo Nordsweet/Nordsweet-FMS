@@ -143,7 +143,7 @@ const pl = {
   "plan.fuel.note.contingency.fallback": "domyślnie {flow} {unit}/h",
   "plan.fuel.note.alternate":
     "Zapasowe: zapasowe {from} -> {to}: odejście na drugi krąg 5 min, wznoszenie {climb} ft z {rate}, DCT {distance} NM przy GS {gs} kt, podejście/lądowanie 10 min. Jeśli wymagane są dwa lotniska zapasowe, przyjmij większą ilość paliwa.",
-  "plan.fuel.note.alternate.fallbackRate": "domyślnym 500 ft/min",
+  "plan.fuel.note.alternate.fallbackRate": "domyślnym {rate} ft/min",
   "plan.fuel.note.alternate.tableRate":
     "{rate} ft/min (80% najlepszej prędkości wznoszenia z tabeli)",
   "plan.fuel.note.noAlternate":
@@ -992,7 +992,7 @@ const en: Record<MessageKey, string> = {
   "plan.fuel.note.contingency.fallback": "fallback {flow} {unit}/h",
   "plan.fuel.note.alternate":
     "Alternate: Alternate {from} -> {to}: missed approach 5 min, climb {climb} ft at {rate}, DCT {distance} NM at GS {gs} kt, approach/landing 10 min. If two alternates are required, use the greater fuel case.",
-  "plan.fuel.note.alternate.fallbackRate": "fallback 500 ft/min",
+  "plan.fuel.note.alternate.fallbackRate": "fallback {rate} ft/min",
   "plan.fuel.note.alternate.tableRate":
     "{rate} ft/min (80% best rate from climb table)",
   "plan.fuel.note.noAlternate":

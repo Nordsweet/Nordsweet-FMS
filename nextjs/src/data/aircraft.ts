@@ -171,6 +171,21 @@ export const cruiseSchema = z.object({
   draft: z.boolean(),
   /** Above this power the supplied lean-mixture table is not an operating fuel-flow model. */
   maximumLeanPowerPct: z.number().positive().optional(),
+  /** Isolated owner measurements; never used to extrapolate a POH table. */
+  observations: z
+    .array(
+      z.object({
+        pressureAltitudeFt: z.number(),
+        oatC: z.number(),
+        rpm: z.number().positive(),
+        iasKt: z.number().positive(),
+        ktas: z.number().positive(),
+        fuelFlowLph: z.number().positive(),
+        mixture: z.string(),
+        source: z.string(),
+      }),
+    )
+    .optional(),
   rows: z
     .array(
       z.object({
@@ -251,6 +266,15 @@ export const aircraftSchema = z.object({
   takeoff: distancePerformanceSchema.nullable(),
   landing: distancePerformanceSchema.nullable(),
   climb: climbSchema.nullable(),
+  /** Approximate normal-climb planning values without a supplied ROC/IAS table. */
+  planningClimb: z
+    .object({
+      rateFpm: z.number().positive(),
+      fuelFlowLph: z.number().positive(),
+      mixture: z.string(),
+      source: z.string(),
+    })
+    .optional(),
   /** Every POH climb configuration, where the legacy data has them (P2006T). */
   climbTables: z.array(climbTableSchema).default([]),
   cruise: cruiseSchema.nullable(),

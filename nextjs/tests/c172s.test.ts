@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { aircraftSchema } from "~/data/aircraft";
 import { operationalProcedure } from "~/data/emergency";
 import { resolveAircraft } from "~/domain/aircraft";
+import { computeFuelPlanning } from "~/domain/fuel-planning";
 import {
   cruisePerformance,
   cruiseTableRead,
@@ -23,6 +24,59 @@ const profile = aircraft.find((a) => a.id === "C172S")!;
 const cruise = profile.cruise!;
 
 describe("C172S supplied Carenado reference", () => {
+  it("uses the owner Peak EGT cruise observation only at its supplied conditions", () => {
+    const point = cruisePerformance(cruise, 5000, 9, 0, {
+      rpm: 2280,
+      mapInHg: 23,
+    })!;
+    expect(point.ktas).toBe(104);
+    expect(point.fuelFlowLph).toBeCloseTo(6.7 * 3.785411784, 10);
+    expect(cruisePerformance(cruise, 5000, 9, 0, "eco-distance")?.ktas).toBe(
+      104,
+    );
+    expect(cruise.observations?.[0]?.iasKt).toBe(96.5);
+    expect(cruise.observations?.[0]?.mixture).toBe("Peak EGT");
+    expect(
+      cruisePerformance(
+        { ...cruise, observations: [] },
+        4000,
+        7,
+        0,
+        "eco-distance",
+      ),
+    ).toEqual(cruisePerformance(cruise, 4000, 7, 0, "eco-distance"));
+  });
+
+  it("uses Full Rich observed normal climb as generic planning data", () => {
+    expect(
+      resolveAircraft(aircraft, "C172S", "ANY-REG")?.planningClimb?.rateFpm,
+    ).toBe(600);
+    expect(profile.planningClimb?.fuelFlowLph).toBeCloseTo(39.3682825536, 10);
+    expect(profile.planningClimb?.mixture).toBe("Full Rich");
+    const plan = computeFuelPlanning({
+      aircraft: profile,
+      departure: { ident: "DEP", elevationFt: 0 },
+      destination: { ident: "DEST", elevationFt: 0 },
+      alternate: { ident: "ALT", elevationFt: 0, distanceNm: 50 },
+      legs: [],
+      directDistanceNm: 0,
+      cruiseAltitudeFt: 6000,
+      plannerSpeedKt: 104,
+      cruiseOatC: 9,
+      surfaceTempC: 15,
+      qnhHpa: 1013.25,
+      takeoffWeightKg: 1100,
+      landingWeightKg: 1050,
+      overrides: {},
+      blockFuelL: 100,
+    });
+    expect(plan.rows.climb.minutes).toBe(11);
+    expect(plan.rows.climb.fuelL).toBe(8);
+    expect(plan.alternateDetails).toMatchObject({
+      kind: "airport",
+      climbRateFpm: 600,
+    });
+  });
   it("resolves separately from Reims/C152 and leaves unsupplied data unavailable", () => {
     expect(resolveAircraft(aircraft, "C172S", "SP-TEST")).toBe(profile);
     expect(profile.icaoType).toBe("C172");

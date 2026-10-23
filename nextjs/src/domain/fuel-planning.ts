@@ -71,7 +71,12 @@ export type FuelAirport = { ident: string; elevationFt: number };
 export type FuelPlanningInput = {
   aircraft: Pick<
     Aircraft,
-    "cruise" | "climb" | "powerplant" | "fuelTankCapacityL" | "usableFuelL"
+    | "cruise"
+    | "climb"
+    | "planningClimb"
+    | "powerplant"
+    | "fuelTankCapacityL"
+    | "usableFuelL"
   >;
   departure: FuelAirport;
   destination: FuelAirport;
@@ -233,7 +238,9 @@ export function computeFuelPlanning(input: FuelPlanningInput) {
     input.surfaceTempC,
   );
   const climbRate =
-    tableRate === null ? null : tableRate * PLANNING_RATE_FACTOR;
+    tableRate === null
+      ? (aircraft.planningClimb?.rateFpm ?? null)
+      : tableRate * PLANNING_RATE_FACTOR;
   const climbFlow = (fromFt: number) => {
     const averageFt = fromFt + gainFor(fromFt) / 2;
     const averagePa = pressureAltitudeFt(averageFt, input.qnhHpa);
@@ -244,6 +251,7 @@ export function computeFuelPlanning(input: FuelPlanningInput) {
     );
     return (
       aircraft.climb?.fuelFlowLph ??
+      aircraft.planningClimb?.fuelFlowLph ??
       (cruise
         ? fuelFlowAtPower(cruise, averagePa, averageTemp, CLIMB_POWER_PCT)
         : null)
@@ -340,13 +348,14 @@ export function computeFuelPlanning(input: FuelPlanningInput) {
     );
     const rate =
       destinationRate === null
-        ? ALTERNATE_CLIMB_FALLBACK_FPM
+        ? (aircraft.planningClimb?.rateFpm ?? ALTERNATE_CLIMB_FALLBACK_FPM)
         : destinationRate * PLANNING_RATE_FACTOR;
     const altClimbMinutes =
       gain > 0 ? Math.ceil((gain / rate) * CLIMB_TIME_FACTOR) : 0;
     const averageFt = input.destination.elevationFt + gain / 2;
     const flow =
       aircraft.climb?.fuelFlowLph ??
+      aircraft.planningClimb?.fuelFlowLph ??
       (cruise
         ? fuelFlowAtPower(
             cruise,

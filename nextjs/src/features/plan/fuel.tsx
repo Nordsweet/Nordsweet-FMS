@@ -333,7 +333,9 @@ export function FuelSection() {
                     to: plan.alternateDetails.to,
                     climb: num(plan.alternateDetails.climbFt, 0),
                     rate: plan.alternateDetails.fallbackRate
-                      ? t("plan.fuel.note.alternate.fallbackRate")
+                      ? t("plan.fuel.note.alternate.fallbackRate", {
+                          rate: num(plan.alternateDetails.climbRateFpm, 0),
+                        })
                       : t("plan.fuel.note.alternate.tableRate", {
                           rate: num(plan.alternateDetails.climbRateFpm, 0),
                         }),

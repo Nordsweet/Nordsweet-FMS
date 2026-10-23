@@ -15,6 +15,10 @@ test("C172S selection, source values and normal/emergency reference checklists p
   await expect(reference).toContainText("NOT INTENDED FOR REAL FLIGHTS");
   await expect(reference).toContainText("Sea level: 74 KIAS");
   await expect(reference).toContainText("68 KIAS");
+  await expect(reference).toContainText("600 ft/min");
+  await expect(reference).toContainText("Full Rich");
+  await expect(reference).toContainText("96.5 KIAS / 104 KTAS");
+  await expect(reference).toContainText("Peak EGT");
   await page.reload();
   await expect(
     page.getByRole("combobox", { name: "Aircraft type" }),

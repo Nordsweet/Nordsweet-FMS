@@ -71,7 +71,9 @@ export function arrivalFuelModel({
             ? speeds.phases.landing
             : cruiseSpeedKt),
       fuelFlowLph: climbing
-        ? (aircraft?.climb?.fuelFlowLph ?? direct.fuelFlowLph)
+        ? (aircraft?.climb?.fuelFlowLph ??
+          aircraft?.planningClimb?.fuelFlowLph ??
+          direct.fuelFlowLph)
         : direct.fuelFlowLph,
       wind: plannedWind
         ? {

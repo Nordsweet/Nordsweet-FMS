@@ -190,6 +190,21 @@ export function cruisePerformance(
   windComponentKt: number,
   mode: CruiseMode | ManualSetting,
 ): CruisePerformance | null {
+  const observed = cruise.observations?.find(
+    (point) =>
+      Math.abs(point.pressureAltitudeFt - pressureAltitudeFt) < 0.01 &&
+      Math.abs(point.oatC - oatC) < 0.01 &&
+      (typeof mode === "string" || Math.abs(point.rpm - mode.rpm) < 0.01),
+  );
+  if (observed) {
+    return {
+      setting: `${observed.rpm} RPM`,
+      ktas: observed.ktas,
+      fuelFlowLph: observed.fuelFlowLph,
+      powerPct: null,
+      groundSpeedKt: observed.ktas + windComponentKt,
+    };
+  }
   const isaDeltaC = oatC - isaTemperatureC(pressureAltitudeFt);
   const alt = bracket(altitudes(cruise), pressureAltitudeFt);
   const lower = pick(
