@@ -58,6 +58,8 @@ State defaults: the `state = {…}` object (~line 1500). DOM refs: `refs = {…}
 
 ## 4. Work board
 
+Radio language info popovers — claimed, Codex 2026-10-25. Replace expanded greetings in COMMs with an accessible circled-info button and compact popover; include foreign airspace groups with unavailable frequencies.
+
 Flight guidance and radio continuity fixes — done, Codex 2026-10-25. Warm Up hides after off-block, including after reload. Live off-track rate-one countdowns and leg sequencing use the same intercept; outside turns can roll onto the next leg's extension. FREDA shares the live COMMs current/next estimate. Radio visit/acknowledgement persists across reload, with recovery and airspace-readiness gates preventing premature handoffs; returning to a sector still prompts again. Verified format, lint, types, 749 unit tests, production build, and all 168 browser tests (including inner/outer countdown, Warm Up reload, FREDA and dismissed handoff reload regressions).
 
 Hide FIS regions from map interaction — done, Codex 2026-10-23. FIS names/classes are excluded from map geometry, captions, picking and graphical search, including imported zones. Full source data remain available to COMMs, route frequencies and handoffs. Unit regression confirms retained sector frequency; browser test checks three clear-map clicks and absence from graphical search; existing ATZ/FIS/TMA handoff test passes. Format/lint/types, 743 unit tests, production build and all 167 browser tests passed without retries.
