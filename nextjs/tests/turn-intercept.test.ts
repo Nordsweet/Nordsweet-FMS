@@ -4,6 +4,7 @@ import { guidanceTimeline } from "~/domain/guidance-timeline";
 import { destinationPoint, trackOffset } from "~/domain/geo";
 import { windTriangle } from "~/domain/wind";
 import { angleDiffDeg, toRad, toDeg } from "~/domain/angles";
+import { computeProgress } from "~/domain/progress";
 
 const from = { ident: "B", lat: 0, lon: 0 };
 const to = { ident: "C", ...destinationPoint(from, 90, 10) };
@@ -102,3 +103,62 @@ test("rejects unreachable rollout, parallel motion and missing telemetry", () =>
     rateOneIntercept({ ...fix, trackDeg: 0, groundSpeedKt: 0 }, from, to, wind),
   ).toBeNull();
 });
+
+test.each([
+  { name: "inside, past the nominal tangent", heading: 50, north: 0.1 },
+  { name: "outside, rolling onto the leg extension", heading: 90, north: -1 },
+])(
+  "$name keeps countdown and leg sequencing on the same live turn",
+  ({ heading, north }) => {
+    const corner = { ident: "B", lat: 0, lon: 0 };
+    const route = [
+      { ident: "A", ...destinationPoint(corner, 270, 10) },
+      corner,
+      { ident: "C", ...destinationPoint(corner, 0, 10) },
+    ];
+    const radius = 100 / (60 * Math.PI);
+    // Independent constant-rate turn integration: left turn from heading to north.
+    const turnEast = radius * (1 - Math.cos(toRad(heading)));
+    const east = -turnEast - (100 / 3600) * Math.sin(toRad(heading)) * 11;
+    const start = destinationPoint(
+      corner,
+      toDeg(Math.atan2(east, north)),
+      Math.hypot(east, north),
+    );
+    const wind = { directionDeg: 0, speedKt: 0 };
+    for (const elapsed of [0, 5, 10, 11]) {
+      const fix = {
+        ...destinationPoint(start, heading, (100 * elapsed) / 3600),
+        groundSpeedKt: 100,
+        trackDeg: heading,
+        time: new Date(now + elapsed * 1000).toISOString(),
+        altitudeFt: 5000,
+      };
+      const intercept = rateOneIntercept(fix, corner, route[2]!, wind)!;
+      expect(intercept.seconds).toBeCloseTo(11 - elapsed, 2);
+      if (north < 0)
+        expect(
+          trackOffset(corner, route[2]!, intercept.rollout).alongTrackNm,
+        ).toBeLessThan(0);
+      const progress = computeProgress(route, fix, 0)!;
+      expect(progress.activeLeg).toBe(elapsed < 11 ? 0 : 1);
+      const event = guidanceTimeline({
+        now: now + elapsed * 1000,
+        phase: "cruise",
+        fix,
+        courseTrueDeg: elapsed < 11 ? 90 : 0,
+        targetAltitudeFt: 5000,
+        tasKt: 100,
+        wind,
+        variationDeg: 0,
+        route,
+        activeLeg: progress.activeLeg,
+        performance: { tasKt: 100 },
+        plan: null,
+        cruiseAltitudeFt: 5000,
+      }).find((e) => e.key === "heading-leg:1")!;
+      expect(event).toBeDefined();
+      expect(event.dueAt).toBeCloseTo(now + 11000, -1);
+    }
+  },
+);

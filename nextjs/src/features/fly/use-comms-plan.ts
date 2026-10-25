@@ -131,5 +131,8 @@ export function useCommsPlan(
     cruiseSpeedKt,
   ]);
 
-  return { ...result, loading: !frequencies.data || !airspace.data };
+  return {
+    ...result,
+    loading: !frequencies.data || !airspace.data || imported.isPending,
+  };
 }

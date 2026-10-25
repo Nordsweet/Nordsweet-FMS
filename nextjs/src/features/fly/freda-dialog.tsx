@@ -1,9 +1,7 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
-import { api } from "~/api";
 import { Button } from "~/components/ui/button";
 import {
   Dialog,
@@ -30,19 +28,11 @@ import { useInFlight } from "~/stores/inflight";
 import { Group, Row } from "./emergency-panel";
 import { type GpsFix } from "./use-gps";
 import { useTurnPerformance } from "./use-turn-performance";
+import { useCommsPlan } from "./use-comms-plan";
 
 const TANKS: Record<string, [string, string]> = {
   P2006T: ["LH tank", "RH tank"],
 };
-const DEPARTURE_SERVICES = [
-  "zblizanie",
-  "radar",
-  "radio",
-  "informacja",
-  "tower",
-  "atis",
-];
-const ARRIVAL_SERVICES = ["radio", "informacja", "tower", "atis"];
 
 /** Legacy FREDA check (30-minute in-flight check): Fuel, Radio, Engine, Direction, Altitude. */
 export function FredaDialog({ fix, now }: { fix: GpsFix | null; now: number }) {
@@ -51,9 +41,7 @@ export function FredaDialog({ fix, now }: { fix: GpsFix | null; now: number }) {
   const inFlight = useInFlight();
   const recoveryReady = useFlightSync((s) => s.phase === "ready");
   const turns = useTurnPerformance(fix);
-  const frequencies = useQuery(
-    api.frequencies.list.queryOptions(undefined),
-  ).data;
+  const comms = useCommsPlan(inFlight.phase, fix, now, !!inFlight.startedAt);
   const [tanks, setTanks] = useState<number[] | null>(null);
   const [engine, setEngine] = useState<"yes" | "no" | null>(null);
 
@@ -93,7 +81,7 @@ export function FredaDialog({ fix, now }: { fix: GpsFix | null; now: number }) {
       ),
     );
 
-  // Radio: the departure's after-departure frequency, near the arrival the destination's.
+  // Radio shares the live sector estimate used by COMMs and frequency-change popups.
   const progress = fix
     ? navigationProgress(
         inFlight.route,
@@ -103,17 +91,10 @@ export function FredaDialog({ fix, now }: { fix: GpsFix | null; now: number }) {
         inFlight.holding,
       )
     : null;
-  const nearArrival = inFlight.activeLeg >= inFlight.route.length - 2;
-  const frequency = (icao: string | undefined, services: string[]) => {
-    const row = (frequencies ?? [])
-      .filter((f) => f.airport === icao && services.includes(f.service))
-      .sort(
-        (a, b) => services.indexOf(a.service) - services.indexOf(b.service),
-      )[0];
-    return row
-      ? `${row.frequencyMhz} ${row.callsign}`
+  const frequency = (rows: typeof comms.estimate.current) =>
+    rows.length
+      ? rows.map((row) => `${row.frequencyMhz} ${row.callsign}`).join(" · ")
       : t("fly.comms.notAvailable");
-  };
   const gs = fix?.groundSpeedKt ?? null;
   const eta =
     progress && gs !== null && gs > 1
@@ -193,15 +174,11 @@ export function FredaDialog({ fix, now }: { fix: GpsFix | null; now: number }) {
           <Group title={t("fly.freda.radio")}>
             <Row
               label={t("fly.freda.current")}
-              value={
-                nearArrival
-                  ? frequency(flight.destination?.ident, ARRIVAL_SERVICES)
-                  : frequency(flight.departure?.ident, DEPARTURE_SERVICES)
-              }
+              value={frequency(comms.estimate.current)}
             />
             <Row
               label={t("fly.freda.next")}
-              value={frequency(flight.destination?.ident, ARRIVAL_SERVICES)}
+              value={frequency(comms.estimate.next)}
             />
           </Group>
           <Group title={t("fly.freda.engine")}>

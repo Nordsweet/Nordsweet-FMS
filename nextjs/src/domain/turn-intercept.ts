@@ -81,7 +81,9 @@ export function rateOneIntercept(
     Math.hypot(e, n),
   );
   const along = trackOffset(from, to, rollout).alongTrackNm;
-  if (along < -0.01 || along > distanceNm(from, to) + 0.01) return null;
+  // An outside offset may roll onto the extension before the fix, then fly through it.
+  // Reject only a rollout beyond the far end, which would skip the whole next leg.
+  if (along > distanceNm(from, to) + 0.01) return null;
   return {
     seconds: Math.max(0, seconds),
     headingTrueDeg: target.headingDeg,

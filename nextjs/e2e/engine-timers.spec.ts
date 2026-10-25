@@ -61,6 +61,19 @@ test("engine warm-up and stationary cool-down count down and movement resets coo
   await expect(warm.getByTestId("engine-assistant-timer")).toHaveText("00:50");
   await page.clock.fastForward(50000);
   await expect(warm).toContainText("1 minute elapsed");
+  await page.evaluate(() => {
+    (window as Window & { engineTestSpeed?: number }).engineTestSpeed = 5;
+  });
+  await page.clock.runFor(7000);
+  await expect(warm).toHaveCount(0);
+  await page.evaluate(() => {
+    (window as Window & { engineTestSpeed?: number }).engineTestSpeed = 0;
+  });
+  await page.clock.runFor(2000);
+  await expect(warm).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByTestId("flight-status-bar")).toBeVisible();
+  await expect(warm).toHaveCount(0);
   await selectFlightPhase(page, "Taxi-In");
   const cool = page.getByRole("region", {
     name: "Cool Down Assistant",

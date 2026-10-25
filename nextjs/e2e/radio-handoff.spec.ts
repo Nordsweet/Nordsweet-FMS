@@ -108,22 +108,24 @@ test("climb crossing ATZ to FIS and entering TMA both suggest the current local 
   await page.addInitScript(
     ({ flight, route }) => {
       localStorage.setItem("nordsweet.language.v1", "en");
-      localStorage.setItem(
-        "nordsweet.flight.v2",
-        JSON.stringify({ version: 1, state: { flight } }),
-      );
-      localStorage.setItem(
-        "nordsweet.inflight.v1",
-        JSON.stringify({
-          version: 1,
-          state: {
-            startedAt: new Date().toISOString(),
-            phase: "climb",
-            route,
-            activeLeg: 0,
-          },
-        }),
-      );
+      if (!localStorage.getItem("nordsweet.flight.v2"))
+        localStorage.setItem(
+          "nordsweet.flight.v2",
+          JSON.stringify({ version: 1, state: { flight } }),
+        );
+      if (!localStorage.getItem("nordsweet.inflight.v1"))
+        localStorage.setItem(
+          "nordsweet.inflight.v1",
+          JSON.stringify({
+            version: 1,
+            state: {
+              startedAt: new Date().toISOString(),
+              phase: "climb",
+              route,
+              activeLeg: 0,
+            },
+          }),
+        );
       navigator.geolocation.watchPosition = (success) => {
         const sample = () =>
           success({
@@ -195,6 +197,29 @@ test("climb crossing ATZ to FIS and entering TMA both suggest the current local 
   await frequency
     .getByRole("button", { name: "Dismiss Frequency", exact: true })
     .click();
+  await page.getByRole("button", { name: "Options", exact: true }).click();
+  await page.getByRole("button", { name: "FREDA CHECK", exact: true }).click();
+  const freda = page.getByRole("dialog", { name: "FREDA", exact: true });
+  const radio = freda
+    .getByRole("heading", { name: "R — Radio", exact: true })
+    .locator("..");
+  await expect(
+    radio.getByText("Current", { exact: true }).locator(".."),
+  ).toContainText("119.275 Bratislava Information");
+  await expect(
+    radio.getByText("Next", { exact: true }).locator(".."),
+  ).toContainText("121.075 Test Approach");
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Options", exact: true }).click();
+  await page.reload();
+  await expect(page.getByTestId("flight-status-bar")).toBeVisible();
+  await page.getByRole("button", { name: "COMMs", exact: true }).click();
+  await expect(
+    page.getByRole("dialog", { name: "COMMs", exact: true }),
+  ).toContainText("Bratislava Information");
+  await page.getByRole("button", { name: "COMMs", exact: true }).click();
+  await page.clock.runFor(2000);
+  await expect(frequency).toHaveCount(0);
   await page.evaluate(() => localStorage.setItem("test.radio.lon", "20.6"));
   await page.clock.runFor(3000);
   await expect(frequency).toContainText("Switch to Test Approach, 121.075 MHz");

@@ -22,6 +22,7 @@ import { type buildRoutePlan } from "~/domain/route-plan";
 import { type TurnPerformance } from "~/domain/fly-by";
 import { type FlightPhase } from "~/domain/flight-phase";
 import { useInFlight } from "~/stores/inflight";
+import { useFlightSync } from "~/stores/flight-sync";
 import { useT } from "~/i18n/use-t";
 import { CommsChangePopup } from "./comms-change-popup";
 import { EventToast } from "./event-toast";
@@ -79,12 +80,19 @@ const FrequencyNotification = memo(function FrequencyNotification({
     return () => clearInterval(id);
   }, []);
   const comms = useCommsPlan(phase, fix, now, true);
+  const recoveryReady = useFlightSync((s) => s.phase === "ready");
   return (
     <CommsChangePopup
       phase={phase}
       estimate={comms.estimate}
       now={now}
-      live={!!fix && !fix.paused && now - Date.parse(fix.time) < 30000}
+      live={
+        recoveryReady &&
+        !comms.loading &&
+        !!fix &&
+        !fix.paused &&
+        now - Date.parse(fix.time) < 30000
+      }
     />
   );
 });

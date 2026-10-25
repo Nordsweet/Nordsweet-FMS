@@ -1,5 +1,6 @@
 import { type LatLon, distanceNm, initialBearingDeg, trackOffset } from "./geo";
 import { flyByRoute, type TurnPerformance, type FlyByPoint } from "./fly-by";
+import { rateOneIntercept } from "./turn-intercept";
 
 export type NavPoint = FlyByPoint & {
   ident: string;
@@ -62,12 +63,18 @@ export function nearestLeg(
 }
 
 /**
- * Fly-by sequencing at tangent entry, with guidance and distances along the same curved map path.
+ * Measured motion sequences fly-by turns at the same live intercept as their countdown.
+ * Without motion telemetry, use the planned tangent; distances follow the drawn path.
  * Unavailable turns retain waypoint passage sequencing; legs never move backwards.
  */
 export function computeProgress(
   route: NavPoint[],
-  position: LatLon,
+  position: LatLon & {
+    groundSpeedKt?: number | null;
+    trackDeg?: number | null;
+    headingTrueDeg?: number;
+    trueAirspeedKt?: number;
+  },
   currentLeg: number,
   performance: TurnPerformance = { tasKt: 100 },
 ): Progress | null {
@@ -78,6 +85,25 @@ export function computeProgress(
     const from = route[leg]!;
     const to = route[leg + 1]!;
     const turn = path.turns.get(leg + 1);
+    const liveTurn =
+      turn &&
+      position.groundSpeedKt != null &&
+      position.trackDeg != null &&
+      position.groundSpeedKt >= 30
+        ? rateOneIntercept(
+            {
+              ...position,
+              groundSpeedKt: position.groundSpeedKt,
+              trackDeg: position.trackDeg,
+            },
+            to,
+            route[leg + 2]!,
+            {
+              directionDeg: performance.windDirectionDeg ?? 0,
+              speedKt: performance.windSpeedKt ?? 0,
+            },
+          )
+        : null;
     const offset = trackOffset(from, to, position);
     // An exit dogleg can cross the original DCT's abeam plane early. Sequence
     // only at the end of its actual curve, including the next real fix's tangent.
@@ -92,9 +118,11 @@ export function computeProgress(
             trackOffset(endFrom, endTo, position).alongTrackNm >=
               distanceNm(endFrom, endTo))
         : turn
-          ? (Math.abs(offset.crossTrackNm) <= 0.15 &&
-              offset.alongTrackNm >= distanceNm(from, to) - turn.entryNm) ||
-            offset.alongTrackNm >= distanceNm(from, to)
+          ? liveTurn
+            ? liveTurn.seconds <= 0.5
+            : (Math.abs(offset.crossTrackNm) <= 0.15 &&
+                offset.alongTrackNm >= distanceNm(from, to) - turn.entryNm) ||
+              offset.alongTrackNm >= distanceNm(from, to)
           : distanceNm(position, to) <
               (to.patternId || to.flyOver
                 ? Math.min(0.05, distanceNm(from, to) * 0.2)

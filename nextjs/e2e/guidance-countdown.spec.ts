@@ -2,8 +2,12 @@ import { expect, test } from "./test";
 import { newFlight } from "../src/data/flight";
 import { newTimers } from "../src/domain/flight-timers";
 
-for (const flyOver of [true, false])
-  test(`${flyOver ? "fly-over" : "off-track live fly-by"} turn counts down, becomes NOW, and only then records a clean history message`, async ({
+for (const scenario of [
+  { name: "fly-over", flyOver: true, heading: 90, north: 0 },
+  { name: "inside live fly-by", flyOver: false, heading: 50, north: -0.06 },
+  { name: "outside live fly-by", flyOver: false, heading: 90, north: -1 },
+])
+  test(`${scenario.name} turn counts down, becomes NOW, and only then records a clean history message`, async ({
     page,
   }) => {
     test.setTimeout(60000);
@@ -12,11 +16,11 @@ for (const flyOver of [true, false])
     await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (r) => r.abort());
     const route = [
       { ident: "A", lat: 50, lon: 19.9 },
-      { ident: "B", lat: 50, lon: 20, flyOver },
+      { ident: "B", lat: 50, lon: 20, flyOver: scenario.flyOver },
       { ident: "C", lat: 50.1, lon: 20 },
     ];
     await page.addInitScript(
-      ({ route, flight, timers }) => {
+      ({ route, flight, timers, scenario }) => {
         localStorage.setItem("nordsweet.language.v1", "en");
         localStorage.setItem(
           "nordsweet.flight.v2",
@@ -41,14 +45,25 @@ for (const flyOver of [true, false])
             success({
               timestamp: Date.now(),
               coords: {
-                latitude: 50 + (route[1]!.flyOver ? 0 : 0.003),
+                latitude:
+                  50 +
+                  (scenario.north +
+                    ((((Date.now() - start) / 1000) * 100) / 3600) *
+                      Math.cos((scenario.heading * Math.PI) / 180)) /
+                    60,
                 longitude:
                   20 +
-                  ((((Date.now() - start) / 1000 - 20) * 100) / 3600 -
-                    (route[1]!.flyOver ? 0 : 100 / (60 * Math.PI))) /
+                  ((((Date.now() - start) / 1000 - 20) *
+                    100 *
+                    Math.sin((scenario.heading * Math.PI) / 180)) /
+                    3600 -
+                    (scenario.flyOver
+                      ? 0
+                      : (100 / (60 * Math.PI)) *
+                        (1 - Math.cos((scenario.heading * Math.PI) / 180)))) /
                     (60 * Math.cos((50 * Math.PI) / 180)),
                 altitude: 914.4,
-                heading: 90,
+                heading: scenario.heading,
                 speed: 100 / 1.943844,
                 accuracy: 5,
                 altitudeAccuracy: 5,
@@ -69,6 +84,7 @@ for (const flyOver of [true, false])
           cruiseAltitudeFt: 3000,
         },
         timers: newTimers(),
+        scenario,
       },
     );
     await page.goto("/fly");

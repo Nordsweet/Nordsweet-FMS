@@ -1,45 +1,16 @@
 "use client";
 import { useEffect } from "react";
-import { create } from "zustand";
+import { useRadioCrossing } from "~/stores/radio-crossing";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { api } from "~/api";
 import { commsAtisAirport, commsAtisContext } from "~/domain/comms-atis";
 import { useInFlight } from "~/stores/inflight";
 import { type CommsEstimate } from "~/domain/comms";
-import {
-  commsChangeSuggestion,
-  observeRadioCrossing,
-  type RadioCrossing,
-} from "~/domain/comms-alert";
+import { radioRowsKey } from "~/domain/comms";
+import { commsChangeSuggestion } from "~/domain/comms-alert";
 import { type FlightPhase } from "~/domain/flight-phase";
 import { useT } from "~/i18n/use-t";
 import { FlightPopup } from "./flight-popup";
-
-const useRadioCrossing = create<
-  RadioCrossing & {
-    dismissed: ReadonlySet<string>;
-    dismiss: (key: string) => void;
-    observe: (
-      session: string | null,
-      rows: CommsEstimate["current"],
-      now: number,
-    ) => void;
-  }
->((set) => ({
-  session: null,
-  current: "",
-  sequence: 0,
-  change: null,
-  dismissed: new Set(),
-  dismiss: (key) => set((s) => ({ dismissed: new Set([...s.dismissed, key]) })),
-  observe: (session, rows, now) =>
-    set((s) => {
-      const next = observeRadioCrossing(s, session, rows, now);
-      return s.session !== session
-        ? { ...next, dismissed: new Set<string>() }
-        : next;
-    }),
-}));
 
 /** Dismissible two-minute radio suggestion, independent of the COMMs panel. */
 export function CommsChangePopup({
@@ -71,10 +42,11 @@ export function CommsChangePopup({
     live &&
     crossingSession === session &&
     crossing &&
+    radioRowsKey(crossing.rows) === radioRowsKey(currentRows) &&
     now - crossing.at < 120000 &&
-    !dismissed.has(crossing.key)
+    !dismissed.includes(crossing.key)
       ? crossing
-      : live && anticipated && !dismissed.has(anticipated.key)
+      : live && anticipated && !dismissed.includes(anticipated.key)
         ? anticipated
         : null;
   const frequencies = useQuery({

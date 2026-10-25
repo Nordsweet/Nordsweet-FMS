@@ -4,6 +4,7 @@ import { engineTimerSeconds } from "~/domain/engine-timers";
 import type { FlightPhase } from "~/domain/flight-phase";
 import { useEngineTimers } from "~/stores/engine-timers";
 import { useT } from "~/i18n/use-t";
+import { useInFlight } from "~/stores/inflight";
 
 export function EngineTimerAssistant({
   session,
@@ -14,6 +15,9 @@ export function EngineTimerAssistant({
 }) {
   const t = useT();
   const timers = useEngineTimers();
+  const offBlock = useInFlight((s) =>
+    s.startedAt === session ? s.timers.offBlock.startedAt : null,
+  );
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
@@ -21,6 +25,7 @@ export function EngineTimerAssistant({
   }, []);
   if (phase !== "taxiout" && phase !== "taxiin") return null;
   const warm = phase === "taxiout";
+  if (warm && offBlock !== null) return null;
   const startedAt =
     timers.session !== session
       ? null
