@@ -90,6 +90,24 @@ test("climb crossing ATZ to FIS and entering TMA both suggest the current local 
     zone("ATZ TEST", 19.8, 20.1, "122.305", "Tatry-Tower"),
     zone("FIS LOCAL", 19, 22, "119.275", "Bratislava Information"),
     zone("TMA TEST", 20.5, 21, "121.075", "Test Approach", "4000 FT AMSL"),
+    ...[
+      ["LZCTR TATRY", "", ""],
+      ["LKCTR TEST", "120.000", "Praha Radar"],
+      ["EDCTR TEST", "121.000", "Berlin Tower"],
+      ["EYCTR TEST", "122.000", "Vilnius Information"],
+      ["CTR POLISH", "122.305", "Nowy Targ Radio"],
+    ].map(([name, frequency, callsign]) => {
+      const feature = zone(name!, 19.9, 20.9, frequency!, callsign!, "FL180");
+      return {
+        ...feature,
+        properties: {
+          ...feature.properties,
+          class: "CTR",
+          upper: "FL195",
+          frequencies: frequency ? feature.properties.frequencies : [],
+        },
+      };
+    }),
   ];
   await page.route("https://aviation.lab.vibecde.com/airspace**", (r) =>
     r.fulfill({
@@ -165,16 +183,61 @@ test("climb crossing ATZ to FIS and entering TMA both suggest the current local 
     page.getByRole("dialog", { name: "COMMs", exact: true }),
   ).toContainText("Tatry-Tower");
   const comms = page.getByRole("dialog", { name: "COMMs", exact: true });
-  for (const station of ["Tatry-Tower", "Bratislava Information"]) {
-    const guide = comms.locator("details").filter({ hasText: station }).first();
-    await expect(guide.getByText("Dobrý deň", { exact: true })).toBeHidden();
-    await guide.locator("summary").click();
-    for (const phrase of ["Dobrý deň", "Ďakujem", "Dovidenia", "Dopočutia"]) {
+  await expect(comms.locator("details")).toHaveCount(0);
+  for (const [station, phrases] of [
+    ["Tatry-Tower", ["Dobrý deň", "Ďakujem", "Dovidenia", "Dopočutia"]],
+    [
+      "Bratislava Information",
+      ["Dobrý deň", "Ďakujem", "Dovidenia", "Dopočutia"],
+    ],
+    ["LZCTR TATRY", ["Dobrý deň", "Ďakujem", "Dovidenia", "Dopočutia"]],
+    ["LKCTR TEST", ["Dobrý den", "Děkuji", "Na shledanou", "Na slyšenou"]],
+    ["EYCTR TEST", ["Laba diena", "Ačiū", "Viso gero"]],
+    [
+      "EDCTR TEST",
+      ["Guten Tag", "Danke", "Auf Wiedersehen", "Auf Wiederhören"],
+    ],
+  ] as const) {
+    const label = `Greetings and farewells: ${station}`;
+    const trigger = comms
+      .getByRole("button", { name: label, exact: true })
+      .first();
+    const guide = page.getByRole("dialog", { name: label, exact: true });
+    await expect(guide).toBeHidden();
+    await trigger.click();
+    for (const phrase of phrases)
       await expect(guide.getByText(phrase, { exact: true })).toBeVisible();
-    }
-    await guide.locator("summary").click();
-    await expect(guide.getByText("Dobrý deň", { exact: true })).toBeHidden();
+    await page.keyboard.press("Escape");
+    await expect(guide).toBeHidden();
+    // Radix restores focus on the next timer tick; this scenario pauses the clock.
+    await page.clock.runFor(10);
+    await expect(trigger).toBeFocused();
   }
+  await expect(
+    comms.getByRole("button", {
+      name: "Greetings and farewells: Nowy Targ Radio",
+      exact: true,
+    }),
+  ).toHaveCount(0);
+  const emptyGroup = comms
+    .getByRole("heading", { name: "LZCTR TATRY", exact: true })
+    .locator("../..");
+  await expect(emptyGroup).toContainText("Not available");
+  // The same icon and popover fit a narrow viewport, without expanding the radio row.
+  await page.setViewportSize({ width: 390, height: 844 });
+  const narrowLabel = "Greetings and farewells: LZCTR TATRY";
+  await comms.getByRole("button", { name: narrowLabel, exact: true }).click();
+  const narrowGuide = page.getByRole("dialog", {
+    name: narrowLabel,
+    exact: true,
+  });
+  await expect(narrowGuide).toBeVisible();
+  const box = (await narrowGuide.boundingBox())!;
+  expect(box.x).toBeGreaterThanOrEqual(0);
+  expect(box.x + box.width).toBeLessThanOrEqual(390);
+  await page.screenshot({ path: "test-results/radio-language-info.png" });
+  await page.keyboard.press("Escape");
+  await page.setViewportSize({ width: 1280, height: 720 });
   await page.getByRole("button", { name: "COMMs", exact: true }).click();
   const frequency = page
     .getByTestId("flight-notifications")

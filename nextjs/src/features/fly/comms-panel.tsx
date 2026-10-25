@@ -2,8 +2,16 @@
 import { type RadioRow } from "~/domain/comms";
 import { useT } from "~/i18n/use-t";
 import { type useCommsPlan } from "./use-comms-plan";
+import { RadioLanguageInfo } from "./radio-language-info";
+import { radioLanguage } from "~/domain/radio-language";
 
-function Rows({ rows }: { rows: RadioRow[] }) {
+function Rows({
+  rows,
+  showInfo = true,
+}: {
+  rows: RadioRow[];
+  showInfo?: boolean;
+}) {
   const t = useT();
   if (!rows.length)
     return (
@@ -11,56 +19,27 @@ function Rows({ rows }: { rows: RadioRow[] }) {
         {t("fly.comms.notAvailable")}
       </p>
     );
-  return rows.map((r, i) =>
-    /^(bratislava[\s-]+information|tatry[\s-]+tower)$/i.test(
-      r.callsign.trim(),
-    ) ? (
-      <details key={i} className="rounded-lg border p-3 text-sm">
-        <summary className="text-primary cursor-pointer">
-          <span>{r.callsign}</span>
-          {r.sector && ` / ${r.sector}`}
-          <strong className="float-right ml-3 font-mono">
-            {r.frequencyMhz} MHz
-          </strong>
-          <span className="text-muted-foreground mt-1 block text-xs">
-            {t("fly.comms.slovakGuide")}
-          </span>
-        </summary>
-        <dl className="mt-3 grid gap-3 border-t pt-3">
-          {(
-            [
-              ["greeting", "Dobrý deň"],
-              ["thanks", "Ďakujem"],
-              ["goodbye", "Dovidenia"],
-              ["hearYou", "Dopočutia"],
-            ] as const
-          ).map(([key, phrase]) => (
-            <div key={key}>
-              <dt className="text-muted-foreground text-xs">
-                {t(`fly.comms.slovak.${key}`)}
-              </dt>
-              <dd>
-                <strong lang="sk">{phrase}</strong>
-                <span className="text-muted-foreground ml-2 text-xs">
-                  {t(`fly.comms.slovak.${key}Pronunciation`)}
-                </span>
-              </dd>
-            </div>
-          ))}
-        </dl>
-      </details>
-    ) : (
-      <div key={i} className="flex justify-between gap-3 text-sm">
-        <span>
-          {r.callsign || t("fly.comms.noCallsign")}
-          {r.sector && ` / ${r.sector}`}
-        </span>
-        <strong className="font-mono">{r.frequencyMhz} MHz</strong>
-      </div>
-    ),
-  );
+  return rows.map((r, i) => (
+    <div key={i} className="flex items-center justify-between gap-3 text-sm">
+      <span className="min-w-0">
+        {r.callsign || t("fly.comms.noCallsign")}
+        {r.sector && ` / ${r.sector}`}
+      </span>
+      <span className="flex shrink-0 items-center gap-1">
+        <strong className="font-mono whitespace-nowrap">
+          {r.frequencyMhz} MHz
+        </strong>
+        {showInfo && (
+          <RadioLanguageInfo
+            station={r.callsign}
+            context={r.airport}
+            sector={r.sector}
+          />
+        )}
+      </span>
+    </div>
+  ));
 }
-
 const heading =
   "text-primary mt-1 text-xs font-semibold tracking-[0.08em] uppercase";
 
@@ -88,8 +67,11 @@ export function CommsPanel({
           <h3 className={heading}>{t("fly.comms.onRoute")}</h3>
           {groups.map((g, i) => (
             <div key={i} className="grid gap-1">
-              <h4 className="text-sm font-medium">{g.name}</h4>
-              <Rows rows={g.rows} />
+              <div className="flex items-center justify-between gap-3">
+                <h4 className="text-sm font-medium">{g.name}</h4>
+                <RadioLanguageInfo station={g.name} />
+              </div>
+              <Rows rows={g.rows} showInfo={!radioLanguage(g.name)} />
             </div>
           ))}
         </>

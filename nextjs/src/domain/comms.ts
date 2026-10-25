@@ -16,6 +16,7 @@ export type RadioRow = {
   callsign: string;
   sector: string | null;
   serviceId?: string;
+  airport?: string;
 };
 /** Airport frequencies for these services, in the order the services are given. */
 export type AirportRows = (icao: string, services: string[]) => RadioRow[];
