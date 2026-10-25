@@ -58,6 +58,8 @@ State defaults: the `state = {…}` object (~line 1500). DOM refs: `refs = {…}
 
 ## 4. Work board
 
+Runway diagram marking scale — claimed, Codex 2026-10-25. One centreline dash per 200 m LDA and one threshold stripe per 10 m runway width.
+
 Radio language info popovers — done, Codex 2026-10-25. COMMs uses circled-info buttons and compact themed popovers for Slovak, Czech, German and Lithuanian services, with PL/EN labels and approximate pronunciations. Aerodrome/airspace codes and callsign aliases identify the guide; Polish/unknown services stay compact. Route-group headers include the guide even without a frequency (LZCTR TATRY). Browser regression covers all four guides, Polish exclusion, Escape/focus return, narrow-screen bounds and retained handoff/FREDA/reload behavior; mobile screenshot inspected. Format/lint/types, 768 unit tests, production build and 168 browser scenarios passed; existing terrain-resource timing test passed on its automatic retry (167 first-attempt passes, 1 flaky).
 
 Flight guidance and radio continuity fixes — done, Codex 2026-10-25. Warm Up hides after off-block, including after reload. Live off-track rate-one countdowns and leg sequencing use the same intercept; outside turns can roll onto the next leg's extension. FREDA shares the live COMMs current/next estimate. Radio visit/acknowledgement persists across reload, with recovery and airspace-readiness gates preventing premature handoffs; returning to a sector still prompts again. Verified format, lint, types, 749 unit tests, production build, and all 168 browser tests (including inner/outer countdown, Warm Up reload, FREDA and dismissed handoff reload regressions).
