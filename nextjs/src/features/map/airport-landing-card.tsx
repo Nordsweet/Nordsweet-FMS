@@ -32,6 +32,45 @@ import { cn } from "~/lib/utils";
 import { useAtis } from "~/stores/atis";
 import { useInFlight } from "~/stores/inflight";
 
+/** A full mark represents one distance unit; the final remainder keeps its proportional size. */
+function RunwayMarkings({
+  metres,
+  unitM,
+  vertical = false,
+  testId,
+}: {
+  metres: number | null | undefined;
+  unitM: number;
+  vertical?: boolean;
+  testId: string;
+}) {
+  const units = (metres ?? 0) / unitM;
+  if (!(units > 0)) return null;
+  const marks = Math.ceil(units);
+  return (
+    <svg
+      className="block h-full w-full fill-current"
+      viewBox={vertical ? `0 0 1 ${marks * 2}` : `0 0 ${marks * 2} 1`}
+      preserveAspectRatio="none"
+      data-testid={testId}
+    >
+      {Array.from({ length: marks }, (_, index) => {
+        const fraction = Math.min(1, units - index);
+        return (
+          <rect
+            key={index}
+            x={vertical ? 0 : index * 2 + 0.5}
+            y={vertical ? index * 2 + (2 - fraction) / 2 : (1 - fraction) / 2}
+            width={1}
+            height={fraction}
+            data-unit-fraction={fraction}
+          />
+        );
+      })}
+    </svg>
+  );
+}
+
 /** Arrival mass and LDA for any selected airport, using the same POH calculator as the RWY panel. */
 export function AirportLandingCard({
   airport,
@@ -277,27 +316,34 @@ export function AirportLandingCard({
                   style={{ height: `${Math.min(100, percent)}%` }}
                 />
               )}
-              <div
-                className="absolute inset-x-1 top-1 h-4"
-                style={{
-                  background:
-                    "repeating-linear-gradient(90deg, #e2e8f0 0 2px, transparent 2px 4px)",
-                }}
-              />
+              <div className="absolute inset-x-1 top-1 h-4 text-slate-200">
+                <RunwayMarkings
+                  metres={runway.widthM}
+                  unitM={10}
+                  testId="runway-threshold-top"
+                />
+              </div>
               <span className="absolute inset-x-0 top-7 rotate-180 text-center text-base font-bold text-white">
                 {reciprocal?.designator ?? ""}
               </span>
-              <div className="absolute top-1/2 left-1/2 h-5 border-l border-dashed border-white/70" />
+              <div className="absolute top-16 bottom-16 left-1/2 w-px text-white/70">
+                <RunwayMarkings
+                  metres={runway.ldaM}
+                  unitM={200}
+                  vertical
+                  testId="runway-centreline"
+                />
+              </div>
               <span className="absolute inset-x-0 bottom-7 text-center text-base font-bold text-white">
                 {runway.designator}
               </span>
-              <div
-                className="absolute inset-x-1 bottom-1 h-4"
-                style={{
-                  background:
-                    "repeating-linear-gradient(90deg, #e2e8f0 0 2px, transparent 2px 4px)",
-                }}
-              />
+              <div className="absolute inset-x-1 bottom-1 h-4 text-slate-200">
+                <RunwayMarkings
+                  metres={runway.widthM}
+                  unitM={10}
+                  testId="runway-threshold-bottom"
+                />
+              </div>
             </div>
           </div>
           <div className="flex justify-between gap-2 font-semibold">

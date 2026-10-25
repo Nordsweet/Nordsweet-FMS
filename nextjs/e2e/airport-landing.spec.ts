@@ -77,6 +77,14 @@ test("runway sits beside airport actions; departure uses TODA without GPS and ho
   await expect(
     card.getByRole("combobox", { name: "Take-off runway" }),
   ).toContainText("12");
+  // EPNT RWY 12 has 1400 m LDA, although take-off availability is 1680 m.
+  await expect(
+    card.getByTestId("runway-centreline").locator("rect"),
+  ).toHaveCount(7);
+  for (const end of ["top", "bottom"])
+    await expect(
+      card.getByTestId(`runway-threshold-${end}`).locator("rect"),
+    ).toHaveCount(8);
   const left = await page.getByTestId("airport-point-actions").boundingBox();
   const right = await card.boundingBox();
   expect(right!.x).toBeGreaterThanOrEqual(left!.x + left!.width);
@@ -113,6 +121,7 @@ test("airport cards predict FPL or Direct arrival, show runway use, shortages an
               runways: a.runways.map((r) => ({
                 ...r,
                 ldaM: r.designator === "09" ? 100 : null,
+                widthM: r.designator === "09" ? 45 : null,
               })),
             }
           : a,
@@ -210,7 +219,23 @@ test("airport cards predict FPL or Direct arrival, show runway use, shortages an
     /^\d+ m \/ 2550 m$/,
   );
   await expect(card.getByTestId("landing-percent")).toHaveText(/^\d+\.\d%$/);
+  // 2550 m LDA = twelve full 200 m marks and a 150 m remainder; width 60 m = six stripes per end.
+  const centreline = card.getByTestId("runway-centreline").locator("rect");
+  await expect(centreline).toHaveCount(13);
+  await expect(centreline.last()).toHaveAttribute("data-unit-fraction", "0.75");
+  for (const end of ["top", "bottom"])
+    await expect(
+      card.getByTestId(`runway-threshold-${end}`).locator("rect"),
+    ).toHaveCount(6);
   await card.screenshot({ path: "test-results/airport-landing-fpl.png" });
+  await page
+    .getByRole("dialog", { name: "Details", exact: true })
+    .getByRole("button", { name: "Close", exact: true })
+    .click();
+  await search(page, "LZTT");
+  await expect(centreline).toHaveCount(13);
+  await expect(centreline.last()).toHaveAttribute("data-unit-fraction", "1");
+  await card.screenshot({ path: "test-results/runway-metric-markings.png" });
   await page
     .getByRole("dialog", { name: "Details", exact: true })
     .getByRole("button", { name: "Close", exact: true })
@@ -225,10 +250,22 @@ test("airport cards predict FPL or Direct arrival, show runway use, shortages an
   await expect(card.getByTestId("landing-percent")).toHaveClass(
     /text-destructive/,
   );
+  await expect(centreline).toHaveCount(1);
+  await expect(centreline.first()).toHaveAttribute("data-unit-fraction", "0.5");
+  for (const end of ["top", "bottom"]) {
+    const threshold = card
+      .getByTestId(`runway-threshold-${end}`)
+      .locator("rect");
+    await expect(threshold).toHaveCount(5);
+    await expect(threshold.last()).toHaveAttribute("data-unit-fraction", "0.5");
+  }
   await card.getByRole("combobox").click();
   await page.getByRole("option", { name: "RWY 27", exact: true }).click();
   await expect(card).toContainText("Published LDA unavailable");
   await expect(card.getByTestId("landing-percent")).toHaveText("—");
+  await expect(card.getByTestId("runway-centreline")).toHaveCount(0);
+  await expect(card.getByTestId("runway-threshold-top")).toHaveCount(0);
+  await expect(card.getByTestId("runway-threshold-bottom")).toHaveCount(0);
   await page
     .getByRole("dialog", { name: "Details", exact: true })
     .getByRole("button", { name: "Close", exact: true })
