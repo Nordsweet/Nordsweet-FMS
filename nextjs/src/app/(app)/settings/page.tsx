@@ -15,7 +15,6 @@ import {
 } from "~/components/ui/select";
 import { useT } from "~/i18n/use-t";
 import { type Language, useSettings } from "~/stores/settings";
-import { AtisTokens } from "~/features/plan/atis-call";
 
 export default function SettingsPage() {
   const t = useT();
@@ -30,7 +29,6 @@ export default function SettingsPage() {
         </CardTitle>
       </CardHeader>
       <CardContent className="grid gap-4">
-        <AtisTokens />
         <div className="grid gap-2">
           <Label htmlFor="language">{t("settings.language")}</Label>
           <Select

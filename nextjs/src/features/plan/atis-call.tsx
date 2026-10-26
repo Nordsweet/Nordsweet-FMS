@@ -17,33 +17,6 @@ export function useAtisCallAccount() {
   });
 }
 
-export function AtisTokens() {
-  const t = useT();
-  const account = useAtisCallAccount();
-  return (
-    <section
-      className="grid gap-1 rounded-xl border p-3"
-      aria-label={t("atisCall.tokens")}
-    >
-      <h3 className="text-sm font-semibold">{t("atisCall.tokens")}</h3>
-      {account.data && !account.isError ? (
-        <>
-          <span className="text-muted-foreground text-xs">
-            {account.data.username}
-          </span>
-          <output className="font-mono text-2xl" data-testid="atis-tokens">
-            {account.data.tokens_available}
-          </output>
-        </>
-      ) : (
-        <p className="text-muted-foreground text-xs">
-          {t("atisCall.unavailable")}
-        </p>
-      )}
-    </section>
-  );
-}
-
 export function RequestAtisCall({ icao }: { icao: string }) {
   const t = useT();
   const client = useQueryClient();
@@ -75,9 +48,7 @@ export function RequestAtisCall({ icao }: { icao: string }) {
         ? "atisCall.disabled"
         : !data.airports.includes(icao)
           ? "atisCall.unsupported"
-          : data.tokens_available < 1
-            ? "atisCall.empty"
-            : null;
+          : null;
   return (
     <div className="grid gap-1">
       <Button

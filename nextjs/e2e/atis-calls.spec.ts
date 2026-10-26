@@ -1,13 +1,11 @@
 import { expect, test, type Page } from "./test";
 
 async function setup(page: Page, enabled: boolean) {
-  let balance = 10000;
   let id = "";
   let status: "queued" | "ready" = "queued";
   let posts = 0;
   const account = () => ({
     username: "grzes",
-    tokens_available: balance,
     enabled,
     airports: ["EPKK"],
     requests: id
@@ -34,7 +32,6 @@ async function setup(page: Page, enabled: boolean) {
       posts++;
       id = (route.request().postDataJSON() as { request_id: string })
         .request_id;
-      balance = 9999;
       return route.fulfill({
         status: 202,
         json: { ...account(), request_id: id },
@@ -106,14 +103,14 @@ async function weather(page: Page) {
   return details;
 }
 
-test("telephone request charges once, survives navigation/reload and View opens airport Weather", async ({
+test("telephone request is sent once, survives navigation/reload and View opens airport Weather", async ({
   page,
 }) => {
   const server = await setup(page, true);
   const details = await weather(page);
   await details
     .getByRole("button", {
-      name: "Request ATIS Call (Cost = 1 token)",
+      name: "Request ATIS Call",
       exact: true,
     })
     .click();
@@ -121,9 +118,7 @@ test("telephone request charges once, survives navigation/reload and View opens 
     details.getByRole("button", { name: "Requesting", exact: true }),
   ).toBeDisabled();
   await page.goto("/settings");
-  await expect(page.getByTestId("atis-tokens")).toHaveText("9999");
   await page.reload();
-  await expect(page.getByTestId("atis-tokens")).toHaveText("9999");
   server.ready();
   const popup = page.getByTestId("atis-call-notice");
   await expect(popup).toContainText("EPKK ATIS available", { timeout: 15000 });
@@ -138,16 +133,15 @@ test("telephone request charges once, survives navigation/reload and View opens 
   await expect(page.getByTestId("atis-call-notice")).toHaveCount(0);
 });
 
-test("pending provider verification keeps balance visible and never submits a paid request", async ({
+test("pending provider verification disables the request and never submits it", async ({
   page,
 }) => {
   const server = await setup(page, false);
   await page.goto("/settings");
-  await expect(page.getByTestId("atis-tokens")).toHaveText("10000");
   const details = await weather(page);
   await expect(
     details.getByRole("button", {
-      name: "Request ATIS Call (Cost = 1 token)",
+      name: "Request ATIS Call",
       exact: true,
     }),
   ).toBeDisabled();

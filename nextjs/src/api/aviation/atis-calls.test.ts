@@ -1,11 +1,9 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { aviationApi, AviationApiError } from "./client";
-import { atisCallAccountSchema } from "./schemas";
 import { useAuth } from "~/stores/auth";
 
 const account = {
   username: "grzes",
-  tokens_available: 10000,
   enabled: false,
   airports: ["EPKK"],
   requests: [],
@@ -15,7 +13,7 @@ afterEach(() => {
   useAuth.setState({ session: null });
 });
 
-it("reads the authenticated balance and sends only the airport/idempotency key when requesting", async () => {
+it("reads the authenticated account and sends only the airport/idempotency key when requesting", async () => {
   useAuth.setState({
     session: { username: "grzes", token: "private-session", role: "user" },
   });
@@ -35,15 +33,7 @@ it("reads the authenticated balance and sends only the airport/idempotency key w
   expect(JSON.parse(init?.body as string)).toEqual({ request_id: "test-id" });
 });
 
-it("rejects negative/fractional balances and reports disabled provider errors without ending the session", async () => {
-  expect(
-    atisCallAccountSchema.safeParse({ ...account, tokens_available: -1 })
-      .success,
-  ).toBe(false);
-  expect(
-    atisCallAccountSchema.safeParse({ ...account, tokens_available: 0.5 })
-      .success,
-  ).toBe(false);
+it("reports disabled provider errors without ending the session", async () => {
   useAuth.setState({
     session: { username: "grzes", token: "test", role: "user" },
   });

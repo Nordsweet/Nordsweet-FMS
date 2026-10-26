@@ -134,7 +134,6 @@ export const atisResponseSchema = z.object({
 
 export const atisCallAccountSchema = z.object({
   username: z.string(),
-  tokens_available: z.number().int().nonnegative(),
   enabled: z.boolean(),
   airports: z.array(z.string()),
   requests: z.array(
