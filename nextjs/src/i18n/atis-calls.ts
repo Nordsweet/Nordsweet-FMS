@@ -10,6 +10,10 @@ export const atisCallsEn = {
   "atisCall.busy": "ATIS for this airport is already being requested.",
   "atisCall.again": "Call again",
   "atisCall.none": "No telephone ATIS yet.",
+  "atisCall.format.text": "Text",
+  "atisCall.format.datis": "D-ATIS",
+  "atisCall.datisNote":
+    "D-ATIS style (generated from the telephone ATIS), not the official D-ATIS.",
   "atisCall.changed": "The ATIS changed during the call.",
   "atisCall.misheard": "A letter was misheard.",
   "atisCall.unreadable": "No ATIS message could be read.",
@@ -34,6 +38,10 @@ export const atisCallsPl: Record<keyof typeof atisCallsEn, string> = {
   "atisCall.busy": "ATIS tego lotniska jest już zamawiany.",
   "atisCall.again": "Zadzwoń ponownie",
   "atisCall.none": "Brak ATIS telefonicznego.",
+  "atisCall.format.text": "Tekst",
+  "atisCall.format.datis": "D-ATIS",
+  "atisCall.datisNote":
+    "W stylu D-ATIS (wygenerowany z ATIS telefonicznego), nie oficjalny D-ATIS.",
   "atisCall.changed": "ATIS zmienił się w trakcie rozmowy.",
   "atisCall.misheard": "Przesłyszano literę ATIS.",
   "atisCall.unreadable": "Nie udało się odczytać ATIS.",

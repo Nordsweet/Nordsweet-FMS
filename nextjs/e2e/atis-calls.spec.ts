@@ -52,14 +52,25 @@ async function setup(page: Page, enabled: boolean) {
         json: { ...account(), request_id: id },
       });
     }
-    if (path === "/airports/EPKK/atis-message")
+    if (path === "/airports/EPKK/atis-message") {
+      const datis =
+        new URL(route.request().url()).searchParams.get("format") === "datis";
       return route.fulfill({
         json: {
           icao: "EPKK",
           captured_at: transcribed && !misheard ? Date.now() / 1000 : null,
-          message: transcribed && !misheard ? message() : null,
+          message:
+            transcribed && !misheard
+              ? {
+                  ...message(),
+                  text: datis
+                    ? "EPKK ATIS A\nWIND 270 DEG, 10 KT.\nEND OF ATIS A"
+                    : message().text,
+                }
+              : null,
         },
       });
+    }
     if (path === "/airports/EPKK/weather")
       return route.fulfill({
         json: { icao: "EPKK", metar: null, taf: "TAF TEST", sources: {} },
@@ -163,6 +174,9 @@ test("telephone request is sent once, survives navigation/reload and View opens 
   const wx = page.getByTestId("wx-selected");
   await expect(wx).toContainText("Telephone ATIS");
   await expect(wx).toContainText("EPKK INFORMATION A WIND 270");
+  await wx.getByRole("button", { name: "D-ATIS", exact: true }).click();
+  await expect(wx).toContainText("END OF ATIS A");
+  await expect(wx).toContainText("not the official D-ATIS");
   await wx.getByText(/ATIS \/ D-ATIS/).click();
   await expect(wx).toContainText("TELEPHONE ATIS WIND 27010KT QNH 1013");
   expect(server.posts()).toBe(1);

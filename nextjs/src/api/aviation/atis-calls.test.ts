@@ -58,6 +58,9 @@ it("reads the airport's current telephone ATIS without placing a call", async ()
     message,
   });
   expect(fetch.mock.calls[0]![0].pathname).toBe("/airports/EPKK/atis-message");
+  expect(fetch.mock.calls[0]![0].searchParams.get("format")).toBe("text");
+  await aviationApi.atisMessage("epkk", "datis");
+  expect(fetch.mock.calls[1]![0].searchParams.get("format")).toBe("datis");
   expect(fetch.mock.calls[0]![1]?.method).toBeUndefined();
 });
 

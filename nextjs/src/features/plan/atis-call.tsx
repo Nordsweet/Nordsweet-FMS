@@ -1,7 +1,13 @@
 "use client";
 
 import type { z } from "zod";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import { useState } from "react";
 import { api } from "~/api";
 import { AviationApiError } from "~/api/aviation/client";
 import {
@@ -62,9 +68,11 @@ export function AtisWarning({ message }: { message: AtisMessage | null }) {
 export function TelephoneAtisMessage({ icao }: { icao: string }) {
   const t = useT();
   const configured = useAtisCallAccount().data?.airports.includes(icao);
+  const [format, setFormat] = useState<"text" | "datis">("text");
   const query = useQuery({
-    ...api.weather.atisMessage.queryOptions({ icao }),
+    ...api.weather.atisMessage.queryOptions({ icao, format }),
     enabled: !!configured,
+    placeholderData: keepPreviousData,
     // The age is computed when the data arrives, not while rendering.
     select: (d) => ({
       ...d,
@@ -95,9 +103,34 @@ export function TelephoneAtisMessage({ icao }: { icao: string }) {
         </span>
       </span>
       {message.text ? (
-        <pre className="bg-muted rounded-md p-2 text-xs whitespace-pre-wrap">
-          {message.text}
-        </pre>
+        <>
+          <div className="flex gap-1">
+            {(["text", "datis"] as const).map((f) => (
+              <Button
+                key={f}
+                size="sm"
+                variant={f === format ? "secondary" : "ghost"}
+                aria-pressed={f === format}
+                onClick={() => setFormat(f)}
+              >
+                {t(
+                  f === "text"
+                    ? "atisCall.format.text"
+                    : "atisCall.format.datis",
+                )}
+              </Button>
+            ))}
+          </div>
+          {/* D-ATIS lines are already wrapped by the server: never re-wrap them. */}
+          <pre className="bg-muted overflow-x-auto rounded-md p-2 text-xs whitespace-pre">
+            {message.text}
+          </pre>
+          {format === "datis" && (
+            <p className="text-muted-foreground text-xs">
+              {t("atisCall.datisNote")}
+            </p>
+          )}
+        </>
       ) : (
         <AtisWarning message={message} />
       )}
