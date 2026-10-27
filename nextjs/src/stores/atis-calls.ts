@@ -1,18 +1,21 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-/** Only idempotency/acknowledgement IDs live locally; balances and jobs belong to the server. */
+/** Only idempotency/acknowledgement IDs live locally; the account and its jobs belong to the server. */
 export const useAtisCallState = create<{
   keys: Record<string, string>;
   dismissed: Record<string, string[]>;
-  key: (scope: string, id: string) => void;
+  key: (scope: string, id: string | null) => void;
   dismiss: (username: string, id: string) => void;
 }>()(
   persist(
     (set) => ({
       keys: {},
       dismissed: {},
-      key: (scope, id) => set((s) => ({ keys: { ...s.keys, [scope]: id } })),
+      key: (scope, id) =>
+        set(({ keys: { [scope]: _, ...rest } }) => ({
+          keys: id ? { ...rest, [scope]: id } : rest,
+        })),
       dismiss: (username, id) =>
         set((s) => ({
           dismissed: {

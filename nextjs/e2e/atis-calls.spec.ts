@@ -3,7 +3,19 @@ import { expect, test, type Page } from "./test";
 async function setup(page: Page, enabled: boolean) {
   let id = "";
   let status: "queued" | "ready" = "queued";
+  let transcribed = false;
+  let misheard = false;
   let posts = 0;
+  const message = () =>
+    misheard
+      ? { text: null, error: null, changed: false, misheard: true, redo: false }
+      : {
+          text: "EPKK INFORMATION A WIND 270 DEGREES 10 KNOTS QNH 1013",
+          error: null,
+          changed: false,
+          misheard: false,
+          redo: false,
+        };
   const account = () => ({
     username: "grzes",
     enabled,
@@ -17,6 +29,9 @@ async function setup(page: Page, enabled: boolean) {
             created_at: Date.now() / 1000,
             updated_at: Date.now() / 1000,
             error: null,
+            transcript: transcribed ? "raw transcript" : null,
+            transcript_error: null,
+            message: transcribed ? message() : null,
           },
         ]
       : [],
@@ -37,6 +52,14 @@ async function setup(page: Page, enabled: boolean) {
         json: { ...account(), request_id: id },
       });
     }
+    if (path === "/airports/EPKK/atis-message")
+      return route.fulfill({
+        json: {
+          icao: "EPKK",
+          captured_at: transcribed && !misheard ? Date.now() / 1000 : null,
+          message: transcribed && !misheard ? message() : null,
+        },
+      });
     if (path === "/airports/EPKK/weather")
       return route.fulfill({
         json: { icao: "EPKK", metar: null, taf: "TAF TEST", sources: {} },
@@ -81,8 +104,14 @@ async function setup(page: Page, enabled: boolean) {
     });
   });
   return {
+    /** The call is over; the text arrives separately. */
     ready: () => {
       status = "ready";
+    },
+    transcribe: (wrong = false) => {
+      status = "ready";
+      transcribed = true;
+      misheard = wrong;
     },
     posts: () => posts,
   };
@@ -108,6 +137,7 @@ test("telephone request is sent once, survives navigation/reload and View opens 
 }) => {
   const server = await setup(page, true);
   const details = await weather(page);
+  await expect(details.getByText("No telephone ATIS yet.")).toBeVisible();
   await details
     .getByRole("button", {
       name: "Request ATIS Call",
@@ -120,12 +150,19 @@ test("telephone request is sent once, survives navigation/reload and View opens 
   await page.goto("/settings");
   await page.reload();
   server.ready();
+  // "ready" alone is not the end: nothing is announced until the text exists.
+  await page.waitForResponse((r) => r.url().endsWith("/atis-calls"), {
+    timeout: 20000,
+  });
+  await expect(page.getByTestId("atis-call-notice")).toHaveCount(0);
+  server.transcribe();
   const popup = page.getByTestId("atis-call-notice");
-  await expect(popup).toContainText("EPKK ATIS available", { timeout: 15000 });
+  await expect(popup).toContainText("EPKK ATIS available", { timeout: 20000 });
   await popup.getByRole("button", { name: "View", exact: true }).click();
   await expect(page).toHaveURL(/\/map$/);
   const wx = page.getByTestId("wx-selected");
   await expect(wx).toContainText("Telephone ATIS");
+  await expect(wx).toContainText("EPKK INFORMATION A WIND 270");
   await wx.getByText(/ATIS \/ D-ATIS/).click();
   await expect(wx).toContainText("TELEPHONE ATIS WIND 27010KT QNH 1013");
   expect(server.posts()).toBe(1);
@@ -147,4 +184,20 @@ test("pending provider verification disables the request and never submits it", 
   ).toBeDisabled();
   await expect(details).toContainText("awaiting provider activation");
   expect(server.posts()).toBe(0);
+});
+
+test("a misheard ATIS is warned about and can be called again", async ({
+  page,
+}) => {
+  const server = await setup(page, true);
+  const details = await weather(page);
+  await details.getByRole("button", { name: "Request ATIS Call" }).click();
+  server.transcribe(true);
+  const popup = page.getByTestId("atis-call-notice");
+  await expect(popup).toContainText("A letter was misheard.", {
+    timeout: 20000,
+  });
+  await expect(popup).toContainText("EPKK ATIS could not be read.");
+  await popup.getByRole("button", { name: "Call again", exact: true }).click();
+  await expect.poll(server.posts).toBe(2);
 });

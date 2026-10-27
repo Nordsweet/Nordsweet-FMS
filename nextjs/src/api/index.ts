@@ -308,6 +308,11 @@ export const api = {
       ({ icao }: Icao) => aviationApi.atis(icao),
       live(2 * MINUTE),
     ),
+    atisMessage: query(
+      "weather.atisMessage",
+      ({ icao }: Icao) => aviationApi.atisMessage(icao),
+      live(MINUTE),
+    ),
   },
   fuel: {
     byAirport: query(

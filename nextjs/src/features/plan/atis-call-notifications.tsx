@@ -9,7 +9,7 @@ import { FlightPopup } from "~/features/fly/flight-popup";
 import { useT } from "~/i18n/use-t";
 import { useAtisCallState } from "~/stores/atis-calls";
 import { useMapSettings } from "~/stores/map";
-import { useAtisCallAccount } from "./atis-call";
+import { AtisWarning, RequestAtisCall, useAtisCallAccount } from "./atis-call";
 
 /** Polling belongs to the shell, so leaving WX or reloading cannot lose an in-progress request. */
 export function AtisCallNotifications() {
@@ -21,11 +21,15 @@ export function AtisCallNotifications() {
   const router = useRouter();
   const pathname = usePathname();
   const username = account.data?.username ?? "";
+  // "ready" is not the end: the text follows as `transcript` or `transcript_error`.
   const notice = account.data?.requests.find(
     (r) =>
-      ["ready", "failed"].includes(r.status) &&
+      (r.status === "failed" ||
+        (r.status === "ready" &&
+          (r.transcript !== null || r.transcript_error !== null))) &&
       !dismissed[username]?.includes(r.id),
   );
+  const text = notice?.message?.text;
   useEffect(() => {
     if (notice?.status !== "ready") return;
     void client.invalidateQueries({
@@ -34,11 +38,20 @@ export function AtisCallNotifications() {
     void client.invalidateQueries({
       queryKey: ["weather.atis", { icao: notice.icao }],
     });
+    void client.invalidateQueries({
+      queryKey: ["weather.atisMessage", { icao: notice.icao }],
+    });
   }, [notice?.id, notice?.icao, notice?.status, client]);
   if (!notice || account.isError) return null;
   const message = t(
-    notice.status === "ready" ? "atisCall.available" : "atisCall.failed",
-    { icao: notice.icao },
+    notice.status === "failed"
+      ? "atisCall.failed"
+      : notice.transcript_error
+        ? "atisCall.noText"
+        : text
+          ? "atisCall.available"
+          : "atisCall.noMessage",
+    { icao: notice.icao, reason: notice.transcript_error ?? "" },
   );
   return (
     <div className="pointer-events-auto fixed top-20 right-3 z-[70] w-[min(24rem,calc(100vw-1.5rem))]">
@@ -51,7 +64,17 @@ export function AtisCallNotifications() {
         testId="atis-call-notice"
       >
         <p>{message}</p>
-        {notice.status === "ready" && (
+        {notice.status === "ready" && !text && !notice.transcript_error && (
+          <>
+            <AtisWarning message={notice.message} />
+            {notice.message?.redo ? (
+              <p className="text-xs">{t("atisCall.redo")}</p>
+            ) : (
+              <RequestAtisCall icao={notice.icao} again />
+            )}
+          </>
+        )}
+        {text && (
           <Button
             size="sm"
             variant="outline"
