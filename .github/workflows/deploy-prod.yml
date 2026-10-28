@@ -1,0 +1,31 @@
+name: Deploy production
+
+# Coolify is reachable over Tailscale only, so GitHub cannot call its webhook. The runner joins the
+# tailnet and triggers the deploy through the Coolify API instead.
+on:
+  push:
+    branches: [production]
+  workflow_dispatch:
+
+concurrency: deploy-production
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: tailscale/github-action@v3
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+      - name: Trigger Coolify deploy
+        env:
+          COOLIFY_URL: ${{ secrets.COOLIFY_URL }}
+          COOLIFY_UUID: ${{ secrets.COOLIFY_UUID }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+        run: |
+          curl -fsS --retry 3 -H "Authorization: Bearer $COOLIFY_TOKEN" \
+            "$COOLIFY_URL/api/v1/deploy?uuid=$COOLIFY_UUID"
