@@ -20,6 +20,7 @@ export function useMapAnimation({
   trafficEnabled,
   fix,
   following,
+  centerAircraft = false,
   trackUp,
   selectedHex,
   directRoute,
@@ -32,6 +33,7 @@ export function useMapAnimation({
   trafficEnabled: boolean;
   fix: GpsFix | null;
   following: boolean;
+  centerAircraft?: boolean;
   trackUp: boolean;
   selectedHex: string;
   directRoute: { lat: number; lon: number }[] | null;
@@ -226,8 +228,11 @@ export function useMapAnimation({
       // Only move the camera when the target changed: every move redraws the whole map.
       if (position && following && camera !== lastCamera) {
         lastCamera = camera;
-        // Own-ship rides in the lower half so the way ahead stays on screen.
-        map.follow([position.lon, position.lat], bearing, [0.5, 0.75]);
+        // A split pane centers ownship in its actual viewport; full screen keeps more space ahead.
+        map.follow([position.lon, position.lat], bearing, [
+          0.5,
+          centerAircraft ? 0.5 : 0.75,
+        ]);
       }
       if (Object.keys(patch).length) {
         scene.set(patch);
@@ -246,6 +251,7 @@ export function useMapAnimation({
     trafficEnabled,
     fix,
     following,
+    centerAircraft,
     trackUp,
     selectedHex,
     directRoute,

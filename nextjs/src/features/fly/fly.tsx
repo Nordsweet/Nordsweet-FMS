@@ -1,7 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { SearchIcon, Trash2, Ellipsis, ChevronDown, Plane } from "lucide-react";
+import {
+  SearchIcon,
+  Trash2,
+  Ellipsis,
+  ChevronDown,
+  Plane,
+  ArrowRightLeft,
+} from "lucide-react";
 import { useMapSettings } from "~/stores/map";
 import { useEffect, useState, useMemo } from "react";
 
@@ -169,6 +176,8 @@ export function FlyPage() {
   const { phase, setPhase, config } = inFlight;
   const comms = useCommsPlan(phase, fix, now, flying);
   const [panel, setPanel] = useState<Panel | null>(null);
+  const [split, setSplit] = useState(false);
+  const [mapOnRight, setMapOnRight] = useState(true);
   const [aircraftTab, setAircraftTab] = useState("aircraft");
   const configAvailable = ["takeoff", "climb", "cruise", "landing"].includes(
     phase,
@@ -222,7 +231,11 @@ export function FlyPage() {
             : `fly.panel.${id}`,
     );
   const open =
-    panel === "position" || rail.some((r) => r.id === panel) ? panel : null;
+    panel === "position" || rail.some((r) => r.id === panel)
+      ? panel
+      : split
+        ? "options"
+        : null;
 
   const navigation = (
     <>
@@ -650,6 +663,16 @@ export function FlyPage() {
         progress={progress}
         positionOpen={open === "position"}
         positionStatus={t(`connector.${connectorStatus}`)}
+        splitOpen={split}
+        onSplitClick={() => {
+          setSearchOpen(false);
+          setSplit(!split);
+          setPanel(split ? null : "options");
+          if (!split) {
+            setMapOnRight(true);
+            useMapSettings.getState().follow(true);
+          }
+        }}
         onPositionClick={() => {
           setSearchOpen(false);
           setPanel(open === "position" ? null : "position");
@@ -684,6 +707,7 @@ export function FlyPage() {
               size="sm"
               onClick={() => {
                 inFlight.end();
+                setSplit(false);
                 setPanel(null);
                 setDebrief(true);
               }}
@@ -693,117 +717,169 @@ export function FlyPage() {
           ) : null
         }
       />
-      <div className="absolute inset-x-0 top-24 bottom-0">
-        <MapWorkspace embedded />
-        {inFlight.startedAt && !emergencyActive && (
-          <EngineTimerAssistant session={inFlight.startedAt} phase={phase} />
+      <div
+        className={cn(
+          "absolute inset-x-0 top-24 bottom-0",
+          split && "grid grid-cols-2 grid-rows-1",
         )}
+        data-testid="fly-workspace"
+        data-split={split}
+      >
         <div
-          className="fly-scrim"
-          aria-hidden="true"
-          data-open={open !== null}
-        />
-        {flying && !emergencyActive && <FredaDialog fix={fix} now={now} />}
-        {flying && inFlight.replayEnabled && <GpxReplayDock />}
-        {!flying && (
-          <div className="bg-card/90 absolute top-3 left-1/2 z-30 flex max-w-[calc(100%-1.5rem)] -translate-x-1/2 gap-2 overflow-x-auto rounded-3xl border p-2 backdrop-blur">
-            <Button variant="outline" className="shrink-0" asChild>
-              <Link href="/">{t("nav.plan")}</Link>
-            </Button>
-            <Button
-              className="shrink-0"
-              disabled={planRoute.length < 2}
-              onClick={() => {
-                inFlight.start(
-                  planRoute,
-                  flight.trafficPattern,
-                  departurePattern,
-                  aircraft?.type,
-                );
-                inFlight.setHolding(flight.holding);
-                setPhase("taxiout");
-                setDebrief(false);
-              }}
-            >
-              {t("fly.start")}
-            </Button>
-          </div>
-        )}
+          className={cn(
+            "min-h-0 min-w-0",
+            split
+              ? cn(
+                  "relative",
+                  mapOnRight
+                    ? "col-start-2 row-start-1"
+                    : "col-start-1 row-start-1",
+                )
+              : "absolute inset-0",
+          )}
+          data-testid="fly-map-pane"
+        >
+          <MapWorkspace embedded centerAircraft={split} />
+          {inFlight.startedAt && !emergencyActive && (
+            <EngineTimerAssistant session={inFlight.startedAt} phase={phase} />
+          )}
+          <div
+            className="fly-scrim"
+            aria-hidden="true"
+            data-open={!split && open !== null}
+          />
+          {flying && !emergencyActive && <FredaDialog fix={fix} now={now} />}
+          {flying && inFlight.replayEnabled && <GpxReplayDock />}
+          {!flying && (
+            <div className="bg-card/90 absolute top-3 left-1/2 z-30 flex max-w-[calc(100%-1.5rem)] -translate-x-1/2 gap-2 overflow-x-auto rounded-3xl border p-2 backdrop-blur">
+              <Button variant="outline" className="shrink-0" asChild>
+                <Link href="/">{t("nav.plan")}</Link>
+              </Button>
+              <Button
+                className="shrink-0"
+                disabled={planRoute.length < 2}
+                onClick={() => {
+                  inFlight.start(
+                    planRoute,
+                    flight.trafficPattern,
+                    departurePattern,
+                    aircraft?.type,
+                  );
+                  inFlight.setHolding(flight.holding);
+                  setPhase("taxiout");
+                  setDebrief(false);
+                }}
+              >
+                {t("fly.start")}
+              </Button>
+            </div>
+          )}
 
-        {flying && (
-          <nav
-            aria-label={t("fly.title")}
-            className="absolute top-[5.15rem] right-3 z-30 grid max-h-[calc(100%-6.15rem)] gap-[0.48rem] overflow-y-auto"
-          >
-            {rail.map((r) =>
-              r.id === "notifications" ? (
-                <NotificationBell
-                  key={r.id}
-                  open={open === r.id}
-                  onClick={() => {
-                    setSearchOpen(false);
-                    setPanel(open === r.id ? null : r.id);
-                  }}
-                />
-              ) : (
-                <Button
-                  key={r.id}
-                  variant={r.id === "emer" ? "destructive" : "outline"}
-                  aria-expanded={open === r.id}
-                  aria-label={panelLabel(r.id)}
-                  title={panelLabel(r.id)}
-                  className="legacy-flight-tool backdrop-blur"
-                  onClick={() => {
-                    setSearchOpen(false);
-                    setPanel(open === r.id ? null : r.id);
-                  }}
-                >
-                  {r.id === "aircraft" ? (
-                    <Plane className="size-6 text-white" aria-hidden="true" />
-                  ) : (
-                    panelLabel(r.id)
-                  )}
-                </Button>
-              ),
-            )}
-            <Button
-              aria-label={t("mapsearch.title")}
-              title={t("mapsearch.title")}
-              aria-expanded={searchOpen}
-              className="legacy-flight-tool bg-card/90 backdrop-blur"
-              variant="outline"
-              onClick={() => {
-                setPanel(null);
-                setSearchOpen(!searchOpen);
-              }}
+          {flying && (
+            <nav
+              aria-label={t("fly.title")}
+              className="absolute top-[5.15rem] right-3 z-30 grid max-h-[calc(100%-6.15rem)] gap-[0.48rem] overflow-y-auto"
             >
-              <SearchIcon className="size-6 text-white" />
-            </Button>
-          </nav>
+              {rail.map((r) =>
+                r.id === "notifications" ? (
+                  <NotificationBell
+                    key={r.id}
+                    open={open === r.id}
+                    onClick={() => {
+                      setSearchOpen(false);
+                      setPanel(open === r.id ? null : r.id);
+                    }}
+                  />
+                ) : (
+                  <Button
+                    key={r.id}
+                    variant={r.id === "emer" ? "destructive" : "outline"}
+                    aria-expanded={open === r.id}
+                    aria-label={panelLabel(r.id)}
+                    title={panelLabel(r.id)}
+                    className="legacy-flight-tool backdrop-blur"
+                    onClick={() => {
+                      setSearchOpen(false);
+                      setPanel(open === r.id ? null : r.id);
+                    }}
+                  >
+                    {r.id === "aircraft" ? (
+                      <Plane className="size-6 text-white" aria-hidden="true" />
+                    ) : (
+                      panelLabel(r.id)
+                    )}
+                  </Button>
+                ),
+              )}
+              <Button
+                aria-label={t("mapsearch.title")}
+                title={t("mapsearch.title")}
+                aria-expanded={searchOpen}
+                className="legacy-flight-tool bg-card/90 backdrop-blur"
+                variant="outline"
+                onClick={() => {
+                  setPanel(null);
+                  setSearchOpen(!searchOpen);
+                }}
+              >
+                <SearchIcon className="size-6 text-white" />
+              </Button>
+            </nav>
+          )}
+        </div>
+
+        {split && (
+          <Button
+            variant="outline"
+            size="icon"
+            className="bg-card absolute top-2 left-1/2 z-50 size-8 -translate-x-1/2 shadow"
+            aria-label={t("fly.split.swap")}
+            title={t("fly.split.swap")}
+            onClick={() => setMapOnRight(!mapOnRight)}
+            data-testid="flight-split-swap"
+          >
+            <ArrowRightLeft className="size-5" aria-hidden="true" />
+          </Button>
         )}
 
         {(open ?? (!flying && (debriefOpen || planRoute.length < 2))) && (
           <section
             role="dialog"
             aria-label={open ? panelLabel(open) : t("fly.title")}
-            className="fly-popover"
+            className={cn("fly-popover", split && "fly-split-tool")}
+            data-testid={split ? "fly-tool-pane" : undefined}
             data-panel={open ?? "none"}
             data-debrief={!open && debriefOpen ? "true" : undefined}
             style={
-              {
-                "--top":
-                  open === "position"
-                    ? "0.75rem"
-                    : `calc(5.15rem + ${rail.findIndex((r) => r.id === open)} * 3.93rem)`,
-                ...(open === "fpl" || open === "aircraft"
-                  ? { width: "min(42rem, calc(100vw - 6.5rem))" }
-                  : {}),
-              } as React.CSSProperties
+              (split
+                ? {
+                    position: "relative",
+                    top: 0,
+                    left: 0,
+                    right: "auto",
+                    bottom: "auto",
+                    width: "100%",
+                    height: "100%",
+                    maxHeight: "100%",
+                    minHeight: 0,
+                    gridColumn: mapOnRight ? 1 : 2,
+                    gridRow: 1,
+                    borderRadius: 0,
+                  }
+                : {
+                    "--top":
+                      open === "position"
+                        ? "0.75rem"
+                        : `calc(5.15rem + ${rail.findIndex((r) => r.id === open)} * 3.93rem)`,
+                    ...(open === "fpl" || open === "aircraft"
+                      ? { width: "min(42rem, calc(100vw - 6.5rem))" }
+                      : {}),
+                  }) as React.CSSProperties
             }
           >
             {open ? (
               <>
-                {open !== "rwy" && (
+                {(open !== "rwy" || split) && (
                   <div className="fly-popover-head">
                     <div>
                       <h2>{panelLabel(open)}</h2>
@@ -816,7 +892,10 @@ export function FlyPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => setPanel(null)}
+                      onClick={() => {
+                        setPanel(null);
+                        if (split) setSplit(false);
+                      }}
                     >
                       {t("map.close")}
                     </Button>

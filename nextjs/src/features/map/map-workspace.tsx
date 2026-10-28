@@ -29,7 +29,13 @@ const networkLabels = {
 } as const satisfies Record<(typeof trafficNetworks)[number], string>;
 
 /** `embedded`: the in-flight background map (legacy `?embed=1`): full-bleed, tools behind Layers. */
-export function MapWorkspace({ embedded = false }: { embedded?: boolean }) {
+export function MapWorkspace({
+  embedded = false,
+  centerAircraft = false,
+}: {
+  embedded?: boolean;
+  centerAircraft?: boolean;
+}) {
   const t = useT(),
     settings = useMapSettings(),
     flight = useFlight((s) => s.flight),
@@ -453,6 +459,7 @@ export function MapWorkspace({ embedded = false }: { embedded?: boolean }) {
         >
           <MapView
             embedded={embedded}
+            centerAircraft={centerAircraft}
             basemap={settings.basemap}
             layers={settings.layers}
             plan={settings.plan}

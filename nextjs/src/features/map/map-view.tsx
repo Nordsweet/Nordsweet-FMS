@@ -112,6 +112,7 @@ export type { Basemap, LayerId } from "~/stores/map";
 
 type Props = {
   embedded?: boolean;
+  centerAircraft?: boolean;
   basemap: Basemap;
   layers: Record<LayerId, boolean>;
   plan: AirspacePlan | "none";
@@ -153,6 +154,7 @@ type Click =
 
 export function MapView({
   embedded = false,
+  centerAircraft = false,
   basemap,
   layers,
   plan,
@@ -556,6 +558,7 @@ export function MapView({
   const trafficByHex = useRef(new Map<string, TrafficAircraft>());
 
   useMapAnimation({
+    centerAircraft,
     mapRef,
     sceneRef,
     ready,
