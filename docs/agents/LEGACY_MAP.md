@@ -58,6 +58,8 @@ State defaults: the `state = {…}` object (~line 1500). DOM refs: `refs = {…}
 
 ## 4. Work board
 
+Fly instrument order — claimed, Codex 2026-10-28. Swap Ground Speed and Altitude in the top flight status bar.
+
 Runway diagram marking scale — done, Codex 2026-10-25. Centreline full marks represent 200 m of the selected runway's published LDA; each threshold has one full stripe per 10 m width. Fractional remainders use proportionally shorter marks; missing LDA/width omits the relevant scale without substituting length or TODA. Shared SVG renderer replaces decorative gradients/dashes. Browser regressions cover seven LDA marks on departure RWY 12 despite longer TODA, 2550/2600 m LDA, partial 100 m/45 m marks and absent data; LZTT screenshot inspected. Format/lint/types, 768 unit tests, production build and all 168 browser scenarios passed without retries.
 
 Radio language info popovers — done, Codex 2026-10-25. COMMs uses circled-info buttons and compact themed popovers for Slovak, Czech, German and Lithuanian services, with PL/EN labels and approximate pronunciations. Aerodrome/airspace codes and callsign aliases identify the guide; Polish/unknown services stay compact. Route-group headers include the guide even without a frequency (LZCTR TATRY). Browser regression covers all four guides, Polish exclusion, Escape/focus return, narrow-screen bounds and retained handoff/FREDA/reload behavior; mobile screenshot inspected. Format/lint/types, 768 unit tests, production build and 168 browser scenarios passed; existing terrain-resource timing test passed on its automatic retry (167 first-attempt passes, 1 flaky).
