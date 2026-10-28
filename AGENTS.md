@@ -43,6 +43,17 @@ These plugins are Claude Code only; Codex follows the rules below by hand.
 - Karpathy guidelines: think before coding, simplicity, surgical changes, goal-driven execution.
 - Superpowers: use its skills for planning, TDD and debugging.
 
+Cloudflare's [security-audit skill](https://github.com/cloudflare/security-audit-skill) is not a
+plugin; install it once per machine as a user skill (Codex: copy it to `~/.codex/skills/` instead):
+
+```
+git clone --depth 1 https://github.com/cloudflare/security-audit-skill /tmp/security-audit-skill
+mkdir -p ~/.claude/skills && cp -r /tmp/security-audit-skill/skills/security-audit ~/.claude/skills/
+```
+
+- Security audit: use it for security questions and reviews of trust boundaries (API input, imports,
+  storage, deploy); run its full audit workflow only when asked for one.
+
 ## CodeGraph
 
 The index lives in `.codegraph/` (gitignored). In every thread, in any agent, call `codegraph_explore`

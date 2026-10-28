@@ -23,7 +23,7 @@ git checkout --quiet --force --detach "$target"
 docker compose -f deploy/docker-compose.yml -p fms-dev up -d --build --remove-orphans
 
 for _ in $(seq 30); do
-  if curl -fsS http://127.0.0.1:8020/ >/dev/null && curl -fsS http://127.0.0.1:8020/data/aircraft.json >/dev/null && curl -fsS http://127.0.0.1:8020/flight-sync/health >/dev/null; then
+  if curl -fsS http://100.70.224.81:8020/ >/dev/null && curl -fsS http://100.70.224.81:8020/data/aircraft.json >/dev/null && curl -fsS http://100.70.224.81:8020/flight-sync/health >/dev/null; then
     echo "$target" >"$STATE"
     docker image prune -f >/dev/null
     echo "Deployed $target"

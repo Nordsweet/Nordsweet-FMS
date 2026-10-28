@@ -14,7 +14,7 @@ import { useFlight } from "~/stores/flight";
 import { AtisPadDialog } from "./atis-pad";
 import { Section, fmt } from "./fields";
 import { useBriefing } from "./weather";
-import { RequestAtisCall } from "./atis-call";
+import { RequestAtisCall, TelephoneAtisMessage } from "./atis-call";
 
 function Age({ minutes, stale }: { minutes: number | null; stale: boolean }) {
   const t = useT();
@@ -89,7 +89,10 @@ export function AirportBriefing({
         </div>
       )}
       {showAtis && /^[A-Z]{4}$/.test(point.ident) && (
-        <RequestAtisCall icao={point.ident} />
+        <>
+          <RequestAtisCall icao={point.ident} />
+          <TelephoneAtisMessage icao={point.ident} />
+        </>
       )}
       {atisOpen && (
         <AtisPadDialog point={point} open onOpenChange={setAtisOpen} />

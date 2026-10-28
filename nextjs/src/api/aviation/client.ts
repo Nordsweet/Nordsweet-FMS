@@ -11,6 +11,7 @@ import {
   airportResponseSchema,
   fuelResponseSchema,
   airspaceResponseSchema,
+  atisMessageResponseSchema,
   atisResponseSchema,
   atisCallAccountSchema,
   type PlaceKind,
@@ -131,6 +132,8 @@ export type CommunityAtisReport = {
 };
 
 export const aviationApi = {
+  atisMessage: (icao: string, format: "text" | "datis" = "text") =>
+    get(icaoPath(icao, "/atis-message"), atisMessageResponseSchema, { format }),
   atisCallAccount: () => get("/atis-calls", atisCallAccountSchema),
   requestAtisCall: ({ icao, requestId }: { icao: string; requestId: string }) =>
     post(

@@ -1,3 +1,4 @@
+name: fms-dev
 # Pre-production (develop) on the homelab: https://dev.fms.lab.vibecde.com (Tailscale only).
 services:
   web:
@@ -5,9 +6,10 @@ services:
     depends_on:
       - flight-store
     restart: unless-stopped
-    # Localhost only; Caddy (host network) is the entry point and terminates TLS.
+    # Bound to the Tailscale IP: Traefik (Coolify, in a container) reaches backends there, and
+    # terminates TLS. 127.0.0.1 would be unreachable from the proxy container.
     ports:
-      - "127.0.0.1:8020:80"
+      - "100.70.224.81:8020:80"
   flight-store:
     build: ../server
     restart: unless-stopped

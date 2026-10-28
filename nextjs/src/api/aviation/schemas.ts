@@ -132,9 +132,23 @@ export const atisResponseSchema = z.object({
   sources: sourcesSchema,
 });
 
+/** The one current ATIS cut out of a telephone recording; `text` is null when none could be found. */
+export const atisMessageSchema = z.object({
+  text: z.string().nullable(),
+  error: z.string().nullable(),
+  changed: z.boolean(),
+  misheard: z.boolean(),
+  redo: z.boolean(),
+});
+
+export const atisMessageResponseSchema = z.object({
+  icao: z.string(),
+  captured_at: z.number().nullable(),
+  message: atisMessageSchema.nullable(),
+});
+
 export const atisCallAccountSchema = z.object({
   username: z.string(),
-  tokens_available: z.number().int().nonnegative(),
   enabled: z.boolean(),
   airports: z.array(z.string()),
   requests: z.array(
@@ -145,6 +159,10 @@ export const atisCallAccountSchema = z.object({
       created_at: z.number(),
       updated_at: z.number(),
       error: z.string().nullable(),
+      /** `ready` only ends the call: the text follows as `transcript` or `transcript_error`. */
+      transcript: z.string().nullable().default(null),
+      transcript_error: z.string().nullable().default(null),
+      message: atisMessageSchema.nullable().default(null),
     }),
   ),
 });
@@ -260,6 +278,7 @@ export type InspirationSpot = z.infer<typeof inspirationSpotSchema>;
 export type InspirationRoute = z.infer<typeof inspirationRouteSchema>;
 export type Metar = z.infer<typeof metarSchema>;
 export type Atis = z.infer<typeof atisSchema>;
+export type AtisMessage = z.infer<typeof atisMessageSchema>;
 export type Notam = z.infer<typeof notamSchema>;
 export type TrafficAircraft = z.infer<typeof aircraftSchema>;
 export type AirspaceFeature = z.infer<typeof airspaceFeatureSchema>;
