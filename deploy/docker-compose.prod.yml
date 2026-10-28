@@ -1,0 +1,16 @@
+# Production on Coolify (Docker Compose build pack, base directory "/", this file as the compose
+# location). No host ports: Coolify's Traefik routes the domain set on `web` (port 80).
+services:
+  web:
+    build: ../nextjs
+    depends_on:
+      - flight-store
+    restart: unless-stopped
+  flight-store:
+    build: ../server
+    restart: unless-stopped
+    volumes:
+      - flight-data:/data
+
+volumes:
+  flight-data:

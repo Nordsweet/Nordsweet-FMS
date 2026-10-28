@@ -32,3 +32,10 @@ journalctl --user -u fms-dev-deploy.service -n 50          # deploy log
 
 Traefik (Coolify) routes `dev.fms.lab.vibecde.com` to `http://100.70.224.81:8020`. Keep the
 compose port binding on that IP: a `127.0.0.1` binding is unreachable from the proxy container.
+
+## Production (Coolify)
+
+Branch `production` is deployed by a Coolify **Docker Compose** resource (base directory `/`,
+compose location `/deploy/docker-compose.prod.yml`). Set the domain on the `web` service as
+`https://<host>:80`. `flight-store` has no domain; nginx reaches it as `flight-store:8000`.
+`.github/workflows/deploy-prod.yml` triggers the deploy over Tailscale on every push to `production`.
