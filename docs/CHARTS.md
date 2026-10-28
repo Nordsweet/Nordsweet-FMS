@@ -1,0 +1,11 @@
+# FPL / Charts
+
+The Charts tab in Fly ports chart-browser.html into typed React components. It shares the active flight, bearer authentication, airport picker, NordChart procedure geometry and taxi route calculation with the rest of FMS. Each pane chooses its own airport, source, category, flight stage and document. Source/category/stage controls expand above the chart; page navigation, pan, pinch, wheel zoom and fit remain beside the sheet. Local PDFs (including user-supplied Jeppesen charts) remain local to the open browser.
+
+The collector is the authority for Polish AIP IFR/VFR/MIL packages: see its docs/API.md, Polish airport charts. The frontend never scrapes PANSA. Airport assignment comes from the publication chapter, and chart categories from its published title; the old static AD-number mapping is ambiguous after the 2025 numbering changes. Existing curated airport records are preserved when the catalog adds missing published airport positions.
+
+Official sheets retain their volume, source URL and effective UTC dates. An offline expired package is visibly marked. Library sheets retain their own PDF revision and calibration. Calibration is applied only to the corresponding library PDF and its configured frame aspect ratio, never automatically to a new AIP edition or an uploaded local file. Missing taxi geometry is left undrawn; the legacy fallback inventing a direct taxi connection is intentionally omitted.
+
+PDF.js renders authenticated bytes inside the app, including on iPad. PDF blobs use a dedicated structured-clone IndexedDB cache, excluded from the JSON query persister, and are not retained forever in an in-memory cache. Opened PDFs remain readable offline after reload. A device storage failure does not prevent online viewing. Server-side bulk download does not automatically download every PDF onto every device.
+
+The original TAXI/PROC rail tool remains available. FPL row actions and vertical profile retain the same flight state when using the FPL tab. Tests cover official/library separation, runway-grouped generated procedures, calibrated taxi geometry, authentication, UTC expiry, partial initial imports, two independent multipage views, a real PANSA PDF, offline reload and iPad bounds.

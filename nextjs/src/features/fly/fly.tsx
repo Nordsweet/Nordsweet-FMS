@@ -50,6 +50,7 @@ import { useInFlight } from "~/stores/inflight";
 import { useEmergency, emergencyScope } from "~/stores/emergency";
 
 import { ChartPanel } from "./chart-panel";
+import { ChartBrowser } from "~/features/charts/chart-browser";
 import { CommsPanel } from "./comms-panel";
 import { useCommsPlan } from "./use-comms-plan";
 import { ConfigPanel } from "./config-panel";
@@ -176,6 +177,7 @@ export function FlyPage() {
   const { phase, setPhase, config } = inFlight;
   const comms = useCommsPlan(phase, fix, now, flying);
   const [panel, setPanel] = useState<Panel | null>(null);
+  const [fplTab, setFplTab] = useState("fpl");
   const [split, setSplit] = useState(false);
   const [mapOnRight, setMapOnRight] = useState(true);
   const [aircraftTab, setAircraftTab] = useState("aircraft");
@@ -407,199 +409,232 @@ export function FlyPage() {
   };
   const content: Record<Panel, React.ReactNode> = {
     emer: <EmergencyPanel phase={phase} />,
-    fpl:
-      fplProfile && inFlight.route.some((p) => p.ident !== "DCT") ? (
-        <>
-          <div className="shrink-0">
-            <NumberField
-              label={t("plan.route.tile.cruiseAltitude")}
-              unit="ft"
-              value={flight.cruiseAltitudeFt}
-              min={0}
-              step={100}
-              onChange={(altitudeFt) =>
-                useCruiseAltitude.getState().setAltitude(
-                  altitudeFt,
-                  (plan?.points ?? [])
-                    .filter(
-                      (p) =>
-                        altitudeRestriction(p) !== null ||
-                        p.patternId !== undefined ||
-                        p.kind === "airport" ||
-                        p.kind === "threshold",
+    fpl: (
+      <Tabs
+        value={fplTab}
+        onValueChange={setFplTab}
+        className="min-h-0 min-w-0 flex-1"
+      >
+        <TabsList aria-label={t("charts.fplTabs")}>
+          <TabsTrigger value="fpl">FPL</TabsTrigger>
+          <TabsTrigger value="charts">Charts</TabsTrigger>
+        </TabsList>
+        <TabsContent
+          value="fpl"
+          className="flex min-h-0 flex-col gap-3 overflow-auto"
+        >
+          {fplProfile && inFlight.route.some((p) => p.ident !== "DCT") ? (
+            <>
+              <div className="shrink-0">
+                <NumberField
+                  label={t("plan.route.tile.cruiseAltitude")}
+                  unit="ft"
+                  value={flight.cruiseAltitudeFt}
+                  min={0}
+                  step={100}
+                  onChange={(altitudeFt) =>
+                    useCruiseAltitude.getState().setAltitude(
+                      altitudeFt,
+                      (plan?.points ?? [])
+                        .filter(
+                          (p) =>
+                            altitudeRestriction(p) !== null ||
+                            p.patternId !== undefined ||
+                            p.kind === "airport" ||
+                            p.kind === "threshold",
+                        )
+                        .flatMap((p) => [
+                          pointKey(p),
+                          formatRoutePoint(p).toUpperCase(),
+                        ]),
+                      true,
                     )
-                    .flatMap((p) => [
-                      pointKey(p),
-                      formatRoutePoint(p).toUpperCase(),
-                    ]),
-                  true,
-                )
-              }
-            />
-          </div>
-          <FlightPlanTable
-            fuelLabel={t("fly.fpl.fuel", { unit: fplFuelUnit })}
-            actions
-            label={t("mapplanner.points")}
-            listClassName="max-h-[30dvh]"
-          >
-            {fplProfile.rows.map(
-              (
-                { point, routeIndex: index, event, altitudeFt },
-                displayIndex,
-              ) =>
-                point.ident === "DCT" ? null : (
-                  <div
-                    role="listitem"
-                    key={`${index ?? "profile"}-${displayIndex}-${point.ident}`}
-                    data-profile-event={event}
-                    aria-current={
-                      index !== null && index === inFlight.activeLeg + 1
-                        ? "step"
-                        : undefined
-                    }
-                    className={flightPlanRowClass(
-                      index !== null && index === inFlight.activeLeg + 1,
-                      true,
-                      true,
-                    )}
-                  >
-                    <FlightPlanCells
-                      point={point}
-                      fuel={
-                        fuelAtPoints[displayIndex] == null
-                          ? "—"
-                          : formatFuel(fuelAtPoints[displayIndex], fplFuelUnit)
-                      }
-                      actions
-                      previous={fplProfile.rows[displayIndex - 1]?.point}
-                      altitudeFt={altitudeFt}
-                      selected={
-                        index !== null && index === inFlight.activeLeg + 1
-                      }
-                    />
-                    {index !== null && (
-                      <div className="absolute top-1 right-2 flex justify-end gap-1 sm:static">
-                        <button
-                          type="button"
-                          aria-label={t("fly.fpl.remove", {
-                            point: point.ident,
-                          })}
-                          className="flex size-9 items-center justify-center rounded-lg text-red-500 hover:bg-red-500/15 focus-visible:ring-2"
-                          onClick={() => {
-                            const draft = useFlight.getState();
-                            const waypointIndex =
-                              draft.flight.waypoints.findIndex((p) =>
-                                sameFlightPoint(p, point),
-                              );
-                            if (waypointIndex >= 0)
-                              draft.update({
-                                waypoints: draft.flight.waypoints.filter(
-                                  (_, i) => i !== waypointIndex,
-                                ),
-                              });
-                            inFlight.removeWaypoint(
-                              index,
-                              fix &&
-                                !gpsError &&
-                                !fix.paused &&
-                                Date.now() - Date.parse(fix.time) <= 20000
-                                ? fix
-                                : null,
-                            );
-                          }}
-                        >
-                          <Trash2 className="size-4" aria-hidden="true" />
-                        </button>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
+                  }
+                />
+              </div>
+              <FlightPlanTable
+                fuelLabel={t("fly.fpl.fuel", { unit: fplFuelUnit })}
+                actions
+                label={t("mapplanner.points")}
+                listClassName="max-h-[30dvh]"
+              >
+                {fplProfile.rows.map(
+                  (
+                    { point, routeIndex: index, event, altitudeFt },
+                    displayIndex,
+                  ) =>
+                    point.ident === "DCT" ? null : (
+                      <div
+                        role="listitem"
+                        key={`${index ?? "profile"}-${displayIndex}-${point.ident}`}
+                        data-profile-event={event}
+                        aria-current={
+                          index !== null && index === inFlight.activeLeg + 1
+                            ? "step"
+                            : undefined
+                        }
+                        className={flightPlanRowClass(
+                          index !== null && index === inFlight.activeLeg + 1,
+                          true,
+                          true,
+                        )}
+                      >
+                        <FlightPlanCells
+                          point={point}
+                          fuel={
+                            fuelAtPoints[displayIndex] == null
+                              ? "—"
+                              : formatFuel(
+                                  fuelAtPoints[displayIndex],
+                                  fplFuelUnit,
+                                )
+                          }
+                          actions
+                          previous={fplProfile.rows[displayIndex - 1]?.point}
+                          altitudeFt={altitudeFt}
+                          selected={
+                            index !== null && index === inFlight.activeLeg + 1
+                          }
+                        />
+                        {index !== null && (
+                          <div className="absolute top-1 right-2 flex justify-end gap-1 sm:static">
                             <button
                               type="button"
-                              aria-label={t("fly.fpl.options", {
+                              aria-label={t("fly.fpl.remove", {
                                 point: point.ident,
                               })}
-                              className="flex size-9 items-center justify-center rounded-lg text-white hover:bg-white/10 focus-visible:ring-2"
+                              className="flex size-9 items-center justify-center rounded-lg text-red-500 hover:bg-red-500/15 focus-visible:ring-2"
+                              onClick={() => {
+                                const draft = useFlight.getState();
+                                const waypointIndex =
+                                  draft.flight.waypoints.findIndex((p) =>
+                                    sameFlightPoint(p, point),
+                                  );
+                                if (waypointIndex >= 0)
+                                  draft.update({
+                                    waypoints: draft.flight.waypoints.filter(
+                                      (_, i) => i !== waypointIndex,
+                                    ),
+                                  });
+                                inFlight.removeWaypoint(
+                                  index,
+                                  fix &&
+                                    !gpsError &&
+                                    !fix.paused &&
+                                    Date.now() - Date.parse(fix.time) <= 20000
+                                    ? fix
+                                    : null,
+                                );
+                              }}
                             >
-                              <Ellipsis className="size-5" aria-hidden="true" />
+                              <Trash2 className="size-4" aria-hidden="true" />
                             </button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onSelect={() => {
-                                useMapSettings.getState().inspectPoint({
-                                  ...point,
-                                  name: point.ident,
-                                  kind: "point",
-                                  centerOnly: true,
-                                });
-                                setPanel(null);
-                              }}
-                            >
-                              {t("fly.fpl.center")}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              disabled={
-                                index <= inFlight.activeLeg ||
-                                index === inFlight.route.length - 1 ||
-                                (index === inFlight.activeLeg + 1 &&
-                                  !fplPosition)
-                              }
-                              onSelect={() => editFplWaypoint(index, "skip")}
-                            >
-                              {t("fly.fpl.skip")}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              disabled={
-                                index === inFlight.activeLeg + 1 && !fplPosition
-                              }
-                              onSelect={() =>
-                                editFplWaypoint(index, "set-next")
-                              }
-                            >
-                              {t("fly.fpl.setNext")}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onSelect={() => {
-                                const airport = routeData?.airport(point.ident);
-                                useMapSettings.getState().inspectPoint({
-                                  ...point,
-                                  name: airport?.name ?? point.ident,
-                                  kind: airport ? "airport" : "point",
-                                });
-                                setPanel(null);
-                              }}
-                            >
-                              {t("fly.fpl.details")}
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <button
+                                  type="button"
+                                  aria-label={t("fly.fpl.options", {
+                                    point: point.ident,
+                                  })}
+                                  className="flex size-9 items-center justify-center rounded-lg text-white hover:bg-white/10 focus-visible:ring-2"
+                                >
+                                  <Ellipsis
+                                    className="size-5"
+                                    aria-hidden="true"
+                                  />
+                                </button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  onSelect={() => {
+                                    useMapSettings.getState().inspectPoint({
+                                      ...point,
+                                      name: point.ident,
+                                      kind: "point",
+                                      centerOnly: true,
+                                    });
+                                    setPanel(null);
+                                  }}
+                                >
+                                  {t("fly.fpl.center")}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  disabled={
+                                    index <= inFlight.activeLeg ||
+                                    index === inFlight.route.length - 1 ||
+                                    (index === inFlight.activeLeg + 1 &&
+                                      !fplPosition)
+                                  }
+                                  onSelect={() =>
+                                    editFplWaypoint(index, "skip")
+                                  }
+                                >
+                                  {t("fly.fpl.skip")}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  disabled={
+                                    index === inFlight.activeLeg + 1 &&
+                                    !fplPosition
+                                  }
+                                  onSelect={() =>
+                                    editFplWaypoint(index, "set-next")
+                                  }
+                                >
+                                  {t("fly.fpl.setNext")}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onSelect={() => {
+                                    const airport = routeData?.airport(
+                                      point.ident,
+                                    );
+                                    useMapSettings.getState().inspectPoint({
+                                      ...point,
+                                      name: airport?.name ?? point.ident,
+                                      kind: airport ? "airport" : "point",
+                                    });
+                                    setPanel(null);
+                                  }}
+                                >
+                                  {t("fly.fpl.details")}
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                ),
-            )}
-          </FlightPlanTable>
-          <p className="text-muted-foreground text-xs">
-            {t("fly.fpl.fuelNote")}
-          </p>
-          <FplVerticalProfile
-            profile={fplProfile}
-            activeLeg={inFlight.activeLeg}
-            fix={
-              fix &&
-              !gpsError &&
-              !fix.paused &&
-              now - Date.parse(fix.time) <= 20000
-                ? fix
-                : null
-            }
-          />
-        </>
-      ) : (
-        <p className="text-muted-foreground text-sm">
-          {t("plan.navlog.empty")}
-        </p>
-      ),
+                    ),
+                )}
+              </FlightPlanTable>
+              <p className="text-muted-foreground text-xs">
+                {t("fly.fpl.fuelNote")}
+              </p>
+              <FplVerticalProfile
+                profile={fplProfile}
+                activeLeg={inFlight.activeLeg}
+                fix={
+                  fix &&
+                  !gpsError &&
+                  !fix.paused &&
+                  now - Date.parse(fix.time) <= 20000
+                    ? fix
+                    : null
+                }
+              />
+            </>
+          ) : (
+            <p className="text-muted-foreground text-sm">
+              {t("plan.navlog.empty")}
+            </p>
+          )}
+        </TabsContent>
+        <TabsContent
+          value="charts"
+          className="flex min-h-0 flex-col overflow-auto"
+        >
+          <ChartBrowser />
+        </TabsContent>
+      </Tabs>
+    ),
     chart: <ChartPanel phase={phase} />,
     comms: <CommsPanel result={comms} />,
     wx: <WxPanel phase={phase} />,
@@ -872,7 +907,15 @@ export function FlyPage() {
                         ? "0.75rem"
                         : `calc(5.15rem + ${rail.findIndex((r) => r.id === open)} * 3.93rem)`,
                     ...(open === "fpl" || open === "aircraft"
-                      ? { width: "min(42rem, calc(100vw - 6.5rem))" }
+                      ? {
+                          width:
+                            open === "fpl" && fplTab === "charts"
+                              ? "min(86rem, calc(100vw - 6.5rem))"
+                              : "min(42rem, calc(100vw - 6.5rem))",
+                          ...(open === "fpl" && fplTab === "charts"
+                            ? { height: "calc(100% - 1.5rem)" }
+                            : {}),
+                        }
                       : {}),
                   }) as React.CSSProperties
             }

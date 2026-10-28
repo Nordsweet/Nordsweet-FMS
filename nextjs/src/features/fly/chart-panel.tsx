@@ -48,38 +48,45 @@ function project(
 }
 
 /** Legacy Nordchart: the procedure's legs to scale with fixes, restrictions, tracks and lengths. */
-function ProcedureChart({
+export function ProcedureChart({
   procedure,
   airport,
+  procedures = [procedure],
+  runway: selectedRunway,
 }: {
   procedure: Procedure;
   airport: Airport;
+  procedures?: Procedure[];
+  runway?: string;
 }) {
   const t = useT();
   const star = procedure.type === "STAR";
-  const runway = procedure.runways[0] ?? "--";
-  const legs = procedure.legs.filter(
-    (l): l is typeof l & { lat: number; lon: number } =>
-      l.lat !== null && l.lon !== null,
-  );
-  const field = {
-    lat: airport.lat,
-    lon: airport.lon,
-    ident: `${airport.ident} RWY ${runway}`,
-    isAirport: true,
-    leg: null,
-  };
-  const raw = [
-    ...(star ? [] : [field]),
-    ...legs.map((leg) => ({
-      lat: leg.lat,
-      lon: leg.lon,
-      ident: leg.ident,
-      isAirport: false,
-      leg,
-    })),
-    ...(star ? [field] : []),
-  ];
+  const runway = selectedRunway ?? procedure.runways[0] ?? "--";
+  const routes = procedures.map((p) => {
+    const legs = p.legs.filter(
+      (l): l is typeof l & { lat: number; lon: number } =>
+        l.lat !== null && l.lon !== null,
+    );
+    const field = {
+      lat: airport.lat,
+      lon: airport.lon,
+      ident: `${airport.ident} RWY ${runway}`,
+      isAirport: true,
+      leg: null,
+    };
+    return [
+      ...(star ? [] : [field]),
+      ...legs.map((leg) => ({
+        lat: leg.lat,
+        lon: leg.lon,
+        ident: leg.ident,
+        isAirport: false,
+        leg,
+      })),
+      ...(star ? [field] : []),
+    ];
+  });
+  const raw = routes.flat();
   if (raw.length < 2)
     return (
       <p className="text-muted-foreground text-sm">
@@ -87,7 +94,14 @@ function ProcedureChart({
       </p>
     );
   const xy = project(raw);
-  const points: ChartPoint[] = raw.map((p) => ({ ...p, ...xy(p) }));
+  const chartRoutes: ChartPoint[][] = routes.map((route) =>
+    route.map((p) => ({ ...p, ...xy(p) })),
+  );
+  const points = [
+    ...new Map(
+      chartRoutes.flat().map((p) => [`${p.ident}|${p.x}|${p.y}`, p]),
+    ).values(),
+  ];
 
   return (
     <svg
@@ -109,41 +123,48 @@ function ProcedureChart({
           strokeWidth={2.2}
         />
       </g>
-      <polyline
-        points={points.map((p) => `${p.x},${p.y}`).join(" ")}
-        fill="none"
-        stroke="#080808"
-        strokeWidth={2.6}
-        strokeLinejoin="round"
-      />
-      {points.slice(1).map((p, i) => {
-        const a = points[i]!;
-        const leg = p.leg;
-        let angle = (Math.atan2(p.y - a.y, p.x - a.x) * 180) / Math.PI;
-        if (angle > 90) angle -= 180;
-        if (angle < -90) angle += 180;
-        const track =
-          leg?.trackMagDeg != null
-            ? `${String(Math.round(leg.trackMagDeg)).padStart(3, "0")}°`
-            : "";
-        const length =
-          leg?.distanceNm != null ? `${Number(leg.distanceNm.toFixed(1))}` : "";
-        return track || length ? (
-          <text
-            key={i}
-            transform={`translate(${(a.x + p.x) / 2} ${(a.y + p.y) / 2}) rotate(${angle})`}
-            y={-7}
-            textAnchor="middle"
-            fontSize={12}
-            fontWeight={800}
-            paintOrder="stroke"
-            stroke="#fffef7"
-            strokeWidth={4}
-          >
-            {[track, length].filter(Boolean).join("  ")}
-          </text>
-        ) : null;
-      })}
+      {chartRoutes.map((route, routeIndex) => (
+        <polyline
+          key={routeIndex}
+          points={route.map((p) => `${p.x},${p.y}`).join(" ")}
+          fill="none"
+          stroke="#080808"
+          strokeWidth={2.6}
+          strokeLinejoin="round"
+        />
+      ))}
+      {chartRoutes.flatMap((route, r) =>
+        route.slice(1).map((p, i) => {
+          const a = route[i]!;
+          const leg = p.leg;
+          let angle = (Math.atan2(p.y - a.y, p.x - a.x) * 180) / Math.PI;
+          if (angle > 90) angle -= 180;
+          if (angle < -90) angle += 180;
+          const track =
+            leg?.trackMagDeg != null
+              ? `${String(Math.round(leg.trackMagDeg)).padStart(3, "0")}°`
+              : "";
+          const length =
+            leg?.distanceNm != null
+              ? `${Number(leg.distanceNm.toFixed(1))}`
+              : "";
+          return track || length ? (
+            <text
+              key={`${r}-${i}`}
+              transform={`translate(${(a.x + p.x) / 2} ${(a.y + p.y) / 2}) rotate(${angle})`}
+              y={-7}
+              textAnchor="middle"
+              fontSize={12}
+              fontWeight={800}
+              paintOrder="stroke"
+              stroke="#fffef7"
+              strokeWidth={4}
+            >
+              {[track, length].filter(Boolean).join("  ")}
+            </text>
+          ) : null;
+        }),
+      )}
       {points.map((p, i) => {
         const alt = p.leg?.altitude ?? null;
         const rows = [
