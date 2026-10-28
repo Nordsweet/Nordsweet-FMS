@@ -3,8 +3,9 @@
 Pre-production, reachable only over Tailscale (no authentication yet).
 
 - `nextjs/Dockerfile` builds the static export and serves it with nginx (`nextjs/deploy/nginx.conf`).
-- `deploy/docker-compose.yml` runs it on `127.0.0.1:8020`; Caddy (`/srv/stacks/caddy`) proxies
-  `dev.fms.lab.vibecde.com` to it with its own certificate (Cloudflare DNS challenge).
+- `deploy/docker-compose.yml` (compose project `fms-dev`) publishes it on the Tailscale IP,
+  `100.70.224.81:8020`; Traefik inside Coolify (a container, so it cannot reach `127.0.0.1` on the
+  host) proxies `dev.fms.lab.vibecde.com` to it and terminates TLS.
 - The internal `flight-store` service persists flight checkpoints/tracks in the `flight-data` named
   volume, exposed only by nginx at `/flight-sync/`. Never remove this volume on deploy. See
   [flight sync contract and backup/recovery](../docs/agents/FLIGHT_SYNC.md). The deploy smoke test
@@ -29,11 +30,5 @@ systemctl --user start fms-dev-deploy.service             # deploy now
 journalctl --user -u fms-dev-deploy.service -n 50          # deploy log
 ```
 
-Caddy site block (in `/srv/stacks/caddy/Caddyfile`; `*.lab.vibecde.com` does not cover a
-two-level name):
-
-```
-dev.fms.lab.vibecde.com {
-	reverse_proxy localhost:8020
-}
-```
+Traefik (Coolify) routes `dev.fms.lab.vibecde.com` to `http://100.70.224.81:8020`. Keep the
+compose port binding on that IP: a `127.0.0.1` binding is unreachable from the proxy container.
