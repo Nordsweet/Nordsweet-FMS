@@ -170,9 +170,9 @@ export function FlightStatusBar({
     >
       <div className="min-w-24 shrink-0">
         {item(
-          t("fly.status.altitude"),
-          value(current?.altitudeFt, " ft"),
-          "status-altitude",
+          t("fly.status.gs"),
+          value(current?.groundSpeedKt, " kt"),
+          "status-gs",
         )}
         <div className="text-primary mt-2 flex items-center gap-1 text-xs">
           <ArrowUp
@@ -187,9 +187,9 @@ export function FlightStatusBar({
       </div>
       <div className="min-w-24 shrink-0">
         {item(
-          t("fly.status.gs"),
-          value(current?.groundSpeedKt, " kt"),
-          "status-gs",
+          t("fly.status.altitude"),
+          value(current?.altitudeFt, " ft"),
+          "status-altitude",
         )}
       </div>
       <div className="grid min-w-28 shrink-0 gap-1">
