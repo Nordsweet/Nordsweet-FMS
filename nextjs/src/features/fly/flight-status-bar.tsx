@@ -8,6 +8,7 @@ import {
   RadioTower,
   Wifi,
   WifiOff,
+  Columns2,
 } from "lucide-react";
 import { angleDiffDeg } from "~/domain/angles";
 import { magneticVariationDeg, trueToMagneticDeg } from "~/domain/magnetic";
@@ -40,6 +41,8 @@ export function FlightStatusBar({
   positionOpen,
   positionStatus,
   onPositionClick,
+  splitOpen,
+  onSplitClick,
 }: {
   fix: GpsFix | null;
   progress: Progress | null;
@@ -48,6 +51,8 @@ export function FlightStatusBar({
   positionOpen: boolean;
   positionStatus: string;
   onPositionClick: () => void;
+  splitOpen: boolean;
+  onSplitClick: () => void;
 }) {
   const t = useT();
   const [now, setNow] = useState<number | null>(null);
@@ -185,12 +190,13 @@ export function FlightStatusBar({
           {progress?.next.ident ?? "—"}
         </div>
       </div>
-      <div className="min-w-24 shrink-0">
+      <div className="grid min-w-28 shrink-0 gap-1">
         {item(
           t("fly.status.altitude"),
           value(current?.altitudeFt, " ft"),
           "status-altitude",
         )}
+        {item(t("fly.status.agl"), value(agl, " ft"), "status-agl")}
       </div>
       <div className="grid min-w-28 shrink-0 gap-1">
         {item(t("fly.track"), degrees(current?.trackDeg), "status-track")}
@@ -274,7 +280,17 @@ export function FlightStatusBar({
           </span>
         </div>
         <div className="flex items-end justify-between gap-3">
-          {item(t("fly.status.agl"), value(agl, " ft"), "status-agl")}
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={t(splitOpen ? "fly.split.close" : "fly.split.open")}
+            title={t(splitOpen ? "fly.split.close" : "fly.split.open")}
+            aria-pressed={splitOpen}
+            onClick={onSplitClick}
+            data-testid="flight-split-toggle"
+          >
+            <Columns2 className="size-6" aria-hidden="true" />
+          </Button>
           {endControl}
         </div>
       </div>

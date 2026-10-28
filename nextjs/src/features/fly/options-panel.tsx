@@ -47,7 +47,7 @@ function TimerCard({ id, now }: { id: TimerKey; now: number }) {
       <p className="text-muted-foreground text-xs">
         {t(`fly.timers.${id}Rule`)}
       </p>
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <output
           className="font-mono text-2xl font-semibold tabular-nums"
           data-testid={`timer-${id}`}

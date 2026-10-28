@@ -1,4 +1,7 @@
 export const flightPopupsEn = {
+  "fly.split.open": "Split screen",
+  "fly.split.close": "Full screen map",
+  "fly.split.swap": "Swap map and tools",
   "fly.fuelReserve.alternate": "Using Alternate Fuel",
   "fly.fuelReserve.final": "Using Final Reserve Fuel",
   "fly.popup.thousandToGo": "1000ft to go",
@@ -58,6 +61,9 @@ export const flightPopupsEn = {
   "fly.popup.descend": "Descend {altitude} ft",
 };
 export const flightPopupsPl: typeof flightPopupsEn = {
+  "fly.split.open": "Podziel ekran",
+  "fly.split.close": "Mapa na cały ekran",
+  "fly.split.swap": "Zamień mapę i narzędzia miejscami",
   "fly.fuelReserve.alternate": "Using Alternate Fuel",
   "fly.fuelReserve.final": "Using Final Reserve Fuel",
   "fly.popup.thousandToGo": "1000ft do zadanej wysokości",

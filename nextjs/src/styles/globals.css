@@ -727,6 +727,23 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
+.fly-split-tool {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  box-shadow: none;
+}
+.fly-split-tool > * {
+  min-width: 0;
+}
+.fly-split-tool > :not(.fly-popover-head) {
+  max-width: 100%;
+}
+.fly-split-tool > .fly-popover-head {
+  padding-inline: 1.1rem;
+}
+.fly-split-tool[data-panel="options"] .font-mono {
+  white-space: nowrap;
+}
 /* Beside the tool's own rail button (set --top inline). */
 .fly-popover[data-panel="emer"],
 .fly-popover[data-panel="rwy"] {
