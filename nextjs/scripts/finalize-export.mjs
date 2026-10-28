@@ -21,6 +21,7 @@ const precache = entries
   .filter(
     (f) =>
       f.includes(path.sep + "_next" + path.sep) ||
+      f.includes(path.sep + "pdfjs" + path.sep) ||
       (/\.(html|js|mjs|json|svg)$/.test(f) &&
         !f.includes(path.sep + "charts" + path.sep)),
   )

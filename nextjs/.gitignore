@@ -25,3 +25,4 @@ next-env.d.ts
 /playwright-report
 
 # copied from node_modules by dev/build (MapLibre web worker)
+/public/pdfjs/

@@ -176,7 +176,10 @@ export function ChartPdf({
       loading = engine.getDocument({
         data: bytes,
         useSystemFonts: true,
-        useWasm: false,
+        cMapUrl: "/pdfjs/cmaps/",
+        standardFontDataUrl: "/pdfjs/standard_fonts/",
+        wasmUrl: "/pdfjs/wasm/",
+        iccUrl: "/pdfjs/iccs/",
       });
       document = await loading.promise;
       if (cancelled) {
