@@ -58,7 +58,7 @@ State defaults: the `state = {…}` object (~line 1500). DOM refs: `refs = {…}
 
 ## 4. Work board
 
-Fly split screen — claimed, Codex 2026-10-28. Move terrain height below Altitude; add map/tools split, default Options, centered map and side swap below the instrument bar.
+Fly split screen — done, Codex 2026-10-28. Terrain height is below Altitude; its former slot toggles a real 50/50 map/tools layout, with Options filling the left pane by default, ownship centered in the right map pane, and a swap control below the instrument bar. Map/canvas identity and zoom survive swaps and close; flight tools reuse the fitted pane. Narrow Options timers and headings remain readable. PL/EN controls, no-GPS preflight, iPad/mobile bounds and flight closure verified. Format/lint/types, 770 unit tests, production export and full CI 40767516909 passed; 10 focused browser scenarios and the final two split regressions passed locally. PR #100 merged to develop.
 
 Fly instrument order — done, Codex 2026-10-28. Ground Speed precedes Altitude in the top flight status bar. Format, lint, types, 768 unit tests, production build and full browser CI 40753718040 passed; phone layout inspected. PR #99 merged to develop.
 
