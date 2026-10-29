@@ -2,6 +2,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const refreshTokens = vi.fn();
 vi.mock("./oidc", () => ({ refreshTokens }));
+// The auth store persists to localStorage as in a browser. Node has none, and Node 24's
+// navigator.locks takes the cross-tab path that rehydrates from it.
+const stored = new Map<string, string>();
+vi.stubGlobal("localStorage", {
+  getItem: (key: string) => stored.get(key) ?? null,
+  setItem: (key: string, value: string) => void stored.set(key, value),
+  removeItem: (key: string) => void stored.delete(key),
+});
 
 const { useAuth } = await import("~/stores/auth");
 const { expiring, renewedToken } = await import("./oidc-session");
