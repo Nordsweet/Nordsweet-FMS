@@ -2,10 +2,22 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, Columns2, Upload } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Columns2,
+  Upload,
+  Ellipsis,
+  AlertTriangle,
+} from "lucide-react";
 import { api } from "~/api";
 import { loadChartPdf } from "~/api/charts";
 import { Button } from "~/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "~/components/ui/popover";
 import { Label } from "~/components/ui/label";
 import { chartCategories, type BrowserChart } from "~/data/charts";
 import { chartSequence, chartTaxiPaths } from "~/domain/chart-browser";
@@ -20,7 +32,7 @@ import { useBrowserCharts } from "./use-browser-charts";
 import { type ChartSelection } from "~/stores/fly-panels";
 
 const selectClass =
-  "bg-background w-full min-w-0 rounded-lg border px-2 py-2 text-sm";
+  "bg-background w-full min-w-0 h-8 rounded-md border px-2 py-0 text-xs pointer-coarse:h-10";
 
 function PdfDocument({
   chart,
@@ -63,10 +75,12 @@ function ChartPane({
   scope,
   charts,
   selection,
+  togglePanes,
 }: {
   scope: "departure" | "arrival";
   charts: BrowserChart[];
   selection?: ChartSelection | null;
+  togglePanes: React.ReactNode;
 }) {
   const t = useT();
   const flight = useFlight((s) => s.flight);
@@ -165,7 +179,7 @@ function ChartPane({
   };
   return (
     <article
-      className="flex h-[calc(100dvh-21rem)] min-h-[28rem] min-w-0 flex-col gap-2 rounded-xl border p-3 lg:h-full lg:min-h-0"
+      className="flex h-[calc(100dvh-21rem)] min-h-[28rem] min-w-0 flex-col gap-1 rounded-lg border p-1 lg:h-full lg:min-h-0"
       aria-label={t(
         scope === "departure" ? "charts.leftPane" : "charts.rightPane",
       )}
@@ -195,156 +209,223 @@ function ChartPane({
         }
       }}
     >
-      <AirportField
-        label={t(scope === "departure" ? "charts.departure" : "charts.arrival")}
-        value={point}
-        placeholder="ICAO"
-        onSelect={(p) => {
-          setPoint(p);
-          setTaxiPhase(
-            p?.ident === flight.destination?.ident &&
-              p?.ident !== flight.departure?.ident
-              ? "arrival"
-              : scope,
-          );
-          setSelectedId(null);
-          setCategory("all");
-        }}
-      />
-      <details className="shrink-0 text-xs">
-        <summary className="text-primary cursor-pointer py-1">
-          {t("charts.filters")}
-        </summary>
-        <div className="grid max-h-48 gap-2 overflow-auto py-2">
-          <div className="grid grid-cols-2 gap-2">
-            <Label className="grid min-w-0 gap-1">
-              {t("charts.source")}
-              <select
-                className={selectClass}
-                aria-label={t("charts.source")}
-                value={source}
-                onChange={(e) => {
-                  setSource(e.target.value);
-                  setSelectedId(null);
-                }}
-              >
-                <option value="all">{t("charts.allSources")}</option>
-                <option value="aip">National AIP · IFR / VFR / MIL</option>
-                <option value="nord">NordChart</option>
-                <option value="library">{t("charts.library")}</option>
-                <option value="local">{t("charts.local")}</option>
-              </select>
-            </Label>
-            <Label className="grid min-w-0 gap-1">
-              {t("charts.category")}
-              <select
-                className={selectClass}
-                aria-label={t("charts.category")}
-                value={category}
-                onChange={(e) => {
-                  setCategory(e.target.value);
-                  setSelectedId(null);
-                }}
-              >
-                <option value="all">{t("charts.allCategories")}</option>
-                {chartCategories.map((c) => (
-                  <option key={c} value={c}>
-                    {t(`charts.category.${c}`)}
-                  </option>
-                ))}
-              </select>
-            </Label>
-          </div>
-          <div
-            className="flex flex-wrap gap-1"
-            aria-label={t("charts.sequence")}
-          >
-            {chartSequence.map((step, i) => (
-              <Button
-                key={i}
-                variant={sequenceIndex === i ? "default" : "outline"}
-                size="sm"
-                aria-pressed={sequenceIndex === i}
-                onClick={() => stage(i)}
-              >
-                {step.scope === "departure" ? "DEP" : "ARR"} ·{" "}
-                {t(`charts.category.${step.category}`)}
-              </Button>
-            ))}
-          </div>
+      <div
+        className="flex shrink-0 items-center gap-1"
+        data-testid="chart-toolbar"
+      >
+        <div className="w-32 min-w-0 shrink-0">
+          <AirportField
+            compact
+            label={t(
+              scope === "departure" ? "charts.departure" : "charts.arrival",
+            )}
+            value={point}
+            placeholder="ICAO"
+            onSelect={(p) => {
+              setPoint(p);
+              setTaxiPhase(
+                p?.ident === flight.destination?.ident &&
+                  p?.ident !== flight.departure?.ident
+                  ? "arrival"
+                  : scope,
+              );
+              setSelectedId(null);
+              setCategory("all");
+            }}
+          />
         </div>
-      </details>
-      <div className="flex gap-1">
-        <Button
-          size="icon"
-          variant="outline"
-          aria-label={t("charts.previous")}
-          disabled={index <= 0}
-          onClick={() => move(-1)}
-        >
-          <ChevronLeft />
-        </Button>
-        <select
-          className={selectClass}
-          aria-label={t("charts.document")}
-          value={selected?.id ?? ""}
-          onChange={(e) => setSelectedId(e.target.value)}
-        >
-          {!visible.length && <option value="">{t("charts.noCharts")}</option>}
-          {visible.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.volume
-                ? `${c.volume} · `
-                : c.source === "nord"
-                  ? "NordChart · "
-                  : ""}
-              {c.title}
-            </option>
-          ))}
-        </select>
-        <Button
-          size="icon"
-          variant="outline"
-          aria-label={t("charts.next")}
-          disabled={index < 0 || index >= visible.length - 1}
-          onClick={() => move(1)}
-        >
-          <ChevronRight />
-        </Button>
+        <div className="flex min-w-0 flex-1 gap-1">
+          <Button
+            size="icon-xs"
+            variant="outline"
+            aria-label={t("charts.previous")}
+            disabled={index <= 0}
+            onClick={() => move(-1)}
+          >
+            <ChevronLeft />
+          </Button>
+          <select
+            className={selectClass}
+            aria-label={t("charts.document")}
+            value={selected?.id ?? ""}
+            onChange={(e) => setSelectedId(e.target.value)}
+          >
+            {!visible.length && (
+              <option value="">{t("charts.noCharts")}</option>
+            )}
+            {visible.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.volume
+                  ? `${c.volume} · `
+                  : c.source === "nord"
+                    ? "NordChart · "
+                    : ""}
+                {c.title}
+              </option>
+            ))}
+          </select>
+          <Button
+            size="icon-xs"
+            variant="outline"
+            aria-label={t("charts.next")}
+            disabled={index < 0 || index >= visible.length - 1}
+            onClick={() => move(1)}
+          >
+            <ChevronRight />
+          </Button>
+        </div>
+        {selected?.effectiveUntil &&
+          now >= Date.parse(`${selected.effectiveUntil}T00:00:00Z`) && (
+            <span
+              role="img"
+              aria-label={t("charts.expired")}
+              title={t("charts.expired")}
+              className="shrink-0 text-amber-400"
+            >
+              <AlertTriangle className="size-4" />
+            </span>
+          )}
+        {togglePanes}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              size="icon-xs"
+              variant="ghost"
+              aria-label={t("charts.filters")}
+              title={t("charts.filters")}
+            >
+              <Ellipsis />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent
+            className="max-h-[70dvh] w-[min(26rem,calc(100vw-2rem))] overflow-auto"
+            aria-label={t("charts.filters")}
+          >
+            <div className="grid max-h-48 gap-2 overflow-auto py-2">
+              <div className="grid grid-cols-2 gap-2">
+                <Label className="grid min-w-0 gap-1">
+                  {t("charts.source")}
+                  <select
+                    className={selectClass}
+                    aria-label={t("charts.source")}
+                    value={source}
+                    onChange={(e) => {
+                      setSource(e.target.value);
+                      setSelectedId(null);
+                    }}
+                  >
+                    <option value="all">{t("charts.allSources")}</option>
+                    <option value="aip">National AIP · IFR / VFR / MIL</option>
+                    <option value="nord">NordChart</option>
+                    <option value="library">{t("charts.library")}</option>
+                    <option value="local">{t("charts.local")}</option>
+                  </select>
+                </Label>
+                <Label className="grid min-w-0 gap-1">
+                  {t("charts.category")}
+                  <select
+                    className={selectClass}
+                    aria-label={t("charts.category")}
+                    value={category}
+                    onChange={(e) => {
+                      setCategory(e.target.value);
+                      setSelectedId(null);
+                    }}
+                  >
+                    <option value="all">{t("charts.allCategories")}</option>
+                    {chartCategories.map((c) => (
+                      <option key={c} value={c}>
+                        {t(`charts.category.${c}`)}
+                      </option>
+                    ))}
+                  </select>
+                </Label>
+              </div>
+              <div
+                className="flex flex-wrap gap-1"
+                aria-label={t("charts.sequence")}
+              >
+                {chartSequence.map((step, i) => (
+                  <Button
+                    key={i}
+                    variant={sequenceIndex === i ? "default" : "outline"}
+                    size="sm"
+                    aria-pressed={sequenceIndex === i}
+                    onClick={() => stage(i)}
+                  >
+                    {step.scope === "departure" ? "DEP" : "ARR"} ·{" "}
+                    {t(`charts.category.${step.category}`)}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            {selected &&
+              (selected.source === "aip" ? (
+                <div className="text-muted-foreground flex flex-wrap gap-x-3 text-xs">
+                  <span>
+                    AIP {selected.volume} · {selected.effectiveFrom} →{" "}
+                    {selected.effectiveUntil} UTC
+                  </span>
+                  {selected.effectiveUntil &&
+                    now >=
+                      Date.parse(`${selected.effectiveUntil}T00:00:00Z`) && (
+                      <strong className="text-amber-400">
+                        {t("charts.expired")}
+                      </strong>
+                    )}
+                  <a
+                    href={selected.sourceUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline"
+                  >
+                    {t("charts.publisher")}
+                  </a>
+                </div>
+              ) : (
+                <p className="text-muted-foreground text-xs">
+                  {t(
+                    selected.source === "nord"
+                      ? "fly.chart.notForNavigation"
+                      : "charts.libraryDates",
+                  )}
+                </p>
+              ))}
+            {selected?.overlay && point && (
+              <div className="grid gap-2 border-t pt-2">
+                <AirportTaxi point={point} phase={taxiPhase} />
+                <Label className="grid gap-1">
+                  {t("charts.lineWidth")}
+                  <input
+                    type="range"
+                    min={1}
+                    max={12}
+                    value={lineWidth}
+                    onChange={(e) => setLineWidth(Number(e.target.value))}
+                  />
+                </Label>
+                {!taxiPaths.length && (
+                  <p className="text-muted-foreground text-xs">
+                    {t("charts.noTaxiGeometry")}
+                  </p>
+                )}
+              </div>
+            )}
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={!point}
+              onClick={() => upload.current?.click()}
+            >
+              <Upload />
+              {t("charts.upload")}
+            </Button>
+          </PopoverContent>
+        </Popover>
       </div>
       {selected ? (
         <>
           <p className="sr-only">{selected.title}</p>
-          {selected.source === "aip" ? (
-            <div className="text-muted-foreground flex flex-wrap gap-x-3 text-xs">
-              <span>
-                AIP {selected.volume} · {selected.effectiveFrom} →{" "}
-                {selected.effectiveUntil} UTC
-              </span>
-              {selected.effectiveUntil &&
-                now >= Date.parse(`${selected.effectiveUntil}T00:00:00Z`) && (
-                  <strong className="text-amber-400">
-                    {t("charts.expired")}
-                  </strong>
-                )}
-              <a
-                href={selected.sourceUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="underline"
-              >
-                {t("charts.publisher")}
-              </a>
-            </div>
-          ) : (
-            <p className="text-muted-foreground text-xs">
-              {t(
-                selected.source === "nord"
-                  ? "fly.chart.notForNavigation"
-                  : "charts.libraryDates",
-              )}
-            </p>
-          )}
           {selected.source === "nord" && airport.data && chosenProcedures[0] ? (
             <ChartSurface>
               <ProcedureChart
@@ -361,33 +442,6 @@ function ChartPane({
               local={local.find((l) => l.chart.id === selected.id)?.blob}
               overlay={overlay}
             />
-          )}
-          {selected.overlay && point && (
-            <>
-              <details className="shrink-0 text-xs">
-                <summary className="text-primary cursor-pointer py-1">
-                  {t("charts.taxiOverlay")}
-                </summary>
-                <div className="grid max-h-48 gap-2 overflow-auto py-2">
-                  <AirportTaxi point={point} phase={taxiPhase} />
-                  <Label className="grid gap-1">
-                    {t("charts.lineWidth")}
-                    <input
-                      type="range"
-                      min={1}
-                      max={12}
-                      value={lineWidth}
-                      onChange={(e) => setLineWidth(Number(e.target.value))}
-                    />
-                  </Label>
-                  {!taxiPaths.length && (
-                    <p className="text-muted-foreground text-xs">
-                      {t("charts.noTaxiGeometry")}
-                    </p>
-                  )}
-                </div>
-              </details>
-            </>
           )}
         </>
       ) : (
@@ -425,14 +479,6 @@ function ChartPane({
           })();
         }}
       />
-      <Button
-        variant="outline"
-        disabled={!point}
-        onClick={() => upload.current?.click()}
-      >
-        <Upload />
-        {t("charts.upload")}
-      </Button>
       {uploadError && (
         <p role="alert" className="text-destructive text-xs">
           {t("charts.uploadError")}
@@ -463,23 +509,6 @@ export function ChartBrowser({
       className="flex min-h-0 min-w-0 flex-1 flex-col gap-2"
       data-testid="chart-browser"
     >
-      <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-        <p>
-          {t("charts.catalog", {
-            airports: new Set(catalog.data?.airports.map((a) => a.icao)).size,
-            charts: catalog.data?.charts.length ?? 0,
-          })}
-        </p>
-        <Button
-          variant="outline"
-          size="sm"
-          aria-pressed={dual}
-          onClick={() => setDual((d) => !d)}
-        >
-          <Columns2 />
-          {t("charts.twoPanes")}
-        </Button>
-      </div>
       {catalog.isPending && (
         <p role="status" className="text-xs">
           {t("charts.loadingCatalog")}
@@ -503,12 +532,25 @@ export function ChartBrowser({
         <ChartPane
           scope="departure"
           charts={charts}
+          togglePanes={
+            <Button
+              variant="outline"
+              size="icon-xs"
+              aria-pressed={dual}
+              aria-label={t("charts.twoPanes")}
+              title={t("charts.twoPanes")}
+              onClick={() => setDual((d) => !d)}
+            >
+              <Columns2 />
+            </Button>
+          }
           selection={selectedScope === "departure" ? selection : null}
         />
         {dual && (
           <ChartPane
             scope="arrival"
             charts={charts}
+            togglePanes={null}
             selection={selectedScope === "arrival" ? selection : null}
           />
         )}

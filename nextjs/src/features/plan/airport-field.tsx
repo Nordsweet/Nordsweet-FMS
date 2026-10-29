@@ -22,6 +22,7 @@ export function AirportField({
   placeholder,
   onSelect,
   children,
+  compact = false,
 }: {
   label: string;
   value: FlightPoint | null;
@@ -29,6 +30,8 @@ export function AirportField({
   onSelect: (point: FlightPoint | null) => void;
   /** Extra buttons after the search button (the schedule clock). */
   children?: React.ReactNode;
+  /** Single-row chart toolbars keep the same search behavior without the large field label. */
+  compact?: boolean;
 }) {
   const t = useT();
   const id = useId();
@@ -59,7 +62,9 @@ export function AirportField({
         if (e.key === "Escape") close();
       }}
     >
-      <Label htmlFor={id}>{label}</Label>
+      <Label htmlFor={id} className={compact ? "sr-only" : undefined}>
+        {label}
+      </Label>
       <div className="flex gap-1">
         <Input
           id={id}
@@ -67,7 +72,11 @@ export function AirportField({
           spellCheck={false}
           maxLength={64}
           placeholder={placeholder}
-          className="font-mono uppercase"
+          className={
+            compact
+              ? "h-8 rounded-md px-2 py-0 font-mono text-xs uppercase pointer-coarse:h-10"
+              : "font-mono uppercase"
+          }
           value={text ?? value?.ident ?? ""}
           onChange={(e) => {
             const code = e.target.value.toUpperCase();
@@ -86,7 +95,11 @@ export function AirportField({
           type="button"
           variant="outline"
           size="icon"
-          className="size-12.5 shrink-0"
+          className={
+            compact
+              ? "size-8 shrink-0 rounded-md pointer-coarse:size-10"
+              : "size-12.5 shrink-0"
+          }
           aria-label={t("plan.point.search", { label })}
           onClick={() => {
             setText(text ?? value?.ident ?? "");

@@ -1,7 +1,7 @@
 import path from "node:path";
 import { expect, test, E2E_TOKEN, type Page } from "./test";
 
-function pdf() {
+function pdf(fineLine = false) {
   const objects = [
     "<< /Type /Catalog /Pages 2 0 R >>",
     "<< /Type /Pages /Kids [3 0 R 5 0 R] /Count 2 >>",
@@ -10,6 +10,10 @@ function pdf() {
     "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 600 400] /Resources << >> /Contents 6 0 R >>",
     "<< /Length 31 >>\nstream\n1 0 0 rg 40 30 400 300 re f\n\nendstream",
   ];
+  if (fineLine) {
+    const commands = "0 0 0 RG 0.25 w 200 0 m 200 600 l S\n";
+    objects[3] = `<< /Length ${Buffer.byteLength(commands)} >>\nstream\n${commands}endstream`;
+  }
   let body = "%PDF-1.7\n";
   const offsets = [0];
   for (const [i, object] of objects.entries()) {
@@ -115,6 +119,118 @@ const library = {
   charts: [],
   revisions: {},
 };
+
+test.describe("native PDF resolution", () => {
+  test.use({ deviceScaleFactor: 3 });
+  test("compact charts redraw fine vector details at actual zoom without reducing device density", async ({
+    page,
+  }) => {
+    test.setTimeout(90000);
+    await page.setViewportSize({ width: 1600, height: 1200 });
+    await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => {
+      const url = new URL(route.request().url());
+      if (url.hostname !== "aviation.lab.vibecde.com") return route.abort();
+      if (url.pathname === "/auth/me")
+        return route.fulfill({ json: { username: "admin", role: "admin" } });
+      if (url.pathname === "/charts/catalog")
+        return route.fulfill({ json: catalog });
+      if (url.pathname === "/charts/library")
+        return route.fulfill({
+          json: { revision: 0, ground: {}, charts: [], revisions: {} },
+        });
+      if (url.pathname.startsWith("/charts/pdf/"))
+        return route.fulfill({
+          body: pdf(true),
+          contentType: "application/pdf",
+        });
+      return route.abort();
+    });
+    await page.addInitScript((f) => {
+      localStorage.setItem("nordsweet.language.v1", "en");
+      localStorage.setItem(
+        "nordsweet.flight.v2",
+        JSON.stringify({ state: { flight: f }, version: 1 }),
+      );
+    }, flight);
+    await page.goto("/fly");
+    await page
+      .getByRole("button", { name: "Start flight", exact: true })
+      .click({ timeout: 20000 });
+    await page.getByRole("button", { name: "FPL", exact: true }).click();
+    await page.getByRole("tab", { name: "Charts", exact: true }).click();
+    const pane = page.getByTestId("chart-pane-departure");
+    await pane.getByRole("button", { name: "Two panes", exact: true }).click();
+    const sheet = pane.getByTestId("chart-pdf");
+    await expect(sheet).toHaveAttribute("data-ready", "true", {
+      timeout: 25000,
+    });
+    const toolbar = await pane.getByTestId("chart-toolbar").boundingBox();
+    expect(toolbar!.height).toBeLessThanOrEqual(40);
+    const paneBox = await pane.boundingBox();
+    const surface = pane.getByTestId("chart-surface");
+    const surfaceBox = await surface.boundingBox();
+    expect(surfaceBox!.y - paneBox!.y).toBeLessThan(48);
+    await expect(page.getByLabel("Source", { exact: true })).toHaveCount(0);
+    const measure = () =>
+      sheet.locator("canvas").evaluate((canvas: HTMLCanvasElement) => {
+        const pixels = canvas
+          .getContext("2d")!
+          .getImageData(0, Math.floor(canvas.height / 2), canvas.width, 1).data;
+        let dark = 0;
+        for (let i = 0; i < pixels.length; i += 4)
+          if (
+            pixels[i + 3]! > 128 &&
+            pixels[i]! < 64 &&
+            pixels[i + 1]! < 64 &&
+            pixels[i + 2]! < 64
+          )
+            dark++;
+        return {
+          width: canvas.width,
+          height: canvas.height,
+          cssWidth: canvas.clientWidth,
+          cssHeight: canvas.clientHeight,
+          dark,
+        };
+      });
+    await expect
+      .poll(async () => {
+        const current = await measure();
+        return Math.abs(current.width - (surfaceBox!.width - 2) * 3);
+      })
+      .toBeLessThanOrEqual(1);
+    const initial = await measure();
+    expect(initial.width * initial.height).toBeGreaterThan(8_000_000);
+    expect(Math.abs(initial.width - initial.cssWidth * 3)).toBeLessThanOrEqual(
+      3,
+    );
+    expect(
+      Math.abs(initial.height - initial.cssHeight * 3),
+    ).toBeLessThanOrEqual(3);
+    await surface.dispatchEvent("wheel", { deltaY: -Math.log(8) / 0.0015 });
+    await expect(pane.getByText("800%", { exact: true })).toBeVisible();
+    await expect
+      .poll(async () => Number(await sheet.getAttribute("data-render-zoom")))
+      .toBeCloseTo(8);
+    await expect(sheet).toHaveAttribute("data-ready", "true");
+    const enlarged = await measure();
+    // The physical line is rerendered at eight times the scale; canvas size stays bounded by the visible pane.
+    expect(enlarged.width).toBe(initial.width);
+    expect(enlarged.height).toBe(initial.height);
+    expect(enlarged.dark).toBeGreaterThan(initial.dark * 4);
+    const fit = Math.min(
+      (surfaceBox!.width - 18) / 400,
+      (surfaceBox!.height - 18) / 600,
+    );
+    expect(enlarged.dark).toBeGreaterThanOrEqual(
+      Math.floor(0.25 * fit * 8 * 3) - 1,
+    );
+    expect(enlarged.dark).toBeLessThanOrEqual(
+      Math.ceil(0.25 * fit * 8 * 3) + 1,
+    );
+    await page.screenshot({ path: "test-results/chart-native-resolution.png" });
+  });
+});
 
 test("airport document actions open the exact AIP, library or NordChart inside FPL from Map and Fly", async ({
   page,
@@ -334,15 +450,33 @@ test("FPL charts render authenticated multipage AIP, retain independent panes an
   const surfaceBox = await left.getByTestId("chart-surface").boundingBox();
   expect(surfaceBox!.y + surfaceBox!.height).toBeLessThanOrEqual(1000);
   await right
-    .getByText("Sources, chart types and flight sequence", { exact: true })
+    .getByRole("button", {
+      name: "Sources, chart types and flight sequence",
+      exact: true,
+    })
     .click();
-  await right.getByLabel("Source", { exact: true }).selectOption("nord");
+  await page
+    .getByRole("dialog", {
+      name: "Sources, chart types and flight sequence",
+      exact: true,
+    })
+    .getByLabel("Source", { exact: true })
+    .selectOption("nord");
   const nord = right.getByRole("img", { name: /procedure chart/ });
   await expect(nord).toBeVisible();
   expect(await nord.locator("polyline").count()).toBeGreaterThan(1);
-  await right.getByLabel("Source", { exact: true }).selectOption("all");
+  await page
+    .getByRole("dialog", {
+      name: "Sources, chart types and flight sequence",
+      exact: true,
+    })
+    .getByLabel("Source", { exact: true })
+    .selectOption("all");
   await right
-    .getByText("Sources, chart types and flight sequence", { exact: true })
+    .getByRole("button", {
+      name: "Sources, chart types and flight sequence",
+      exact: true,
+    })
     .click();
   await expect(right.getByTestId("chart-pdf")).toHaveAttribute(
     "data-ready",
@@ -353,13 +487,24 @@ test("FPL charts render authenticated multipage AIP, retain independent panes an
   await right.focus();
   await right.press("ArrowRight");
   await right
-    .getByText("Sources, chart types and flight sequence", { exact: true })
+    .getByRole("button", {
+      name: "Sources, chart types and flight sequence",
+      exact: true,
+    })
     .click();
-  await expect(right.getByLabel("Chart type", { exact: true })).toHaveValue(
-    "parking",
-  );
+  await expect(
+    page
+      .getByRole("dialog", {
+        name: "Sources, chart types and flight sequence",
+        exact: true,
+      })
+      .getByLabel("Chart type", { exact: true }),
+  ).toHaveValue("parking");
   await right
-    .getByText("Sources, chart types and flight sequence", { exact: true })
+    .getByRole("button", {
+      name: "Sources, chart types and flight sequence",
+      exact: true,
+    })
     .click();
   await right.focus();
   await right.press("ArrowLeft");
@@ -443,11 +588,23 @@ test("iPad chart library uses its own calibration and local PDF controls fit the
     left.getByRole("img", { name: "Calibrated taxi route" }),
   ).toHaveCount(0);
   await left
-    .getByText("Sources, chart types and flight sequence", { exact: true })
+    .getByRole("button", {
+      name: "Sources, chart types and flight sequence",
+      exact: true,
+    })
     .click();
-  await left.getByLabel("Source", { exact: true }).selectOption("library");
+  await page
+    .getByRole("dialog", {
+      name: "Sources, chart types and flight sequence",
+      exact: true,
+    })
+    .getByLabel("Source", { exact: true })
+    .selectOption("library");
   await left
-    .getByText("Sources, chart types and flight sequence", { exact: true })
+    .getByRole("button", {
+      name: "Sources, chart types and flight sequence",
+      exact: true,
+    })
     .click();
   await expect(left.getByTestId("chart-pdf")).toHaveAttribute(
     "data-ready",
