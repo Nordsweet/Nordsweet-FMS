@@ -48,6 +48,9 @@ test("plans a flight end to end and keeps it across reloads", async ({
   await pickPoint(page, "Departure", "EPNT", "EPNT");
   await pickPoint(page, "Arrival", "EPKK", "EPKK");
   await page.getByRole("textbox", { name: "Route", exact: true }).fill("ABAKU");
+  await page
+    .getByRole("spinbutton", { name: "Altitude", exact: true })
+    .fill("6000");
   await expect(page.getByTestId("route-strip")).toContainText(
     "EPNT → TOC → ABAKU → TOD → EPKK",
   );
@@ -55,7 +58,26 @@ test("plans a flight end to end and keeps it across reloads", async ({
   // Economy writes the best-range altitude into every point.
   await page.getByRole("button", { name: "Economy" }).click();
   await expect(page.getByTestId("economy-points")).toContainText("ABAKU");
+  const economyAltitudes = await page
+    .getByTestId("economy-points")
+    .locator("tbody tr")
+    .evaluateAll((rows) =>
+      rows
+        .slice(1, -1)
+        .map((row) =>
+          Number(
+            row
+              .querySelectorAll("td")[2]
+              ?.textContent?.replace(/[^0-9]/g, "") ?? 0,
+          ),
+        ),
+    );
+  const economyCruise = Math.max(...economyAltitudes);
+  expect(economyCruise).toBe(12000);
   await page.getByRole("button", { name: "Apply" }).click();
+  await expect(
+    page.getByRole("spinbutton", { name: "Altitude", exact: true }),
+  ).toHaveValue(String(economyCruise));
   await expect(
     page.getByRole("spinbutton", { name: "Altitude at ABAKU" }),
   ).not.toHaveValue("");
@@ -80,6 +102,9 @@ test("plans a flight end to end and keeps it across reloads", async ({
 
   await page.reload();
   await tab(page, "Route");
+  await expect(
+    page.getByRole("spinbutton", { name: "Altitude", exact: true }),
+  ).toHaveValue(String(economyCruise));
   await expect(page.getByTestId("route-strip")).toContainText("ABAKU");
   await tab(page, "Saved flights");
   await expect(
@@ -90,6 +115,12 @@ test("plans a flight end to end and keeps it across reloads", async ({
     /\d+ m/,
   );
   await expect(page.getByTestId("perf-landing-obstacle")).toHaveText(/\d+ m/);
+  await page.getByRole("button", { name: "FPL", exact: true }).click();
+  await expect(
+    page
+      .getByRole("dialog", { name: "FPL", exact: true })
+      .getByRole("spinbutton", { name: "Cruise altitude (ft)" }),
+  ).toHaveValue("12000");
 });
 
 test("imports a legacy .nord flight", async ({ page }) => {

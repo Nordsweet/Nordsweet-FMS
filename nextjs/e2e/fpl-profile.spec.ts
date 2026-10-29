@@ -62,6 +62,12 @@ for (const available of [true, false]) {
     await page
       .getByRole("button", { name: "Start flight", exact: true })
       .click();
+    const deviation = page.getByTestId("vertical-deviation");
+    await expect(deviation).toBeVisible();
+    await expect(deviation.locator("[data-deviation-pointer]")).toBeVisible();
+    await expect(deviation).toHaveAttribute("data-deviation-ft", /^-?\d+$/);
+    if (available)
+      await page.screenshot({ path: "test-results/vertical-deviation.png" });
     for (const event of ["TOC", "TOD"]) {
       const label = page.locator(
         `[data-profile-marker="${event}"] .legacy-route-label`,

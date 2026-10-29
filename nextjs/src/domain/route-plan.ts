@@ -946,6 +946,9 @@ const isArrivalPoint = (p: RoutePoint) =>
   p.procedureType === "STAR" || p.procedureType === "APPROACH";
 
 function overrideFt(input: RoutePlanInput, point: RoutePoint) {
+  // Old Economy saves could contain TOC/TOD values, but those moving markers
+  // are calculated profile events rather than altitude restrictions.
+  if (point.isProfilePoint) return null;
   if (point.patternAltitudeFt !== undefined) return point.patternAltitudeFt;
   const v = input.waypointAltitudes[pointKey(point)];
   return finite(v) ? Math.max(0, Math.round(v)) : null;

@@ -173,6 +173,7 @@ export function guidanceTimeline(
   const within = (at: number) =>
     at - input.now <= 30000 && at - input.now >= -1000;
   for (let leg = input.activeLeg + 1; leg < input.route.length - 1; leg++) {
+    if (!input.plan) break;
     if (nearest.distance > 1) break;
     const index = path.legs.indexOf(leg);
     const nm = distances.get(index);

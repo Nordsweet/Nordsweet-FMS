@@ -78,6 +78,7 @@ import { fplFuel } from "~/domain/fpl-fuel";
 import { fuelUnit, formatFuel } from "~/domain/fuel-units";
 import { flightPlanProfile } from "~/domain/flight-plan-profile";
 import { FplVerticalProfile } from "./fpl-vertical-profile";
+import { VerticalDeviationScale } from "./vertical-deviation-scale";
 import { NotificationBell, NotificationHistory } from "./notification-history";
 import {
   DropdownMenu,
@@ -781,6 +782,17 @@ export function FlyPage() {
           data-testid="fly-map-pane"
         >
           <MapWorkspace embedded centerAircraft={split} />
+          {flying && !chartFitActive && !emergencyActive && (
+            <VerticalDeviationScale
+              route={inFlight.route}
+              plan={plan}
+              performance={turns}
+              cruiseAltitudeFt={flight.cruiseAltitudeFt}
+              activeLeg={progress?.activeLeg ?? inFlight.activeLeg}
+              fix={gpsError ? null : fix}
+              holding={holdingActive}
+            />
+          )}
           {inFlight.startedAt && !emergencyActive && (
             <EngineTimerAssistant session={inFlight.startedAt} phase={phase} />
           )}

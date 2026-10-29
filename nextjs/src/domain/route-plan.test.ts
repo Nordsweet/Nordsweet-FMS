@@ -167,6 +167,26 @@ describe("buildRoutePlan", () => {
     );
   });
 
+  it("ignores old Economy overrides on moving TOC and TOD markers", () => {
+    const plan = buildRoutePlan(
+      data,
+      input({
+        altitudeFt: 12000,
+        waypointAltitudes: { TOC: 6000, TOD: 6000 },
+      }),
+    )!;
+    expect(plan.points.some((p) => p.id === "TOC" && p.isProfilePoint)).toBe(
+      true,
+    );
+    expect(plan.points.some((p) => p.id === "TOD" && p.isProfilePoint)).toBe(
+      true,
+    );
+    expect(plan.pointAltitudeByKey).toMatchObject({
+      TOC: 12000,
+      TOD: 12000,
+    });
+  });
+
   it("flies an airway backwards and reports unknown tokens", () => {
     const plan = buildRoutePlan(
       data,

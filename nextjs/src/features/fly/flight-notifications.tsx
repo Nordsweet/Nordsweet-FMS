@@ -121,6 +121,7 @@ export function FlightNotifications({
   const notices = useGuidanceNotices((s) => s.notices);
   const session = useGuidanceNotices((s) => s.session);
   const dismiss = useGuidanceNotices((s) => s.dismiss);
+  const recoveryReady = useFlightSync((s) => s.phase === "ready");
   const progress = useMemo(
     () =>
       fix
@@ -139,7 +140,7 @@ export function FlightNotifications({
     return () => clearInterval(id);
   }, []);
   useEffect(() => {
-    if (!navigation.startedAt) return;
+    if (!navigation.startedAt || !recoveryReady) return;
     const next = progress?.next;
     const from = progress ? navigation.route[progress.activeLeg] : null;
     const holding = navigation.holding;
@@ -174,12 +175,17 @@ export function FlightNotifications({
           phase: navigation.phase,
           fix,
           courseTrueDeg: course,
-          targetAltitudeFt: plannedGuidanceAltitude(
-            progress.next,
-            progress.distanceToNextNm,
-            plan,
-            cruiseAltitudeFt,
-          ),
+          targetAltitudeFt:
+            plan ||
+            holdingActive ||
+            (progress.next.altitudeFt !== undefined && !progress.next.patternId)
+              ? plannedGuidanceAltitude(
+                  progress.next,
+                  progress.distanceToNextNm,
+                  plan,
+                  cruiseAltitudeFt,
+                )
+              : null,
           variationDeg: fix ? magneticVariationDeg(fix) : 0,
           tasKt: turns.tasKt,
           wind: {
@@ -206,7 +212,16 @@ export function FlightNotifications({
         flightGuidanceAvailable({ now, phase: navigation.phase, fix }),
         holdingActive,
       );
-  }, [navigation, fix, turns, plan, cruiseAltitudeFt, progress, now]);
+  }, [
+    navigation,
+    fix,
+    turns,
+    plan,
+    cruiseAltitudeFt,
+    progress,
+    now,
+    recoveryReady,
+  ]);
   return (
     <div
       className="pointer-events-none absolute right-20 bottom-24 left-3 z-10 flex max-h-[45vh] flex-col items-center gap-2 overflow-y-auto sm:right-24 sm:left-24"

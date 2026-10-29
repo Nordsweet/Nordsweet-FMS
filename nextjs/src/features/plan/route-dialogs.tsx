@@ -299,9 +299,23 @@ export function EconomyDialog({
             onClick={() => {
               if (!ok) return;
               const next = { ...flight.waypointAltitudes };
+              // Generated TOC/TOD move when the profile is rebuilt; they are not restrictions.
+              delete next.TOC;
+              delete next.TOD;
               for (const p of ok.points)
-                if (p.key) next[p.key] = Math.round(p.altitudeFt);
-              update({ waypointAltitudes: next });
+                if (p.key && !p.point.isProfilePoint)
+                  next[p.key] = Math.round(p.altitudeFt);
+              const enroute = ok.points.slice(1, -1);
+              update({
+                waypointAltitudes: next,
+                ...(enroute.length
+                  ? {
+                      cruiseAltitudeFt: Math.max(
+                        ...enroute.map((p) => Math.round(p.altitudeFt)),
+                      ),
+                    }
+                  : {}),
+              });
               onClose();
             }}
           >

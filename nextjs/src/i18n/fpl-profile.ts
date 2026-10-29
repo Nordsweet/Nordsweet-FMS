@@ -1,4 +1,7 @@
 export const fplProfileEn = {
+  "fly.deviation.unavailable": "Vertical deviation unavailable",
+  "fly.deviation.value":
+    "Vertical deviation {deviation} ft; planned altitude {altitude} ft AMSL",
   "fly.profile.planned": "Planned altitude",
   "fly.profile.terrain": "Terrain",
   "fly.profile.aircraft": "Aircraft · {altitude} ft AMSL",
@@ -10,6 +13,9 @@ export const fplProfileEn = {
     "Terrain incomplete — gaps indicate unavailable elevations",
 };
 export const fplProfilePl: Record<keyof typeof fplProfileEn, string> = {
+  "fly.deviation.unavailable": "Odchylenie pionowe niedostępne",
+  "fly.deviation.value":
+    "Odchylenie pionowe {deviation} ft; planowana wysokość {altitude} ft AMSL",
   "fly.profile.planned": "Planowana wysokość",
   "fly.profile.terrain": "Teren",
   "fly.profile.aircraft": "Samolot · {altitude} ft AMSL",

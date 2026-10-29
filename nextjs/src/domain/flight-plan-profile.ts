@@ -165,6 +165,26 @@ export function profileAircraftDistance(
     : null;
 }
 
+/** Interpolate the same planned altitude line shown in the FPL vertical profile. */
+export function profileAltitudeAtDistance(
+  profile: ReturnType<typeof flightPlanProfile>,
+  distanceNm: number,
+) {
+  if (!Number.isFinite(distanceNm) || profile.rows.length < 2) return null;
+  const rows = profile.rows;
+  if (distanceNm <= rows[0]!.distanceNm) return rows[0]!.altitudeFt;
+  for (let i = 1; i < rows.length; i++) {
+    const a = rows[i - 1]!,
+      b = rows[i]!;
+    if (distanceNm <= b.distanceNm && b.distanceNm > a.distanceNm) {
+      const fraction =
+        (distanceNm - a.distanceNm) / (b.distanceNm - a.distanceNm);
+      return a.altitudeFt + fraction * (b.altitudeFt - a.altitudeFt);
+    }
+  }
+  return rows.at(-1)!.altitudeFt;
+}
+
 /** Missing DEM samples split the filled profile; they never imply zero terrain height. */
 export function terrainProfileSections<T extends { terrainFt: number | null }>(
   samples: T[],
