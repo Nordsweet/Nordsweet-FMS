@@ -18,6 +18,26 @@ export const authEn = {
   "auth.callback.failed":
     "Sign-in failed or your account has no access. Try again.",
   "auth.callback.back": "Back to sign in",
+  "users.title": "Create user",
+  "users.intro":
+    "Creates an account in Zitadel. The person signs in with this initial password, then must change it.",
+  "users.username": "Username",
+  "users.firstName": "First name",
+  "users.lastName": "Last name",
+  "users.email": "Email",
+  "users.password": "Initial password",
+  "users.role": "Role",
+  "users.role.user": "User",
+  "users.role.admin": "Admin",
+  "users.create": "Create user",
+  "users.creating": "Creating…",
+  "users.created": "User {username} created.",
+  "users.error.taken": "That username is already taken.",
+  "users.error.forbidden": "Only admins can create users.",
+  "users.error.invalid":
+    "Check the fields: the username is 3–32 letters, digits, . _ - and the password at least 8 characters.",
+  "users.error.notConfigured":
+    "Creating users is not set up on the server yet.",
 } as const;
 
 export const authPl: Record<keyof typeof authEn, string> = {
@@ -43,4 +63,24 @@ export const authPl: Record<keyof typeof authEn, string> = {
   "auth.callback.failed":
     "Logowanie nie powiodło się lub konto nie ma dostępu. Spróbuj ponownie.",
   "auth.callback.back": "Wróć do logowania",
+  "users.title": "Utwórz użytkownika",
+  "users.intro":
+    "Tworzy konto w Zitadel. Osoba loguje się tym hasłem początkowym i musi je zmienić.",
+  "users.username": "Użytkownik",
+  "users.firstName": "Imię",
+  "users.lastName": "Nazwisko",
+  "users.email": "E-mail",
+  "users.password": "Hasło początkowe",
+  "users.role": "Rola",
+  "users.role.user": "Użytkownik",
+  "users.role.admin": "Administrator",
+  "users.create": "Utwórz użytkownika",
+  "users.creating": "Tworzenie…",
+  "users.created": "Użytkownik {username} został utworzony.",
+  "users.error.taken": "Ta nazwa użytkownika jest zajęta.",
+  "users.error.forbidden": "Tylko administratorzy mogą tworzyć użytkowników.",
+  "users.error.invalid":
+    "Sprawdź pola: nazwa użytkownika to 3–32 liter, cyfr lub . _ - a hasło co najmniej 8 znaków.",
+  "users.error.notConfigured":
+    "Tworzenie użytkowników nie jest jeszcze skonfigurowane na serwerze.",
 };
