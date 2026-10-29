@@ -1,6 +1,8 @@
 "use client";
 
 import { openFlightMapsCycle } from "~/data/openflightmaps";
+import { usePathname, useRouter } from "next/navigation";
+import { useFlyPanels } from "~/stores/fly-panels";
 
 import {
   keepPreviousData,
@@ -162,6 +164,8 @@ export function MapView({
   toolsContainer,
 }: Props) {
   const t = useT();
+  const router = useRouter();
+  const pathname = usePathname();
   const client = useQueryClient();
   const container = useRef<HTMLDivElement>(null);
   const mapRef = useRef<DeckMap | null>(null);
@@ -1735,6 +1739,21 @@ export function MapView({
                   click.point.ident + (click.point.weather ? ":weather" : "")
                 }
                 point={click.point}
+                openChart={(airport, chartId) => {
+                  useFlyPanels
+                    .getState()
+                    .openChart(
+                      routeData?.airport(airport) ?? {
+                        ...click.point,
+                        ident: airport,
+                      },
+                      chartId,
+                    );
+                  setClick(null);
+                  settings.setSearchOpen(false);
+                  if (pathname.replace(/\/$/, "") !== "/fly")
+                    router.push("/fly");
+                }}
                 now={now}
                 addPoint={addPoint}
                 previewPattern={setPatternPreview}

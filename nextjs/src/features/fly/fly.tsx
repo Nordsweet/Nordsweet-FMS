@@ -10,6 +10,7 @@ import {
   ArrowRightLeft,
 } from "lucide-react";
 import { useMapSettings } from "~/stores/map";
+import { useFlyPanels, type FlyPanel as Panel } from "~/stores/fly-panels";
 import { useEffect, useState, useMemo } from "react";
 
 import { Button } from "~/components/ui/button";
@@ -87,18 +88,6 @@ import {
 
 const PHASES = FLIGHT_PHASES;
 type Phase = FlightPhase;
-type Panel =
-  | "emer"
-  | "fpl"
-  | "comms"
-  | "wx"
-  | "chart"
-  | "rwy"
-  | "info"
-  | "options"
-  | "notifications"
-  | "aircraft"
-  | "position";
 /** Flight tools available in each phase. */
 const RAIL: { id: Panel; phases?: Phase[] }[] = [
   { id: "emer" },
@@ -176,8 +165,7 @@ export function FlyPage() {
   // shortcut: the phase is picked by hand; legacy also switched it automatically.
   const { phase, setPhase, config } = inFlight;
   const comms = useCommsPlan(phase, fix, now, flying);
-  const [panel, setPanel] = useState<Panel | null>(null);
-  const [fplTab, setFplTab] = useState("fpl");
+  const { panel, setPanel, fplTab, setFplTab, chartSelection } = useFlyPanels();
   const [split, setSplit] = useState(false);
   const [mapOnRight, setMapOnRight] = useState(true);
   const [aircraftTab, setAircraftTab] = useState("aircraft");
@@ -631,7 +619,10 @@ export function FlyPage() {
           value="charts"
           className="flex min-h-0 flex-col overflow-auto"
         >
-          <ChartBrowser />
+          <ChartBrowser
+            key={chartSelection?.requestId ?? 0}
+            selection={chartSelection}
+          />
         </TabsContent>
       </Tabs>
     ),

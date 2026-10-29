@@ -8,11 +8,7 @@ import { loadChartPdf } from "~/api/charts";
 import { Button } from "~/components/ui/button";
 import { Label } from "~/components/ui/label";
 import { chartCategories, type BrowserChart } from "~/data/charts";
-import {
-  browserCharts,
-  chartSequence,
-  chartTaxiPaths,
-} from "~/domain/chart-browser";
+import { chartSequence, chartTaxiPaths } from "~/domain/chart-browser";
 import { taxiRoute } from "~/domain/taxi";
 import { AirportField } from "~/features/plan/airport-field";
 import { AirportTaxi } from "~/features/plan/taxi";
@@ -20,6 +16,8 @@ import { ProcedureChart } from "~/features/fly/chart-panel";
 import { useFlight } from "~/stores/flight";
 import { useT } from "~/i18n/use-t";
 import { ChartPdf, ChartSurface } from "./chart-viewer";
+import { useBrowserCharts } from "./use-browser-charts";
+import { type ChartSelection } from "~/stores/fly-panels";
 
 const selectClass =
   "bg-background w-full min-w-0 rounded-lg border px-2 py-2 text-sm";
@@ -64,15 +62,17 @@ function PdfDocument({
 function ChartPane({
   scope,
   charts,
+  selection,
 }: {
   scope: "departure" | "arrival";
   charts: BrowserChart[];
+  selection?: ChartSelection | null;
 }) {
   const t = useT();
   const flight = useFlight((s) => s.flight);
   const defaultPoint =
     scope === "departure" ? flight.departure : flight.destination;
-  const [point, setPoint] = useState(defaultPoint);
+  const [point, setPoint] = useState(selection?.point ?? defaultPoint);
   const [taxiPhase, setTaxiPhase] = useState(scope);
   const [now, setNow] = useState(Date.now);
   useEffect(() => {
@@ -81,7 +81,9 @@ function ChartPane({
   }, []);
   const [source, setSource] = useState("all");
   const [category, setCategory] = useState("all");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(
+    selection?.chartId ?? null,
+  );
   const [sequenceIndex, setSequenceIndex] = useState(
     scope === "departure" ? 1 : 5,
   );
@@ -441,23 +443,21 @@ function ChartPane({
 }
 
 /** Typed replacement of chart-browser.html, using the existing flight, API login and offline data boundary. */
-export function ChartBrowser() {
+export function ChartBrowser({
+  selection,
+}: {
+  selection?: ChartSelection | null;
+}) {
   const t = useT();
   const [dual, setDual] = useState(true);
-  const catalog = useQuery(api.charts.catalog.queryOptions(undefined));
-  const library = useQuery(api.charts.library.queryOptions(undefined));
-  const procedures = useQuery(api.procedures.all.queryOptions(undefined));
-  const bundled = useQuery(api.charts.all.queryOptions(undefined));
-  const charts = useMemo(
-    () =>
-      browserCharts(
-        catalog.data,
-        library.data,
-        bundled.data ?? [],
-        procedures.data ?? [],
-      ),
-    [catalog.data, library.data, bundled.data, procedures.data],
-  );
+  const { charts, catalog } = useBrowserCharts();
+  const destination = useFlight((s) => s.flight.destination);
+  const departure = useFlight((s) => s.flight.departure);
+  const selectedScope =
+    selection?.point.ident === destination?.ident &&
+    selection?.point.ident !== departure?.ident
+      ? "arrival"
+      : "departure";
   return (
     <div
       className="flex min-h-0 min-w-0 flex-1 flex-col gap-2"
@@ -500,8 +500,18 @@ export function ChartBrowser() {
             : "grid min-h-0 min-w-0 flex-1 gap-3 overflow-auto"
         }
       >
-        <ChartPane scope="departure" charts={charts} />
-        {dual && <ChartPane scope="arrival" charts={charts} />}
+        <ChartPane
+          scope="departure"
+          charts={charts}
+          selection={selectedScope === "departure" ? selection : null}
+        />
+        {dual && (
+          <ChartPane
+            scope="arrival"
+            charts={charts}
+            selection={selectedScope === "arrival" ? selection : null}
+          />
+        )}
       </div>
     </div>
   );

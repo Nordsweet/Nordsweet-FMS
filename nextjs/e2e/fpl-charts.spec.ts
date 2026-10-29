@@ -1,5 +1,5 @@
 import path from "node:path";
-import { expect, test, E2E_TOKEN } from "./test";
+import { expect, test, E2E_TOKEN, type Page } from "./test";
 
 function pdf() {
   const objects = [
@@ -115,6 +115,136 @@ const library = {
   charts: [],
   revisions: {},
 };
+
+test("airport document actions open the exact AIP, library or NordChart inside FPL from Map and Fly", async ({
+  page,
+  context,
+}) => {
+  test.setTimeout(180000);
+  await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => {
+    const url = new URL(route.request().url());
+    if (url.hostname !== "aviation.lab.vibecde.com") return route.abort();
+    if (url.pathname === "/auth/me")
+      return route.fulfill({ json: { username: "admin", role: "admin" } });
+    if (url.pathname === "/charts/catalog")
+      return route.fulfill({ json: catalog });
+    if (url.pathname === "/charts/library")
+      return route.fulfill({ json: library });
+    if (
+      url.pathname.startsWith("/charts/pdf/") ||
+      url.pathname === "/airports/api/chart"
+    ) {
+      expect(route.request().headers().authorization).toBe(
+        `Bearer ${E2E_TOKEN}`,
+      );
+      return route.fulfill({ body: pdf(), contentType: "application/pdf" });
+    }
+    return route.abort();
+  });
+  await page.addInitScript((f) => {
+    localStorage.setItem("nordsweet.language.v1", "en");
+    localStorage.setItem(
+      "nordsweet.flight.v2",
+      JSON.stringify({ state: { flight: f }, version: 1 }),
+    );
+  }, flight);
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto("/map");
+
+  async function airportCharts(page: Page, ident: string) {
+    await expect(page.getByTestId("map")).toHaveAttribute(
+      "data-map-ready",
+      "true",
+      { timeout: 20000 },
+    );
+    await page.getByRole("button", { name: "Search", exact: true }).click();
+    const search = page.getByRole("dialog", { name: "Search", exact: true });
+    await search.getByRole("textbox").fill(ident);
+    await search.getByRole("button", { name: "Search", exact: true }).click();
+    const details = page.getByRole("dialog", { name: "Details", exact: true });
+    await details.getByRole("button", { name: "Charts", exact: true }).click();
+    return details;
+  }
+  const fpl = page.getByRole("dialog", { name: "FPL", exact: true });
+  const left = page.getByTestId("chart-pane-departure");
+  const right = page.getByTestId("chart-pane-arrival");
+  const details = await airportCharts(page, "EPXX");
+  await details
+    .getByRole("button", { name: "EPXX MIL AERODROME CHART", exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/fly$/);
+  await expect(
+    fpl.getByRole("tab", { name: "Charts", exact: true }),
+  ).toHaveAttribute("aria-selected", "true");
+  await expect(left.getByLabel("Chart", { exact: true })).toHaveValue(
+    "c".repeat(64),
+  );
+  await expect(left.getByTestId("chart-pdf")).toHaveAttribute(
+    "data-ready",
+    "true",
+    { timeout: 20000 },
+  );
+  await expect(
+    page.getByRole("dialog", { name: "Details", exact: true }),
+  ).toHaveCount(0);
+
+  await fpl.getByRole("button", { name: "Close", exact: true }).click();
+  await page.getByRole("button", { name: "Start flight", exact: true }).click();
+  await expect(page.getByTestId("flight-phase")).toBeVisible();
+  await (
+    await airportCharts(page, "EPKK")
+  )
+    .getByRole("button", { name: "EPKK IFR AERODROME CHART", exact: true })
+    .click();
+  await expect(right.getByLabel("Chart", { exact: true })).toHaveValue(
+    "b".repeat(64),
+  );
+  await expect(right.getByTestId("chart-pdf")).toHaveAttribute(
+    "data-ready",
+    "true",
+    { timeout: 20000 },
+  );
+
+  await fpl.getByRole("button", { name: "Close", exact: true }).click();
+  await (
+    await airportCharts(page, "EPNT")
+  )
+    .getByRole("button", { name: "Our EPNT taxi sheet", exact: true })
+    .click();
+  const libraryId = "library:Poland/EPNT/National AIP/AD4.pdf";
+  await expect(left.getByLabel("Chart", { exact: true })).toHaveValue(
+    libraryId,
+  );
+  await expect(left.getByTestId("chart-pdf")).toHaveAttribute(
+    "data-ready",
+    "true",
+    { timeout: 20000 },
+  );
+  // A fresh click must reselect this sheet even if the pane changed since the previous request.
+  await left.getByLabel("Chart", { exact: true }).selectOption("a".repeat(64));
+  await fpl.getByRole("button", { name: "Close", exact: true }).click();
+  await (
+    await airportCharts(page, "EPNT")
+  )
+    .getByRole("button", { name: "Our EPNT taxi sheet", exact: true })
+    .click();
+  await expect(left.getByLabel("Chart", { exact: true })).toHaveValue(
+    libraryId,
+  );
+
+  await fpl.getByRole("button", { name: "Close", exact: true }).click();
+  const krakow = await airportCharts(page, "EPKK");
+  const nord = krakow.getByRole("button", { name: /^SID RWY/ }).first();
+  const title = await nord.innerText();
+  await nord.click();
+  await expect(
+    right.getByLabel("Chart", { exact: true }).locator("option:checked"),
+  ).toHaveText(`NordChart · ${title}`);
+  await expect(
+    right.getByRole("img", { name: /procedure chart/ }),
+  ).toBeVisible();
+  expect(context.pages()).toHaveLength(1);
+});
 
 test("FPL charts render authenticated multipage AIP, retain independent panes and reopen offline", async ({
   page,

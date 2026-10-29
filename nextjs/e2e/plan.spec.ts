@@ -1,4 +1,5 @@
 import { selectFlightPhase, type Page, expect, test } from "./test";
+import charts from "../public/data/charts.json" with { type: "json" };
 
 test.beforeEach(async ({ page }) => {
   // Deterministic: no live API (VFR points degrade gracefully), English UI.
@@ -145,8 +146,11 @@ test("adds a SID, shows the taxi route and charts", async ({ page }) => {
     .getByRole("button", { name: "Charts", exact: true })
     .click();
   await expect(
-    page.getByRole("link", { name: "EPKK · National AIP · AD2" }),
-  ).toHaveAttribute("href", "/charts/Poland/EPKK/National%20AIP/AD2.pdf");
+    page.getByRole("button", {
+      name: "EPKK · National AIP · AD2",
+      exact: true,
+    }),
+  ).toBeVisible();
 });
 
 test("Poprad Charts lists the official AIP documents and serves the original PDFs", async ({
@@ -164,18 +168,18 @@ test("Poprad Charts lists the official AIP documents and serves the original PDF
   await search.getByRole("button", { name: "Search", exact: true }).click();
   const details = page.getByRole("dialog", { name: "Details", exact: true });
   await details.getByRole("button", { name: "Charts", exact: true }).click();
-  const links = details.getByRole("link").filter({ hasText: "LZTT ·" });
-  await expect(links).toHaveCount(18);
+  const documents = details.getByRole("button").filter({ hasText: "LZTT ·" });
+  await expect(documents).toHaveCount(18);
   await expect(
-    details.getByRole("link", {
+    details.getByRole("button", {
       name: "LZTT · RNAV STAR - RWY 27",
       exact: true,
     }),
   ).toBeVisible();
-  for (const link of await links.all()) {
-    const href = await link.getAttribute("href");
+  for (const chart of charts.filter((c) => c.airport === "LZTT")) {
+    const href = chart.src;
     expect(href).toMatch(/^\/charts\/Slovakia\/LZTT\/.+\.pdf$/);
-    const response = await request.get(href!);
+    const response = await request.get(href);
     expect(response.ok()).toBe(true);
     expect((await response.body()).subarray(0, 5).toString()).toBe("%PDF-");
   }

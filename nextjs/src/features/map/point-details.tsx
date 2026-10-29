@@ -27,6 +27,7 @@ import { AirportBriefing, AirportNotams } from "~/features/plan/briefing";
 import { WaypointWxDialog } from "~/features/plan/route-dialogs";
 import { usePlan } from "~/features/plan/use-plan";
 import { EmergencyAirportChoice } from "~/features/emergency/emergency-airport-choice";
+import { useBrowserCharts } from "~/features/charts/use-browser-charts";
 
 const KIND_LABEL: Record<string, MessageKey> = {
   airport: "maptools.kind.airport",
@@ -47,6 +48,7 @@ export function PointDetails({
   previewHolding,
   acceptHolding,
   removeHolding,
+  openChart,
 }: {
   point: FlightPoint & { name: string; kind: string; weather?: boolean };
   now: number;
@@ -57,6 +59,7 @@ export function PointDetails({
   previewHolding: (holding: Holding | null) => void;
   acceptHolding: (holding: Holding) => void;
   removeHolding: () => void;
+  openChart: (airport: string, chartId: string) => void;
   addPoint: (
     point: FlightPoint,
     as: "departure" | "destination" | "waypoint",
@@ -101,7 +104,8 @@ export function PointDetails({
     | null
   >(point.weather ? "weather" : null);
   const airportCode =
-    routePoint?.airportIcao ?? (point.kind === "airport" ? point.ident : "");
+    routePoint?.airportIcao ??
+    (["airport", "airfield"].includes(point.kind) ? point.ident : "");
   const airport = /^[A-Z]{4}$/.test(airportCode);
   const selectedAirport =
     point.kind === "airport" ||
@@ -132,10 +136,8 @@ export function PointDetails({
     outboundRestriction?.maxFt ??
     (outbound ? flight.waypointAltitudes[pointKey(outbound)] : null) ??
     flight.cruiseAltitudeFt;
-  const charts = useQuery({
-    ...api.charts.byAirport.queryOptions({ airport: airportCode }),
-    enabled: airport && mode === "charts",
-  });
+  const { charts: allCharts } = useBrowserCharts(airport && mode === "charts");
+  const charts = allCharts.filter((chart) => chart.airport === airportCode);
   return (
     <div
       className={
@@ -426,16 +428,16 @@ export function PointDetails({
         )}
         {mode === "notams" && <AirportNotams icao={airportCode} />}
         {mode === "charts" &&
-          (charts.data?.length ? (
-            charts.data.map((chart) => (
-              <a
-                key={chart.src}
-                href={chart.src}
-                target="_blank"
-                rel="noreferrer"
+          (charts.length ? (
+            charts.map((chart) => (
+              <button
+                type="button"
+                key={chart.id}
+                className="text-primary text-left underline"
+                onClick={() => openChart(airportCode, chart.id)}
               >
                 {chart.title}
-              </a>
+              </button>
             ))
           ) : (
             <p>{t("maptools.noData")}</p>
