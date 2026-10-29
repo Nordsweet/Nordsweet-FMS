@@ -58,6 +58,8 @@ State defaults: the `state = {…}` object (~line 1500). DOM refs: `refs = {…}
 
 ## 4. Work board
 
+Library and duplication cleanup — in progress, Claude 2026-10-29. Plurals via Intl.PluralRules, app-language dates, cmdk airport combobox, Radix dialogs for map search/notification history, Escape on non-modal panels, unused deps/shadcn files, shared GPX/KML/clock/format/drag/download helpers, GPS store on Zustand, color2k, shadcn checkboxes.
+
 Zitadel sign-in preparation — in progress, Claude 2026-10-29. API accepts Zitadel tokens (off unless `OIDC_ISSUER`), app has the PKCE client and `/auth/callback`; the login screen is unchanged. See ZITADEL.md for the Zitadel setup and the remaining switch steps.
 
 Descent abeam countdown — done, Codex 2026-10-29. TOD and leg-boundary forecasts use along-track progress instead of lateral distance, with actual ground track and speed for the current segment. Tested offsets on both sides, oblique and reverse motion, TOD countdown and history in the browser. Format, lint, types, 785 unit tests, build and all 176 browser tests passed; initial full run had an unrelated reload timeout, which passed three isolated repetitions and the full rerun with a longer timeout.
