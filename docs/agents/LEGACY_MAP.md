@@ -58,7 +58,7 @@ State defaults: the `state = {…}` object (~line 1500). DOM refs: `refs = {…}
 
 ## 4. Work board
 
-Descent abeam countdown — claimed, Codex 2026-10-29. Use aircraft progress across the TOD abeam line for the descent notification rather than radial distance.
+Descent abeam countdown — done, Codex 2026-10-29. TOD and leg-boundary forecasts use along-track progress instead of lateral distance, with actual ground track and speed for the current segment. Tested offsets on both sides, oblique and reverse motion, TOD countdown and history in the browser. Format, lint, types, 785 unit tests, build and all 176 browser tests passed; initial full run had an unrelated reload timeout, which passed three isolated repetitions and the full rerun with a longer timeout.
 
 Chart fit-to-window mode — done, Codex 2026-10-29. PDF and NordChart fill the window or chart half in split screen, retaining the chart menu and zoom controls; exit restores panes, split side, pan and zoom, including from empty or failed documents. Verified on an iPad-sized viewport and a real PANSA chart; 778 unit tests, production build and 176 browser scenarios passed (one terrain scenario on retry).
 

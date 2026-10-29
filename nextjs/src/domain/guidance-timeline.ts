@@ -18,6 +18,7 @@ import { holdingGeometry, type HoldingRuntime } from "./holding";
 import { trueToMagneticDeg } from "./magnetic";
 import { windTriangle } from "./wind";
 import { rateOneIntercept } from "./turn-intercept";
+import { angleDiffDeg, toRad } from "./angles";
 
 export type TimedGuidance = {
   key: string;
@@ -159,7 +160,7 @@ export function guidanceTimeline(
   }
   const path = flyByRoute(input.route, input.performance);
   const nearest = nearestLeg(path, position, input.activeLeg);
-  if (!nearest || nearest.distance > 1) return events;
+  if (!nearest) return events;
   const distances = new Map<number, number>();
   let remaining = nearest.remaining + nearest.distance;
   distances.set(nearest.index + 1, remaining);
@@ -172,10 +173,26 @@ export function guidanceTimeline(
   const within = (at: number) =>
     at - input.now <= 30000 && at - input.now >= -1000;
   for (let leg = input.activeLeg + 1; leg < input.route.length - 1; leg++) {
+    if (nearest.distance > 1) break;
     const index = path.legs.indexOf(leg);
     const nm = distances.get(index);
     if (nm === undefined) continue;
-    const at = due(nm);
+    let at = due(nm - nearest.distance);
+    if (index === nearest.index + 1 && position.trackDeg !== null) {
+      const a = path.points[nearest.index]!,
+        b = path.points[index]!;
+      const alongSpeed =
+        position.groundSpeedKt! *
+        Math.cos(
+          toRad(angleDiffDeg(initialBearingDeg(a, b), position.trackDeg)),
+        );
+      if (!Number.isFinite(alongSpeed) || alongSpeed <= 0) continue;
+      at = due(
+        ((distanceNm(a, b) - trackOffset(a, b, position).alongTrackNm) *
+          position.groundSpeedKt!) /
+          alongSpeed,
+      );
+    }
     if (at - input.now > 30000) break;
     if (!within(at)) continue;
     const from = input.route[leg]!,
@@ -209,7 +226,13 @@ export function guidanceTimeline(
     if (p.id !== "TOD") continue;
     // A profile event at a real waypoint is already covered by its leg-boundary countdown.
     if (input.route.some((fix) => distanceNm(fix, p) < 0.001)) continue;
-    let closest: { cross: number; nm: number; leg: number } | null = null;
+    let closest: {
+      cross: number;
+      nm: number;
+      leg: number;
+      index: number;
+      along: number;
+    } | null = null;
     for (let i = nearest.index; i < path.legs.length; i++) {
       const a = path.points[i]!,
         b = path.points[i + 1]!,
@@ -226,10 +249,27 @@ export function guidanceTimeline(
         (distances.get(i + 1) ?? nearest.remaining + nearest.distance) -
         length +
         along;
-      if (nm >= 0 && (!closest || cross < closest.cross))
-        closest = { cross, nm, leg: path.legs[i]! };
+      if (!closest || cross < closest.cross)
+        closest = { cross, nm, leg: path.legs[i]!, index: i, along };
     }
-    if (!closest || closest.cross > 0.5 || !within(due(closest.nm))) continue;
+    if (!closest || closest.cross > 0.5) continue;
+    let at = due(closest.nm);
+    if (closest.index === nearest.index) {
+      const a = path.points[closest.index]!,
+        b = path.points[closest.index + 1]!;
+      const track = position.trackDeg;
+      if (track === null || !Number.isFinite(track)) continue;
+      const alongSpeed =
+        position.groundSpeedKt! *
+        Math.cos(toRad(angleDiffDeg(initialBearingDeg(a, b), track)));
+      if (alongSpeed <= 0) continue;
+      const remaining =
+        closest.along - trackOffset(a, b, position).alongTrackNm;
+      at = Date.parse(position.time) + (remaining * 3600000) / alongSpeed;
+    } else {
+      at = due(closest.nm - nearest.distance);
+    }
+    if (!within(at)) continue;
     const next = input.route[closest.leg + 1];
     if (!next) continue;
     const target = plannedGuidanceAltitude(
@@ -243,7 +283,7 @@ export function guidanceTimeline(
       courseTrueDeg: null,
       targetAltitudeFt: target,
     }))
-      add(command, closest.leg, due(closest.nm));
+      add(command, closest.leg, at);
   }
   return events;
 }

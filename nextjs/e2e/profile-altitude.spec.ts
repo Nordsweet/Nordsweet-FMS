@@ -47,7 +47,11 @@ test("TOC/TOD dots stay on the drawn line and descent counts down into clean not
   const route = navigationRoute(plan);
   const tod = plan.points.find((p) => p.id === "TOD")!;
   const heading = initialBearingDeg(route[0]!, route.at(-1)!);
-  const position = destinationPoint(tod, heading + 180, (100 * 20) / 3600);
+  const position = destinationPoint(
+    destinationPoint(tod, heading + 180, (100 * 20) / 3600),
+    heading + 90,
+    0.6,
+  );
   await page.addInitScript(
     ({ flight, route, position, heading }) => {
       localStorage.setItem("nordsweet.language.v1", "en");
@@ -170,10 +174,10 @@ test("TOC/TOD dots stay on the drawn line and descent counts down into clean not
     expect(distance).toBeLessThan(1.5);
   }
   await page.screenshot({ path: "test-results/toc-tod-anchored.png" });
-  await page.clock.fastForward(8000);
+  await page.clock.runFor(8000);
   await page.clock.runFor(1000);
   await expect(popup).toContainText(/in (\d|1\d)s/);
-  await page.clock.fastForward(16000);
+  await page.clock.runFor(16000);
   await page.clock.runFor(1000);
   await expect(popup).toContainText(/Descent to \d+ft now/);
   const entries = await page.evaluate(
