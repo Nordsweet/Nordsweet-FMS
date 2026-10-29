@@ -62,6 +62,8 @@ Vertical deviation scale — done, Codex 2026-10-29. Flight map indicator compar
 
 Economy altitude persistence and reload guidance — done, Codex 2026-10-29. Apply saves the highest suggested en-route cruise level and real point altitudes, discards obsolete generated TOC/TOD overrides, and guidance waits for recovery and the restored profile while retaining explicit point restrictions. Verified 6000→12000 ft, reload/FPL and delayed data from an older saved plan. Format/lint/types, 787 unit tests, build and all 177 browser scenarios passed; two FPL reload timing scenarios passed on retry after independent repetitions.
 
+Zitadel sign-in preparation — in progress, Claude 2026-10-29. API accepts Zitadel tokens (off unless `OIDC_ISSUER`), app has the PKCE client and `/auth/callback`; the login screen is unchanged. See ZITADEL.md for the Zitadel setup and the remaining switch steps.
+
 Descent abeam countdown — done, Codex 2026-10-29. TOD and leg-boundary forecasts use along-track progress instead of lateral distance, with actual ground track and speed for the current segment. Tested offsets on both sides, oblique and reverse motion, TOD countdown and history in the browser. Format, lint, types, 785 unit tests, build and all 176 browser tests passed; initial full run had an unrelated reload timeout, which passed three isolated repetitions and the full rerun with a longer timeout.
 
 Chart fit-to-window mode — done, Codex 2026-10-29. PDF and NordChart fill the window or chart half in split screen, retaining the chart menu and zoom controls; exit restores panes, split side, pan and zoom, including from empty or failed documents. Verified on an iPad-sized viewport and a real PANSA chart; 778 unit tests, production build and 176 browser scenarios passed (one terrain scenario on retry).
@@ -101,6 +103,8 @@ Planner Route controls — done, Codex 2026-10-20. Clear route preserves aircraf
 Compact flight toolbar — done, Codex 2026-10-20. Current-phase dropdown in instruments, separate Close Flight and antenna-triggered position-source dialog. Manual/automatic phases and source settings retained; browser coverage updated and full CI gates before develop.
 
 Flight Debrief close control — done, Codex 2026-10-20. Accessible X beside the drag handle; dismissal scoped to the ended flight, preserving saved readings and track. Browser regression covers closure before/after acceptance, timer rerenders, reload recovery and automatic opening for the next flight; full gates before develop.
+
+Notification chimes — done, Codex 2026-10-29. PR #102 merged to develop. High Chime for routine radio, heading/altitude and event popups; High–Low for warning/danger popups, including airspace entry, traffic and fuel. Countdown previews stay silent until NOW. Touch/click/keyboard unlocks audio silently; blocked audio never accumulates a backlog. Notification history prevents repeated sound across GPS updates, view changes and reloads. Offline synthesized notes are serialized; the existing timer melody is retained. CI 40927411848 passed format/lint/types, 788 unit tests, server tests, production export and all 176 browser scenarios without retries. Native Web Audio scheduling is observed in the warning re-arm and three turn-countdown browser regressions.
 
 Claim a row before you start (owner = agent/session name + date), commit the claim, release it when
 merged to `develop`. One owner per row.

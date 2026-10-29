@@ -11,11 +11,16 @@ export const env = createEnv({
     NEXT_PUBLIC_AVIATION_API_URL: z
       .url()
       .default("https://aviation.lab.vibecde.com"),
+    /** Zitadel sign-in (both or neither): the issuer URL and the Client ID of the PKCE application. */
+    NEXT_PUBLIC_OIDC_ISSUER: z.url().optional(),
+    NEXT_PUBLIC_OIDC_CLIENT_ID: z.string().optional(),
   },
 
   runtimeEnv: {
     NODE_ENV: process.env.NODE_ENV,
     NEXT_PUBLIC_AVIATION_API_URL: process.env.NEXT_PUBLIC_AVIATION_API_URL,
+    NEXT_PUBLIC_OIDC_ISSUER: process.env.NEXT_PUBLIC_OIDC_ISSUER,
+    NEXT_PUBLIC_OIDC_CLIENT_ID: process.env.NEXT_PUBLIC_OIDC_CLIENT_ID,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially
