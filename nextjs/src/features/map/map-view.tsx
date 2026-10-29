@@ -11,11 +11,13 @@ import {
 } from "@tanstack/react-query";
 import { SearchIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNow } from "~/hooks/use-now";
 import { createPortal } from "react-dom";
 
 import { api } from "~/api";
 import { mapAirspaceVisible } from "~/domain/airspace-style";
 import { Button } from "~/components/ui/button";
+import { DialogPanel, DialogPanelTitle } from "~/components/ui/dialog";
 import { cn } from "cn";
 import { type AirspacePlan } from "~/api/aviation/client";
 import {
@@ -109,6 +111,7 @@ import { AirspaceDetails } from "./airspace-details";
 import { useT } from "~/i18n/use-t";
 import { usePlan } from "~/features/plan/use-plan";
 import { useFlight } from "~/stores/flight";
+import { formatClock } from "~/domain/format";
 
 export type { Basemap, LayerId } from "~/stores/map";
 
@@ -355,7 +358,7 @@ export function MapView({
     routeRef.current = route;
   }, [route]);
   const [terrainError, setTerrainError] = useState(false);
-  const [now, setNow] = useState(() => Date.now());
+  const now = useNow(1000);
   const { mslFt: terrainAltitudeFt } = useTerrainHeight(fix);
   const terrainFixAge = fix
     ? now - (fix.receivedAt ?? Date.parse(fix.time))
@@ -373,10 +376,6 @@ export function MapView({
       terrainAltitudeFt: clearanceAltitudeFt,
     });
   }, [ready, clearanceAltitudeFt]);
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, []);
   const imported = useQuery(api.map.importedAirspace.queryOptions(undefined));
   const { histories, observe } = useTrafficSession();
   const selectedHex = click?.kind === "traffic" ? click.hex : "";
@@ -1063,11 +1062,7 @@ export function MapView({
       cruiseSpeedKt,
       speed,
     );
-    return minutes === null
-      ? "--"
-      : String(Math.floor(minutes / 60)).padStart(2, "0") +
-          ":" +
-          String(minutes % 60).padStart(2, "0");
+    return minutes === null ? "--" : formatClock(minutes);
   };
   const createWaypoint = (
     segment: NonNullable<ReturnType<typeof nearestRouteSegment>>,
@@ -1446,13 +1441,14 @@ export function MapView({
         />
       )}
       {!embedded && notificationHistoryOpen && (
-        <section
-          role="dialog"
-          aria-label={t("fly.history.title")}
+        <DialogPanel
+          onClose={() => setNotificationHistoryOpen(false)}
           className="bg-card/95 text-card-foreground absolute top-36 right-20 left-3 z-40 grid max-h-[calc(100%-10rem)] gap-3 overflow-y-auto rounded-2xl border p-4 shadow-lg backdrop-blur sm:right-auto sm:w-96"
         >
           <div className="flex items-center justify-between gap-2">
-            <h2 className="text-sm font-bold">{t("fly.history.title")}</h2>
+            <DialogPanelTitle className="text-sm font-bold">
+              {t("fly.history.title")}
+            </DialogPanelTitle>
             <Button
               variant="outline"
               size="sm"
@@ -1462,7 +1458,7 @@ export function MapView({
             </Button>
           </div>
           <NotificationHistory />
-        </section>
+        </DialogPanel>
       )}
       {settings.searchOpen && (
         <MapSearch

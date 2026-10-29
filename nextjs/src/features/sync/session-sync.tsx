@@ -13,7 +13,7 @@ import {
   DialogDescription,
   DialogTitle,
 } from "~/components/ui/dialog";
-import { useT } from "~/i18n/use-t";
+import { useLocale, useT } from "~/i18n/use-t";
 import { useAuth } from "~/stores/auth";
 import { useInFlight } from "~/stores/inflight";
 import { useSyncStatus } from "~/stores/sync-status";
@@ -72,6 +72,7 @@ export function SessionSync() {
 
 function FlightOffer() {
   const t = useT();
+  const locale = useLocale();
   const offer = useSyncStatus((s) =>
     s.offers.find((o) => o.collection === "live-flight"),
   );
@@ -79,7 +80,7 @@ function FlightOffer() {
   if (!offer) return null;
   const named = (offer.item.data as Partial<LiveFlight> | null)?.deviceName;
   const device = named?.length ? named : offer.item.device_id.slice(0, 8);
-  const time = new Date(offer.item.updated_at).toLocaleTimeString();
+  const time = new Date(offer.item.updated_at).toLocaleTimeString(locale);
   const answer = (choice: "take" | "keep") =>
     void answerOffer(offer.collection, offer.id, choice);
   return (

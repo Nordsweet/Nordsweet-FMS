@@ -1,3 +1,5 @@
+import { type Message } from "./translate";
+
 export const mapToolsEn = {
   "maptools.setDeparture": "Set as departure",
   "maptools.setDestination": "Set as destination",
@@ -30,7 +32,10 @@ export const mapToolsEn = {
   "maptools.importAirspace": "Import OpenAir / JSON",
   "maptools.clearImported": "Clear imported airspace",
   "maptools.importError": "The file could not be imported.",
-  "maptools.imported": "Imported {count} items.",
+  "maptools.imported": {
+    one: "Imported {count} item.",
+    other: "Imported {count} items.",
+  } as Message,
   "maptools.filter": "Airspace types",
   "maptools.all": "All",
   "maptools.clear": "Clear",
@@ -87,7 +92,7 @@ export const mapToolsEn = {
   "maptools.noAltitude": "no altitude",
   "maptools.plan": "plan",
 } as const;
-export const mapToolsPl: Record<keyof typeof mapToolsEn, string> = {
+export const mapToolsPl: Record<keyof typeof mapToolsEn, Message> = {
   "maptools.setDeparture": "Ustaw jako lotnisko startu",
   "maptools.setDestination": "Ustaw jako lotnisko lądowania",
   "maptools.topOfClimb": "Koniec wznoszenia",
@@ -119,7 +124,12 @@ export const mapToolsPl: Record<keyof typeof mapToolsEn, string> = {
   "maptools.importAirspace": "Import OpenAir / JSON",
   "maptools.clearImported": "Usuń importowane strefy",
   "maptools.importError": "Nie udało się zaimportować pliku.",
-  "maptools.imported": "Zaimportowano {count} elementów.",
+  "maptools.imported": {
+    one: "Zaimportowano {count} element.",
+    few: "Zaimportowano {count} elementy.",
+    many: "Zaimportowano {count} elementów.",
+    other: "Zaimportowano {count} elementu.",
+  },
   "maptools.filter": "Typy przestrzeni",
   "maptools.all": "Wszystkie",
   "maptools.clear": "Wyczyść",

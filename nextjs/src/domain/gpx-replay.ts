@@ -1,4 +1,5 @@
 import { distanceNm, initialBearingDeg } from "./geo";
+import { readGpx } from "./gpx";
 
 /** A track point as read from the GPX file. */
 export type RawTrackPoint = {
@@ -48,22 +49,20 @@ export function replayPoints(
   });
 }
 
-/** Track points (else route points) of a GPX document. Browser only (DOMParser). */
+/** Track points (else route points) of a GPX document; waypoints are not part of a flown track. */
 export function readGpxTrack(text: string): RawTrackPoint[] {
-  const doc = new DOMParser().parseFromString(text, "application/xml");
-  if (doc.querySelector("parsererror")) throw new Error("gpx-invalid");
-  let nodes = [...doc.getElementsByTagName("trkpt")];
-  if (!nodes.length) nodes = [...doc.getElementsByTagName("rtept")];
-  const child = (node: Element, name: string) =>
-    node.getElementsByTagName(name)[0]?.textContent?.trim() ?? "";
-  return nodes
-    .map((node) => {
-      const ele = child(node, "ele");
-      const time = Date.parse(child(node, "time"));
+  const points = readGpx(text);
+  const track = points.some((p) => p.kind === "trkpt")
+    ? points.filter((p) => p.kind === "trkpt")
+    : points.filter((p) => p.kind === "rtept");
+  return track
+    .map((p) => {
+      const time = Date.parse(p.time);
       return {
-        lat: Number(node.getAttribute("lat")),
-        lon: Number(node.getAttribute("lon")),
-        elevationM: ele && Number.isFinite(Number(ele)) ? Number(ele) : null,
+        lat: p.lat,
+        lon: p.lon,
+        elevationM:
+          p.ele && Number.isFinite(Number(p.ele)) ? Number(p.ele) : null,
         time: Number.isFinite(time) ? time : null,
       };
     })

@@ -21,6 +21,7 @@ import {
   SERVER_CONTACT_TIMEOUT_MS,
   useServerConnection,
 } from "~/stores/server-connection";
+import { formatClockHms } from "~/domain/format";
 
 const subscribeNetwork = (update: () => void) => {
   window.addEventListener("online", update);
@@ -146,14 +147,7 @@ export function FlightStatusBar({
     distance != null && (current?.groundSpeedKt ?? 0) > 5
       ? Math.round((distance / current!.groundSpeedKt!) * 3600)
       : null;
-  const ete =
-    seconds === null
-      ? "—"
-      : `${Math.floor(seconds / 3600)
-          .toString()
-          .padStart(2, "0")}:${Math.floor((seconds % 3600) / 60)
-          .toString()
-          .padStart(2, "0")}:${(seconds % 60).toString().padStart(2, "0")}`;
+  const ete = seconds === null ? "—" : formatClockHms(seconds);
   const item = (label: string, text: string, id: string) => (
     <div>
       <div className="text-muted-foreground text-[10px] tracking-wide uppercase">

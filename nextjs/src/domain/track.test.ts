@@ -18,7 +18,7 @@ describe("track", () => {
 
   it("writes GPX with escaped names and metres", () => {
     const gpx = toGpx(track, "EPKK <> EPNT & back");
-    expect(gpx).toContain("<name>EPKK &#60;&#62; EPNT &#38; back</name>");
+    expect(gpx).toContain("<name>EPKK &lt;&gt; EPNT &amp; back</name>");
     expect(gpx).toContain(
       '<trkpt lat="50.000000" lon="19.500000"><ele>914.4</ele>',
     );

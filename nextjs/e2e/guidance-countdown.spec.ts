@@ -94,7 +94,7 @@ for (const scenario of [
       .getByTestId("flight-notifications")
       .getByRole("status", { name: "Heading", exact: true });
     await expect(heading).toContainText(
-      /Turn Left Heading \d{3}° in \d+ seconds/,
+      /Turn Left Heading \d{3}° in \d+ seconds?/,
     );
     const history = () =>
       page.evaluate(() => {

@@ -1,3 +1,5 @@
+import { type Message } from "./translate";
+
 export const flightPopupsEn = {
   "fly.split.open": "Split screen",
   "fly.split.close": "Full screen map",
@@ -6,7 +8,7 @@ export const flightPopupsEn = {
   "fly.fuelReserve.final": "Using Final Reserve Fuel",
   "fly.popup.thousandToGo": "1000ft to go",
   "fly.popup.descentTo": "Descent to {altitude}ft",
-  "fly.popup.descentInSeconds": "in {seconds}s",
+  "fly.popup.descentInSeconds": "in {count}s",
   "plan.route.clear": "Clear route",
   "plan.route.textHint":
     "Expanded route. Click to edit the route instructions (DCT, fixes, airways or procedures).",
@@ -47,7 +49,10 @@ export const flightPopupsEn = {
   "fly.panel.notifications": "Notifications",
   "fly.history.unread": "New notifications: {count}",
   "fly.history.empty": "No notifications in this flight yet.",
-  "fly.popup.inSeconds": "in {seconds} seconds",
+  "fly.popup.inSeconds": {
+    one: "in {count} second",
+    other: "in {count} seconds",
+  } as Message,
   "fly.popup.now": "now",
   "fly.popup.heading": "Heading",
   "fly.popup.altitude": "Altitude",
@@ -68,7 +73,7 @@ export const flightPopupsPl: typeof flightPopupsEn = {
   "fly.fuelReserve.final": "Using Final Reserve Fuel",
   "fly.popup.thousandToGo": "1000ft do zadanej wysokości",
   "fly.popup.descentTo": "Zniżanie do {altitude}ft",
-  "fly.popup.descentInSeconds": "za {seconds}s",
+  "fly.popup.descentInSeconds": "za {count}s",
   "plan.route.clear": "Wyczyść trasę",
   "plan.route.textHint":
     "Rozwinięta trasa. Kliknij, aby edytować zapis trasy (DCT, punkty, drogi lub procedury).",
@@ -109,7 +114,12 @@ export const flightPopupsPl: typeof flightPopupsEn = {
   "fly.panel.notifications": "Powiadomienia",
   "fly.history.unread": "Nowe powiadomienia: {count}",
   "fly.history.empty": "Brak powiadomień w tym locie.",
-  "fly.popup.inSeconds": "za {seconds} sekund",
+  "fly.popup.inSeconds": {
+    one: "za {count} sekundę",
+    few: "za {count} sekundy",
+    many: "za {count} sekund",
+    other: "za {count} sekundy",
+  },
   "fly.popup.now": "teraz",
   "fly.popup.heading": "Kurs",
   "fly.popup.altitude": "Wysokość",

@@ -8,28 +8,22 @@ import {
 import { parseOpenAir } from "~/domain/openair";
 import { type FlightPoint } from "~/data/flight";
 import { destinationPoint } from "~/domain/geo";
+import { readGpx } from "~/domain/gpx";
 
 const pointSchema = z.object({
   ident: z.string().min(1),
   lat: z.number().min(-90).max(90),
   lon: z.number().min(-180).max(180),
 });
+/** Every track, route and waypoint becomes a plan point; one invalid point rejects the file. */
 export function parseGpx(text: string): FlightPoint[] {
-  const document = new DOMParser().parseFromString(text, "application/xml");
-  if (document.getElementsByTagName("parsererror").length)
-    throw new Error("Invalid GPX");
-  const nodes = Array.from(document.getElementsByTagName("*")).filter((node) =>
-    ["trkpt", "rtept", "wpt"].includes(node.localName),
+  const points = readGpx(text).map((p, index) =>
+    pointSchema.parse({
+      ident: p.name || `GPX ${index + 1}`,
+      lat: p.lat,
+      lon: p.lon,
+    }),
   );
-  const points = nodes.map((node, index) => {
-    const name =
-      node.getElementsByTagNameNS("*", "name")[0]?.textContent?.trim() ?? "";
-    return pointSchema.parse({
-      ident: name || `GPX ${index + 1}`,
-      lat: node.hasAttribute("lat") ? Number(node.getAttribute("lat")) : NaN,
-      lon: node.hasAttribute("lon") ? Number(node.getAttribute("lon")) : NaN,
-    });
-  });
   if (!points.length) throw new Error("Empty GPX");
   return points;
 }

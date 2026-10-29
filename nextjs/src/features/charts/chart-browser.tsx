@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import { useNow } from "~/hooks/use-now";
 import { useQuery } from "@tanstack/react-query";
 import {
   ChevronLeft,
@@ -105,11 +106,7 @@ function ChartPane({
     scope === "departure" ? flight.departure : flight.destination;
   const [point, setPoint] = useState(selection?.point ?? defaultPoint);
   const [taxiPhase, setTaxiPhase] = useState(scope);
-  const [now, setNow] = useState(Date.now);
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 30000);
-    return () => clearInterval(timer);
-  }, []);
+  const now = useNow(30000);
   const [source, setSource] = useState("all");
   const [category, setCategory] = useState("all");
   const [selectedId, setSelectedId] = useState<string | null>(

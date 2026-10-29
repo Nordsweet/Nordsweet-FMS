@@ -398,3 +398,59 @@ test("SP-TDI displays the owner-confirmed C172 type from its Mode S address", as
   await expect(details).toContainText("C172");
   await expect(details).not.toContainText("C152");
 });
+
+test("Escape closes the search panel and then the details panel", async ({
+  page,
+}) => {
+  await page.goto("/map");
+  await expect(page.getByTestId("map")).toHaveAttribute(
+    "data-map-ready",
+    "true",
+  );
+  const panel = page.getByRole("dialog", { name: "Search", exact: true });
+  await page.getByRole("button", { name: "Search", exact: true }).click();
+  await expect(panel.getByRole("textbox")).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(panel).toHaveCount(0);
+  await search(page, "L7");
+  const details = page.getByRole("dialog", { name: "Details", exact: true });
+  await expect(details).toContainText("L7");
+  await page.keyboard.press("Escape");
+  await expect(details).toHaveCount(0);
+});
+
+test("Escape closes the topmost flight panel first", async ({ page }) => {
+  await page.addInitScript(() =>
+    localStorage.setItem(
+      "nordsweet.inflight.v1",
+      JSON.stringify({
+        version: 1,
+        state: {
+          startedAt: new Date().toISOString(),
+          route: [
+            { ident: "EPKK", lat: 50.07, lon: 19.78 },
+            { ident: "EPNT", lat: 49.46, lon: 20.04 },
+          ],
+        },
+      }),
+    ),
+  );
+  await page.goto("/fly");
+  await expect(page.getByTestId("map")).toHaveAttribute(
+    "data-map-ready",
+    "true",
+    { timeout: 15000 },
+  );
+  await search(page, "EPKK");
+  const details = page.getByRole("dialog", { name: "Details", exact: true });
+  await expect(details).toContainText("EPKK");
+  await page.getByRole("button", { name: "Options", exact: true }).click();
+  const options = page.locator('.fly-popover[data-panel="options"]');
+  await expect(options).toBeVisible();
+  await expect(details).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(details).toHaveCount(0);
+  await expect(options).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(options).toHaveCount(0);
+});

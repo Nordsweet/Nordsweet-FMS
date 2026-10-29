@@ -8,6 +8,7 @@ import { type FlightPhase } from "~/domain/flight-phase";
 import { AirportTaxi } from "~/features/plan/taxi";
 import { usePlan } from "~/features/plan/use-plan";
 import { useT } from "~/i18n/use-t";
+import { formatHeading } from "~/domain/format";
 
 const W = 744;
 const H = 1052;
@@ -142,7 +143,7 @@ export function ProcedureChart({
           if (angle < -90) angle += 180;
           const track =
             leg?.trackMagDeg != null
-              ? `${String(Math.round(leg.trackMagDeg)).padStart(3, "0")}°`
+              ? `${formatHeading(leg.trackMagDeg)}°`
               : "";
           const length =
             leg?.distanceNm != null

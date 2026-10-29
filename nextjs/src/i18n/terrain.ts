@@ -1,3 +1,5 @@
+import { type Message } from "./translate";
+
 export const terrainEn = {
   "terrain.3d": "Terrain 3D",
   "terrain.source":
@@ -26,11 +28,14 @@ export const terrainEn = {
     "Altitude: GNSS + coarse EGM96 correction; descent from 10 s GPS trend",
   "terrain.instrument": "Altitude/descent: current pilot instrument readings",
   "terrain.prepare": "Cache terrain for flight route",
-  "terrain.cached": "Terrain cached: {count} tiles; unavailable: {missing}",
+  "terrain.cached": {
+    one: "Terrain cached: {count} tile; unavailable: {missing}",
+    other: "Terrain cached: {count} tiles; unavailable: {missing}",
+  } as Message,
   "terrain.noRoute": "Add route points or enable GPS to download terrain",
   "terrain.error3d": "3D terrain tile unavailable; use 2D if relief is missing",
 };
-export const terrainPl: Record<keyof typeof terrainEn, string> = {
+export const terrainPl: Record<keyof typeof terrainEn, Message> = {
   "terrain.3d": "Teren 3D",
   "terrain.source":
     "Teren: Mapzen / AWS · Copernicus EU-DEM, USGS i inni dostawcy",
@@ -59,7 +64,12 @@ export const terrainPl: Record<keyof typeof terrainEn, string> = {
   "terrain.instrument":
     "Wysokość/opadanie: bieżące wskazania przyrządów podane przez pilota",
   "terrain.prepare": "Zapisz teren dla trasy offline",
-  "terrain.cached": "Zapisano teren: {count} kafelków; niedostępne: {missing}",
+  "terrain.cached": {
+    one: "Zapisano teren: {count} kafelek; niedostępne: {missing}",
+    few: "Zapisano teren: {count} kafelki; niedostępne: {missing}",
+    many: "Zapisano teren: {count} kafelków; niedostępne: {missing}",
+    other: "Zapisano teren: {count} kafelka; niedostępne: {missing}",
+  },
   "terrain.noRoute": "Dodaj punkty trasy lub włącz GPS, aby pobrać teren",
   "terrain.error3d":
     "Brak kafelka terenu 3D; przełącz na 2D, jeśli brakuje rzeźby",

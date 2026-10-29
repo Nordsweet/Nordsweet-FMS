@@ -42,7 +42,7 @@ export function FlightRecovery() {
               ? t("sync.checkingDetail")
               : t("sync.previous", {
                   name: candidate?.name ?? "",
-                  points: candidate?.track.length ?? 0,
+                  count: candidate?.track.length ?? 0,
                 })}
           </DialogDescription>
           {error && (

@@ -9,26 +9,16 @@ import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Dialog, DialogContent, DialogTitle } from "~/components/ui/dialog";
 import { type Flight, newFlight } from "~/data/flight";
-import { useT } from "~/i18n/use-t";
+import { useLocale, useT } from "~/i18n/use-t";
 import { useFlight } from "~/stores/flight";
 
+import { downloadText as download } from "~/lib/download";
 import { Section, num } from "./fields";
 import { usePlan } from "./use-plan";
 
-function download(fileName: string, text: string) {
-  const url = URL.createObjectURL(
-    new Blob([text], { type: "application/json" }),
-  );
-  const link = Object.assign(document.createElement("a"), {
-    href: url,
-    download: fileName,
-  });
-  link.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
 export function SavedFlightsSection({ onLoaded }: { onLoaded?: () => void }) {
   const t = useT();
+  const locale = useLocale();
   const nameId = useId();
   const fileInput = useRef<HTMLInputElement>(null);
   const [error, setError] = useState("");
@@ -177,7 +167,7 @@ export function SavedFlightsSection({ onLoaded }: { onLoaded?: () => void }) {
                 {[
                   aircraftList.find((a) => a.id === f.aircraftId)?.type,
                   t("plan.saved.savedAt", {
-                    date: new Date(f.savedAt).toLocaleString(),
+                    date: new Date(f.savedAt).toLocaleString(locale),
                   }),
                 ]
                   .filter(Boolean)

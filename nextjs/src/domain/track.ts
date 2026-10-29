@@ -1,4 +1,5 @@
 import { distanceNm } from "./geo";
+import { escapeXml } from "./route-export";
 
 export type TrackPoint = {
   lat: number;
@@ -23,9 +24,6 @@ export function summarizeTrack(track: TrackPoint[]) {
     maxAltitudeFt: altitudes.length ? Math.max(...altitudes) : null,
   };
 }
-
-const escapeXml = (s: string) =>
-  s.replace(/[<>&"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
 /** GPX 1.1 track; elevation in metres as the format requires. */
 export function toGpx(track: TrackPoint[], name: string) {

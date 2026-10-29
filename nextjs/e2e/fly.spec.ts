@@ -131,7 +131,7 @@ test("flies the route: sequencing, direct-to and debrief", async ({
   ).toContainText("FREDA Fuel check");
 
   await page.getByRole("button", { name: "Close flight" }).click();
-  await expect(page.getByTestId("debrief")).toContainText("track points");
+  await expect(page.getByTestId("debrief")).toContainText(/track points?\./);
   const debrief = page.locator('.fly-popover[data-panel="none"]');
   const before = (await debrief.boundingBox())!;
   const title = page.getByRole("button", {
