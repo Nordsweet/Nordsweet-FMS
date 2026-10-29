@@ -113,10 +113,8 @@ type Icao = { icao: string };
 
 export const api = {
   auth: {
-    // Credentials and the session never enter the persisted query cache.
-    login: mutation("auth.login", aviationApi.login),
-    // Called directly: it must read the token before sign-out clears it.
-    logout: { call: aviationApi.logout },
+    // An initial password: never in the persisted query cache.
+    createUser: mutation("auth.createUser", aviationApi.createZitadelUser),
     me: { call: aviationApi.me },
   },
   flightSync: {

@@ -49,7 +49,7 @@ test("GPX and imported airspace survive reload; invalid GPX keeps the route", as
       "AC R\nAN IMPORTED TEST\nAL GND\nAH FL095\nDP 50:00:00 N 019:00:00 E\nDP 50:30:00 N 019:00:00 E\nDP 50:00:00 N 019:30:00 E",
     ),
   });
-  await expect(page.getByRole("status")).toContainText("Imported 1 items");
+  await expect(page.getByRole("status")).toContainText("Imported 1 item.");
   await page.getByLabel("Track up", { exact: true }).check();
   await page.getByRole("combobox", { name: "Airspace plan" }).click();
   await page.getByRole("option", { name: "No AUP" }).click();

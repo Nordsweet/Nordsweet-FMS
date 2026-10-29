@@ -9,6 +9,7 @@ import { trafficCallsign } from "~/domain/traffic-history";
 import { type LayerId } from "~/stores/map";
 import { palettes, type Theme } from "./theme";
 import { type TextDatum } from "./scene";
+import { formatHeading } from "~/domain/format";
 
 type Visibility = ReturnType<typeof mapLabelVisibility>;
 
@@ -81,9 +82,7 @@ export function trafficLabels(
 ) {
   const colors = palettes[theme];
   const track =
-    a.track_deg == null
-      ? "TRK --"
-      : `${Math.round(a.track_deg).toString().padStart(3, "0")} deg`;
+    a.track_deg == null ? "TRK --" : `${formatHeading(a.track_deg)} deg`;
   const altitude =
     a.altitude_ft == null ? "ALT --" : `${Math.round(a.altitude_ft)} ft`;
   const speed =

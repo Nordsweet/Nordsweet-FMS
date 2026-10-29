@@ -1,5 +1,6 @@
 import { ArrowUp, Wind } from "lucide-react";
-import { useEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useRef, type RefObject } from "react";
+import { useNow } from "~/hooks/use-now";
 import {
   windReadout,
   windStatus,
@@ -21,14 +22,9 @@ export function WindTile({
   const t = useT();
   const state = useWind((s) => s.state);
   const mode = useWind((s) => s.mode);
-  const [now, setNow] = useState(() => Date.now());
   const arrow = useRef<SVGSVGElement>(null);
   const estimate = state.estimate;
-  useEffect(() => {
-    if (!estimate) return;
-    const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, [estimate]);
+  const now = useNow(estimate ? 1000 : null);
   const status = windStatus(state, Math.max(now, state.lastAcceptedAt ?? 0));
   const current = status === "valid" ? estimate : null;
   const direction = current?.fromDeg ?? null;

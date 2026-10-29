@@ -4,6 +4,7 @@ import { type FlightPoint } from "~/data/flight";
 import { distanceNm, initialBearingDeg } from "~/domain/geo";
 import { magneticVariationDeg, trueToMagneticDeg } from "~/domain/magnetic";
 import { cn } from "~/lib/utils";
+import { formatHeading } from "~/domain/format";
 
 const columns = (actions: boolean, fuel: boolean) =>
   fuel
@@ -121,7 +122,7 @@ export function FlightPlanCells({
         {pendingLabel && <span className="text-[10px]">{pendingLabel}</span>}
       </span>
       <span className="text-right">
-        {heading === null ? "—" : String(heading).padStart(3, "0")}
+        {heading === null ? "—" : formatHeading(heading)}
       </span>
       <span className="text-right">
         {previous ? distanceNm(previous, point).toFixed(1) : "—"}

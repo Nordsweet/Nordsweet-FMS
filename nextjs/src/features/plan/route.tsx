@@ -43,7 +43,7 @@ import {
   waypointWindProfile,
 } from "~/domain/route-plan";
 import { type MessageKey } from "~/i18n/messages";
-import { useT } from "~/i18n/use-t";
+import { useLocale, useT } from "~/i18n/use-t";
 import { cn } from "~/lib/utils";
 import { useFlight } from "~/stores/flight";
 import { useMapSettings } from "~/stores/map";
@@ -58,6 +58,7 @@ import {
   WaypointWxDialog,
 } from "./route-dialogs";
 import { usePlan } from "./use-plan";
+import { formatHeading } from "~/domain/format";
 
 const tile =
   "grid gap-1 rounded-[14px] border border-[rgba(141,190,255,0.16)] bg-[rgba(16,30,52,0.6)] px-3.5 py-2.5";
@@ -404,6 +405,7 @@ function ScheduleButton({
   value: string;
 }) {
   const t = useT();
+  const locale = useLocale();
   const id = useId();
   const flightSchedule = useFlight((s) => s.flight.schedule);
   const update = useFlight((s) => s.update);
@@ -416,7 +418,7 @@ function ScheduleButton({
             ? "plan.route.schedule.departureAt"
             : "plan.route.schedule.landingAt",
           {
-            time: date.toLocaleString([], {
+            time: date.toLocaleString(locale, {
               day: "2-digit",
               month: "2-digit",
               hour: "2-digit",
@@ -630,8 +632,7 @@ function LegCard({
       <div className="col-span-2 flex items-center justify-between gap-2 sm:col-span-1">
         <div className="grid">
           <span className={tileLabel}>
-            {String(leg.bearingDeg).padStart(3, "0")} deg /{" "}
-            {num(leg.distanceNm)} NM
+            {formatHeading(leg.bearingDeg)} deg / {num(leg.distanceNm)} NM
           </span>
           <strong>{formatRoutePoint(point)}</strong>
         </div>

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "~/components/ui/button";
+import { DialogPanel, DialogPanelTitle } from "~/components/ui/dialog";
 import { Input } from "~/components/ui/input";
 import { type MapSearchResult } from "~/domain/map-search";
 import { useT } from "~/i18n/use-t";
@@ -27,13 +28,17 @@ export function MapSearch({
     [],
   );
   return (
-    <section
-      role="dialog"
-      aria-label={t("mapsearch.title")}
+    <DialogPanel
+      onClose={() => {
+        request.current++;
+        close();
+      }}
       className="bg-card/95 text-card-foreground absolute top-20 right-3 left-3 z-40 grid max-h-[65%] gap-3 overflow-auto rounded-2xl border p-4 shadow-xl backdrop-blur sm:right-auto sm:w-80"
     >
       <div className="flex items-center justify-between gap-2">
-        <strong>{t("mapsearch.title")}</strong>
+        <DialogPanelTitle asChild>
+          <strong>{t("mapsearch.title")}</strong>
+        </DialogPanelTitle>
         <Button
           size="sm"
           variant="outline"
@@ -101,6 +106,6 @@ export function MapSearch({
           ))}
         </div>
       )}
-    </section>
+    </DialogPanel>
   );
 }

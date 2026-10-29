@@ -24,7 +24,9 @@ describe("cssColor", () => {
     }
   });
 
-  it("rejects what it cannot read instead of drawing black", () => {
-    expect(() => cssColor("red")).toThrow();
+  it("reads named and short hex colours, rejects what it cannot read instead of drawing black", () => {
+    expect(cssColor("red")).toEqual([255, 0, 0, 255]);
+    expect(cssColor("#abc")).toEqual([170, 187, 204, 255]);
+    expect(() => cssColor("nonsense")).toThrow();
   });
 });

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
+import { useNow } from "~/hooks/use-now";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "~/api";
 import {
@@ -23,11 +24,7 @@ export function FplVerticalProfile({
   activeLeg: number;
 }) {
   const t = useT();
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 5000);
-    return () => clearInterval(timer);
-  }, []);
+  const now = useNow(5000);
   const current =
     fix && now - Date.parse(fix.time) <= 20000 && !fix.paused ? fix : null;
   const { mslFt } = useTerrainHeight(current);

@@ -1,6 +1,7 @@
 import { trafficCallsign } from "~/domain/traffic-history";
 import { type TrafficAircraft } from "~/api/aviation/schemas";
 import { useT } from "~/i18n/use-t";
+import { formatHeading } from "~/domain/format";
 
 export function TrafficCard({
   aircraft,
@@ -20,7 +21,7 @@ export function TrafficCard({
       t("maplegacy.currentTrack"),
       aircraft.track_deg === null
         ? "—"
-        : `${Math.round(aircraft.track_deg).toString().padStart(3, "0")} deg`,
+        : `${formatHeading(aircraft.track_deg)} deg`,
     ],
     [
       t("maptools.groundSpeed"),

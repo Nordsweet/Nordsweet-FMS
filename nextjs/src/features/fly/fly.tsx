@@ -12,6 +12,7 @@ import {
 import { useMapSettings } from "~/stores/map";
 import { useFlyPanels, type FlyPanel as Panel } from "~/stores/fly-panels";
 import { useEffect, useState, useMemo } from "react";
+import { useNow } from "~/hooks/use-now";
 
 import { Button } from "~/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
@@ -86,6 +87,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "~/components/ui/dropdown-menu";
+import { formatHeading } from "~/domain/format";
 
 const PHASES = FLIGHT_PHASES;
 type Phase = FlightPhase;
@@ -134,8 +136,7 @@ function Tile({
   );
 }
 
-const deg = (v: number | null) =>
-  v === null ? "—" : `${fmt(v).padStart(3, "0")}°`;
+const deg = (v: number | null) => (v === null ? "—" : `${formatHeading(v)}°`);
 const utc = (date: Date) => date.toISOString().slice(11, 16) + "Z";
 
 export function FlyPage() {
@@ -156,7 +157,7 @@ export function FlyPage() {
   const flying = inFlight.startedAt !== null;
   const { fix, connectorStatus, error: gpsError } = useGps(true);
   const turns = useTurnPerformance(flying ? fix : null);
-  const [now, setNow] = useState(() => Date.now());
+  const now = useNow(15000);
   const [debrief, setDebrief] = useState(false);
   const [dismissedDebrief, setDismissedDebrief] = useState<number | null>(null);
   const debriefOpen =
@@ -176,11 +177,6 @@ export function FlyPage() {
   const configAvailable = ["takeoff", "climb", "cruise", "landing"].includes(
     phase,
   );
-
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 15000);
-    return () => clearInterval(id);
-  }, []);
 
   const progress =
     flying && fix
@@ -232,6 +228,16 @@ export function FlyPage() {
         : null;
   const chartFitActive =
     chartFit !== null && open === "fpl" && fplTab === "charts";
+  const escapable = open !== null && !split && !chartFitActive;
+  useEffect(() => {
+    if (!escapable) return;
+    // Bubble phase: a field, menu or map dialog that used Escape first has prevented it.
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !event.defaultPrevented) setPanel(null);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [escapable, setPanel]);
 
   const navigation = (
     <>

@@ -16,10 +16,10 @@ export const meResponseSchema = z.object({
   username: z.string(),
   role: z.string(),
 });
-export const loginResponseSchema = meResponseSchema.extend({
-  token: z.string().min(1),
-  /** Seconds; 30 days today. */
-  expires_in: z.number(),
+export const createdUserSchema = z.object({
+  username: z.string(),
+  role: z.string(),
+  user_id: z.string(),
 });
 
 export const placeKinds = [

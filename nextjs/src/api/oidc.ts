@@ -4,11 +4,8 @@ import { env } from "~/env";
 
 /**
  * Zitadel sign-in: authorization code with PKCE and no client secret (the app is a static page).
- * Off until both env vars are set. The access token goes to the Aviation API as the bearer token.
+ * The access token goes to the Aviation API as the bearer token.
  */
-export const oidcEnabled = Boolean(
-  env.NEXT_PUBLIC_OIDC_ISSUER && env.NEXT_PUBLIC_OIDC_CLIENT_ID,
-);
 
 /** The roles scope makes Zitadel add the project's roles, which is what admits a user to the API. */
 const SCOPE = "openid profile offline_access urn:zitadel:iam:org:project:roles";
@@ -24,9 +21,9 @@ export type Tokens = {
 };
 type Pending = { state: string; verifier: string };
 
-const issuer = () => new URL(env.NEXT_PUBLIC_OIDC_ISSUER ?? "");
+const issuer = () => new URL(env.NEXT_PUBLIC_OIDC_ISSUER);
 const client = (): oauth.Client => ({
-  client_id: env.NEXT_PUBLIC_OIDC_CLIENT_ID ?? "",
+  client_id: env.NEXT_PUBLIC_OIDC_CLIENT_ID,
 });
 const redirectUri = () => new URL("/auth/callback", location.origin).href;
 
@@ -47,7 +44,7 @@ const toTokens = (r: oauth.TokenEndpointResponse): Tokens => ({
   expiresAt: Date.now() + (r.expires_in ?? 3600) * 1000,
 });
 
-export async function authorizationRequest(redirect: string) {
+export async function authorizationRequest(redirect: string, signUp = false) {
   const server = await metadata();
   const verifier = oauth.generateRandomCodeVerifier();
   const state = oauth.generateRandomState();
@@ -60,13 +57,16 @@ export async function authorizationRequest(redirect: string) {
     code_challenge: await oauth.calculatePKCECodeChallenge(verifier),
     code_challenge_method: "S256",
     state,
+    // Registration page, or a fresh authentication: a Zitadel session that this browser already holds
+    // (another pilot on a shared iPad) must not sign anyone in without a password or passkey.
+    prompt: signUp ? "create" : "login",
   }).toString();
   return { url, pending: { state, verifier } satisfies Pending };
 }
 
-/** Sends the browser to Zitadel; it comes back to /auth/callback. */
-export async function startLogin() {
-  const { url, pending } = await authorizationRequest(redirectUri());
+/** Sends the browser to Zitadel (sign-in, or registration); it comes back to /auth/callback. */
+export async function startLogin(signUp = false) {
+  const { url, pending } = await authorizationRequest(redirectUri(), signUp);
   sessionStorage.setItem(PENDING, JSON.stringify(pending));
   location.assign(url);
 }
@@ -97,11 +97,11 @@ export async function exchangeCode(
 }
 
 /** Completes the redirect back from Zitadel. Throws when this browser did not start the login. */
-export function finishLogin() {
+export async function finishLogin() {
   const saved = sessionStorage.getItem(PENDING);
   sessionStorage.removeItem(PENDING); // a state is single use
   if (!saved) throw new Error("No sign-in in progress");
-  return exchangeCode(
+  return await exchangeCode(
     new URL(location.href),
     JSON.parse(saved) as Pending,
     redirectUri(),

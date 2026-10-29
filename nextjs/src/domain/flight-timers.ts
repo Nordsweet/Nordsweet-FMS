@@ -1,5 +1,6 @@
 import { type FlightPhase } from "./flight-phase";
 import { distanceNm, trackOffset, type LatLon } from "./geo";
+import { formatClock, formatClockHms } from "./format";
 
 /**
  * Legacy flight timers (handleFlightTimerGpsSample): Block Time and Air Time with GPS detection,
@@ -451,8 +452,7 @@ export function timerElapsed(t: Timer, now: number) {
     0,
     Math.floor(((t.stoppedAt ?? now) - t.startedAt) / 1000),
   );
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${pad(Math.floor(total / 3600))}:${pad(Math.floor((total % 3600) / 60))}:${pad(total % 60)}`;
+  return formatClockHms(total);
 }
 
 /** The utility timer's main button: stop a running one, reset a stopped one, else start a stopwatch. */
@@ -490,8 +490,5 @@ export function utilityValue(u: UtilityTimer, now: number) {
       0,
       Math.floor(((u.stoppedAt ?? now) - u.startedAt) / 1000),
     );
-  const pad = (n: number) => String(n).padStart(2, "0");
-  const hours = Math.floor(total / 3600);
-  const rest = `${pad(Math.floor((total % 3600) / 60))}:${pad(total % 60)}`;
-  return hours ? `${pad(hours)}:${rest}` : rest;
+  return total >= 3600 ? formatClockHms(total) : formatClock(total);
 }

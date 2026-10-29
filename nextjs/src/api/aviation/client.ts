@@ -4,6 +4,7 @@ import { airrepSchema, type Airrep } from "~/data/airrep";
 import { env } from "~/env";
 import { correctTrafficMetadata } from "~/domain/traffic-metadata";
 import { useAuth } from "~/stores/auth";
+import { expiring, renewedToken } from "../oidc-session";
 import { useServerConnection } from "~/stores/server-connection";
 
 import {
@@ -18,7 +19,7 @@ import {
   placesResponseSchema,
   sourcesSchema,
   inspirationResponseSchema,
-  loginResponseSchema,
+  createdUserSchema,
   meResponseSchema,
   notamsResponseSchema,
   trafficResponseSchema,
@@ -43,7 +44,9 @@ export class AviationApiError extends Error {
  * end a newer session.
  */
 export async function aviationFetch(url: URL, init: RequestInit = {}) {
-  const token = useAuth.getState().session?.token;
+  // Read synchronously unless a renewal is due: sign-out revokes the token it reads right here.
+  const session = useAuth.getState().session;
+  const token = expiring(session) ? await renewedToken() : session?.token;
   const headers = new Headers(init.headers);
   if (token) headers.set("Authorization", `Bearer ${token}`);
   const response = await fetch(url, { ...init, headers, cache: "no-store" });
@@ -157,12 +160,17 @@ export const aviationApi = {
     get("/community/airrep", z.object({ reports: z.array(airrepSchema) }), {
       source,
     }),
-  login: (credentials: { username: string; password: string }) =>
-    post("/auth/login", loginResponseSchema, credentials),
+  /** Admin only: the API creates the user in Zitadel (initial password) and grants the project role. */
+  createZitadelUser: (user: {
+    username: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    password: string;
+    role: "user" | "admin";
+  }) => post("/admin/zitadel-users", createdUserSchema, user),
   /** 401 = expired or revoked: the central handler has already ended the session. */
   me: () => get("/auth/me", meResponseSchema),
-  /** Revokes the token held when called (a 204 has no body). */
-  logout: () => post("/auth/logout", z.null(), undefined),
   submitAtis: (report: CommunityAtisReport) =>
     post("/community/atis", z.object({ id: z.string() }).loose(), report),
   confirmAtis: ({ id, reporterId }: { id: string; reporterId: string }) =>

@@ -8,6 +8,7 @@ import {
 } from "react";
 import type { DeckMap } from "./deck";
 import { Button } from "~/components/ui/button";
+import { DialogPanel, DialogPanelTitle } from "~/components/ui/dialog";
 import { useT } from "~/i18n/use-t";
 
 export function FloatingDetails({
@@ -67,11 +68,12 @@ export function FloatingDetails({
     event.currentTarget.setPointerCapture(event.pointerId);
   }
   return (
-    <div
+    <DialogPanel
       ref={panelRef}
+      onClose={onClose}
+      // Opening from a map click keeps focus on the map (keyboard panning).
+      onOpenAutoFocus={(event) => event.preventDefault()}
       className={`legacy-map-details absolute z-20 max-h-[65%] overflow-y-auto ${anchor ? "" : "right-2 bottom-[4.75rem] left-2 sm:left-auto"}`}
-      role="dialog"
-      aria-label={t("map.details")}
       style={{
         ...(anchor
           ? { right: "auto", bottom: "auto", maxWidth: "calc(100% - 16px)" }
@@ -80,44 +82,49 @@ export function FloatingDetails({
       }}
     >
       <div className="mb-2 flex items-center justify-between">
-        <div
-          className={
-            draggable ? "flex-1 cursor-grab touch-none select-none" : "flex-1"
-          }
-          onPointerDown={draggable ? begin : undefined}
-          onPointerMove={(event) => {
-            const drag = start.current;
-            if (!drag) return;
-            const panel = event.currentTarget.parentElement?.parentElement,
-              parent = panel?.parentElement;
-            if (!panel || !parent) return;
-            const bounds = parent.getBoundingClientRect(),
-              rect = panel.getBoundingClientRect();
-            const dx = event.clientX - drag.x,
-              dy = event.clientY - drag.y;
-            setPosition({
-              x: Math.min(
-                position.x + bounds.right - rect.right - 8,
-                Math.max(
-                  position.x + bounds.left - rect.left + 8,
-                  drag.left + dx,
+        <DialogPanelTitle asChild>
+          <div
+            className={
+              draggable ? "flex-1 cursor-grab touch-none select-none" : "flex-1"
+            }
+            onPointerDown={draggable ? begin : undefined}
+            onPointerMove={(event) => {
+              const drag = start.current;
+              if (!drag) return;
+              const panel = event.currentTarget.parentElement?.parentElement,
+                parent = panel?.parentElement;
+              if (!panel || !parent) return;
+              const bounds = parent.getBoundingClientRect(),
+                rect = panel.getBoundingClientRect();
+              const dx = event.clientX - drag.x,
+                dy = event.clientY - drag.y;
+              setPosition({
+                x: Math.min(
+                  position.x + bounds.right - rect.right - 8,
+                  Math.max(
+                    position.x + bounds.left - rect.left + 8,
+                    drag.left + dx,
+                  ),
                 ),
-              ),
-              y: Math.min(
-                position.y + bounds.bottom - rect.bottom - 8,
-                Math.max(position.y + bounds.top - rect.top + 8, drag.top + dy),
-              ),
-            });
-          }}
-          onPointerUp={() => {
-            start.current = null;
-          }}
-          onPointerCancel={() => {
-            start.current = null;
-          }}
-        >
-          {t("map.details")}
-        </div>
+                y: Math.min(
+                  position.y + bounds.bottom - rect.bottom - 8,
+                  Math.max(
+                    position.y + bounds.top - rect.top + 8,
+                    drag.top + dy,
+                  ),
+                ),
+              });
+            }}
+            onPointerUp={() => {
+              start.current = null;
+            }}
+            onPointerCancel={() => {
+              start.current = null;
+            }}
+          >
+            {t("map.details")}
+          </div>
+        </DialogPanelTitle>
         <Button
           size="sm"
           variant="ghost"
@@ -128,6 +135,6 @@ export function FloatingDetails({
         </Button>
       </div>
       {children}
-    </div>
+    </DialogPanel>
   );
 }

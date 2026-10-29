@@ -1,9 +1,10 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useNow } from "~/hooks/use-now";
 import { Button } from "~/components/ui/button";
 import { GlideControls } from "./glide-controls";
 import { Input } from "~/components/ui/input";
-import { useT } from "~/i18n/use-t";
+import { useLocale, useT } from "~/i18n/use-t";
 import { type EmergencyPhase, operationalProcedure } from "~/data/emergency";
 import { emergencyCandidates, emergencyContext } from "~/domain/emergency";
 import { useEmergencyContext } from "./use-emergency-context";
@@ -11,6 +12,7 @@ import { useEmergencyContext } from "./use-emergency-context";
 /** The same session and source definition render in the flight rail and the checklist library. */
 export function EmergencyChecklists() {
   const t = useT();
+  const locale = useLocale();
   const {
     aircraft,
     fix,
@@ -28,11 +30,7 @@ export function EmergencyChecklists() {
   const [runwayConfirmed, setRunwayConfirmed] = useState(false);
   const [altitude, setAltitude] = useState("");
   const [vs, setVs] = useState("");
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, []);
+  const now = useNow(1000);
   const p = session?.procedure;
   const procedureView = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -123,7 +121,8 @@ export function EmergencyChecklists() {
       {session && (
         <>
           <p className="text-xs">
-            {t("emer.resume")} · {new Date(session.openedAt).toLocaleString()}
+            {t("emer.resume")} ·{" "}
+            {new Date(session.openedAt).toLocaleString(locale)}
           </p>
           {session.family === "failure" ? (
             <>

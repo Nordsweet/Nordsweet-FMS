@@ -24,7 +24,7 @@ jobs:
           version: 11.19.0
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 26
           cache: pnpm
           cache-dependency-path: nextjs/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile

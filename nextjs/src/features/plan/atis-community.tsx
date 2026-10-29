@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useNow } from "~/hooks/use-now";
 import { api } from "~/api";
 import { atisReporterId } from "~/api/atis-reporter";
 import { type Atis } from "~/api/aviation/schemas";
@@ -38,11 +38,7 @@ export function AtisCommunity({
     ...api.community.confirmAtis.mutationOptions(),
     onSuccess: refresh,
   });
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 30_000);
-    return () => clearInterval(timer);
-  }, []);
+  const now = useNow(30_000);
   const candidate = atisPadReport(icao, pad, now);
   return (
     <section

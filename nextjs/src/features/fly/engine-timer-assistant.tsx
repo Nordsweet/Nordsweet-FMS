@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useNow } from "~/hooks/use-now";
 import { Button } from "~/components/ui/button";
 import { engineTimerSeconds } from "~/domain/engine-timers";
 import type { FlightPhase } from "~/domain/flight-phase";
 import { useEngineTimers } from "~/stores/engine-timers";
 import { useT } from "~/i18n/use-t";
 import { useInFlight } from "~/stores/inflight";
+import { formatClock } from "~/domain/format";
 
 export function EngineTimerAssistant({
   session,
@@ -18,11 +19,7 @@ export function EngineTimerAssistant({
   const offBlock = useInFlight((s) =>
     s.startedAt === session ? s.timers.offBlock.startedAt : null,
   );
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, []);
+  const now = useNow(1000);
   if (phase !== "taxiout" && phase !== "taxiin") return null;
   const warm = phase === "taxiout";
   if (warm && offBlock !== null) return null;
@@ -45,10 +42,7 @@ export function EngineTimerAssistant({
         data-testid="engine-assistant-timer"
         className="text-primary font-mono text-2xl font-bold tabular-nums"
       >
-        {Math.floor(seconds / 60)
-          .toString()
-          .padStart(2, "0")}
-        :{(seconds % 60).toString().padStart(2, "0")}
+        {formatClock(seconds)}
       </output>
       {warm && startedAt === null && (
         <Button size="sm" onClick={() => timers.startWarm(session, Date.now())}>

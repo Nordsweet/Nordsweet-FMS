@@ -2,16 +2,12 @@ import { turnPerformance } from "~/domain/fly-by";
 import { usePlan } from "~/features/plan/use-plan";
 import { type GpsFix } from "./use-gps";
 import { useInFlight } from "~/stores/inflight";
-import { useEffect, useState } from "react";
+import { useNow } from "~/hooks/use-now";
 import { routeSpeedProfile } from "~/domain/route-speed-profile";
 
 /** Shared speed/wind inputs for map geometry, leg sequencing, and navigation readouts. */
 export function useTurnPerformance(fix: GpsFix | null) {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 5000);
-    return () => clearInterval(timer);
-  }, []);
+  const now = useNow(5000);
   const { cruiseSpeedKt, plan, aircraft } = usePlan();
   const phase = useInFlight((s) => s.phase);
   const next = useInFlight((s) => s.route[s.activeLeg + 1]?.ident);
