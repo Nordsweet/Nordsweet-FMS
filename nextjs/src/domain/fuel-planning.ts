@@ -7,6 +7,7 @@ import {
   lapseTemperatureC,
 } from "./cruise-performance";
 import { conservativeRead, interpolateGrid } from "./grid";
+import { formatClock } from "./format";
 
 /**
  * The legacy planner's fuel table, ported rule for rule so plans match it. Litres are rounded up
@@ -51,7 +52,7 @@ export const DEFAULT_TAXI_L = 4;
 /** Legacy "hh:mm" (minutes rounded up). */
 export function formatHhMm(minutes: number) {
   const total = Math.max(0, Math.ceil(minutes));
-  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+  return formatClock(total);
 }
 
 /** "1:05", "01:05" or plain minutes ("65"); null when unreadable. */

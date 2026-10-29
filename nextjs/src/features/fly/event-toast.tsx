@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useNow } from "~/hooks/use-now";
 
 import { useInFlight } from "~/stores/inflight";
 import { useLocale, useT } from "~/i18n/use-t";
@@ -13,12 +14,8 @@ export function EventToast() {
   const t = useT();
   const locale = useLocale();
   const events = useInFlight((s) => s.timers.events);
-  const [now, setNow] = useState(() => Date.now());
+  const now = useNow(250);
   const [dismissed, setDismissed] = useState<number | null>(null);
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 250);
-    return () => clearInterval(id);
-  }, []);
   const latest = events
     .filter((e) => e.name.trim() && e.notedAt !== undefined)
     .sort((a, b) => b.notedAt! - a.notedAt!)[0];
@@ -45,10 +42,7 @@ export function EventToast() {
       message={`${name} ${clock}`}
       onDismiss={() => setDismissed(latest.notedAt!)}
     >
-      <strong>{name}</strong>{" "}
-      <time className="font-mono text-sm">
-        {clock}
-      </time>
+      <strong>{name}</strong> <time className="font-mono text-sm">{clock}</time>
     </FlightPopup>
   );
 }

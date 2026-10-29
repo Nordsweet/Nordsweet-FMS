@@ -1,22 +1,18 @@
-import { useEffect, useState } from "react";
+import { useNow } from "~/hooks/use-now";
 import { useInFlight } from "~/stores/inflight";
 import { useFlight } from "~/stores/flight";
 import { useT } from "~/i18n/use-t";
 import { Button } from "~/components/ui/button";
 import { useGps } from "./use-gps";
+import { formatClock } from "~/domain/format";
 
 export function HoldingStatus() {
   const t = useT();
   const navigation = useInFlight();
   const update = useFlight((s) => s.update);
   const { fix, error } = useGps(!!navigation.startedAt);
-  const [now, setNow] = useState(() => Date.now());
   const visible = !!navigation.startedAt && !!navigation.holding;
-  useEffect(() => {
-    if (!visible) return;
-    const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, [visible]);
+  const now = useNow(visible ? 1000 : null);
   const hold = navigation.holding;
   if (!visible || !hold) return null;
   const remaining =
@@ -49,10 +45,7 @@ export function HoldingStatus() {
           aria-live="off"
           data-holding-timer
         >
-          {Math.floor(remaining / 60)
-            .toString()
-            .padStart(2, "0")}
-          :{(remaining % 60).toString().padStart(2, "0")}
+          {formatClock(remaining)}
         </output>
       )}
       {remaining === 0 && <strong role="status">{t("holding.elapsed")}</strong>}

@@ -58,6 +58,7 @@ import {
   WaypointWxDialog,
 } from "./route-dialogs";
 import { usePlan } from "./use-plan";
+import { formatHeading } from "~/domain/format";
 
 const tile =
   "grid gap-1 rounded-[14px] border border-[rgba(141,190,255,0.16)] bg-[rgba(16,30,52,0.6)] px-3.5 py-2.5";
@@ -631,8 +632,7 @@ function LegCard({
       <div className="col-span-2 flex items-center justify-between gap-2 sm:col-span-1">
         <div className="grid">
           <span className={tileLabel}>
-            {String(leg.bearingDeg).padStart(3, "0")} deg /{" "}
-            {num(leg.distanceNm)} NM
+            {formatHeading(leg.bearingDeg)} deg / {num(leg.distanceNm)} NM
           </span>
           <strong>{formatRoutePoint(point)}</strong>
         </div>

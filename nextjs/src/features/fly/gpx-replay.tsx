@@ -12,12 +12,10 @@ import { usePlan } from "~/features/plan/use-plan";
 import { useT } from "~/i18n/use-t";
 
 import { simulateFix } from "./use-gps";
+import { formatClock } from "~/domain/format";
 
 const SPEEDS = [1, 5, 10, 20];
-const clock = (ms: number) => {
-  const s = Math.floor(ms / 1000);
-  return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
-};
+const clock = (ms: number) => formatClock(Math.floor(ms / 1000));
 
 /**
  * Legacy "Debug with GPX": replays a recorded track as the GPS, so the map, navigation, timers

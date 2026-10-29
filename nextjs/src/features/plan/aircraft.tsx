@@ -347,7 +347,9 @@ function LastKnownState({
         <span>
           {updatedAt
             ? t("plan.aircraft.lastState.updated", {
-                at: new Intl.DateTimeFormat(locale, updatedFormat).format(updatedAt),
+                at: new Intl.DateTimeFormat(locale, updatedFormat).format(
+                  updatedAt,
+                ),
               })
             : t("plan.aircraft.lastState.none")}
         </span>

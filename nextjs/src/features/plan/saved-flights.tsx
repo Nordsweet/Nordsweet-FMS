@@ -12,20 +12,9 @@ import { type Flight, newFlight } from "~/data/flight";
 import { useLocale, useT } from "~/i18n/use-t";
 import { useFlight } from "~/stores/flight";
 
+import { downloadText as download } from "~/lib/download";
 import { Section, num } from "./fields";
 import { usePlan } from "./use-plan";
-
-function download(fileName: string, text: string) {
-  const url = URL.createObjectURL(
-    new Blob([text], { type: "application/json" }),
-  );
-  const link = Object.assign(document.createElement("a"), {
-    href: url,
-    download: fileName,
-  });
-  link.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
 
 export function SavedFlightsSection({ onLoaded }: { onLoaded?: () => void }) {
   const t = useT();

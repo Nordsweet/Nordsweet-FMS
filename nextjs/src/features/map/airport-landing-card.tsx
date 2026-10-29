@@ -31,6 +31,7 @@ import { useT } from "~/i18n/use-t";
 import { cn } from "~/lib/utils";
 import { useAtis } from "~/stores/atis";
 import { useInFlight } from "~/stores/inflight";
+import { formatHeading } from "~/domain/format";
 
 /** A full mark represents one distance unit; the final remainder keeps its proportional size. */
 function RunwayMarkings({
@@ -412,9 +413,7 @@ export function AirportLandingCard({
       <div className="text-muted-foreground mt-2 grid gap-1">
         <span>
           {config.label} · {inputs.oatC}°C · QNH {inputs.qnhHpa} ·{" "}
-          {variable
-            ? "VRB"
-            : String(Math.round(inputs.windDirectionDeg)).padStart(3, "0")}
+          {variable ? "VRB" : formatHeading(inputs.windDirectionDeg)}
           °/{inputs.windSpeedKt} kt
         </span>
         <span>

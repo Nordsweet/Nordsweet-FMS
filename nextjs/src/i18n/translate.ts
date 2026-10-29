@@ -1,7 +1,6 @@
 /** A message, or its plural forms chosen by `Intl.PluralRules` from the `count` variable. */
 export type Message =
-  | string
-  | ({ other: string } & Partial<Record<Intl.LDMLPluralRule, string>>);
+  string | ({ other: string } & Partial<Record<Intl.LDMLPluralRule, string>>);
 
 export function translate(
   language: string,

@@ -1,6 +1,7 @@
 "use client";
 
-import { memo, useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo } from "react";
+import { useNow } from "~/hooks/use-now";
 import { create } from "zustand";
 import {
   guidanceTimeline,
@@ -36,6 +37,7 @@ import { type AircraftIdentity } from "~/domain/traffic-identity";
 import { CruiseAltitudePopup } from "./cruise-altitude-popup";
 import { AirspaceEntryPopups } from "./airspace-entry-popups";
 import { FuelReservePopup, type FuelReserveInputs } from "./fuel-reserve-popup";
+import { formatHeading } from "~/domain/format";
 
 // Shared across Map and Fly, deliberately transient after reload.
 const useGuidanceNotices = create<
@@ -74,11 +76,7 @@ const FrequencyNotification = memo(function FrequencyNotification({
   phase: FlightPhase;
   fix: GpsFix | null;
 }) {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 15000);
-    return () => clearInterval(id);
-  }, []);
+  const now = useNow(15000);
   const comms = useCommsPlan(phase, fix, now, true);
   const recoveryReady = useFlightSync((s) => s.phase === "ready");
   return (
@@ -117,7 +115,7 @@ export function FlightNotifications({
 }) {
   const t = useT();
   const navigation = useInFlight();
-  const [now, setNow] = useState(() => Date.now());
+  const now = useNow(1000);
   const notices = useGuidanceNotices((s) => s.notices);
   const session = useGuidanceNotices((s) => s.session);
   const dismiss = useGuidanceNotices((s) => s.dismiss);
@@ -134,10 +132,6 @@ export function FlightNotifications({
         : null,
     [fix, navigation.route, navigation.activeLeg, navigation.holding, turns],
   );
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, []);
   useEffect(() => {
     if (!navigation.startedAt) return;
     const next = progress?.next;
@@ -235,7 +229,7 @@ export function FlightNotifications({
             const message =
               command.category === "heading"
                 ? t(`fly.popup.turn.${command.direction}`, {
-                    heading: String(command.headingDeg).padStart(3, "0"),
+                    heading: formatHeading(command.headingDeg),
                   })
                 : command.direction === "levelOff"
                   ? t("fly.popup.thousandToGo")

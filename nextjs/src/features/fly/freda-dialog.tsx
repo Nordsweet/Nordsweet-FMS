@@ -29,6 +29,7 @@ import { Group, Row } from "./emergency-panel";
 import { type GpsFix } from "./use-gps";
 import { useTurnPerformance } from "./use-turn-performance";
 import { useCommsPlan } from "./use-comms-plan";
+import { formatHeading } from "~/domain/format";
 
 const TANKS: Record<string, [string, string]> = {
   P2006T: ["LH tank", "RH tank"],
@@ -212,7 +213,7 @@ export function FredaDialog({ fix, now }: { fix: GpsFix | null; now: number }) {
               label={t("fly.freda.courseDistance")}
               value={
                 progress
-                  ? `${fmt(progress.bearingToNextDeg).padStart(3, "0")} deg / ${fmt(progress.distanceToNextNm, 1)} NM`
+                  ? `${formatHeading(progress.bearingToNextDeg)} deg / ${fmt(progress.distanceToNextNm, 1)} NM`
                   : "--"
               }
             />

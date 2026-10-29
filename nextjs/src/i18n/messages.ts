@@ -685,7 +685,8 @@ const pl = {
     one: "Czas {time}, dystans {distance} NM, maks. wysokość {altitude} ft, {count} punkt śladu.",
     few: "Czas {time}, dystans {distance} NM, maks. wysokość {altitude} ft, {count} punkty śladu.",
     many: "Czas {time}, dystans {distance} NM, maks. wysokość {altitude} ft, {count} punktów śladu.",
-    other: "Czas {time}, dystans {distance} NM, maks. wysokość {altitude} ft, {count} punktu śladu.",
+    other:
+      "Czas {time}, dystans {distance} NM, maks. wysokość {altitude} ft, {count} punktu śladu.",
   },
   "fly.exportGpx": "Eksportuj ślad GPX",
   "map.layer.traffic": "Ruch (ADS-B)",
@@ -1550,7 +1551,8 @@ const en: Record<MessageKey, Message> = {
   "fly.debrief": "Flight debrief",
   "fly.debriefSummary": {
     one: "Time {time}, distance {distance} NM, max altitude {altitude} ft, {count} track point.",
-    other: "Time {time}, distance {distance} NM, max altitude {altitude} ft, {count} track points.",
+    other:
+      "Time {time}, distance {distance} NM, max altitude {altitude} ft, {count} track points.",
   },
   "fly.exportGpx": "Export GPX track",
   "map.layer.traffic": "Traffic (ADS-B)",

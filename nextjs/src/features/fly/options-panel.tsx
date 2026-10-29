@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useNow } from "~/hooks/use-now";
 
 import { Button } from "~/components/ui/button";
 import {
@@ -17,6 +17,7 @@ import { playChime } from "./chime";
 import { Group, Row } from "./emergency-panel";
 import { PositionSourcePanel } from "./position-source-panel";
 import { usePositionSource } from "~/stores/position-source";
+import { formatHeading } from "~/domain/format";
 
 const time = (at: number, locale: string) =>
   new Date(at).toLocaleTimeString(locale, {
@@ -136,11 +137,7 @@ export function OptionsPanel() {
   const fredaAvailable = useInFlight((s) => s.fredaAvailable);
   const replayEnabled = useInFlight((s) => s.replayEnabled);
   const setReplayEnabled = useInFlight((s) => s.setReplayEnabled);
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, []);
+  const now = useNow(1000);
   const events = [...timers.events].sort((a, b) => b.at - a.at).slice(0, 10);
   const last = timers.last;
 
@@ -232,9 +229,7 @@ export function OptionsPanel() {
               altitude:
                 last.altitudeFt === null ? "—" : Math.round(last.altitudeFt),
               heading:
-                last.headingDeg === null
-                  ? "—"
-                  : String(Math.round(last.headingDeg)).padStart(3, "0"),
+                last.headingDeg === null ? "—" : formatHeading(last.headingDeg),
             })}
       </p>
     </>

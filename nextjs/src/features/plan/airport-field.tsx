@@ -69,8 +69,10 @@ export function AirportField({
         if (!e.currentTarget.contains(e.relatedTarget)) close();
       }}
       onKeyDown={(e) => {
-        if (e.key === "Escape") close();
-        else if (e.key === "ArrowDown" && !open) {
+        if (e.key === "Escape" && (open || text !== null)) {
+          e.preventDefault();
+          close();
+        } else if (e.key === "ArrowDown" && !open) {
           setText(text ?? value?.ident ?? "");
           setOpen(true);
         } else if (listed && (e.key === "ArrowDown" || e.key === "ArrowUp")) {

@@ -11,6 +11,7 @@ import { useInFlight } from "~/stores/inflight";
 import { fmt, fmtMinutes } from "~/features/plan/fields";
 import { useT } from "~/i18n/use-t";
 import { useWindowDrag } from "./use-window-drag";
+import { downloadText } from "~/lib/download";
 
 const utc = (at: number | null) =>
   at === null ? "—" : new Date(at).toISOString().slice(11, 19) + "Z";
@@ -231,14 +232,11 @@ export function Debrief({
           disabled={track.length === 0}
           onClick={() => {
             const file = (record?.name ?? name).trim() || "flight";
-            const url = URL.createObjectURL(
-              new Blob([toGpx(track, file)], { type: "application/gpx+xml" }),
+            downloadText(
+              `${file}.gpx`,
+              toGpx(track, file),
+              "application/gpx+xml",
             );
-            Object.assign(document.createElement("a"), {
-              href: url,
-              download: `${file}.gpx`,
-            }).click();
-            URL.revokeObjectURL(url);
           }}
         >
           {t("fly.exportGpx")}

@@ -75,4 +75,41 @@ function DialogDescription({
   );
 }
 
-export { Dialog, DialogContent, DialogDescription, DialogTitle };
+/**
+ * Non-modal panel over a live page (map tools): Escape closes it and focus returns, but there is
+ * no overlay, it stays where the caller positions it, and clicks outside leave it open.
+ * Name it with a `DialogPanelTitle`.
+ */
+function DialogPanel({
+  onClose,
+  ...props
+}: React.ComponentProps<typeof DialogPrimitive.Content> & {
+  onClose: () => void;
+}) {
+  return (
+    <DialogPrimitive.Root
+      open
+      modal={false}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
+      <DialogPrimitive.Content
+        aria-describedby={undefined}
+        onInteractOutside={(event) => event.preventDefault()}
+        {...props}
+      />
+    </DialogPrimitive.Root>
+  );
+}
+
+const DialogPanelTitle = DialogPrimitive.Title;
+
+export {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogPanel,
+  DialogPanelTitle,
+  DialogTitle,
+};

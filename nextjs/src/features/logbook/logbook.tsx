@@ -16,11 +16,11 @@ import { logbookDuration } from "~/domain/logbook";
 import { useT } from "~/i18n/use-t";
 import { useAuth } from "~/stores/auth";
 import { useLogbook } from "~/stores/logbook";
+import { formatClock } from "~/domain/format";
 
 const duration = (ms: number | null) => {
   if (ms === null) return "—";
-  const minutes = Math.floor(ms / 60000);
-  return `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+  return formatClock(Math.floor(ms / 60000));
 };
 const reading = (value: number | null) =>
   value === null ? "—" : value.toFixed(2);
