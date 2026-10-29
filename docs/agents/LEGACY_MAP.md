@@ -58,6 +58,8 @@ State defaults: the `state = {…}` object (~line 1500). DOM refs: `refs = {…}
 
 ## 4. Work board
 
+Vertical deviation scale — claimed, Codex 2026-10-29. Flight map indicator compares current aircraft altitude with the planned vertical profile, with 500/1000 ft markings.
+
 Economy altitude persistence and reload guidance — claimed, Codex 2026-10-29. Investigate applied economy altitude, flight plan persistence and premature descent after reload.
 
 Descent abeam countdown — done, Codex 2026-10-29. TOD and leg-boundary forecasts use along-track progress instead of lateral distance, with actual ground track and speed for the current segment. Tested offsets on both sides, oblique and reverse motion, TOD countdown and history in the browser. Format, lint, types, 785 unit tests, build and all 176 browser tests passed; initial full run had an unrelated reload timeout, which passed three isolated repetitions and the full rerun with a longer timeout.
