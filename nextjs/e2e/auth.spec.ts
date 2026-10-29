@@ -1,102 +1,81 @@
-import { E2E_TOKEN, expect, test } from "./test";
+import { expect, test } from "./test";
 
 const API = "https://aviation.lab.vibecde.com";
-const empty = { count: 0, aircraft: [], sources: {} };
+const ISSUER = "https://auth.lab.vibecde.com";
+const cors = { "access-control-allow-origin": "*" };
 
 test.describe("signed out", () => {
   test.use({ signedIn: false });
 
-  test("the app makes no API request until login, then sends the bearer token", async ({
+  test("the app makes no API request until sign-in, and Sign in goes to Zitadel", async ({
     page,
   }) => {
-    const calls: { path: string; authorization?: string }[] = [];
+    const calls: string[] = [];
     await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => route.abort());
     await page.route(`${API}/**`, (route) => {
-      const request = route.request();
-      const path = new URL(request.url()).pathname;
-      calls.push({ path, authorization: request.headers().authorization });
-      if (path === "/auth/login")
-        return route.fulfill({
-          json: {
-            token: E2E_TOKEN,
-            username: "admin",
-            role: "admin",
-            expires_in: 2592000,
-          },
-        });
-      if (path === "/auth/me")
-        return route.fulfill({ json: { username: "admin", role: "admin" } });
-      if (path === "/traffic") return route.fulfill({ json: empty });
-      return route.fulfill({ json: { places: [], sources: {} } });
+      calls.push(new URL(route.request().url()).pathname);
+      return route.abort();
     });
+    await page.route(`${ISSUER}/.well-known/openid-configuration`, (route) =>
+      route.fulfill({
+        headers: cors,
+        json: {
+          issuer: ISSUER,
+          authorization_endpoint: `${ISSUER}/oauth/v2/authorize`,
+          token_endpoint: `${ISSUER}/oauth/v2/token`,
+          jwks_uri: `${ISSUER}/oauth/v2/keys`,
+          code_challenge_methods_supported: ["S256"],
+        },
+      }),
+    );
+    await page.route(`${ISSUER}/oauth/v2/authorize*`, (route) =>
+      route.fulfill({ contentType: "text/html", body: "<p>Zitadel</p>" }),
+    );
 
     await page.goto("/map");
-    await expect(page.getByLabel("Użytkownik")).toBeVisible();
-    await expect(page.getByText(/poproś administratora/)).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Zaloguj się" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Załóż konto" }),
+    ).toBeVisible();
+    // The old username and password form is gone.
+    await expect(page.locator("input")).toHaveCount(0);
     await page.waitForTimeout(500);
     expect(calls).toEqual([]);
 
-    await page.getByLabel("Użytkownik").fill("admin");
-    await page.getByLabel("Hasło").fill("adminadmin");
-    await page.getByRole("button", { name: "Zaloguj" }).click();
-
-    await expect(page.getByTestId("map")).toBeVisible();
-    await expect
-      .poll(() => calls.some((c) => c.path === "/traffic"))
-      .toBe(true);
-    const login = calls.find((c) => c.path === "/auth/login");
-    expect(login?.authorization).toBeUndefined();
-    for (const call of calls.filter((c) => c.path !== "/auth/login"))
-      expect(call.authorization, call.path).toBe(`Bearer ${E2E_TOKEN}`);
-
-    await page.reload();
-    await expect(page.getByTestId("map")).toBeVisible(); // the session survives a reload
+    await page.getByRole("button", { name: "Zaloguj się" }).click();
+    await page.waitForURL(`${ISSUER}/oauth/v2/authorize*`);
+    const url = new URL(page.url());
+    expect(Object.fromEntries(url.searchParams)).toMatchObject({
+      client_id: "397275487510003715",
+      response_type: "code",
+      code_challenge_method: "S256",
+      prompt: "login",
+    });
+    expect(url.searchParams.get("redirect_uri")).toMatch(/\/auth\/callback$/);
   });
 
-  test("wrong credentials and rate limiting show their own messages", async ({
+  test("a callback this browser did not start shows the failure and goes back", async ({
     page,
   }) => {
     await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => route.abort());
-    let attempt = 0;
-    await page.route(`${API}/auth/login`, (route) => {
-      attempt++;
-      return attempt === 1
-        ? route.fulfill({
-            status: 401,
-            json: { detail: "Wrong username or password" },
-          })
-        : route.fulfill({
-            status: 429,
-            json: { detail: "Too many attempts" },
-          });
-    });
-    await page.goto("/");
-    await page.getByLabel("Użytkownik").fill("admin");
-    await page.getByLabel("Hasło").fill("nope");
-    await page.getByRole("button", { name: "Zaloguj" }).click();
-    await expect(page.locator("p[role=alert]")).toHaveText(
-      "Nieprawidłowy użytkownik lub hasło.",
-    );
-    await page.getByRole("button", { name: "Zaloguj" }).click();
-    await expect(page.locator("p[role=alert]")).toHaveText(
-      "Za dużo nieudanych prób. Spróbuj ponownie za minutę.",
-    );
+    await page.goto("/auth/callback?code=forged&state=forged");
+    await expect(page.getByText("Logowanie nie powiodło się")).toBeVisible();
+    await page.getByRole("button", { name: "Wróć do logowania" }).click();
+    await expect(
+      page.getByRole("button", { name: "Zaloguj się" }),
+    ).toBeVisible();
   });
 });
 
-test("sign out revokes the token and returns to login", async ({ page }) => {
-  let logoutAuthorization: string | undefined;
+test("sign out returns to the login screen", async ({ page }) => {
   await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => route.abort());
-  await page.route(`${API}/auth/logout`, (route) => {
-    logoutAuthorization = route.request().headers().authorization;
-    return route.fulfill({ status: 204 });
-  });
   await page.goto("/");
   await page.getByRole("button", { name: /admin/ }).click();
-  await expect(page.getByLabel("Użytkownik")).toBeVisible();
-  expect(logoutAuthorization).toBe(`Bearer ${E2E_TOKEN}`);
+  await expect(page.getByRole("button", { name: "Zaloguj się" })).toBeVisible();
   await page.reload();
-  await expect(page.getByLabel("Użytkownik")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Zaloguj się" })).toBeVisible();
 });
 
 test("a 401 mid-session ends the session and shows the login screen", async ({
@@ -109,7 +88,22 @@ test("a 401 mid-session ends the session and shows the login screen", async ({
       : route.fulfill({ json: { places: [], sources: {} } }),
   );
   await page.goto("/map");
-  await expect(page.getByLabel("Użytkownik")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Zaloguj się" })).toBeVisible();
   await page.reload();
-  await expect(page.getByLabel("Użytkownik")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Zaloguj się" })).toBeVisible();
+});
+
+test("an old password session is dropped", async ({ page }) => {
+  await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => route.abort());
+  await page.addInitScript(() =>
+    localStorage.setItem(
+      "nordsweet.auth.v1",
+      JSON.stringify({
+        state: { session: { token: "old", username: "admin", role: "admin" } },
+        version: 0,
+      }),
+    ),
+  );
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Zaloguj się" })).toBeVisible();
 });

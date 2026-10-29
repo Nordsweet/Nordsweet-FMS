@@ -4,11 +4,8 @@ import { env } from "~/env";
 
 /**
  * Zitadel sign-in: authorization code with PKCE and no client secret (the app is a static page).
- * Off until both env vars are set. The access token goes to the Aviation API as the bearer token.
+ * The access token goes to the Aviation API as the bearer token.
  */
-export const oidcEnabled = Boolean(
-  env.NEXT_PUBLIC_OIDC_ISSUER && env.NEXT_PUBLIC_OIDC_CLIENT_ID,
-);
 
 /** The roles scope makes Zitadel add the project's roles, which is what admits a user to the API. */
 const SCOPE = "openid profile offline_access urn:zitadel:iam:org:project:roles";
@@ -24,9 +21,9 @@ export type Tokens = {
 };
 type Pending = { state: string; verifier: string };
 
-const issuer = () => new URL(env.NEXT_PUBLIC_OIDC_ISSUER ?? "");
+const issuer = () => new URL(env.NEXT_PUBLIC_OIDC_ISSUER);
 const client = (): oauth.Client => ({
-  client_id: env.NEXT_PUBLIC_OIDC_CLIENT_ID ?? "",
+  client_id: env.NEXT_PUBLIC_OIDC_CLIENT_ID,
 });
 const redirectUri = () => new URL("/auth/callback", location.origin).href;
 
@@ -100,11 +97,11 @@ export async function exchangeCode(
 }
 
 /** Completes the redirect back from Zitadel. Throws when this browser did not start the login. */
-export function finishLogin() {
+export async function finishLogin() {
   const saved = sessionStorage.getItem(PENDING);
   sessionStorage.removeItem(PENDING); // a state is single use
   if (!saved) throw new Error("No sign-in in progress");
-  return exchangeCode(
+  return await exchangeCode(
     new URL(location.href),
     JSON.parse(saved) as Pending,
     redirectUri(),

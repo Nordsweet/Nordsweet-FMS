@@ -25,7 +25,7 @@ export async function stubSession(page: Page) {
     if (!localStorage.getItem("nordsweet.auth.v1"))
       localStorage.setItem(
         "nordsweet.auth.v1",
-        JSON.stringify({ state: { session: value }, version: 0 }),
+        JSON.stringify({ state: { session: value }, version: 1 }),
       );
   }, session);
 }

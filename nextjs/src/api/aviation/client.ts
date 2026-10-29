@@ -20,7 +20,6 @@ import {
   sourcesSchema,
   inspirationResponseSchema,
   createdUserSchema,
-  loginResponseSchema,
   meResponseSchema,
   notamsResponseSchema,
   trafficResponseSchema,
@@ -161,8 +160,6 @@ export const aviationApi = {
     get("/community/airrep", z.object({ reports: z.array(airrepSchema) }), {
       source,
     }),
-  login: (credentials: { username: string; password: string }) =>
-    post("/auth/login", loginResponseSchema, credentials),
   /** Admin only: the API creates the user in Zitadel (initial password) and grants the project role. */
   createZitadelUser: (user: {
     username: string;
@@ -174,8 +171,6 @@ export const aviationApi = {
   }) => post("/admin/zitadel-users", createdUserSchema, user),
   /** 401 = expired or revoked: the central handler has already ended the session. */
   me: () => get("/auth/me", meResponseSchema),
-  /** Revokes the token held when called (a 204 has no body). */
-  logout: () => post("/auth/logout", z.null(), undefined),
   submitAtis: (report: CommunityAtisReport) =>
     post("/community/atis", z.object({ id: z.string() }).loose(), report),
   confirmAtis: ({ id, reporterId }: { id: string; reporterId: string }) =>

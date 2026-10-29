@@ -22,7 +22,6 @@ import { LogbookRuntime } from "~/features/logbook/runtime";
 import { FlightRecovery } from "~/features/fly/flight-recovery";
 import { SessionSync } from "~/features/sync/session-sync";
 import { AtisCallNotifications } from "~/features/plan/atis-call-notifications";
-import { api } from "~/api";
 import { logoutUrl } from "~/api/oidc";
 import { useAuth } from "~/stores/auth";
 import { useFlightSync } from "~/stores/flight-sync";
@@ -67,9 +66,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   };
   const username = useAuth((s) => s.session?.username);
   const signOut = () => {
-    // Revoke first: the call reads the token synchronously, then the session ends locally either way.
     const idToken = useAuth.getState().session?.idToken;
-    void api.auth.logout.call().catch(() => undefined);
     useAuth.getState().signOut();
     // Zitadel keeps its own session: end it too, or the next sign-in is silent.
     if (idToken)

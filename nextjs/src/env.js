@@ -11,9 +11,9 @@ export const env = createEnv({
     NEXT_PUBLIC_AVIATION_API_URL: z
       .url()
       .default("https://aviation.lab.vibecde.com"),
-    /** Zitadel sign-in (both or neither): the issuer URL and the Client ID of the PKCE application. */
-    NEXT_PUBLIC_OIDC_ISSUER: z.url().optional(),
-    NEXT_PUBLIC_OIDC_CLIENT_ID: z.string().optional(),
+    /** Zitadel sign-in: the issuer URL and the Client ID of this app's PKCE application. */
+    NEXT_PUBLIC_OIDC_ISSUER: z.url().default("https://auth.lab.vibecde.com"),
+    NEXT_PUBLIC_OIDC_CLIENT_ID: z.string().default("397275487510003715"),
   },
 
   runtimeEnv: {

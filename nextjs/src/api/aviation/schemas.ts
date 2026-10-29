@@ -21,11 +21,6 @@ export const createdUserSchema = z.object({
   role: z.string(),
   user_id: z.string(),
 });
-export const loginResponseSchema = meResponseSchema.extend({
-  token: z.string().min(1),
-  /** Seconds; 30 days today. */
-  expires_in: z.number(),
-});
 
 export const placeKinds = [
   "vfr_point",
