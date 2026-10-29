@@ -1,10 +1,12 @@
 import { expect, test } from "./test";
 import { newFlight } from "../src/data/flight";
+import { observeChimes, chimeNotes } from "./helpers/chimes";
 
 test("C/TR entry warnings acknowledge one zone, record clearance, and re-arm for a later visit", async ({
   page,
 }) => {
   test.setTimeout(90000);
+  await observeChimes(page);
   await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (r) => r.abort());
   const zone = (
     name: string,
@@ -101,6 +103,8 @@ test("C/TR entry warnings acknowledge one zone, record clearance, and re-arm for
   await expect(popups).toHaveCount(2, { timeout: 30000 });
   const controlled = popups.filter({ hasText: "TEST CLASS C" });
   await expect(controlled).toContainText("Approaching");
+  await page.keyboard.press("Shift");
+  const initialNotes = await chimeNotes(page);
   await controlled
     .getByRole("button", { name: "I am Cleared to Enter", exact: true })
     .click();
@@ -114,6 +118,21 @@ test("C/TR entry warnings acknowledge one zone, record clearance, and re-arm for
   await expect(popups).toHaveCount(0);
   await page.evaluate(() => localStorage.setItem("test.entry.lon", "19.99"));
   await expect(controlled).toHaveCount(1, { timeout: 15000 });
+  await expect
+    .poll(
+      async () =>
+        (await chimeNotes(page)).filter((note) => note === 587.33).length,
+    )
+    .toBeGreaterThan(initialNotes.filter((note) => note === 587.33).length);
+  const notes = await chimeNotes(page);
+  for (const [index, note] of notes.entries())
+    if (note === 587.33) expect(notes[index - 1]).toBe(880);
+  // GPS updates and a remount of the same visit must not chime again.
+  const sounded = notes.filter((note) => note === 587.33);
+  await page.waitForTimeout(1500);
+  expect((await chimeNotes(page)).filter((note) => note === 587.33)).toEqual(
+    sounded,
+  );
   await page
     .getByRole("button", { name: "Notifications", exact: true })
     .click();

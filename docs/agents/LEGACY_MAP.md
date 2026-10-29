@@ -100,6 +100,8 @@ Compact flight toolbar — done, Codex 2026-10-20. Current-phase dropdown in ins
 
 Flight Debrief close control — done, Codex 2026-10-20. Accessible X beside the drag handle; dismissal scoped to the ended flight, preserving saved readings and track. Browser regression covers closure before/after acceptance, timer rerenders, reload recovery and automatic opening for the next flight; full gates before develop.
 
+Notification chimes — done, Codex 2026-10-29. PR #102 merged to develop. High Chime for routine radio, heading/altitude and event popups; High–Low for warning/danger popups, including airspace entry, traffic and fuel. Countdown previews stay silent until NOW. Touch/click/keyboard unlocks audio silently; blocked audio never accumulates a backlog. Notification history prevents repeated sound across GPS updates, view changes and reloads. Offline synthesized notes are serialized; the existing timer melody is retained. CI 40927411848 passed format/lint/types, 788 unit tests, server tests, production export and all 176 browser scenarios without retries. Native Web Audio scheduling is observed in the warning re-arm and three turn-countdown browser regressions.
+
 Claim a row before you start (owner = agent/session name + date), commit the claim, release it when
 merged to `develop`. One owner per row.
 

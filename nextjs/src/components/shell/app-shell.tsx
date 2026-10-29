@@ -12,7 +12,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useRef, type TouchEvent } from "react";
+import { useEffect, useRef, type TouchEvent } from "react";
+import { enableChimeAudio } from "~/features/fly/chime";
 
 import { Button } from "~/components/ui/button";
 import { useT } from "~/i18n/use-t";
@@ -40,6 +41,7 @@ export const PAGE_ACTIONS_ID = "page-actions";
 
 /** As in the original planner: no bar, a floating settings button top left and page actions top right. */
 export function AppShell({ children }: { children: React.ReactNode }) {
+  useEffect(enableChimeAudio, []);
   const t = useT();
   const pathname = usePathname();
   const router = useRouter();
