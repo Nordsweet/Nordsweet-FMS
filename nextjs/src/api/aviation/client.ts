@@ -4,6 +4,7 @@ import { airrepSchema, type Airrep } from "~/data/airrep";
 import { env } from "~/env";
 import { correctTrafficMetadata } from "~/domain/traffic-metadata";
 import { useAuth } from "~/stores/auth";
+import { expiring, renewedToken } from "../oidc-session";
 import { useServerConnection } from "~/stores/server-connection";
 
 import {
@@ -43,7 +44,9 @@ export class AviationApiError extends Error {
  * end a newer session.
  */
 export async function aviationFetch(url: URL, init: RequestInit = {}) {
-  const token = useAuth.getState().session?.token;
+  // Read synchronously unless a renewal is due: sign-out revokes the token it reads right here.
+  const session = useAuth.getState().session;
+  const token = expiring(session) ? await renewedToken() : session?.token;
   const headers = new Headers(init.headers);
   if (token) headers.set("Authorization", `Bearer ${token}`);
   const response = await fetch(url, { ...init, headers, cache: "no-store" });

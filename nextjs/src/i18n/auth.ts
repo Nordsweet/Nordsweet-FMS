@@ -12,6 +12,8 @@ export const authEn = {
   "auth.error.failed": "Sign-in failed ({status}). Try again later.",
   "auth.signOut": "Sign out",
   "auth.signedInAs": "Signed in as {username}",
+  "auth.zitadel": "Sign in with passkey",
+  "auth.zitadel.or": "Or with username and password:",
   "auth.callback.working": "Signing you in…",
   "auth.callback.failed":
     "Sign-in failed or your account has no access. Try again.",
@@ -35,6 +37,8 @@ export const authPl: Record<keyof typeof authEn, string> = {
     "Logowanie nie powiodło się ({status}). Spróbuj później.",
   "auth.signOut": "Wyloguj",
   "auth.signedInAs": "Zalogowano jako {username}",
+  "auth.zitadel": "Zaloguj kluczem dostępu",
+  "auth.zitadel.or": "Albo użytkownikiem i hasłem:",
   "auth.callback.working": "Logowanie…",
   "auth.callback.failed":
     "Logowanie nie powiodło się lub konto nie ma dostępu. Spróbuj ponownie.",

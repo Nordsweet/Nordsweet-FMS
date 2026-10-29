@@ -5,6 +5,7 @@ import { type FormEvent } from "react";
 
 import { api } from "~/api";
 import { AviationApiError } from "~/api/aviation/client";
+import { oidcEnabled, startLogin } from "~/api/oidc";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Input } from "~/components/ui/input";
@@ -16,6 +17,7 @@ import { useAuth } from "~/stores/auth";
 export function LoginScreen() {
   const t = useT();
   const login = useMutation(api.auth.login.mutationOptions());
+  const zitadel = useMutation({ mutationFn: startLogin });
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -56,6 +58,25 @@ export function LoginScreen() {
           <p className="text-muted-foreground text-sm">{t("auth.intro")}</p>
         </CardHeader>
         <CardContent>
+          {oidcEnabled && (
+            <div className="mb-4 flex flex-col gap-2">
+              <Button
+                type="button"
+                onClick={() => zitadel.mutate()}
+                disabled={zitadel.isPending}
+              >
+                {t("auth.zitadel")}
+              </Button>
+              {zitadel.isError && (
+                <p role="alert" className="text-destructive text-sm">
+                  {t("auth.error.offline")}
+                </p>
+              )}
+              <p className="text-muted-foreground text-sm">
+                {t("auth.zitadel.or")}
+              </p>
+            </div>
+          )}
           <form onSubmit={submit} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="login-username">{t("auth.username")}</Label>
