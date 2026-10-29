@@ -44,6 +44,22 @@ describe("Zitadel sign-in", () => {
     expect(url.search).not.toContain(pending.verifier);
   });
 
+  it("asks Zitadel for its registration page when signing up", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => Promise.resolve(Response.json(discovery))),
+    );
+    const redirect = "https://fms.test/auth/callback";
+    expect(
+      (await authorizationRequest(redirect)).url.searchParams.has("prompt"),
+    ).toBe(false);
+    expect(
+      (await authorizationRequest(redirect, true)).url.searchParams.get(
+        "prompt",
+      ),
+    ).toBe("create");
+  });
+
   it("refuses a callback whose state this browser did not issue", async () => {
     const fetchMock = vi.fn((_input: string | URL) =>
       Promise.resolve(Response.json(discovery)),

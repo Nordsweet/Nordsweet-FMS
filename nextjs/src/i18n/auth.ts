@@ -13,6 +13,7 @@ export const authEn = {
   "auth.signOut": "Sign out",
   "auth.signedInAs": "Signed in as {username}",
   "auth.zitadel": "Sign in with passkey",
+  "auth.signup": "Sign up",
   "auth.zitadel.or": "Or with username and password:",
   "auth.callback.working": "Signing you in…",
   "auth.callback.failed":
@@ -58,6 +59,7 @@ export const authPl: Record<keyof typeof authEn, string> = {
   "auth.signOut": "Wyloguj",
   "auth.signedInAs": "Zalogowano jako {username}",
   "auth.zitadel": "Zaloguj kluczem dostępu",
+  "auth.signup": "Załóż konto",
   "auth.zitadel.or": "Albo użytkownikiem i hasłem:",
   "auth.callback.working": "Logowanie…",
   "auth.callback.failed":
