@@ -108,7 +108,8 @@ test("runway sits beside airport actions; departure uses TODA without GPS and ho
 test("airport cards predict FPL or Direct arrival, show runway use, shortages and missing LDA", async ({
   page,
 }) => {
-  test.setTimeout(90000);
+  // Three airport searches, runway changes and aircraft edits share this budget on CI.
+  test.setTimeout(180000);
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (r) => r.abort());
