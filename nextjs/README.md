@@ -6,7 +6,7 @@ bez własnego backendu. Działa offline (service worker, IndexedDB).
 
 ## Uruchamianie
 
-Wymagany Node.js 24 i pnpm 11.19.
+Wymagany Node.js 26 i pnpm 11.19.
 
 ```sh
 pnpm install --frozen-lockfile

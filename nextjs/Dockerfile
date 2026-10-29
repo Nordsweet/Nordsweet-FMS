@@ -1,7 +1,8 @@
 # Static export built with Node, served by nginx. Build context: nextjs/.
-FROM node:24-alpine AS build
+FROM node:26-alpine AS build
 WORKDIR /app
-RUN corepack enable && corepack prepare pnpm@11.19.0 --activate
+# Node 25+ no longer ships corepack.
+RUN npm install -g pnpm@11.19.0
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 COPY . .
