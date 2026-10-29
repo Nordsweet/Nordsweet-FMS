@@ -58,6 +58,8 @@ State defaults: the `state = {…}` object (~line 1500). DOM refs: `refs = {…}
 
 ## 4. Work board
 
+Descent abeam countdown — claimed, Codex 2026-10-29. Use aircraft progress across the TOD abeam line for the descent notification rather than radial distance.
+
 Chart fit-to-window mode — done, Codex 2026-10-29. PDF and NordChart fill the window or chart half in split screen, retaining the chart menu and zoom controls; exit restores panes, split side, pan and zoom, including from empty or failed documents. Verified on an iPad-sized viewport and a real PANSA chart; 778 unit tests, production build and 176 browser scenarios passed (one terrain scenario on retry).
 
 Smooth chart dragging — done, Codex 2026-10-29. PDF rendering continues during a drag and catches up to the latest camera, with a bounded 128 px margin to keep surrounding content visible. Reused viewport-sized buffers commit pixels and their camera together; document/page changes cancel outstanding work. Pinch tracks its midpoint, supports two-finger translation and maintains the zoom limit, then releases cleanly to one-finger dragging. Native-density zoom, PDF controls and calibrated overlays retained. Format/lint/types, 778 unit tests, production export and all 175 browser scenarios passed locally (173 first attempt, two unrelated terrain/traffic-pattern timing scenarios on retry); both timing scenarios then passed three times each without retry. Pixel-position tests cover a detailed PDF under 200 px mouse drag, touch drag, two-finger translation/pinch, one-finger continuation and movement at maximum zoom; a real PANSA sheet and calibrated taxi overlay were also checked.
