@@ -9,7 +9,7 @@ import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { Dialog, DialogContent, DialogTitle } from "~/components/ui/dialog";
 import { type Flight, newFlight } from "~/data/flight";
-import { useT } from "~/i18n/use-t";
+import { useLocale, useT } from "~/i18n/use-t";
 import { useFlight } from "~/stores/flight";
 
 import { Section, num } from "./fields";
@@ -29,6 +29,7 @@ function download(fileName: string, text: string) {
 
 export function SavedFlightsSection({ onLoaded }: { onLoaded?: () => void }) {
   const t = useT();
+  const locale = useLocale();
   const nameId = useId();
   const fileInput = useRef<HTMLInputElement>(null);
   const [error, setError] = useState("");
@@ -177,7 +178,7 @@ export function SavedFlightsSection({ onLoaded }: { onLoaded?: () => void }) {
                 {[
                   aircraftList.find((a) => a.id === f.aircraftId)?.type,
                   t("plan.saved.savedAt", {
-                    date: new Date(f.savedAt).toLocaleString(),
+                    date: new Date(f.savedAt).toLocaleString(locale),
                   }),
                 ]
                   .filter(Boolean)

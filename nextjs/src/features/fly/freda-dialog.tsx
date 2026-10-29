@@ -22,7 +22,7 @@ import { useFlightSync } from "~/stores/flight-sync";
 import { navigationProgress } from "~/domain/holding";
 import { fmt } from "~/features/plan/fields";
 import { usePlan } from "~/features/plan/use-plan";
-import { useT } from "~/i18n/use-t";
+import { useLocale, useT } from "~/i18n/use-t";
 import { useInFlight } from "~/stores/inflight";
 
 import { Group, Row } from "./emergency-panel";
@@ -37,6 +37,7 @@ const TANKS: Record<string, [string, string]> = {
 /** Legacy FREDA check (30-minute in-flight check): Fuel, Radio, Engine, Direction, Altitude. */
 export function FredaDialog({ fix, now }: { fix: GpsFix | null; now: number }) {
   const t = useT();
+  const locale = useLocale();
   const { flight, aircraft, fuelPlanning, plan } = usePlan();
   const inFlight = useInFlight();
   const recoveryReady = useFlightSync((s) => s.phase === "ready");
@@ -219,7 +220,7 @@ export function FredaDialog({ fix, now }: { fix: GpsFix | null; now: number }) {
               label="ETA"
               value={
                 eta
-                  ? eta.toLocaleTimeString([], {
+                  ? eta.toLocaleTimeString(locale, {
                       hour: "2-digit",
                       minute: "2-digit",
                       hour12: false,

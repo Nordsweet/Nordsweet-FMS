@@ -9,7 +9,7 @@ import {
   timerElapsed,
   utilityValue,
 } from "~/domain/flight-timers";
-import { useT } from "~/i18n/use-t";
+import { useLocale, useT } from "~/i18n/use-t";
 import { useInFlight } from "~/stores/inflight";
 import { useMapSettings } from "~/stores/map";
 
@@ -18,8 +18,8 @@ import { Group, Row } from "./emergency-panel";
 import { PositionSourcePanel } from "./position-source-panel";
 import { usePositionSource } from "~/stores/position-source";
 
-const time = (at: number) =>
-  new Date(at).toLocaleTimeString([], {
+const time = (at: number, locale: string) =>
+  new Date(at).toLocaleTimeString(locale, {
     hour: "2-digit",
     hour12: false,
     minute: "2-digit",
@@ -128,6 +128,7 @@ function UtilityCard({ index, now }: { index: 0 | 1; now: number }) {
 export function OptionsPanel() {
   const source = usePositionSource((s) => s.source);
   const t = useT();
+  const locale = useLocale();
   const settings = useMapSettings();
   const timers = useInFlight((s) => s.timers);
   const addEvent = useInFlight((s) => s.addEvent);
@@ -216,7 +217,7 @@ export function OptionsPanel() {
                   dateTime={new Date(e.at).toISOString()}
                   className="font-mono"
                 >
-                  {time(e.at)}
+                  {time(e.at, locale)}
                 </time>
               </li>
             ))}

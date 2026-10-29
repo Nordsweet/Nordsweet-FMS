@@ -11,6 +11,7 @@ import { fplProfileEn, fplProfilePl } from "./fpl-profile";
 import { flightSyncEn, flightSyncPl } from "./flight-sync";
 import { trafficPatternEn, trafficPatternPl } from "./traffic-pattern";
 import { type Language } from "~/stores/settings";
+import { type Message } from "./translate";
 import { atisConsensusEn, atisConsensusPl } from "./atis-consensus";
 import { aircraftEditorEn, aircraftEditorPl } from "./aircraft-editor";
 import { mapToolsEn, mapToolsPl } from "./map-tools";
@@ -680,8 +681,12 @@ const pl = {
   "fly.fredaIn": "FREDA za {minutes} min",
   "fly.fredaItems": "Paliwo, Radio, Silnik, DI, Wysokościomierz",
   "fly.debrief": "Podsumowanie lotu",
-  "fly.debriefSummary":
-    "Czas {time}, dystans {distance} NM, maks. wysokość {altitude} ft, {points} punktów śladu.",
+  "fly.debriefSummary": {
+    one: "Czas {time}, dystans {distance} NM, maks. wysokość {altitude} ft, {count} punkt śladu.",
+    few: "Czas {time}, dystans {distance} NM, maks. wysokość {altitude} ft, {count} punkty śladu.",
+    many: "Czas {time}, dystans {distance} NM, maks. wysokość {altitude} ft, {count} punktów śladu.",
+    other: "Czas {time}, dystans {distance} NM, maks. wysokość {altitude} ft, {count} punktu śladu.",
+  },
   "fly.exportGpx": "Eksportuj ślad GPX",
   "map.layer.traffic": "Ruch (ADS-B)",
   "map.traffic.onGround": "na ziemi",
@@ -891,7 +896,7 @@ const pl = {
 
 export type MessageKey = keyof typeof pl;
 
-const en: Record<MessageKey, string> = {
+const en: Record<MessageKey, Message> = {
   ...chartsEn,
   ...myPlannerEn,
   ...airportLandingEn,
@@ -1543,8 +1548,10 @@ const en: Record<MessageKey, string> = {
   "fly.fredaIn": "FREDA in {minutes} min",
   "fly.fredaItems": "Fuel, Radio, Engine, DI, Altimeter",
   "fly.debrief": "Flight debrief",
-  "fly.debriefSummary":
-    "Time {time}, distance {distance} NM, max altitude {altitude} ft, {points} track points.",
+  "fly.debriefSummary": {
+    one: "Time {time}, distance {distance} NM, max altitude {altitude} ft, {count} track point.",
+    other: "Time {time}, distance {distance} NM, max altitude {altitude} ft, {count} track points.",
+  },
   "fly.exportGpx": "Export GPX track",
   "map.layer.traffic": "Traffic (ADS-B)",
   "map.traffic.onGround": "on ground",
@@ -1624,7 +1631,7 @@ const en: Record<MessageKey, string> = {
   "plan.route.noneOf": "NO {type}",
   "plan.route.auto": "AUTO - {procedure}",
   "plan.route.autoNoData": "AUTO - no data",
-  "plan.route.legCount": "{count} legs",
+  "plan.route.legCount": { one: "{count} leg", other: "{count} legs" },
   "plan.route.text": "Route",
   "plan.route.placeholder":
     "DCT, airway or procedure, e.g. SID NAVUR / MASIV STAR / RNP12 / 492622N 0195727E / N492622 E0195727",
@@ -1743,7 +1750,10 @@ const en: Record<MessageKey, string> = {
   "plan.route.vp.max": "Max shown",
   "plan.route.vp.gradient": "Climb gradient",
   "plan.route.vp.restrictions": "Restrictions",
-  "plan.route.vp.conflicts": "{count} conflict(s)",
+  "plan.route.vp.conflicts": {
+    one: "{count} conflict",
+    other: "{count} conflicts",
+  },
   "plan.route.vp.ok": "OK",
   "plan.route.vp.point": "Point",
   "plan.route.vp.altitude": "Altitude",
@@ -1752,7 +1762,7 @@ const en: Record<MessageKey, string> = {
   "plan.route.vp.chart": "Route vertical profile",
 };
 
-export const messages: Record<Language, Record<MessageKey, string>> = {
+export const messages: Record<Language, Record<MessageKey, Message>> = {
   pl,
   en,
 };

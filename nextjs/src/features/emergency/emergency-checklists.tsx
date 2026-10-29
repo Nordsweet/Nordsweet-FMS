@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "~/components/ui/button";
 import { GlideControls } from "./glide-controls";
 import { Input } from "~/components/ui/input";
-import { useT } from "~/i18n/use-t";
+import { useLocale, useT } from "~/i18n/use-t";
 import { type EmergencyPhase, operationalProcedure } from "~/data/emergency";
 import { emergencyCandidates, emergencyContext } from "~/domain/emergency";
 import { useEmergencyContext } from "./use-emergency-context";
@@ -11,6 +11,7 @@ import { useEmergencyContext } from "./use-emergency-context";
 /** The same session and source definition render in the flight rail and the checklist library. */
 export function EmergencyChecklists() {
   const t = useT();
+  const locale = useLocale();
   const {
     aircraft,
     fix,
@@ -123,7 +124,7 @@ export function EmergencyChecklists() {
       {session && (
         <>
           <p className="text-xs">
-            {t("emer.resume")} · {new Date(session.openedAt).toLocaleString()}
+            {t("emer.resume")} · {new Date(session.openedAt).toLocaleString(locale)}
           </p>
           {session.family === "failure" ? (
             <>

@@ -26,7 +26,7 @@ import {
   resolveAircraft,
 } from "~/domain/aircraft";
 import { type MessageKey } from "~/i18n/messages";
-import { useT } from "~/i18n/use-t";
+import { useLocale, useT } from "~/i18n/use-t";
 import {
   aircraftStateKey,
   selectAircraftState,
@@ -59,14 +59,14 @@ function profileDefaults(
   };
 }
 
-const updatedFormat = new Intl.DateTimeFormat(undefined, {
+const updatedFormat = {
   day: "2-digit",
   month: "2-digit",
   year: "numeric",
   hour: "2-digit",
   minute: "2-digit",
   hour12: false,
-});
+} satisfies Intl.DateTimeFormatOptions;
 
 export function AircraftSection() {
   const t = useT();
@@ -333,6 +333,7 @@ function LastKnownState({
   onMth: (mth: string) => void;
 }) {
   const t = useT();
+  const locale = useLocale();
   // Remounted per airframe (key), so the draft starts from that airframe's value.
   const [draft, setDraft] = useState(mth);
 
@@ -346,7 +347,7 @@ function LastKnownState({
         <span>
           {updatedAt
             ? t("plan.aircraft.lastState.updated", {
-                at: updatedFormat.format(updatedAt),
+                at: new Intl.DateTimeFormat(locale, updatedFormat).format(updatedAt),
               })
             : t("plan.aircraft.lastState.none")}
         </span>

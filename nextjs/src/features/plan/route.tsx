@@ -43,7 +43,7 @@ import {
   waypointWindProfile,
 } from "~/domain/route-plan";
 import { type MessageKey } from "~/i18n/messages";
-import { useT } from "~/i18n/use-t";
+import { useLocale, useT } from "~/i18n/use-t";
 import { cn } from "~/lib/utils";
 import { useFlight } from "~/stores/flight";
 import { useMapSettings } from "~/stores/map";
@@ -404,6 +404,7 @@ function ScheduleButton({
   value: string;
 }) {
   const t = useT();
+  const locale = useLocale();
   const id = useId();
   const flightSchedule = useFlight((s) => s.flight.schedule);
   const update = useFlight((s) => s.update);
@@ -416,7 +417,7 @@ function ScheduleButton({
             ? "plan.route.schedule.departureAt"
             : "plan.route.schedule.landingAt",
           {
-            time: date.toLocaleString([], {
+            time: date.toLocaleString(locale, {
               day: "2-digit",
               month: "2-digit",
               hour: "2-digit",

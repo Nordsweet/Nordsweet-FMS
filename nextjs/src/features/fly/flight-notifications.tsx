@@ -256,7 +256,7 @@ export function FlightNotifications({
                   command.category === "altitude" &&
                   command.direction === "levelOff"
                     ? message
-                    : `${message} ${announcedAt === null ? t(command.category === "altitude" && command.direction === "descend" ? "fly.popup.descentInSeconds" : "fly.popup.inSeconds", { seconds: Math.max(1, Math.ceil((dueAt - now) / 1000)) }) : t("fly.popup.now")}`
+                    : `${message} ${announcedAt === null ? t(command.category === "altitude" && command.direction === "descend" ? "fly.popup.descentInSeconds" : "fly.popup.inSeconds", { count: Math.max(1, Math.ceil((dueAt - now) / 1000)) }) : t("fly.popup.now")}`
                 }
                 recordHistory={announcedAt !== null}
                 recordedAt={announcedAt ?? undefined}

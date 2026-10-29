@@ -1,7 +1,10 @@
 export const atisConsensusEn = {
   "plan.perf.fromAtis":
     "ATIS conditions loaded automatically. You can adjust them below.",
-  "atisConsensus.trusted": "confirmed by {count} devices",
+  "atisConsensus.trusted": {
+    one: "confirmed by {count} device",
+    other: "confirmed by {count} devices",
+  },
   "atisConsensus.suggestions": "ATIS suggestions",
   "atisConsensus.single": "Single-device report — suggestion only",
   "atisConsensus.confirm": "I heard this ATIS · Confirm",
@@ -16,7 +19,12 @@ export const atisConsensusEn = {
 export const atisConsensusPl = {
   "plan.perf.fromAtis":
     "Warunki z ATIS wczytane automatycznie. Możesz je skorygować poniżej.",
-  "atisConsensus.trusted": "potwierdzone przez {count} urządzenia",
+  "atisConsensus.trusted": {
+    one: "potwierdzone przez {count} urządzenie",
+    few: "potwierdzone przez {count} urządzenia",
+    many: "potwierdzone przez {count} urządzeń",
+    other: "potwierdzone przez {count} urządzenia",
+  },
   "atisConsensus.suggestions": "Sugestie ATIS",
   "atisConsensus.single": "Zgłoszenie z jednego urządzenia — tylko sugestia",
   "atisConsensus.confirm": "Odsłuchałem ten ATIS · Potwierdź",

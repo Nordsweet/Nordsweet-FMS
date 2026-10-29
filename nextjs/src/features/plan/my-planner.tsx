@@ -22,16 +22,15 @@ import {
   previousPlannedFlight,
 } from "~/domain/flight-calendar";
 import { formatFuel, fuelUnit } from "~/domain/fuel-units";
-import { useT } from "~/i18n/use-t";
+import { useLocale, useT } from "~/i18n/use-t";
 import { useFlight } from "~/stores/flight";
-import { useSettings } from "~/stores/settings";
 import { cn } from "~/lib/utils";
 import { usePlan } from "./use-plan";
 
 /** Schedule events stay in the existing saved-flight library and account sync. */
 export function MyPlanner({ onEdit }: { onEdit: () => void }) {
   const t = useT();
-  const language = useSettings((s) => s.language);
+  const locale = useLocale();
   const [anchor, setAnchor] = useState(() => calendarDate(new Date()));
   const [view, setView] = useState<"week" | "month">("week");
   const [creating, setCreating] = useState<string | null>(null);
@@ -59,7 +58,6 @@ export function MyPlanner({ onEdit }: { onEdit: () => void }) {
           f.schedule.departure.slice(0, 10) === calendarDate(previousDay)),
     );
   };
-  const locale = language === "pl" ? "pl-PL" : "en-GB";
   const dayLabel = (day: string) =>
     new Date(`${day}T12:00`).toLocaleDateString(locale, {
       weekday: "short",

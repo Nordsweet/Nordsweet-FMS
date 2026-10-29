@@ -166,3 +166,26 @@ test("free-text route, waypoint WX and schedule", async ({ page }) => {
   await page.keyboard.press("Escape");
   await expect(page.getByRole("button", { name: /^Landing: / })).toBeVisible();
 });
+
+test("airport field: arrow keys and Enter pick a search hit, Escape closes", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("tab", { name: "Route", exact: true }).click();
+  const field = page.getByRole("combobox", { name: "Departure", exact: true });
+  const options = page.getByRole("option");
+  await field.fill("EPK");
+  await expect(options.nth(1)).toBeVisible();
+  await field.press("ArrowDown");
+  await field.press("ArrowDown");
+  await expect(options.nth(1)).toHaveAttribute("aria-selected", "true");
+  const ident = await options.nth(1).locator("span").first().innerText();
+  await field.press("Enter");
+  await expect(options).toHaveCount(0);
+  await expect(field).toHaveValue(ident);
+  await field.fill("EPW");
+  await expect(options.first()).toBeVisible();
+  await field.press("Escape");
+  await expect(options).toHaveCount(0);
+  await expect(field).toHaveValue(ident);
+});

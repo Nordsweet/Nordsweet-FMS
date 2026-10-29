@@ -85,7 +85,7 @@ export function Debrief({
           distance: fmt(summary.distanceNm, 1),
           altitude:
             summary.maxAltitudeFt === null ? "—" : fmt(summary.maxAltitudeFt),
-          points: track.length,
+          count: track.length,
         })}
       </p>
       {record && (

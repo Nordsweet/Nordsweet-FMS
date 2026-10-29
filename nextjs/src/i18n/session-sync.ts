@@ -4,7 +4,10 @@ export const sessionSyncEn = {
   "session.status.offline":
     "Offline: changes are kept on this device and sent when the connection returns.",
   "session.status.error": "Sync problem",
-  "session.status.pending": "{count} change(s) waiting to be sent.",
+  "session.status.pending": {
+    one: "{count} change waiting to be sent.",
+    other: "{count} changes waiting to be sent.",
+  },
   "session.status.title": "Session sync: {status}",
   "session.reason.conflict":
     "Could not merge a change with the server's version. It stays on this device.",

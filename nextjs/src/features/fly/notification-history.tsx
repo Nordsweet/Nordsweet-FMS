@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { Bell } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { cn } from "~/lib/utils";
-import { useT } from "~/i18n/use-t";
+import { useLocale, useT } from "~/i18n/use-t";
 import { useInFlight } from "~/stores/inflight";
 import { useFlightNotificationHistory } from "~/stores/flight-notifications";
 
@@ -55,6 +55,7 @@ export function NotificationBell({
 /** Read-only snapshots of the popups actually shown, newest first; closing popups never removes them. */
 export function NotificationHistory() {
   const t = useT();
+  const locale = useLocale();
   const entries = useFlightNotificationHistory((s) => s.entries);
   const markRead = useFlightNotificationHistory((s) => s.markRead);
   useEffect(() => markRead(), [entries, markRead]);
@@ -86,7 +87,7 @@ export function NotificationHistory() {
                 dateTime={new Date(entry.createdAt).toISOString()}
                 className="text-muted-foreground text-xs tabular-nums"
               >
-                {new Date(entry.createdAt).toLocaleString([], {
+                {new Date(entry.createdAt).toLocaleString(locale, {
                   year: "numeric",
                   month: "2-digit",
                   day: "2-digit",
