@@ -19,6 +19,7 @@ import {
   placesResponseSchema,
   sourcesSchema,
   inspirationResponseSchema,
+  createdUserSchema,
   loginResponseSchema,
   meResponseSchema,
   notamsResponseSchema,
@@ -162,6 +163,15 @@ export const aviationApi = {
     }),
   login: (credentials: { username: string; password: string }) =>
     post("/auth/login", loginResponseSchema, credentials),
+  /** Admin only: the API creates the user in Zitadel (initial password) and grants the project role. */
+  createZitadelUser: (user: {
+    username: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    password: string;
+    role: "user" | "admin";
+  }) => post("/admin/zitadel-users", createdUserSchema, user),
   /** 401 = expired or revoked: the central handler has already ended the session. */
   me: () => get("/auth/me", meResponseSchema),
   /** Revokes the token held when called (a 204 has no body). */
