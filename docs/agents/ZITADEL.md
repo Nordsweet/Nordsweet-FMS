@@ -1,7 +1,9 @@
 # Zitadel sign-in
 
-Status: **prepared, not switched.** The Aviation API accepts Zitadel tokens and the app has an OIDC
-client and a callback page, but the login screen still uses username and password.
+Status: **switched on, password login kept as a fallback.** The login screen has "Sign in with passkey" and "Sign up"
+(Zitadel's registration page via `prompt=create`); admins create users in Settings (`POST /admin/zitadel-users`,
+needs `ZITADEL_PAT` + `ZITADEL_PROJECT_ID` on the API). Open sign-up needs `OIDC_DEFAULT_ROLE=user` on the API and
+"Register allowed" in the Zitadel login policy; such accounts keep their whole address as username.
 
 ## Shape
 

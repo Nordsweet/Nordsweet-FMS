@@ -17,7 +17,9 @@ import { useAuth } from "~/stores/auth";
 export function LoginScreen() {
   const t = useT();
   const login = useMutation(api.auth.login.mutationOptions());
-  const zitadel = useMutation({ mutationFn: startLogin });
+  const zitadel = useMutation({
+    mutationFn: (signUp: boolean) => startLogin(signUp),
+  });
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -62,10 +64,18 @@ export function LoginScreen() {
             <div className="mb-4 flex flex-col gap-2">
               <Button
                 type="button"
-                onClick={() => zitadel.mutate()}
+                onClick={() => zitadel.mutate(false)}
                 disabled={zitadel.isPending}
               >
                 {t("auth.zitadel")}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => zitadel.mutate(true)}
+                disabled={zitadel.isPending}
+              >
+                {t("auth.signup")}
               </Button>
               {zitadel.isError && (
                 <p role="alert" className="text-destructive text-sm">
@@ -107,9 +117,11 @@ export function LoginScreen() {
             <Button type="submit" disabled={login.isPending}>
               {t(login.isPending ? "auth.submitting" : "auth.submit")}
             </Button>
-            <p className="text-muted-foreground text-sm">
-              {t("auth.noAccount")}
-            </p>
+            {!oidcEnabled && (
+              <p className="text-muted-foreground text-sm">
+                {t("auth.noAccount")}
+              </p>
+            )}
           </form>
         </CardContent>
       </Card>

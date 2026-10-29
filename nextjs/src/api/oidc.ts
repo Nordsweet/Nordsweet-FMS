@@ -47,7 +47,7 @@ const toTokens = (r: oauth.TokenEndpointResponse): Tokens => ({
   expiresAt: Date.now() + (r.expires_in ?? 3600) * 1000,
 });
 
-export async function authorizationRequest(redirect: string) {
+export async function authorizationRequest(redirect: string, signUp = false) {
   const server = await metadata();
   const verifier = oauth.generateRandomCodeVerifier();
   const state = oauth.generateRandomState();
@@ -60,13 +60,15 @@ export async function authorizationRequest(redirect: string) {
     code_challenge: await oauth.calculatePKCECodeChallenge(verifier),
     code_challenge_method: "S256",
     state,
+    // Zitadel opens its registration page instead of the sign-in page.
+    ...(signUp ? { prompt: "create" } : {}),
   }).toString();
   return { url, pending: { state, verifier } satisfies Pending };
 }
 
-/** Sends the browser to Zitadel; it comes back to /auth/callback. */
-export async function startLogin() {
-  const { url, pending } = await authorizationRequest(redirectUri());
+/** Sends the browser to Zitadel (sign-in, or registration); it comes back to /auth/callback. */
+export async function startLogin(signUp = false) {
+  const { url, pending } = await authorizationRequest(redirectUri(), signUp);
   sessionStorage.setItem(PENDING, JSON.stringify(pending));
   location.assign(url);
 }
