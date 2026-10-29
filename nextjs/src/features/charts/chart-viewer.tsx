@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { flushSync } from "react-dom";
 import {
   ChevronLeft,
   ChevronRight,
@@ -18,6 +19,7 @@ import { useT } from "~/i18n/use-t";
 
 type Camera = { x: number; y: number; scale: number };
 type ChartView = { camera: Camera; width: number; height: number };
+const CHART_RENDER_MARGIN = 128;
 
 /** Shared, pointer-capture-safe chart pan/pinch/wheel surface. Each pane keeps its own camera. */
 export function ChartSurface({
@@ -30,6 +32,7 @@ export function ChartSurface({
   const t = useT();
   const [camera, setCamera] = useState({ x: 0, y: 0, scale: 1 });
   const pointers = useRef(new Map<number, { x: number; y: number }>());
+  const pinchScale = useRef<number | null>(null);
   const surface = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
   useEffect(() => {
@@ -65,6 +68,10 @@ export function ChartSurface({
       ...c,
       scale: Math.max(0.5, Math.min(10, c.scale * factor)),
     }));
+  const releasePointer = (id: number) => {
+    pointers.current.delete(id);
+    if (pointers.current.size < 2) pinchScale.current = null;
+  };
   return (
     <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
       <div className="bg-card/90 absolute right-2 bottom-2 z-10 flex max-w-[calc(100%-1rem)] flex-wrap items-center justify-end gap-1 rounded-lg border p-1 shadow backdrop-blur">
@@ -94,6 +101,7 @@ export function ChartSurface({
           aria-label={t("charts.fit")}
           onClick={() => {
             pointers.current.clear();
+            pinchScale.current = null;
             setCamera({ x: 0, y: 0, scale: 1 });
           }}
         >
@@ -119,7 +127,27 @@ export function ChartSurface({
           if (other) {
             const before = Math.hypot(old.x - other.x, old.y - other.y);
             const after = Math.hypot(next.x - other.x, next.y - other.y);
-            if (before > 1) zoom(after / before);
+            if (before > 1) {
+              const bounds = e.currentTarget.getBoundingClientRect();
+              const centerX = bounds.left + bounds.width / 2;
+              const centerY = bounds.top + bounds.height / 2;
+              const oldX = (old.x + other.x) / 2 - centerX;
+              const oldY = (old.y + other.y) / 2 - centerY;
+              const newX = (next.x + other.x) / 2 - centerX;
+              const newY = (next.y + other.y) / 2 - centerY;
+              const rawScale =
+                ((pinchScale.current ?? camera.scale) * after) / before;
+              pinchScale.current = rawScale;
+              setCamera((c) => {
+                const scale = Math.max(0.5, Math.min(10, rawScale));
+                const ratio = scale / c.scale;
+                return {
+                  scale,
+                  x: newX - ratio * (oldX - c.x),
+                  y: newY - ratio * (oldY - c.y),
+                };
+              });
+            }
           } else
             setCamera((c) => ({
               ...c,
@@ -128,9 +156,9 @@ export function ChartSurface({
             }));
           pointers.current.set(e.pointerId, next);
         }}
-        onPointerUp={(e) => pointers.current.delete(e.pointerId)}
-        onPointerCancel={(e) => pointers.current.delete(e.pointerId)}
-        onLostPointerCapture={(e) => pointers.current.delete(e.pointerId)}
+        onPointerUp={(e) => releasePointer(e.pointerId)}
+        onPointerCancel={(e) => releasePointer(e.pointerId)}
+        onLostPointerCapture={(e) => releasePointer(e.pointerId)}
       >
         {typeof children === "function" ? (
           children({ camera, ...size })
@@ -149,7 +177,7 @@ export function ChartSurface({
   );
 }
 
-/** Rasterize only visible pixels, at the real zoom and device density, rather than enlarging a fitted bitmap. */
+/** Render a viewport-sized area at native density and keep enough margin for smooth dragging. */
 function PdfSheet({
   pdf,
   page,
@@ -165,6 +193,8 @@ function PdfSheet({
 }) {
   const t = useT();
   const canvas = useRef<HTMLCanvasElement>(null);
+  const latestView = useRef(view);
+  const requestRender = useRef<(() => void) | null>(null);
   const [error, setError] = useState(false);
   const [image, setImage] = useState<
     | (ChartView & {
@@ -177,87 +207,145 @@ function PdfSheet({
   >(null);
   const { camera, width, height } = view;
   useEffect(() => {
-    if (!width || !height) return;
-    let cancelled = false;
+    let disposed = false;
+    let running = false;
+    let failed = false;
+    let animation = 0;
+    let finished: ChartView | null = null;
     let task: RenderTask | undefined;
-    let buffer: HTMLCanvasElement | undefined;
-    void (async () => {
-      const sheet = await pdf.getPage(page);
-      if (cancelled || !canvas.current) return;
-      const original = sheet.getViewport({ scale: 1 });
-      const ratio = calibrationAspectRatio ?? original.width / original.height;
-      const frameWidth = Math.min(
-        Math.max(1, width - 16),
-        Math.max(1, height - 16) * ratio,
-      );
-      const frameHeight = frameWidth / ratio;
-      const fit = Math.min(
-        frameWidth / original.width,
-        frameHeight / original.height,
-      );
-      const pixelRatio = window.devicePixelRatio || 1;
-      const renderScale = fit * camera.scale * pixelRatio;
-      const paperWidth = original.width * fit * camera.scale;
-      const paperHeight = original.height * fit * camera.scale;
-      const left = (width - paperWidth) / 2 + camera.x;
-      const top = (height - paperHeight) / 2 + camera.y;
-      buffer = document.createElement("canvas");
-      buffer.width = Math.ceil(width * pixelRatio);
-      buffer.height = Math.ceil(height * pixelRatio);
-      const context = buffer.getContext("2d", { alpha: true })!;
-      context.beginPath();
-      context.rect(
-        left * pixelRatio,
-        top * pixelRatio,
-        paperWidth * pixelRatio,
-        paperHeight * pixelRatio,
-      );
-      context.clip();
-      context.fillStyle = "white";
-      context.fillRect(
-        left * pixelRatio,
-        top * pixelRatio,
-        paperWidth * pixelRatio,
-        paperHeight * pixelRatio,
-      );
-      task = sheet.render({
-        canvas: buffer,
-        canvasContext: context,
-        viewport: sheet.getViewport({ scale: renderScale }),
-        transform: [1, 0, 0, 1, left * pixelRatio, top * pixelRatio],
-        background: "rgba(0, 0, 0, 0)",
+    const buffer = document.createElement("canvas");
+    const schedule = () => {
+      const next = latestView.current;
+      if (
+        disposed ||
+        failed ||
+        running ||
+        animation ||
+        !next.width ||
+        !next.height
+      )
+        return;
+      if (
+        finished?.camera === next.camera &&
+        finished.width === next.width &&
+        finished.height === next.height
+      )
+        return;
+      animation = requestAnimationFrame(() => {
+        animation = 0;
+        void draw(latestView.current);
       });
-      await task.promise;
-      if (cancelled || !canvas.current) return;
-      const target = canvas.current;
-      target.width = buffer.width;
-      target.height = buffer.height;
-      target.getContext("2d")!.drawImage(buffer, 0, 0);
-      setImage({
-        camera,
-        width,
-        height,
-        frameWidth,
-        frameHeight,
-        renderScale,
-        pixelRatio,
-      });
-    })()
-      .catch((e) => {
-        if (!cancelled && (e as Error).name !== "RenderingCancelledException")
+    };
+    const draw = async ({ camera, width, height }: ChartView) => {
+      running = true;
+      let context: CanvasRenderingContext2D | null = null;
+      try {
+        const sheet = await pdf.getPage(page);
+        if (disposed || !canvas.current) return;
+        const original = sheet.getViewport({ scale: 1 });
+        const ratio =
+          calibrationAspectRatio ?? original.width / original.height;
+        const frameWidth = Math.min(
+          Math.max(1, width - 16),
+          Math.max(1, height - 16) * ratio,
+        );
+        const frameHeight = frameWidth / ratio;
+        const fit = Math.min(
+          frameWidth / original.width,
+          frameHeight / original.height,
+        );
+        const pixelRatio = window.devicePixelRatio || 1;
+        const renderScale = fit * camera.scale * pixelRatio;
+        const paperWidth = original.width * fit * camera.scale;
+        const paperHeight = original.height * fit * camera.scale;
+        const left = (width - paperWidth) / 2 + camera.x + CHART_RENDER_MARGIN;
+        const top = (height - paperHeight) / 2 + camera.y + CHART_RENDER_MARGIN;
+        const pixelWidth = Math.ceil(
+          (width + 2 * CHART_RENDER_MARGIN) * pixelRatio,
+        );
+        const pixelHeight = Math.ceil(
+          (height + 2 * CHART_RENDER_MARGIN) * pixelRatio,
+        );
+        if (buffer.width !== pixelWidth) buffer.width = pixelWidth;
+        if (buffer.height !== pixelHeight) buffer.height = pixelHeight;
+        context = buffer.getContext("2d", { alpha: true })!;
+        context.clearRect(0, 0, pixelWidth, pixelHeight);
+        context.save();
+        context.beginPath();
+        context.rect(
+          left * pixelRatio,
+          top * pixelRatio,
+          paperWidth * pixelRatio,
+          paperHeight * pixelRatio,
+        );
+        context.clip();
+        context.fillStyle = "white";
+        context.fillRect(
+          left * pixelRatio,
+          top * pixelRatio,
+          paperWidth * pixelRatio,
+          paperHeight * pixelRatio,
+        );
+        task = sheet.render({
+          canvas: buffer,
+          canvasContext: context,
+          viewport: sheet.getViewport({ scale: renderScale }),
+          transform: [1, 0, 0, 1, left * pixelRatio, top * pixelRatio],
+          background: "rgba(0, 0, 0, 0)",
+        });
+        await task.promise;
+        if (disposed || !canvas.current) return;
+        const target = canvas.current;
+        // Commit pixels and their camera together, so the previous preview transform cannot shift the new image.
+        flushSync(() => {
+          if (target.width !== buffer.width) target.width = buffer.width;
+          if (target.height !== buffer.height) target.height = buffer.height;
+          const targetContext = target.getContext("2d")!;
+          targetContext.clearRect(0, 0, target.width, target.height);
+          targetContext.drawImage(buffer, 0, 0);
+          setImage({
+            camera,
+            width,
+            height,
+            frameWidth,
+            frameHeight,
+            renderScale,
+            pixelRatio,
+          });
+        });
+        finished = { camera, width, height };
+      } catch (e) {
+        if (!disposed && (e as Error).name !== "RenderingCancelledException") {
+          failed = true;
           setError(true);
-      })
-      .finally(() => {
-        if (buffer) {
+        }
+      } finally {
+        context?.restore();
+        task = undefined;
+        running = false;
+        if (disposed) {
           buffer.width = 0;
           buffer.height = 0;
-        }
-      });
-    return () => {
-      cancelled = true;
-      task?.cancel();
+        } else schedule();
+      }
     };
-  }, [pdf, page, camera, width, height, calibrationAspectRatio]);
+    requestRender.current = schedule;
+    schedule();
+    return () => {
+      disposed = true;
+      cancelAnimationFrame(animation);
+      task?.cancel();
+      requestRender.current = null;
+      if (!running) {
+        buffer.width = 0;
+        buffer.height = 0;
+      }
+    };
+  }, [pdf, page, calibrationAspectRatio]);
+  useEffect(() => {
+    latestView.current = { camera, width, height };
+    requestRender.current?.();
+  }, [camera, width, height]);
   if (error) return <p role="alert">{t("charts.pdfError")}</p>;
   const ready =
     image?.camera === camera &&
@@ -265,10 +353,16 @@ function PdfSheet({
     image.height === height;
   const scale = image ? camera.scale / image.camera.scale : 1;
   const x = image
-    ? width / 2 + camera.x - scale * (image.width / 2 + image.camera.x)
+    ? width / 2 +
+      camera.x -
+      scale * (image.width / 2 + image.camera.x) +
+      (1 - scale) * CHART_RENDER_MARGIN
     : 0;
   const y = image
-    ? height / 2 + camera.y - scale * (image.height / 2 + image.camera.y)
+    ? height / 2 +
+      camera.y -
+      scale * (image.height / 2 + image.camera.y) +
+      (1 - scale) * CHART_RENDER_MARGIN
     : 0;
   return (
     <div
@@ -281,11 +375,13 @@ function PdfSheet({
     >
       <canvas
         ref={canvas}
-        className="absolute top-0 left-0 block"
+        className="absolute block"
         aria-label={t("charts.pdfPage", { page })}
         style={{
-          width: image?.width ?? width,
-          height: image?.height ?? height,
+          left: -CHART_RENDER_MARGIN,
+          top: -CHART_RENDER_MARGIN,
+          width: (image?.width ?? width) + 2 * CHART_RENDER_MARGIN,
+          height: (image?.height ?? height) + 2 * CHART_RENDER_MARGIN,
           transformOrigin: "0 0",
           transform: `translate(${x}px,${y}px) scale(${scale})`,
         }}

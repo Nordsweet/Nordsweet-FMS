@@ -11,7 +11,9 @@ function pdf(fineLine = false) {
     "<< /Length 31 >>\nstream\n1 0 0 rg 40 30 400 300 re f\n\nendstream",
   ];
   if (fineLine) {
-    const commands = "0 0 0 RG 0.25 w 200 0 m 200 600 l S\n";
+    // Keep rendering busy while the pointer moves, as with a detailed real chart.
+    const commands =
+      "q Q\n".repeat(8000) + "0 0 0 RG 0.25 w 200 0 m 200 600 l S\n";
     objects[3] = `<< /Length ${Buffer.byteLength(commands)} >>\nstream\n${commands}endstream`;
   }
   let body = "%PDF-1.7\n";
@@ -121,7 +123,7 @@ const library = {
 };
 
 test.describe("native PDF resolution", () => {
-  test.use({ deviceScaleFactor: 3 });
+  test.use({ deviceScaleFactor: 3, hasTouch: true });
   test("compact charts redraw fine vector details at actual zoom without reducing device density", async ({
     page,
   }) => {
@@ -169,7 +171,7 @@ test.describe("native PDF resolution", () => {
     const paneBox = await pane.boundingBox();
     const surface = pane.getByTestId("chart-surface");
     const surfaceBox = await surface.boundingBox();
-    expect(surfaceBox!.y - paneBox!.y).toBeLessThan(48);
+    expect(surfaceBox!.y - paneBox!.y).toBeLessThan(56);
     await expect(page.getByLabel("Source", { exact: true })).toHaveCount(0);
     const measure = () =>
       sheet.locator("canvas").evaluate((canvas: HTMLCanvasElement) => {
@@ -196,7 +198,7 @@ test.describe("native PDF resolution", () => {
     await expect
       .poll(async () => {
         const current = await measure();
-        return Math.abs(current.width - (surfaceBox!.width - 2) * 3);
+        return Math.abs(current.width - (surfaceBox!.width - 2 + 256) * 3);
       })
       .toBeLessThanOrEqual(1);
     const initial = await measure();
@@ -228,6 +230,159 @@ test.describe("native PDF resolution", () => {
     expect(enlarged.dark).toBeLessThanOrEqual(
       Math.ceil(0.25 * fit * 8 * 3) + 1,
     );
+    const linePosition = () =>
+      sheet.locator("canvas").evaluate((canvas: HTMLCanvasElement) => {
+        const pixels = canvas
+          .getContext("2d")!
+          .getImageData(0, Math.floor(canvas.height / 2), canvas.width, 1).data;
+        let first = -1,
+          last = -1;
+        for (let x = 0; x < canvas.width; x++) {
+          const i = x * 4;
+          if (
+            pixels[i + 3]! > 128 &&
+            pixels[i]! < 64 &&
+            pixels[i + 1]! < 64 &&
+            pixels[i + 2]! < 64
+          ) {
+            if (first < 0) first = x;
+            last = x;
+          }
+        }
+        if (first < 0) return null;
+        const rect = canvas.getBoundingClientRect();
+        return rect.left + ((first + last) / 2 / canvas.width) * rect.width;
+      });
+    const lineStart = await linePosition();
+    expect(lineStart).not.toBeNull();
+    const startX = surfaceBox!.x + surfaceBox!.width / 2;
+    const startY = surfaceBox!.y + surfaceBox!.height / 2;
+    await page.mouse.move(startX, startY);
+    await page.mouse.down();
+    for (let dx = 20; dx <= 200; dx += 20) {
+      await page.mouse.move(startX + dx, startY);
+      const x = await linePosition();
+      expect(x).not.toBeNull();
+      expect(Math.abs(x! - (lineStart! + dx))).toBeLessThan(2);
+    }
+    await page.mouse.up();
+    await expect(sheet).toHaveAttribute("data-ready", "true", {
+      timeout: 15000,
+    });
+    expect(Math.abs((await linePosition())! - (lineStart! + 200))).toBeLessThan(
+      2,
+    );
+    const touchStart = await linePosition();
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchStart",
+      touchPoints: [{ x: startX, y: startY, id: 1 }],
+    });
+    for (let dx = 20; dx <= 100; dx += 20) {
+      await cdp.send("Input.dispatchTouchEvent", {
+        type: "touchMove",
+        touchPoints: [{ x: startX + dx, y: startY, id: 1 }],
+      });
+      await expect
+        .poll(async () => {
+          const x = await linePosition();
+          return x === null ? Infinity : Math.abs(x - (touchStart! + dx));
+        })
+        .toBeLessThan(2);
+    }
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchEnd",
+      touchPoints: [],
+    });
+    await expect(sheet).toHaveAttribute("data-ready", "true", {
+      timeout: 15000,
+    });
+    expect(
+      Math.abs((await linePosition())! - (touchStart! + 100)),
+    ).toBeLessThan(2);
+    const twoFingerStart = await linePosition();
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchStart",
+      touchPoints: [
+        { x: startX - 100, y: startY, id: 1 },
+        { x: startX + 100, y: startY, id: 2 },
+      ],
+    });
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchMove",
+      touchPoints: [
+        { x: startX - 40, y: startY, id: 1 },
+        { x: startX + 160, y: startY, id: 2 },
+      ],
+    });
+    await expect
+      .poll(async () =>
+        Math.abs((await linePosition())! - (twoFingerStart! + 60)),
+      )
+      .toBeLessThan(2);
+    const beforePinch = await linePosition();
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchMove",
+      touchPoints: [
+        { x: startX - 60, y: startY, id: 1 },
+        { x: startX + 180, y: startY, id: 2 },
+      ],
+    });
+    const expectedPinch = startX + 60 + 1.2 * (beforePinch! - startX - 60);
+    await expect
+      .poll(async () => Math.abs((await linePosition())! - expectedPinch))
+      .toBeLessThan(2);
+    // Release one finger, then continue dragging with the other.
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchMove",
+      touchPoints: [{ x: startX + 180, y: startY, id: 2 }],
+    });
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchMove",
+      touchPoints: [{ x: startX + 210, y: startY, id: 2 }],
+    });
+    await expect
+      .poll(async () =>
+        Math.abs((await linePosition())! - (expectedPinch + 30)),
+      )
+      .toBeLessThan(2);
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchEnd",
+      touchPoints: [],
+    });
+    await expect(sheet).toHaveAttribute("data-ready", "true", {
+      timeout: 15000,
+    });
+    await surface.dispatchEvent("wheel", { deltaY: -2000 });
+    await expect(pane.getByText("1000%", { exact: true })).toBeVisible();
+    await expect(sheet).toHaveAttribute("data-ready", "true", {
+      timeout: 15000,
+    });
+    const atLimit = await linePosition();
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchStart",
+      touchPoints: [
+        { x: startX - 100, y: startY, id: 1 },
+        { x: startX + 100, y: startY, id: 2 },
+      ],
+    });
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchMove",
+      touchPoints: [
+        { x: startX - 160, y: startY, id: 1 },
+        { x: startX + 40, y: startY, id: 2 },
+      ],
+    });
+    await cdp.send("Input.dispatchTouchEvent", {
+      type: "touchEnd",
+      touchPoints: [],
+    });
+    await expect(pane.getByText("1000%", { exact: true })).toBeVisible();
+    await expect(sheet).toHaveAttribute("data-ready", "true", {
+      timeout: 15000,
+    });
+    expect(Math.abs((await linePosition())! - (atLimit! - 60))).toBeLessThan(2);
+    await cdp.detach();
     await page.screenshot({ path: "test-results/chart-native-resolution.png" });
   });
 });
@@ -614,6 +769,46 @@ test("iPad chart library uses its own calibration and local PDF controls fit the
   await expect(
     left.getByRole("img", { name: "Calibrated taxi route" }),
   ).toBeVisible();
+  const realSheet = left.getByTestId("chart-pdf");
+  const initialScale = Number(
+    await realSheet.getAttribute("data-render-scale"),
+  );
+  await left
+    .getByRole("button", { name: "Zoom chart in", exact: true })
+    .click();
+  await expect(realSheet).toHaveAttribute("data-ready", "true", {
+    timeout: 15000,
+  });
+  expect(
+    Number(await realSheet.getAttribute("data-render-scale")),
+  ).toBeGreaterThan(initialScale * 1.24);
+  await left
+    .getByRole("button", { name: "Fit chart to pane", exact: true })
+    .click();
+  await expect(realSheet).toHaveAttribute("data-ready", "true", {
+    timeout: 15000,
+  });
+  const overlay = left.getByRole("img", { name: "Calibrated taxi route" });
+  const beforeDrag = await overlay.boundingBox();
+  const realSurface = await left.getByTestId("chart-surface").boundingBox();
+  await page.mouse.move(
+    realSurface!.x + realSurface!.width / 2,
+    realSurface!.y + realSurface!.height / 2,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    realSurface!.x + realSurface!.width / 2 + 75,
+    realSurface!.y + realSurface!.height / 2,
+    { steps: 12 },
+  );
+  await page.mouse.up();
+  await expect
+    .poll(async () => (await overlay.boundingBox())!.x - beforeDrag!.x)
+    .toBeCloseTo(75, 0);
+  await expect(realSheet).toHaveAttribute("data-ready", "true", {
+    timeout: 15000,
+  });
+  expect((await overlay.boundingBox())!.x - beforeDrag!.x).toBeCloseTo(75, 0);
   await page.screenshot({ path: "test-results/fpl-charts-real-pansa.png" });
   await left.locator('input[type="file"]').setInputFiles({
     name: "My chart.pdf",
