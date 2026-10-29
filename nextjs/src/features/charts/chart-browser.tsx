@@ -27,7 +27,7 @@ import { AirportTaxi } from "~/features/plan/taxi";
 import { ProcedureChart } from "~/features/fly/chart-panel";
 import { useFlight } from "~/stores/flight";
 import { useT } from "~/i18n/use-t";
-import { ChartPdf, ChartSurface } from "./chart-viewer";
+import { ChartPdf, ChartPlaceholder, ChartSurface } from "./chart-viewer";
 import { useBrowserCharts } from "./use-browser-charts";
 import { type ChartSelection } from "~/stores/fly-panels";
 
@@ -38,10 +38,14 @@ function PdfDocument({
   chart,
   local,
   overlay,
+  fitted,
+  onFitWindow,
 }: {
   chart: BrowserChart;
   local?: Blob;
   overlay?: React.ReactNode;
+  fitted: boolean;
+  onFitWindow: () => void;
 }) {
   const t = useT();
   const pdf = useQuery({
@@ -51,15 +55,22 @@ function PdfDocument({
     staleTime: Infinity,
     gcTime: 5 * 60 * 1000,
   });
-  if (pdf.isPending) return <p role="status">{t("charts.loading")}</p>;
+  if (pdf.isPending)
+    return (
+      <ChartPlaceholder fitted={fitted} onFitWindow={onFitWindow}>
+        <p role="status">{t("charts.loading")}</p>
+      </ChartPlaceholder>
+    );
   if (pdf.isError)
     return (
-      <div role="alert" className="grid gap-2 text-sm">
-        <p>{t("charts.unavailable")}</p>
-        <Button variant="outline" onClick={() => void pdf.refetch()}>
-          {t("charts.retry")}
-        </Button>
-      </div>
+      <ChartPlaceholder fitted={fitted} onFitWindow={onFitWindow}>
+        <div role="alert" className="grid gap-2 text-sm">
+          <p>{t("charts.unavailable")}</p>
+          <Button variant="outline" onClick={() => void pdf.refetch()}>
+            {t("charts.retry")}
+          </Button>
+        </div>
+      </ChartPlaceholder>
     );
   return (
     <ChartPdf
@@ -67,6 +78,8 @@ function PdfDocument({
       blob={pdf.data}
       overlay={overlay}
       calibrationAspectRatio={chart.overlay?.chart?.aspectRatio}
+      fitted={fitted}
+      onFitWindow={onFitWindow}
     />
   );
 }
@@ -76,11 +89,15 @@ function ChartPane({
   charts,
   selection,
   togglePanes,
+  fitPane,
+  onFitWindow,
 }: {
   scope: "departure" | "arrival";
   charts: BrowserChart[];
   selection?: ChartSelection | null;
   togglePanes: React.ReactNode;
+  fitPane: "departure" | "arrival" | null;
+  onFitWindow: (scope: "departure" | "arrival") => void;
 }) {
   const t = useT();
   const flight = useFlight((s) => s.flight);
@@ -184,6 +201,10 @@ function ChartPane({
         scope === "departure" ? "charts.leftPane" : "charts.rightPane",
       )}
       data-testid={`chart-pane-${scope}`}
+      style={{
+        display: fitPane && fitPane !== scope ? "none" : undefined,
+        ...(fitPane === scope ? { height: "100%", minHeight: 0 } : {}),
+      }}
       tabIndex={0}
       onPointerDownCapture={(event) => {
         if (
@@ -285,7 +306,7 @@ function ChartPane({
               <AlertTriangle className="size-4" />
             </span>
           )}
-        {togglePanes}
+        {!fitPane && togglePanes}
         <Popover>
           <PopoverTrigger asChild>
             <Button
@@ -427,7 +448,10 @@ function ChartPane({
         <>
           <p className="sr-only">{selected.title}</p>
           {selected.source === "nord" && airport.data && chosenProcedures[0] ? (
-            <ChartSurface>
+            <ChartSurface
+              fitted={fitPane === scope}
+              onFitWindow={() => onFitWindow(scope)}
+            >
               <ProcedureChart
                 airport={airport.data}
                 procedure={chosenProcedures[0]}
@@ -441,11 +465,20 @@ function ChartPane({
               chart={selected}
               local={local.find((l) => l.chart.id === selected.id)?.blob}
               overlay={overlay}
+              fitted={fitPane === scope}
+              onFitWindow={() => onFitWindow(scope)}
             />
           )}
         </>
       ) : (
-        <p className="text-muted-foreground text-sm">{t("charts.noCharts")}</p>
+        <ChartPlaceholder
+          fitted={fitPane === scope}
+          onFitWindow={() => onFitWindow(scope)}
+        >
+          <p className="text-muted-foreground text-sm">
+            {t("charts.noCharts")}
+          </p>
+        </ChartPlaceholder>
       )}
       <input
         ref={upload}
@@ -491,8 +524,12 @@ function ChartPane({
 /** Typed replacement of chart-browser.html, using the existing flight, API login and offline data boundary. */
 export function ChartBrowser({
   selection,
+  fitPane,
+  onFitWindow,
 }: {
   selection?: ChartSelection | null;
+  fitPane: "departure" | "arrival" | null;
+  onFitWindow: (scope: "departure" | "arrival") => void;
 }) {
   const t = useT();
   const [dual, setDual] = useState(true);
@@ -509,12 +546,12 @@ export function ChartBrowser({
       className="flex min-h-0 min-w-0 flex-1 flex-col gap-2"
       data-testid="chart-browser"
     >
-      {catalog.isPending && (
+      {!fitPane && catalog.isPending && (
         <p role="status" className="text-xs">
           {t("charts.loadingCatalog")}
         </p>
       )}
-      {catalog.isError && (
+      {!fitPane && catalog.isError && (
         <div className="text-xs text-amber-400" role="status">
           {t("charts.catalogUnavailable")}{" "}
           <button className="underline" onClick={() => void catalog.refetch()}>
@@ -524,7 +561,7 @@ export function ChartBrowser({
       )}
       <div
         className={
-          dual
+          dual && !fitPane
             ? "grid min-h-0 min-w-0 flex-1 gap-3 overflow-auto lg:grid-cols-2"
             : "grid min-h-0 min-w-0 flex-1 gap-3 overflow-auto"
         }
@@ -532,6 +569,8 @@ export function ChartBrowser({
         <ChartPane
           scope="departure"
           charts={charts}
+          fitPane={fitPane}
+          onFitWindow={onFitWindow}
           togglePanes={
             <Button
               variant="outline"
@@ -550,6 +589,8 @@ export function ChartBrowser({
           <ChartPane
             scope="arrival"
             charts={charts}
+            fitPane={fitPane}
+            onFitWindow={onFitWindow}
             togglePanes={null}
             selection={selectedScope === "arrival" ? selection : null}
           />

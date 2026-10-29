@@ -168,6 +168,9 @@ export function FlyPage() {
   const { panel, setPanel, fplTab, setFplTab, chartSelection } = useFlyPanels();
   const [split, setSplit] = useState(false);
   const [mapOnRight, setMapOnRight] = useState(true);
+  const [chartFit, setChartFit] = useState<"departure" | "arrival" | null>(
+    null,
+  );
   const [aircraftTab, setAircraftTab] = useState("aircraft");
   const configAvailable = ["takeoff", "climb", "cruise", "landing"].includes(
     phase,
@@ -226,6 +229,8 @@ export function FlyPage() {
       : split
         ? "options"
         : null;
+  const chartFitActive =
+    chartFit !== null && open === "fpl" && fplTab === "charts";
 
   const navigation = (
     <>
@@ -403,7 +408,10 @@ export function FlyPage() {
         onValueChange={setFplTab}
         className="min-h-0 min-w-0 flex-1"
       >
-        <TabsList aria-label={t("charts.fplTabs")}>
+        <TabsList
+          aria-label={t("charts.fplTabs")}
+          className={chartFitActive ? "hidden" : undefined}
+        >
           <TabsTrigger value="fpl">FPL</TabsTrigger>
           <TabsTrigger value="charts">Charts</TabsTrigger>
         </TabsList>
@@ -622,6 +630,10 @@ export function FlyPage() {
           <ChartBrowser
             key={chartSelection?.requestId ?? 0}
             selection={chartSelection}
+            fitPane={chartFitActive ? chartFit : null}
+            onFitWindow={(scope) =>
+              setChartFit((current) => (current === scope ? null : scope))
+            }
           />
         </TabsContent>
       </Tabs>
@@ -684,65 +696,67 @@ export function FlyPage() {
   // the right; each tool opens its panel beside the rail.
   return (
     <div className="bg-background fixed inset-0 z-40">
-      <FlightStatusBar
-        fix={fix}
-        progress={progress}
-        positionOpen={open === "position"}
-        positionStatus={t(`connector.${connectorStatus}`)}
-        splitOpen={split}
-        onSplitClick={() => {
-          setSearchOpen(false);
-          setSplit(!split);
-          setPanel(split ? null : "options");
-          if (!split) {
-            setMapOnRight(true);
-            useMapSettings.getState().follow(true);
+      <div className={chartFitActive ? "hidden" : undefined}>
+        <FlightStatusBar
+          fix={fix}
+          progress={progress}
+          positionOpen={open === "position"}
+          positionStatus={t(`connector.${connectorStatus}`)}
+          splitOpen={split}
+          onSplitClick={() => {
+            setSearchOpen(false);
+            setSplit(!split);
+            setPanel(split ? null : "options");
+            if (!split) {
+              setMapOnRight(true);
+              useMapSettings.getState().follow(true);
+            }
+          }}
+          onPositionClick={() => {
+            setSearchOpen(false);
+            setPanel(open === "position" ? null : "position");
+          }}
+          phaseControl={
+            flying ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    data-testid="flight-phase"
+                    aria-pressed="true"
+                    className="min-w-36"
+                  >
+                    {t(`fly.phase.${phase}`)}{" "}
+                    <ChevronDown className="size-4" aria-hidden="true" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="center">
+                  {PHASES.map((p) => (
+                    <DropdownMenuItem key={p} onSelect={() => setPhase(p)}>
+                      {t(`fly.phase.${p}`)}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : null
           }
-        }}
-        onPositionClick={() => {
-          setSearchOpen(false);
-          setPanel(open === "position" ? null : "position");
-        }}
-        phaseControl={
-          flying ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  data-testid="flight-phase"
-                  aria-pressed="true"
-                  className="min-w-36"
-                >
-                  {t(`fly.phase.${phase}`)}{" "}
-                  <ChevronDown className="size-4" aria-hidden="true" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="center">
-                {PHASES.map((p) => (
-                  <DropdownMenuItem key={p} onSelect={() => setPhase(p)}>
-                    {t(`fly.phase.${p}`)}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : null
-        }
-        endControl={
-          flying ? (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                inFlight.end();
-                setSplit(false);
-                setPanel(null);
-                setDebrief(true);
-              }}
-            >
-              {t("fly.end")}
-            </Button>
-          ) : null
-        }
-      />
+          endControl={
+            flying ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  inFlight.end();
+                  setSplit(false);
+                  setPanel(null);
+                  setDebrief(true);
+                }}
+              >
+                {t("fly.end")}
+              </Button>
+            ) : null
+          }
+        />
+      </div>
       <div
         className={cn(
           "absolute inset-x-0 top-24 bottom-0",
@@ -750,6 +764,7 @@ export function FlyPage() {
         )}
         data-testid="fly-workspace"
         data-split={split}
+        style={{ top: chartFitActive ? 0 : undefined }}
       >
         <div
           className={cn(
@@ -776,7 +791,7 @@ export function FlyPage() {
           />
           {flying && !emergencyActive && <FredaDialog fix={fix} now={now} />}
           {flying && inFlight.replayEnabled && <GpxReplayDock />}
-          {!flying && (
+          {!flying && !chartFitActive && (
             <div className="bg-card/90 absolute top-3 left-1/2 z-30 flex max-w-[calc(100%-1.5rem)] -translate-x-1/2 gap-2 overflow-x-auto rounded-3xl border p-2 backdrop-blur">
               <Button variant="outline" className="shrink-0" asChild>
                 <Link href="/">{t("nav.plan")}</Link>
@@ -801,7 +816,7 @@ export function FlyPage() {
             </div>
           )}
 
-          {flying && (
+          {flying && !chartFitActive && (
             <nav
               aria-label={t("fly.title")}
               className="absolute top-[5.15rem] right-3 z-30 grid max-h-[calc(100%-6.15rem)] gap-[0.48rem] overflow-y-auto"
@@ -854,7 +869,7 @@ export function FlyPage() {
           )}
         </div>
 
-        {split && (
+        {split && !chartFitActive && (
           <Button
             variant="outline"
             size="icon"
@@ -876,44 +891,66 @@ export function FlyPage() {
             data-testid={split ? "fly-tool-pane" : undefined}
             data-panel={open ?? "none"}
             data-debrief={!open && debriefOpen ? "true" : undefined}
+            data-chart-fit={chartFitActive || undefined}
             style={
-              (split
+              (chartFitActive
                 ? {
-                    position: "relative",
+                    position: "fixed",
                     top: 0,
-                    left: 0,
+                    bottom: 0,
+                    left: split && !mapOnRight ? "50%" : 0,
                     right: "auto",
-                    bottom: "auto",
-                    width: "100%",
-                    height: "100%",
-                    maxHeight: "100%",
+                    width: split ? "50%" : "100%",
+                    height: "100dvh",
+                    maxHeight: "none",
                     minHeight: 0,
-                    gridColumn: mapOnRight ? 1 : 2,
-                    gridRow: 1,
+                    padding: 0,
+                    gap: 0,
+                    border: 0,
                     borderRadius: 0,
-                  }
-                : {
-                    "--top":
-                      open === "position"
-                        ? "0.75rem"
-                        : `calc(5.15rem + ${rail.findIndex((r) => r.id === open)} * 3.93rem)`,
-                    ...(open === "fpl" || open === "aircraft"
-                      ? {
-                          width:
-                            open === "fpl" && fplTab === "charts"
-                              ? "min(86rem, calc(100vw - 6.5rem))"
-                              : "min(42rem, calc(100vw - 6.5rem))",
-                          ...(open === "fpl" && fplTab === "charts"
-                            ? { height: "calc(100% - 1.5rem)" }
-                            : {}),
-                        }
+                    overflow: "hidden",
+                    zIndex: 50,
+                    ...(split
+                      ? { gridColumn: mapOnRight ? 1 : 2, gridRow: 1 }
                       : {}),
-                  }) as React.CSSProperties
+                  }
+                : split
+                  ? {
+                      position: "relative",
+                      top: 0,
+                      left: 0,
+                      right: "auto",
+                      bottom: "auto",
+                      width: "100%",
+                      height: "100%",
+                      maxHeight: "100%",
+                      minHeight: 0,
+                      gridColumn: mapOnRight ? 1 : 2,
+                      gridRow: 1,
+                      borderRadius: 0,
+                    }
+                  : {
+                      "--top":
+                        open === "position"
+                          ? "0.75rem"
+                          : `calc(5.15rem + ${rail.findIndex((r) => r.id === open)} * 3.93rem)`,
+                      ...(open === "fpl" || open === "aircraft"
+                        ? {
+                            width:
+                              open === "fpl" && fplTab === "charts"
+                                ? "min(86rem, calc(100vw - 6.5rem))"
+                                : "min(42rem, calc(100vw - 6.5rem))",
+                            ...(open === "fpl" && fplTab === "charts"
+                              ? { height: "calc(100% - 1.5rem)" }
+                              : {}),
+                          }
+                        : {}),
+                    }) as React.CSSProperties
             }
           >
             {open ? (
               <>
-                {(open !== "rwy" || split) && (
+                {!chartFitActive && (open !== "rwy" || split) && (
                   <div className="fly-popover-head">
                     <div>
                       <h2>{panelLabel(open)}</h2>

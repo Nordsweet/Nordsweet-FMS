@@ -44,6 +44,8 @@ export const chartsEn = {
   "charts.zoomIn": "Zoom chart in",
   "charts.zoomOut": "Zoom chart out",
   "charts.fit": "Fit chart to pane",
+  "charts.fitWindow": "Fit to window",
+  "charts.exitFitWindow": "Exit fit to window",
   "charts.expired": "AIRAC package expired — check the current publication",
   "charts.publisher": "PANSA original",
   "charts.libraryDates":
@@ -102,6 +104,8 @@ export const chartsPl: Record<keyof typeof chartsEn, string> = {
   "charts.zoomIn": "Powiększ mapę",
   "charts.zoomOut": "Pomniejsz mapę",
   "charts.fit": "Dopasuj mapę do widoku",
+  "charts.fitWindow": "Dopasuj do okna",
+  "charts.exitFitWindow": "Przywróć poprzedni widok",
   "charts.expired": "Wygasły pakiet AIRAC — sprawdź aktualną publikację",
   "charts.publisher": "Oryginał PAŻP",
   "charts.libraryDates":

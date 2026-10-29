@@ -1,4 +1,5 @@
 import path from "node:path";
+import { createHash } from "node:crypto";
 import { expect, test, E2E_TOKEN, type Page } from "./test";
 
 function pdf(fineLine = false) {
@@ -121,6 +122,259 @@ const library = {
   charts: [],
   revisions: {},
 };
+
+test.describe("chart fit to window", () => {
+  test.use({
+    viewport: { width: 1024, height: 900 },
+    deviceScaleFactor: 2,
+    hasTouch: true,
+  });
+  test("fills the window or split half and restores the previous panes and zoom", async ({
+    page,
+  }) => {
+    test.setTimeout(120000);
+    await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => {
+      const url = new URL(route.request().url());
+      if (url.hostname !== "aviation.lab.vibecde.com") return route.abort();
+      if (url.pathname === "/auth/me")
+        return route.fulfill({ json: { username: "admin", role: "admin" } });
+      if (url.pathname === "/charts/catalog")
+        return route.fulfill({ json: catalog });
+      if (url.pathname === "/charts/library")
+        return route.fulfill({ json: library });
+      if (url.pathname.startsWith("/charts/pdf/"))
+        return route.fulfill({ body: pdf(), contentType: "application/pdf" });
+      return route.abort();
+    });
+    await page.addInitScript((f) => {
+      localStorage.setItem("nordsweet.language.v1", "en");
+      localStorage.setItem(
+        "nordsweet.flight.v2",
+        JSON.stringify({ state: { flight: f }, version: 1 }),
+      );
+    }, flight);
+    await page.goto("/fly");
+    await page
+      .getByRole("button", { name: "Start flight", exact: true })
+      .click({ timeout: 20000 });
+    await page.getByRole("button", { name: "FPL", exact: true }).click();
+    await page.getByRole("tab", { name: "Charts", exact: true }).click();
+    const dialog = page.getByRole("dialog", { name: "FPL", exact: true });
+    const left = page.getByTestId("chart-pane-departure");
+    const right = page.getByTestId("chart-pane-arrival");
+    const sheet = left.getByTestId("chart-pdf");
+    await expect(sheet).toHaveAttribute("data-ready", "true", {
+      timeout: 25000,
+    });
+    const original = await dialog.boundingBox();
+    await left
+      .getByRole("button", { name: "Zoom chart in", exact: true })
+      .click();
+    await left
+      .getByRole("button", { name: "Zoom chart in", exact: true })
+      .click();
+    await expect(left.getByText("156%", { exact: true })).toBeVisible();
+    const initialSurface = (await left
+      .getByTestId("chart-surface")
+      .boundingBox())!;
+    await page.mouse.move(
+      initialSurface.x + initialSurface.width / 2,
+      initialSurface.y + initialSurface.height / 2,
+    );
+    await page.mouse.down();
+    await page.mouse.move(
+      initialSurface.x + initialSurface.width / 2 + 60,
+      initialSurface.y + initialSurface.height / 2,
+      { steps: 5 },
+    );
+    await page.mouse.up();
+    await expect(sheet).toHaveAttribute("data-ready", "true", {
+      timeout: 25000,
+    });
+    const canvas = sheet.locator("canvas");
+    const previousCanvas = await canvas.evaluate((c: HTMLCanvasElement) => ({
+      image: c.toDataURL(),
+      width: c.width,
+      height: c.height,
+    }));
+    const previousHash = createHash("sha256")
+      .update(previousCanvas.image)
+      .digest("hex");
+    await left
+      .getByRole("button", { name: "Fit to window", exact: true })
+      .tap();
+    await expect(dialog).toHaveAttribute("data-chart-fit", "true");
+    await expect(right).toBeHidden();
+    await expect(page.getByTestId("flight-status-bar")).toBeHidden();
+    await expect(
+      dialog.getByRole("tab", { name: "FPL", exact: true }),
+    ).toHaveCount(0);
+    await expect(left.getByText("100%", { exact: true })).toBeVisible();
+    await expect(sheet).toHaveAttribute("data-ready", "true", {
+      timeout: 25000,
+    });
+    let box = await dialog.boundingBox();
+    expect(box!.x).toBeCloseTo(0, 0);
+    expect(box!.y).toBeCloseTo(0, 0);
+    expect(box!.width).toBeCloseTo(1024, 0);
+    expect(box!.height).toBeCloseTo(900, 0);
+    expect(
+      (await left.getByTestId("chart-toolbar").boundingBox())!.y,
+    ).toBeLessThan(10);
+    await page.screenshot({ path: "test-results/chart-fit-full.png" });
+    const exit = left.getByRole("button", {
+      name: "Exit fit to window",
+      exact: true,
+    });
+    expect((await exit.boundingBox())!.y).toBeGreaterThan(820);
+    await left
+      .getByRole("button", { name: "Zoom chart in", exact: true })
+      .click();
+    await exit.tap();
+    await expect(dialog).not.toHaveAttribute("data-chart-fit", "true");
+    await expect(page.getByTestId("flight-status-bar")).toBeVisible();
+    await expect(right).toBeVisible();
+    await expect(left.getByText("156%", { exact: true })).toBeVisible();
+    await expect(sheet).toHaveAttribute("data-ready", "true", {
+      timeout: 25000,
+    });
+    await expect
+      .poll(async () => canvas.evaluate((c: HTMLCanvasElement) => c.width))
+      .toBe(previousCanvas.width);
+    await expect(sheet).toHaveAttribute("data-ready", "true", {
+      timeout: 25000,
+    });
+    const restoredCanvas = await canvas.evaluate((c: HTMLCanvasElement) => ({
+      image: c.toDataURL(),
+      width: c.width,
+      height: c.height,
+    }));
+    expect(restoredCanvas.width).toBe(previousCanvas.width);
+    expect(restoredCanvas.height).toBe(previousCanvas.height);
+    expect(
+      createHash("sha256").update(restoredCanvas.image).digest("hex"),
+    ).toBe(previousHash);
+    box = await dialog.boundingBox();
+    expect(box!.x).toBeCloseTo(original!.x, 0);
+    expect(box!.width).toBeCloseTo(original!.width, 0);
+    await expect(left.getByLabel("Chart", { exact: true })).toHaveValue(
+      "a".repeat(64),
+    );
+
+    await expect(right.getByTestId("chart-pdf")).toHaveAttribute(
+      "data-ready",
+      "true",
+      { timeout: 25000 },
+    );
+    await right
+      .getByRole("button", { name: "Fit to window", exact: true })
+      .tap();
+    await expect(left).toBeHidden();
+    await right
+      .getByRole("button", { name: "Exit fit to window", exact: true })
+      .tap();
+    await expect(left).toBeVisible();
+    await expect(left.getByText("156%", { exact: true })).toBeVisible();
+
+    await right
+      .getByRole("button", {
+        name: "Sources, chart types and flight sequence",
+        exact: true,
+      })
+      .tap();
+    await page
+      .getByRole("dialog", {
+        name: "Sources, chart types and flight sequence",
+        exact: true,
+      })
+      .getByLabel("Source", { exact: true })
+      .selectOption("nord");
+    await right
+      .getByRole("button", {
+        name: "Sources, chart types and flight sequence",
+        exact: true,
+      })
+      .tap();
+    await expect(
+      right.getByRole("img", { name: /procedure chart/ }),
+    ).toBeVisible();
+    await right
+      .getByRole("button", { name: "Fit to window", exact: true })
+      .tap();
+    await expect(left).toBeHidden();
+    await right
+      .getByRole("button", { name: "Exit fit to window", exact: true })
+      .tap();
+    await expect(
+      right.getByRole("img", { name: /procedure chart/ }),
+    ).toBeVisible();
+
+    await left
+      .getByRole("button", { name: "Fit to window", exact: true })
+      .tap();
+    await left
+      .getByLabel("Chart", { exact: true })
+      .selectOption("library:Poland/EPNT/National AIP/AD4.pdf");
+    await expect(left.getByRole("alert")).toContainText(
+      "not available online",
+      { timeout: 15000 },
+    );
+    await left
+      .getByRole("button", { name: "Exit fit to window", exact: true })
+      .tap();
+    await expect(right).toBeVisible();
+    await right
+      .getByRole("button", { name: "Fit to window", exact: true })
+      .tap();
+    await right
+      .getByLabel("Arrival / right pane airport", { exact: true })
+      .fill("");
+    await expect(
+      right
+        .locator("p")
+        .filter({ hasText: "No charts match this airport and filter." }),
+    ).toBeVisible();
+    await right
+      .getByRole("button", { name: "Exit fit to window", exact: true })
+      .tap();
+    await expect(left).toBeVisible();
+
+    await page.getByTestId("flight-split-toggle").tap();
+    await page.getByRole("button", { name: "FPL", exact: true }).click();
+    await page.getByRole("tab", { name: "Charts", exact: true }).click();
+    await expect(sheet).toHaveAttribute("data-ready", "true", {
+      timeout: 25000,
+    });
+    const map = page.getByTestId("fly-map-pane");
+    await left
+      .getByRole("button", { name: "Fit to window", exact: true })
+      .tap();
+    await expect(dialog).toHaveAttribute("data-chart-fit", "true");
+    box = await dialog.boundingBox();
+    expect(box!.x).toBeCloseTo(0, 0);
+    expect(box!.width).toBeCloseTo(512, 0);
+    expect(box!.height).toBeCloseTo(900, 0);
+    expect((await map.boundingBox())!.x).toBeCloseTo(512, 0);
+    await page.screenshot({ path: "test-results/chart-fit-split-active.png" });
+    await left
+      .getByRole("button", { name: "Exit fit to window", exact: true })
+      .tap();
+    await expect(page.getByTestId("flight-status-bar")).toBeVisible();
+    await page.getByTestId("flight-split-swap").tap();
+    await left
+      .getByRole("button", { name: "Fit to window", exact: true })
+      .tap();
+    box = await dialog.boundingBox();
+    expect(box!.x).toBeCloseTo(512, 0);
+    expect(box!.width).toBeCloseTo(512, 0);
+    expect((await map.boundingBox())!.x).toBeCloseTo(0, 0);
+    await left
+      .getByRole("button", { name: "Exit fit to window", exact: true })
+      .tap();
+    await expect(page.getByTestId("flight-split-swap")).toBeVisible();
+    await page.screenshot({ path: "test-results/chart-fit-split.png" });
+  });
+});
 
 test.describe("native PDF resolution", () => {
   test.use({ deviceScaleFactor: 3, hasTouch: true });
@@ -769,6 +1023,23 @@ test("iPad chart library uses its own calibration and local PDF controls fit the
   await expect(
     left.getByRole("img", { name: "Calibrated taxi route" }),
   ).toBeVisible();
+  await left
+    .getByRole("button", { name: "Fit to window", exact: true })
+    .click();
+  await expect(left.getByTestId("chart-pdf")).toHaveAttribute(
+    "data-ready",
+    "true",
+    { timeout: 25000 },
+  );
+  await page.screenshot({ path: "test-results/chart-fit-real-pansa-ipad.png" });
+  await left
+    .getByRole("button", { name: "Exit fit to window", exact: true })
+    .click();
+  await expect(left.getByTestId("chart-pdf")).toHaveAttribute(
+    "data-ready",
+    "true",
+    { timeout: 25000 },
+  );
   const realSheet = left.getByTestId("chart-pdf");
   const initialScale = Number(
     await realSheet.getAttribute("data-render-scale"),

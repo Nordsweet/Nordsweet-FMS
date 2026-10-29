@@ -8,6 +8,8 @@ import {
   Minus,
   Plus,
   RotateCcw,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import type {
   PDFDocumentProxy,
@@ -21,17 +23,53 @@ type Camera = { x: number; y: number; scale: number };
 type ChartView = { camera: Camera; width: number; height: number };
 const CHART_RENDER_MARGIN = 128;
 
+/** Keep the way back available when a selected chart is loading or unavailable. */
+export function ChartPlaceholder({
+  children,
+  fitted,
+  onFitWindow,
+}: {
+  children: ReactNode;
+  fitted?: boolean;
+  onFitWindow?: () => void;
+}) {
+  const t = useT();
+  return (
+    <div className="relative flex min-h-32 flex-1 flex-col gap-2">
+      {children}
+      {fitted && onFitWindow && (
+        <Button
+          className="absolute right-2 bottom-2"
+          size="icon-xs"
+          variant="outline"
+          aria-label={t("charts.exitFitWindow")}
+          title={t("charts.exitFitWindow")}
+          aria-pressed="true"
+          onClick={onFitWindow}
+        >
+          <Minimize2 />
+        </Button>
+      )}
+    </div>
+  );
+}
+
 /** Shared, pointer-capture-safe chart pan/pinch/wheel surface. Each pane keeps its own camera. */
 export function ChartSurface({
   children,
   controls,
+  fitted = false,
+  onFitWindow,
 }: {
   children: ReactNode | ((view: ChartView) => ReactNode);
   controls?: ReactNode;
+  fitted?: boolean;
+  onFitWindow?: () => void;
 }) {
   const t = useT();
   const [camera, setCamera] = useState({ x: 0, y: 0, scale: 1 });
   const pointers = useRef(new Map<number, { x: number; y: number }>());
+  const previousCamera = useRef<Camera | null>(null);
   const pinchScale = useRef<number | null>(null);
   const surface = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
@@ -107,6 +145,29 @@ export function ChartSurface({
         >
           <RotateCcw />
         </Button>
+        {onFitWindow && (
+          <Button
+            size="icon-xs"
+            variant="outline"
+            aria-label={t(fitted ? "charts.exitFitWindow" : "charts.fitWindow")}
+            title={t(fitted ? "charts.exitFitWindow" : "charts.fitWindow")}
+            aria-pressed={fitted}
+            onClick={() => {
+              pointers.current.clear();
+              pinchScale.current = null;
+              if (fitted) {
+                if (previousCamera.current) setCamera(previousCamera.current);
+                previousCamera.current = null;
+              } else {
+                previousCamera.current = camera;
+                setCamera({ x: 0, y: 0, scale: 1 });
+              }
+              onFitWindow();
+            }}
+          >
+            {fitted ? <Minimize2 /> : <Maximize2 />}
+          </Button>
+        )}
       </div>
       <div
         className="relative min-h-32 flex-1 touch-none overflow-hidden rounded-xl border bg-slate-950"
@@ -415,10 +476,14 @@ export function ChartPdf({
   blob,
   overlay,
   calibrationAspectRatio,
+  fitted,
+  onFitWindow,
 }: {
   blob: Blob;
   overlay?: ReactNode;
   calibrationAspectRatio?: number;
+  fitted?: boolean;
+  onFitWindow?: () => void;
 }) {
   const t = useT();
   const [pdf, setPdf] = useState<PDFDocumentProxy | null>(null);
@@ -458,9 +523,16 @@ export function ChartPdf({
       void loading?.destroy();
     };
   }, [blob]);
-  if (error) return <p role="alert">{t("charts.pdfError")}</p>;
+  if (error)
+    return (
+      <ChartPlaceholder fitted={fitted} onFitWindow={onFitWindow}>
+        <p role="alert">{t("charts.pdfError")}</p>
+      </ChartPlaceholder>
+    );
   return (
     <ChartSurface
+      fitted={fitted}
+      onFitWindow={onFitWindow}
       controls={
         <div className="mr-auto flex items-center justify-center gap-2">
           <Button
