@@ -1,7 +1,15 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
-export type Session = { token: string; username: string; role: string };
+export type Session = {
+  token: string;
+  username: string;
+  role: string;
+  /** Zitadel sign-in only: renews `token` (see api/oidc.ts); expiresAt is epoch ms. */
+  refreshToken?: string;
+  idToken?: string;
+  expiresAt?: number;
+};
 
 type AuthStore = {
   /** null while signed out; the bearer token is `session.token`. */

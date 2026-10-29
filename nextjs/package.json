@@ -41,6 +41,7 @@
     "lucide-react": "^1.55.0",
     "magvar": "2.2.0",
     "next": "16.4.0",
+    "oauth4webapi": "^3.8.8",
     "pdfjs-dist": "6.4.299",
     "radix-ui": "^1.7.0",
     "react": "19.3.0",
