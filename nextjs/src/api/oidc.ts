@@ -60,8 +60,9 @@ export async function authorizationRequest(redirect: string, signUp = false) {
     code_challenge: await oauth.calculatePKCECodeChallenge(verifier),
     code_challenge_method: "S256",
     state,
-    // Zitadel opens its registration page instead of the sign-in page.
-    ...(signUp ? { prompt: "create" } : {}),
+    // Registration page, or a fresh authentication: a Zitadel session that this browser already holds
+    // (another pilot on a shared iPad) must not sign anyone in without a password or passkey.
+    prompt: signUp ? "create" : "login",
   }).toString();
   return { url, pending: { state, verifier } satisfies Pending };
 }

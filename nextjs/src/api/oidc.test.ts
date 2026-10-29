@@ -44,7 +44,7 @@ describe("Zitadel sign-in", () => {
     expect(url.search).not.toContain(pending.verifier);
   });
 
-  it("asks Zitadel for its registration page when signing up", async () => {
+  it("asks Zitadel to authenticate again, or for its registration page when signing up", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(() => Promise.resolve(Response.json(discovery))),

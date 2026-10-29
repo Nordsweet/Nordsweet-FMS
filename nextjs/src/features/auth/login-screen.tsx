@@ -83,46 +83,92 @@ export function LoginScreen() {
                 </p>
               )}
               <p className="text-muted-foreground text-sm">
-                {t("auth.zitadel.or")}
+                {t("auth.zitadel.hint")}
               </p>
             </div>
           )}
-          <form onSubmit={submit} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="login-username">{t("auth.username")}</Label>
-              <Input
-                id="login-username"
-                name="username"
-                autoComplete="username"
-                autoCapitalize="none"
-                spellCheck={false}
-                required
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="login-password">{t("auth.password")}</Label>
-              <Input
-                id="login-password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-              />
-            </div>
-            {message && (
-              <p role="alert" className="text-destructive text-sm">
-                {message}
-              </p>
-            )}
-            <Button type="submit" disabled={login.isPending}>
-              {t(login.isPending ? "auth.submitting" : "auth.submit")}
-            </Button>
-            {!oidcEnabled && (
-              <p className="text-muted-foreground text-sm">
-                {t("auth.noAccount")}
-              </p>
-            )}
-          </form>
+          {oidcEnabled ? (
+            <details>
+              <summary className="text-muted-foreground cursor-pointer text-sm">
+                {t("auth.legacy")}
+              </summary>
+              <div className="mt-4">
+                <form onSubmit={submit} className="flex flex-col gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="login-username">{t("auth.username")}</Label>
+                    <Input
+                      id="login-username"
+                      name="username"
+                      autoComplete="username"
+                      autoCapitalize="none"
+                      spellCheck={false}
+                      required
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="login-password">{t("auth.password")}</Label>
+                    <Input
+                      id="login-password"
+                      name="password"
+                      type="password"
+                      autoComplete="current-password"
+                      required
+                    />
+                  </div>
+                  {message && (
+                    <p role="alert" className="text-destructive text-sm">
+                      {message}
+                    </p>
+                  )}
+                  <Button type="submit" disabled={login.isPending}>
+                    {t(login.isPending ? "auth.submitting" : "auth.submit")}
+                  </Button>
+                  {!oidcEnabled && (
+                    <p className="text-muted-foreground text-sm">
+                      {t("auth.noAccount")}
+                    </p>
+                  )}
+                </form>
+              </div>
+            </details>
+          ) : (
+            <form onSubmit={submit} className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="login-username">{t("auth.username")}</Label>
+                <Input
+                  id="login-username"
+                  name="username"
+                  autoComplete="username"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  required
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="login-password">{t("auth.password")}</Label>
+                <Input
+                  id="login-password"
+                  name="password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                />
+              </div>
+              {message && (
+                <p role="alert" className="text-destructive text-sm">
+                  {message}
+                </p>
+              )}
+              <Button type="submit" disabled={login.isPending}>
+                {t(login.isPending ? "auth.submitting" : "auth.submit")}
+              </Button>
+              {!oidcEnabled && (
+                <p className="text-muted-foreground text-sm">
+                  {t("auth.noAccount")}
+                </p>
+              )}
+            </form>
+          )}
         </CardContent>
       </Card>
     </main>
