@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useT } from "~/i18n/use-t";
 import { cn } from "~/lib/utils";
+import { playChime } from "./chime";
 
 export type { PopupCategory } from "~/data/flight-notification";
 const icons = {
@@ -51,12 +52,17 @@ export function FlightPopup({
   const session = useInFlight((s) => s.startedAt);
   useEffect(() => {
     if (!recordHistory) return;
-    useFlightNotificationHistory.getState().record(session, {
+    const history = useFlightNotificationHistory.getState();
+    const alreadyRecorded =
+      history.session === session &&
+      history.entries.some((entry) => entry.id === notificationId);
+    history.record(session, {
       id: notificationId,
       category,
       message: historyMessage ?? message,
       createdAt: recordedAt ?? Date.now(),
     });
+    if (session && !alreadyRecorded) playChime(severity ? "high-low" : "high");
   }, [
     session,
     notificationId,
@@ -65,6 +71,7 @@ export function FlightPopup({
     recordedAt,
     recordHistory,
     historyMessage,
+    severity,
   ]);
   const Icon = icons[category];
   return (
