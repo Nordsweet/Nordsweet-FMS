@@ -12,9 +12,11 @@ export const authEn = {
   "auth.error.failed": "Sign-in failed ({status}). Try again later.",
   "auth.signOut": "Sign out",
   "auth.signedInAs": "Signed in as {username}",
-  "auth.zitadel": "Sign in with passkey",
+  "auth.zitadel": "Sign in",
   "auth.signup": "Sign up",
-  "auth.zitadel.or": "Or with username and password:",
+  "auth.zitadel.hint":
+    "Opens the sign-in page: use your email or username with your password, or a passkey.",
+  "auth.legacy": "Old account login",
   "auth.callback.working": "Signing you in…",
   "auth.callback.failed":
     "Sign-in failed or your account has no access. Try again.",
@@ -32,7 +34,8 @@ export const authEn = {
   "users.role.admin": "Admin",
   "users.create": "Create user",
   "users.creating": "Creating…",
-  "users.created": "User {username} created.",
+  "users.created":
+    "User {username} created. They sign in with the Sign in button, using their email or username and the initial password, and must change it.",
   "users.error.taken": "That username is already taken.",
   "users.error.forbidden": "Only admins can create users.",
   "users.error.invalid":
@@ -58,9 +61,11 @@ export const authPl: Record<keyof typeof authEn, string> = {
     "Logowanie nie powiodło się ({status}). Spróbuj później.",
   "auth.signOut": "Wyloguj",
   "auth.signedInAs": "Zalogowano jako {username}",
-  "auth.zitadel": "Zaloguj kluczem dostępu",
+  "auth.zitadel": "Zaloguj się",
   "auth.signup": "Załóż konto",
-  "auth.zitadel.or": "Albo użytkownikiem i hasłem:",
+  "auth.zitadel.hint":
+    "Otwiera stronę logowania: użyj e-maila lub nazwy użytkownika i hasła albo klucza dostępu.",
+  "auth.legacy": "Logowanie starym kontem",
   "auth.callback.working": "Logowanie…",
   "auth.callback.failed":
     "Logowanie nie powiodło się lub konto nie ma dostępu. Spróbuj ponownie.",
@@ -78,7 +83,8 @@ export const authPl: Record<keyof typeof authEn, string> = {
   "users.role.admin": "Administrator",
   "users.create": "Utwórz użytkownika",
   "users.creating": "Tworzenie…",
-  "users.created": "Użytkownik {username} został utworzony.",
+  "users.created":
+    "Użytkownik {username} został utworzony. Loguje się przyciskiem Zaloguj się, używając e-maila lub nazwy użytkownika i hasła początkowego, i musi je zmienić.",
   "users.error.taken": "Ta nazwa użytkownika jest zajęta.",
   "users.error.forbidden": "Tylko administratorzy mogą tworzyć użytkowników.",
   "users.error.invalid":
