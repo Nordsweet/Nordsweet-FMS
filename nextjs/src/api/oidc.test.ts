@@ -51,8 +51,8 @@ describe("Zitadel sign-in", () => {
     );
     const redirect = "https://fms.test/auth/callback";
     expect(
-      (await authorizationRequest(redirect)).url.searchParams.has("prompt"),
-    ).toBe(false);
+      (await authorizationRequest(redirect)).url.searchParams.get("prompt"),
+    ).toBe("login");
     expect(
       (await authorizationRequest(redirect, true)).url.searchParams.get(
         "prompt",
