@@ -1,6 +1,7 @@
 import { expect, test } from "./test";
 import { newFlight } from "../src/data/flight";
 import { newTimers } from "../src/domain/flight-timers";
+import { observeChimes, chimeNotes } from "./helpers/chimes";
 
 for (const scenario of [
   { name: "fly-over", flyOver: true, heading: 90, north: 0 },
@@ -11,6 +12,7 @@ for (const scenario of [
     page,
   }) => {
     test.setTimeout(60000);
+    await observeChimes(page);
     await page.clock.install({ time: new Date("2026-10-19T12:00:00Z") });
     await page.clock.pauseAt(new Date("2026-10-19T12:00:01Z"));
     await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (r) => r.abort());
@@ -107,10 +109,15 @@ for (const scenario of [
         return saved.state.entries.filter((e) => e.category === "heading");
       });
     expect(await history()).toEqual([]);
+    await page.keyboard.press("Shift");
     await page.clock.fastForward(10000);
     await expect(heading).toContainText(/in (9|10|11) seconds/);
-    await page.clock.fastForward(11000);
+    const initialNotes = await chimeNotes(page);
+    await page.clock.fastForward(1000);
+    expect(await chimeNotes(page)).toEqual(initialNotes);
+    await page.clock.fastForward(10000);
     await expect(heading).toContainText(/Turn Left Heading \d{3}° now/);
+    await expect.poll(() => chimeNotes(page)).toEqual([...initialNotes, 880]);
     const entries = await history();
     expect(entries).toHaveLength(1);
     expect(entries[0]!.message).toMatch(/^Turn Left Heading \d{3}°$/);
@@ -122,4 +129,5 @@ for (const scenario of [
     );
     await page.clock.fastForward(3000);
     expect(await history()).toEqual(entries);
+    expect(await chimeNotes(page)).toEqual([...initialNotes, 880]);
   });
