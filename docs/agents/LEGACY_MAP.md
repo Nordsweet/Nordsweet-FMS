@@ -98,6 +98,8 @@ Compact flight toolbar — done, Codex 2026-10-20. Current-phase dropdown in ins
 
 Flight Debrief close control — done, Codex 2026-10-20. Accessible X beside the drag handle; dismissal scoped to the ended flight, preserving saved readings and track. Browser regression covers closure before/after acceptance, timer rerenders, reload recovery and automatic opening for the next flight; full gates before develop.
 
+Notification chimes — in progress, Codex 2026-10-29. High Chime for routine flight popups and High–Low for warning/danger popups, including airspace entry. Shared audio unlock on touch/keyboard, deduplication through notification history, existing timer sound retained.
+
 Claim a row before you start (owner = agent/session name + date), commit the claim, release it when
 merged to `develop`. One owner per row.
 
