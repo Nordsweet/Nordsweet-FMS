@@ -1740,15 +1740,13 @@ export function MapView({
                 }
                 point={click.point}
                 openChart={(airport, chartId) => {
-                  useFlyPanels
-                    .getState()
-                    .openChart(
-                      routeData?.airport(airport) ?? {
-                        ...click.point,
-                        ident: airport,
-                      },
-                      chartId,
-                    );
+                  useFlyPanels.getState().openChart(
+                    routeData?.airport(airport) ?? {
+                      ...click.point,
+                      ident: airport,
+                    },
+                    chartId,
+                  );
                   setClick(null);
                   settings.setSearchOpen(false);
                   if (pathname.replace(/\/$/, "") !== "/fly")
