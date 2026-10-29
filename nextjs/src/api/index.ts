@@ -19,6 +19,8 @@ import {
   prepareTerrain,
 } from "./terrain";
 import { loadDataset } from "./datasets";
+import { loadChartCatalog, loadChartLibrary } from "./charts";
+import { chartAirports } from "~/domain/chart-browser";
 import {
   listFlights,
   removeFlight,
@@ -55,7 +57,11 @@ import {
 function query<TInput, TOutput>(
   path: string,
   resolve: (input: TInput) => Promise<TOutput>,
-  options: { staleTime?: number; gcTime?: number } = {},
+  options: {
+    staleTime?: number;
+    gcTime?: number;
+    refetchInterval?: number;
+  } = {},
 ) {
   return {
     call: resolve,
@@ -85,6 +91,13 @@ function mutation<TInput, TOutput>(
 
 /** Bundled reference data only changes with an app release. */
 const reference = { staleTime: Infinity };
+const loadAirports = async () => {
+  const [bundled, catalog] = await Promise.all([
+    loadDataset("airports"),
+    loadChartCatalog().catch(() => null),
+  ]);
+  return catalog ? chartAirports(bundled, catalog) : bundled;
+};
 /** Refresh no faster than the API's own cache (see its /llms.txt). */
 const live = (staleTime: number) => ({ staleTime });
 
@@ -177,17 +190,17 @@ export const api = {
     remove: mutation("flights.remove", (id: string) => removeFlight(id)),
   },
   airports: {
-    list: query("airports.list", () => loadDataset("airports"), reference),
+    list: query("airports.list", loadAirports, reference),
     get: query(
       "airports.get",
       async ({ code }: { code: string }) =>
-        findAirport(await loadDataset("airports"), code) ?? null,
+        findAirport(await loadAirports(), code) ?? null,
       reference,
     ),
     search: query(
       "airports.search",
       async ({ query, limit }: Search) =>
-        searchAirports(await loadDataset("airports"), query, limit),
+        searchAirports(await loadAirports(), query, limit),
       reference,
     ),
     /** Aerodrome record, METAR/TAF, ATIS and NOTAMs in one call. */
@@ -249,6 +262,14 @@ export const api = {
     ),
   },
   charts: {
+    all: query("charts.all", () => loadDataset("charts"), reference),
+    catalog: query("charts.catalog", loadChartCatalog, {
+      staleTime: HOUR,
+      refetchInterval: 30 * SECOND,
+    }),
+    library: query("charts.library", loadChartLibrary, {
+      staleTime: 5 * MINUTE,
+    }),
     byAirport: query(
       "charts.byAirport",
       async ({ airport }: { airport: string }) =>

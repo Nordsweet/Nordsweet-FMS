@@ -833,7 +833,7 @@
 .fly-popover[data-panel="fpl"] > .fly-popover-head {
   flex-shrink: 0;
 }
-.fly-popover[data-panel="fpl"] > [data-testid="flight-plan-table"] {
+.fly-popover[data-panel="fpl"] [data-testid="flight-plan-table"] {
   display: flex;
   flex-direction: column;
   flex: 1;

@@ -15,6 +15,8 @@ const types = {
   ".jpeg": "image/jpeg",
   ".pdf": "application/pdf",
   ".woff2": "font/woff2",
+  ".ttf": "font/ttf",
+  ".wasm": "application/wasm",
   ".txt": "text/plain",
 };
 http
