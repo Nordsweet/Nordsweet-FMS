@@ -2,7 +2,8 @@
 
 The app was ported from the legacy planner (the git tag `legacy-planner`, untouched reference) to the
 typed Next.js/T3 app in `nextjs/`. `develop` is where all work happens and auto-deploys to
-dev.fms.lab.vibecde.com; `main` holds the same app and is only moved when the user asks.
+dev.fms.lab.vibecde.com; `main` holds the same app, **a push to `main` deploys production** (Coolify,
+`.github/workflows/deploy-prod.yml`), so it is only moved when the user asks.
 
 Before changing anything, read:
 
