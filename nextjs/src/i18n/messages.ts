@@ -412,6 +412,10 @@ const pl = {
   "fly.comms.current": "Bieżąca · sugerowana",
   "fly.comms.next": "Następna",
   "fly.comms.suggestion": "Przejdź na {callsign}, {frequency} MHz",
+  "fly.comms.radarVerify":
+    "Sektor wg AIP — potwierdź aktywną częstotliwość z ATC.",
+  "fly.comms.pressureUnavailable":
+    "Brak wysokości ciśnieniowej — nie można określić przejścia powyżej FL95.",
   "fly.comms.atisContext":
     " (Informacja {letter}, QNH {qnh}, zaktualizowano {minutes} min temu)",
   "fly.comms.dismissSuggestion": "Zamknij sugestię zmiany częstotliwości",
@@ -1282,6 +1286,10 @@ const en: Record<MessageKey, Message> = {
   "fly.comms.current": "Current · suggested",
   "fly.comms.next": "Next",
   "fly.comms.suggestion": "Switch to {callsign}, {frequency} MHz",
+  "fly.comms.radarVerify":
+    "Published AIP sector — confirm the active frequency with ATC.",
+  "fly.comms.pressureUnavailable":
+    "Pressure altitude unavailable — the transition above FL95 cannot be determined.",
   "fly.comms.atisContext":
     " (Information {letter}, QNH {qnh}, updated {minutes} min ago)",
   "fly.comms.dismissSuggestion": "Dismiss frequency change suggestion",

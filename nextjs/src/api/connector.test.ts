@@ -66,6 +66,18 @@ describe("Connector transport", () => {
   it("accepts the native C# frame and rejects invalid coordinates and nonfinite values", () => {
     expect(parseConnectorFrame(frame)?.data?.altitudeMslFt).toBe(2500);
     expect(
+      parseConnectorFrame({
+        ...frame,
+        data: { ...frame.data, pressureAltitudeFt: 10000 },
+      })?.data?.pressureAltitudeFt,
+    ).toBe(10000);
+    expect(
+      parseConnectorFrame({
+        ...frame,
+        data: { ...frame.data, pressureAltitudeFt: Infinity },
+      }),
+    ).toBeNull();
+    expect(
       parseConnectorFrame({ ...frame, data: { ...frame.data, latitude: 91 } }),
     ).toBeNull();
     expect(

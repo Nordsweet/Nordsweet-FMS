@@ -24,6 +24,11 @@ function Rows({
       <span className="min-w-0">
         {r.callsign || t("fly.comms.noCallsign")}
         {r.sector && ` / ${r.sector}`}
+        {r.serviceId === "acc" && (
+          <span className="text-muted-foreground block text-xs">
+            {t("fly.comms.radarVerify")}
+          </span>
+        )}
       </span>
       <span className="flex shrink-0 items-center gap-1">
         <strong className="font-mono whitespace-nowrap">
@@ -60,6 +65,11 @@ export function CommsPanel({
       </p>
       <h3 className={heading}>{t("fly.comms.current")}</h3>
       <Rows rows={estimate.current} />
+      {result.pressureUnavailable && (
+        <p className="text-muted-foreground text-xs">
+          {t("fly.comms.pressureUnavailable")}
+        </p>
+      )}
       <h3 className={heading}>{t("fly.comms.next")}</h3>
       <Rows rows={estimate.next} />
       {groups.length > 0 && (

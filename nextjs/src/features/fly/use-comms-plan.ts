@@ -133,6 +133,7 @@ export function useCommsPlan(
 
   return {
     ...result,
+    pressureUnavailable: !!fresh && fresh.pressureAltitudeFt == null,
     loading: !frequencies.data || !airspace.data || imported.isPending,
   };
 }

@@ -1,6 +1,13 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import { type RadioRow, estimateComms, zoneRows } from "./comms";
+import {
+  type RadioRow,
+  estimateComms,
+  zoneRows,
+  rowsAt,
+  commsZones,
+} from "./comms";
+import { airspaceFeatureSchema } from "~/api/aviation/schemas";
 
 const row = (frequencyMhz: string, callsign: string): RadioRow => ({
   frequencyMhz,
@@ -101,5 +108,122 @@ describe("zoneRows", () => {
     ).toEqual(["125.275"]);
     expect(zoneRows(zone("FIS GDANSK WEST"), airport)).toHaveLength(1);
     expect(zoneRows(zone("FIS GDANSK"), airport)).toHaveLength(2);
+  });
+});
+
+describe("Polish FIS and Warsaw Radar", () => {
+  const zone = airspaceFeatureSchema.parse({
+    type: "Feature",
+    bbox: [19, 49, 21, 51],
+    geometry: {
+      type: "Polygon",
+      coordinates: [
+        [
+          [19, 49],
+          [21, 49],
+          [21, 51],
+          [19, 51],
+          [19, 49],
+        ],
+      ],
+    },
+    properties: {
+      name: "FIS KRAKOW W",
+      class: "G",
+      lower: "GND",
+      upper: "UNL",
+      active_now: true,
+      activations: [],
+      frequencies: [
+        {
+          frequencyMhz: "119.275",
+          callsign: "Kraków Information",
+          serviceId: "fiss",
+        },
+      ],
+    },
+  });
+  const airport = () => [];
+  it("does not select a high FL-bound local service at low GPS altitude", () => {
+    const highCtr = {
+      ...zone,
+      properties: {
+        ...zone.properties,
+        name: "CTR TEST",
+        class: "CTR",
+        lower: "FL180",
+        upper: "FL195",
+        frequencies: [
+          {
+            frequencyMhz: "120.000",
+            callsign: "Radar",
+            serviceId: "radar",
+            sector: null,
+          },
+        ],
+      },
+    };
+    expect(
+      rowsAt(
+        { lat: 49.4628, lon: 20.0507, altitudeFt: 5000 },
+        commsZones([zone, highCtr]),
+        airport,
+      )[0]?.frequencyMhz,
+    ).toBe("119.275");
+  });
+  it("uses pressure altitude at FL95, not GNSS/MSL altitude", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-10-30T12:00:00Z"));
+    try {
+      const zones = commsZones([zone]);
+      expect(
+        rowsAt(
+          {
+            lat: 49.4628,
+            lon: 20.0507,
+            altitudeFt: 10500,
+            pressureAltitudeFt: 9500,
+          },
+          zones,
+          airport,
+        )[0]?.frequencyMhz,
+      ).toBe("119.275");
+      expect(
+        rowsAt(
+          {
+            lat: 49.4628,
+            lon: 20.0507,
+            altitudeFt: 9000,
+            pressureAltitudeFt: 9501,
+          },
+          zones,
+          airport,
+        )[0],
+      ).toMatchObject({ frequencyMhz: "127.660", sector: "EPWW J LOW" });
+      expect(
+        rowsAt(
+          { lat: 49.4628, lon: 20.0507, altitudeFt: 12000 },
+          zones,
+          airport,
+        )[0]?.frequencyMhz,
+      ).toBe("119.275");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+  it("does not invent a radar channel when the AIRAC data are expired", () => {
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(new Date("2026-11-26T00:00:00Z"));
+      expect(
+        rowsAt(
+          { lat: 49.4628, lon: 20.0507, pressureAltitudeFt: 10000 },
+          commsZones([zone]),
+          airport,
+        ),
+      ).toEqual([]);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

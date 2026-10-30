@@ -13,6 +13,8 @@ export type EntryObservation = {
   inside: boolean;
   seconds: number | null;
   distanceNm: number;
+  /** A boundary transition already within controlled airspace needs information, not another clearance prompt. */
+  informationOnly?: boolean;
 };
 export type EntryVisit = EntryObservation & {
   visit: number;
@@ -33,6 +35,7 @@ export const emptyEntryMonitor: EntryMonitor = {
 
 /** Controlled C/CTR/TMA and temporary reserved TR/TRA volumes require an entry acknowledgement. */
 export function requiresEntryClearance(zone: AirspaceFeature) {
+  if (/\bFIR\b/i.test(zone.properties.name)) return false;
   const cls = zone.properties.class.toUpperCase().replace(/[^A-Z]/g, "");
   return (
     ["C", "CLASSC", "KLASAC", "TR", "TRA"].includes(cls) ||
@@ -41,6 +44,43 @@ export function requiresEntryClearance(zone: AirspaceFeature) {
     ) ||
     /^(?:EP)?TR\s*\d/i.test(zone.properties.name)
   );
+}
+
+function isFir(zone: AirspaceFeature) {
+  return /\bFIR\b/i.test(zone.properties.name);
+}
+
+function isControlled(zone: AirspaceFeature) {
+  if (isFir(zone)) return false;
+  const cls = zone.properties.class.toUpperCase().replace(/[^A-Z]/g, "");
+  return (
+    ["C", "CLASSC", "KLASAC"].includes(cls) ||
+    ["CTR", "MCTR", "TMA", "MTMA"].includes(
+      airspaceKind(zone.properties.name, zone.properties.class),
+    )
+  );
+}
+
+/** A TMA's letter/number shelves share one visit; airport names remain distinct. */
+function entryIdentity(zone: AirspaceFeature) {
+  const name = zone.properties.name
+    .trim()
+    .toUpperCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ");
+  const kind = airspaceKind(name, zone.properties.class);
+  if (kind === "TMA" || kind === "MTMA") {
+    const base = name.replace(/\s+(?:[A-Z]|\d{1,2}[A-Z]?)$/, "");
+    return `TMA:${base}`;
+  }
+  return JSON.stringify([
+    zone.properties.name,
+    zone.properties.class,
+    zone.properties.lower,
+    zone.properties.upper,
+    zone.bbox,
+  ]);
 }
 
 function boundaryDistance(zone: AirspaceFeature, point: LatLon) {
@@ -80,11 +120,16 @@ export function airspaceEntryObservations(
     verticalSpeedFpm?: number;
   },
 ): EntryObservation[] {
-  const result: EntryObservation[] = [];
-  const seen = new Set<string>();
+  const result = new Map<
+    string,
+    EntryObservation & { controlled: boolean; fir: boolean }
+  >();
   const nearbyNm = Math.max(5, position.groundSpeedKt / 30);
   for (const zone of zones) {
-    if (!requiresEntryClearance(zone) || zone.properties.active_now === false)
+    if (
+      (!requiresEntryClearance(zone) && !isFir(zone)) ||
+      zone.properties.active_now === false
+    )
       continue;
     const [west, south, east, north] = zone.bbox;
     const lonMargin =
@@ -162,24 +207,34 @@ export function airspaceEntryObservations(
         seconds = high;
       }
     }
-    const key = JSON.stringify([
-      zone.properties.name,
-      zone.properties.class,
-      zone.properties.lower,
-      zone.properties.upper,
-      zone.bbox,
-    ]);
-    if (seen.has(key)) continue;
-    seen.add(key);
-    result.push({
+    const key = entryIdentity(zone);
+    const existing = result.get(key);
+    result.set(key, {
       key,
-      name: zone.properties.name,
-      inside,
-      seconds,
-      distanceNm: distance,
+      name: existing?.name ?? zone.properties.name,
+      inside: (existing?.inside ?? false) || inside,
+      seconds:
+        existing?.seconds == null
+          ? seconds
+          : seconds == null
+            ? existing.seconds
+            : Math.min(existing.seconds, seconds),
+      distanceNm: Math.min(existing?.distanceNm ?? Infinity, distance),
+      controlled: (existing?.controlled ?? false) || isControlled(zone),
+      fir: isFir(zone),
     });
   }
-  return result;
+  const observations = [...result.values()];
+  return observations.map(({ controlled, fir, ...entry }) => ({
+    ...entry,
+    informationOnly:
+      fir ||
+      (controlled &&
+        observations.some(
+          (other) =>
+            other.key !== entry.key && other.controlled && other.inside,
+        )),
+  }));
 }
 
 /** Clearance and dismissal belong to one visit, and expire on departure or when moving away. */
@@ -194,11 +249,25 @@ export function observeEntryMonitor(
   const visits: EntryVisit[] = [];
   for (const observation of session ? observations : []) {
     const old = state.visits.find((v) => v.key === observation.key);
-    const left = old?.entered && !observation.inside;
-    if (left || (!old && observation.seconds === null)) continue;
+    const left =
+      old?.entered && !observation.inside && observation.seconds === null;
+    if (
+      left ||
+      (!old &&
+        (observation.seconds === null ||
+          (observation.informationOnly && observation.inside)))
+    )
+      continue;
     visits.push(
       old
-        ? { ...old, ...observation, entered: old.entered || observation.inside }
+        ? {
+            ...old,
+            ...observation,
+            informationOnly:
+              old.informationOnly === true ||
+              observation.informationOnly === true,
+            entered: old.entered || observation.inside,
+          }
         : {
             ...observation,
             visit: ++sequence,

@@ -3,3 +3,4 @@ out
 public
 pnpm-lock.yaml
 tests/fixtures
+src/data/warsaw-radar-sectors.json

@@ -24,6 +24,7 @@ const frameSchema = z.object({
       altitudeMslFt: finite,
       altitudeAglFt: finite,
       indicatedAltitudeFt: finite,
+      pressureAltitudeFt: finite.optional(),
       groundSpeedKt: finite.nonnegative(),
       indicatedAirspeedKt: finite.nonnegative(),
       trueAirspeedKt: finite.nonnegative(),

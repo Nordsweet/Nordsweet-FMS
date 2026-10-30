@@ -75,14 +75,20 @@ export function AirspaceEntryPopups({
     .map((v) => {
       const id = `airspace-entry:${v.visit}:${v.key}`;
       const message = t(
-        v.inside ? "airspaceEntry.inside" : "airspaceEntry.approaching",
+        v.informationOnly
+          ? v.inside
+            ? "airspaceEntry.insideInfo"
+            : "airspaceEntry.approachingInfo"
+          : v.inside
+            ? "airspaceEntry.inside"
+            : "airspaceEntry.approaching",
         { zone: v.name },
       );
       return (
         <FlightPopup
           key={id}
           category="comms"
-          severity="warning"
+          severity={v.informationOnly ? undefined : "warning"}
           testId="airspace-entry-popup"
           notificationId={id}
           message={message}
@@ -90,20 +96,22 @@ export function AirspaceEntryPopups({
         >
           <div className="flex flex-wrap items-center gap-3">
             <span className="min-w-0 flex-1">{message}</span>
-            <Button
-              size="sm"
-              onClick={() => {
-                monitor.acknowledge(v.key, true);
-                useFlightNotificationHistory.getState().record(session, {
-                  id: `${id}:cleared`,
-                  category: "comms",
-                  message: t("airspaceEntry.confirmed", { zone: v.name }),
-                  createdAt: Date.now(),
-                });
-              }}
-            >
-              {t("airspaceEntry.clear")}
-            </Button>
+            {!v.informationOnly && (
+              <Button
+                size="sm"
+                onClick={() => {
+                  monitor.acknowledge(v.key, true);
+                  useFlightNotificationHistory.getState().record(session, {
+                    id: `${id}:cleared`,
+                    category: "comms",
+                    message: t("airspaceEntry.confirmed", { zone: v.name }),
+                    createdAt: Date.now(),
+                  });
+                }}
+              >
+                {t("airspaceEntry.clear")}
+              </Button>
+            )}
           </div>
         </FlightPopup>
       );

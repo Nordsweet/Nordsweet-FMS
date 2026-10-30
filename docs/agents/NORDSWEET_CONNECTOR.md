@@ -19,7 +19,10 @@ consumers. GPX replay is unavailable while Connector is selected.
 
 Simulator altitude is already MSL in feet, and speed is GS in knots. It is not converted as GNSS
 ellipsoidal height or passed through EGM96 correction. IAS, TAS, AGL and vertical speed are carried
-as separate optional fields. `accuracyM: 0` is a sentinel for exact simulated position, not measured
+as separate optional fields. The optional `pressureAltitudeFt` is pressure altitude on 1013.25 hPa,
+used for flight-level radio boundaries; older Connector frames remain compatible. Device GPS does
+not provide this field, so the FL95 transition cannot be determined from GPS altitude alone.
+`accuracyM: 0` is a sentinel for exact simulated position, not measured
 GNSS accuracy; Connector fixes are explicitly excluded from native-GPS wind estimation and GNSS
 emergency trend measurements. The wind tile now has its own P3D path: actual TAS/true heading
 and GS/true track produce a horizontal wind-vector estimate in flight, without a GPS circle.

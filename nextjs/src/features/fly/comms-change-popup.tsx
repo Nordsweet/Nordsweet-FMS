@@ -79,7 +79,9 @@ export function CommsChangePopup({
         t("fly.comms.suggestion", {
           frequency: r.frequencyMhz,
           callsign: r.callsign || t("fly.comms.noCallsign"),
-        }) + (context ? t("fly.comms.atisContext", context) : "")
+        }) +
+        (context ? t("fly.comms.atisContext", context) : "") +
+        (r.serviceId === "acc" ? `\n${t("fly.comms.radarVerify")}` : "")
       );
     })
     .join("\n");

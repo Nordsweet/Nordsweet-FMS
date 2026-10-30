@@ -147,3 +147,117 @@ test("C/TR entry warnings acknowledge one zone, record clearance, and re-arm for
     "Pilot confirmed clearance to enter TR 165",
   );
 });
+
+test("TMA shelves share clearance and controlled/FIR transitions are informational", async ({
+  page,
+}) => {
+  test.setTimeout(90000);
+  await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (r) => r.abort());
+  const sector = (name: string, cls: string, west: number, east: number) => ({
+    type: "Feature",
+    bbox: [west, 49.99, east, 50.01],
+    geometry: {
+      type: "Polygon",
+      coordinates: [
+        [
+          [west, 49.99],
+          [east, 49.99],
+          [east, 50.01],
+          [west, 50.01],
+          [west, 49.99],
+        ],
+      ],
+    },
+    properties: {
+      name,
+      class: cls,
+      lower: "GND",
+      upper: "FL095",
+      active_now: true,
+      activations: [],
+      frequencies: [],
+    },
+  });
+  await page.route("https://aviation.lab.vibecde.com/airspace**", (r) =>
+    r.fulfill({
+      json: {
+        type: "FeatureCollection",
+        features: [
+          sector("TMA EPKK A", "C", 20, 20.04),
+          sector("TMA EPKK B", "C", 20.04, 20.08),
+          sector("CTR EPKT", "C", 20.08, 20.12),
+          sector("FIR BRATISLAVA", "G", 20.08, 20.2),
+        ],
+        sources: { test: "ok" },
+      },
+    }),
+  );
+  await page.addInitScript(
+    (flight) => {
+      localStorage.setItem("nordsweet.language.v1", "en");
+      localStorage.setItem(
+        "nordsweet.flight.v2",
+        JSON.stringify({ version: 1, state: { flight } }),
+      );
+      localStorage.setItem(
+        "nordsweet.inflight.v1",
+        JSON.stringify({
+          version: 1,
+          state: {
+            startedAt: new Date().toISOString(),
+            phase: "cruise",
+            route: [flight.departure, flight.destination],
+            activeLeg: 0,
+          },
+        }),
+      );
+      navigator.geolocation.watchPosition = (callback) => {
+        const send = () =>
+          callback({
+            timestamp: Date.now(),
+            coords: {
+              latitude: 50,
+              longitude: Number(localStorage.getItem("test.tma.lon") ?? 19.99),
+              altitude: 1524,
+              altitudeAccuracy: 5,
+              accuracy: 5,
+              speed: (120 * 1852) / 3600,
+              heading: 90,
+            },
+          } as GeolocationPosition);
+        send();
+        return window.setInterval(send, 1000);
+      };
+      navigator.geolocation.clearWatch = (id) => window.clearInterval(id);
+    },
+    {
+      ...newFlight(),
+      departure: { ident: "A", lat: 50, lon: 19.9 },
+      destination: { ident: "B", lat: 50, lon: 20.5 },
+    },
+  );
+  await page.goto("/fly");
+  const popups = page.getByTestId("airspace-entry-popup");
+  const tma = popups.filter({ hasText: "TMA EPKK" });
+  await expect(tma).toHaveCount(1, { timeout: 30000 });
+  await tma.getByRole("button", { name: "I am Cleared to Enter" }).click();
+  await page.evaluate(() => localStorage.setItem("test.tma.lon", "20.02"));
+  await expect(tma).toHaveCount(0);
+  const ctr = popups.filter({ hasText: "CTR EPKT" });
+  await expect(ctr).toBeVisible();
+  await expect(
+    ctr.getByRole("button", { name: "I am Cleared to Enter" }),
+  ).toHaveCount(0);
+  const fir = popups.filter({ hasText: "FIR BRATISLAVA" });
+  await expect(fir).toContainText("Approaching FIR BRATISLAVA");
+  await expect(
+    fir.getByRole("button", { name: "I am Cleared to Enter" }),
+  ).toHaveCount(0);
+  await page.evaluate(() => localStorage.setItem("test.tma.lon", "20.06"));
+  await page.waitForTimeout(1500);
+  await expect(tma).toHaveCount(0);
+  await page.evaluate(() => localStorage.setItem("test.tma.lon", "20.3"));
+  await expect(popups).toHaveCount(0);
+  await page.evaluate(() => localStorage.setItem("test.tma.lon", "19.99"));
+  await expect(tma).toHaveCount(1, { timeout: 15000 });
+});

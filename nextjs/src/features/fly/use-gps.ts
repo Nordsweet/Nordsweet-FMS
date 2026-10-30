@@ -20,6 +20,7 @@ export type GpsFix = {
   lat: number;
   lon: number;
   altitudeFt: number | null;
+  pressureAltitudeFt?: number;
   altitudeAccuracyM?: number | null;
   groundSpeedKt: number | null;
   trackDeg: number | null;
@@ -169,6 +170,7 @@ function startSource() {
       lat: data.latitude,
       lon: data.longitude,
       altitudeFt: data.altitudeMslFt,
+      pressureAltitudeFt: data.pressureAltitudeFt,
       groundSpeedKt: data.groundSpeedKt,
       trackDeg: data.trackTrueDeg,
       accuracyM: 0,

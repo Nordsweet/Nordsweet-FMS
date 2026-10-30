@@ -3,6 +3,7 @@ import { type AirspaceFeature } from "~/api/aviation/schemas";
 import { type FlightPhase } from "./flight-phase";
 import { type LatLon, distanceNm } from "./geo";
 import { zoneRadioRows } from "./map-radio";
+import { warsawRadarSector } from "./warsaw-radar";
 import {
   airspaceKind,
   polygonContainsPoint,
@@ -23,6 +24,8 @@ export type AirportRows = (icao: string, services: string[]) => RadioRow[];
 export type RadioPosition = LatLon & {
   altitudeFt?: number | null;
   altitudeAglFt?: number | null;
+  /** Pressure altitude on 1013.25 hPa, distinct from GNSS/MSL height. */
+  pressureAltitudeFt?: number | null;
 };
 
 const rowKey = (r: RadioRow) => [r.frequencyMhz, r.callsign].join("|");
@@ -151,9 +154,12 @@ export function rowsAt(
     ({ bbox: [w, s, e, n], geometry, properties }) =>
       properties.active_now !== false &&
       [properties.lower, properties.upper].every((limit, i) => {
+        const isFlightLevel = /^\s*FL\s*\d/i.test(limit);
         const height = /AGL|GND|SFC|SURFACE/i.test(limit)
           ? point.altitudeAglFt
-          : point.altitudeFt;
+          : isFlightLevel
+            ? (point.pressureAltitudeFt ?? point.altitudeFt)
+            : point.altitudeFt;
         const bound = airspaceAltitudeFt(limit);
         return (
           height == null ||
@@ -176,9 +182,35 @@ export function rowsAt(
     ["CTR", "MCTR"],
     ["TMA", "MTMA"],
     ["ATZ", "MATZ"],
-    ["FIS"],
-    ["OTHER"],
   ]) {
+    const candidates = containing
+      .filter(
+        (z) =>
+          types.includes(kind(z)) && (kind(z) !== "OTHER" || isEnrouteInfo(z)),
+      )
+      .sort((a, b) => area(a) - area(b));
+    for (const zone of candidates) {
+      const rows = zoneRows(zone, airport);
+      if (rows.length) return uniqueRows(rows);
+    }
+  }
+  const aboveFis =
+    point.pressureAltitudeFt != null && point.pressureAltitudeFt > 9500;
+  if (aboveFis) {
+    const radar =
+      point.pressureAltitudeFt! <= 33500 ? warsawRadarSector(point) : null;
+    if (radar) return [radar];
+    // If the published sector is missing, expired or ambiguous, never fall back
+    // to a Polish FIS channel above its ceiling or guess a radar frequency.
+    const inPolishFis = zones.some(
+      (zone) =>
+        kind(zone) === "FIS" &&
+        FIS_UNITS.some(([name]) => name.test(zone.properties.name)) &&
+        polygonContainsPoint(zone.geometry.coordinates, point),
+    );
+    if (inPolishFis) return [];
+  }
+  for (const types of [["FIS"], ["OTHER"]]) {
     const candidates = containing
       .filter(
         (z) =>
@@ -333,6 +365,16 @@ export function estimateComms(
             a.altitudeFt != null && b.altitudeFt != null
               ? a.altitudeFt + (b.altitudeFt - a.altitudeFt) * t
               : position.altitudeFt,
+          pressureAltitudeFt:
+            position.pressureAltitudeFt != null &&
+            position.altitudeFt != null &&
+            a.altitudeFt != null &&
+            b.altitudeFt != null
+              ? a.altitudeFt +
+                (b.altitudeFt - a.altitudeFt) * t +
+                position.pressureAltitudeFt -
+                position.altitudeFt
+              : position.pressureAltitudeFt,
           // AGL at a distant point is unknown without its terrain, not the current AGL.
           altitudeAglFt: null,
         }),

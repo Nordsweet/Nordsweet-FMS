@@ -58,9 +58,9 @@ State defaults: the `state = {…}` object (~line 1500). DOM refs: `refs = {…}
 
 ## 4. Work board
 
-Controlled-airspace transition alerts — claimed, Codex 2026-10-30. Share clearance across sectors of the same TMA; notify without a clearance prompt between controlled areas, including FIR boundaries.
+Controlled-airspace transition alerts — done locally, Codex 2026-10-30. TMA shelves share clearance; transitions from controlled airspace and FIR approaches use information-only notifications. Airspace unit and browser scenarios pass; full browser suite 184 passed.
 
-FIS ceiling and radar sector guidance — claimed, Codex 2026-10-30. Investigate FL95 boundary and reliable position-dependent radar frequencies.
+FIS ceiling and radar sector guidance — done locally, Codex 2026-10-30. Warsaw LOW sector primary frequencies use AIRAC-limited, conservatively bounded geometry and optional Connector pressure altitude; ATC confirmation and missing-pressure limitations are shown. Format, lint, types, 809 unit tests plus the targeted regression, production build and 184 browser tests passed. Connector demo and smoke tests passed; live P3D verification is outstanding.
 
 Vertical deviation scale — done, Codex 2026-10-29. Flight map indicator compares AMSL altitude against the interpolated active FPL profile, with centre and ±500/±1000 ft marks and bounded pointer; unavailable positions, profile or datum hide the pointer. Screenshot inspected; unit interpolation, browser profile and full checks passed.
 
