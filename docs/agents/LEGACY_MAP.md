@@ -58,6 +58,8 @@ State defaults: the `state = {…}` object (~line 1500). DOM refs: `refs = {…}
 
 ## 4. Work board
 
+FIS ceiling and radar sector guidance — claimed, Codex 2026-10-30. Investigate FL95 boundary and reliable position-dependent radar frequencies.
+
 Vertical deviation scale — done, Codex 2026-10-29. Flight map indicator compares AMSL altitude against the interpolated active FPL profile, with centre and ±500/±1000 ft marks and bounded pointer; unavailable positions, profile or datum hide the pointer. Screenshot inspected; unit interpolation, browser profile and full checks passed.
 
 Economy altitude persistence and reload guidance — done, Codex 2026-10-29. Apply saves the highest suggested en-route cruise level and real point altitudes, discards obsolete generated TOC/TOD overrides, and guidance waits for recovery and the restored profile while retaining explicit point restrictions. Verified 6000→12000 ft, reload/FPL and delayed data from an older saved plan. Format/lint/types, 787 unit tests, build and all 177 browser scenarios passed; two FPL reload timing scenarios passed on retry after independent repetitions.
