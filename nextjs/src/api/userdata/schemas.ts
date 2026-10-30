@@ -1,7 +1,5 @@
 import { z } from "zod";
 
-import { trackPointSchema } from "~/data/flight-session";
-
 /**
  * Envelopes of the Aviation API user-data routes (docs/API.md, "User data"). The flight and aircraft
  * `document`s are opaque here: their schemas stay in src/data and src/domain.
@@ -28,8 +26,11 @@ export type DocumentRow = z.infer<typeof documentRowSchema>;
 export const documentPageSchema = z.object({
   items: z.array(documentRowSchema),
   has_more: z.boolean(),
-  /** Opaque: kept and sent back exactly as received (it is a microsecond timestamp). */
-  cursor: z.string(),
+  /**
+   * Opaque: kept and sent back exactly as received (it is a microsecond timestamp). `null` when
+   * nothing has changed and no cursor was sent: a brand-new user's first pull.
+   */
+  cursor: z.string().nullable(),
 });
 
 export const conflictSchema = z.object({
@@ -158,7 +159,15 @@ export const flightLogResultSchema = z.object({
 export const flightLogTrackSchema = z.object({
   log_id: z.string(),
   point_count: z.number().int(),
-  points: z.array(trackPointSchema),
+  // Read back through the server's own date handling: any spelling of the time is fine here.
+  points: z.array(
+    z.looseObject({
+      lat: z.number(),
+      lon: z.number(),
+      altitudeFt: z.number().nullable(),
+      time: z.string(),
+    }),
+  ),
 });
 
 const importPart = z.object({

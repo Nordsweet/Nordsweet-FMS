@@ -1,8 +1,10 @@
 # Nordsweet FMS — aplikacja
 
 Next.js 16 (App Router, statyczny eksport) + React 19 + TypeScript + Tailwind CSS 4 + shadcn/ui +
-zod + TanStack Query + Zustand + deck.gl. Układ [create-t3-app](https://create.t3.gg), na razie
-bez własnego backendu. Działa offline (service worker, IndexedDB).
+zod + TanStack Query + Zustand + deck.gl. Układ [create-t3-app](https://create.t3.gg). Dane pilota
+(zapisane loty, własne samoloty, godziny i paliwo płatowców, historia lotów, ustawienia, ulubione)
+są na serwerze Aviation API; przeglądarka trzyma kopię i działa offline (service worker,
+IndexedDB). Szczegóły: [docs/agents/USER_DATA.md](../docs/agents/USER_DATA.md).
 
 ## Uruchamianie
 
@@ -43,7 +45,8 @@ Dane z poprzedniej wersji (ustawienia, zapisane trasy) są przenoszone przy pier
 - `public/data/` — dane referencyjne (JSON, źródło prawdy; edycja ręczna do czasu panelu
   administracyjnego w backendzie). Przy zmianie uruchom `pnpm test` — testy walidują pliki.
 - `src/api/` — jedyna granica danych, procedury w kształcie przyszłych routerów tRPC; dziś dane
-  referencyjne lokalnie, dane na żywo z Aviation API, loty w IndexedDB.
+  referencyjne lokalnie, dane na żywo i dane pilota z Aviation API (`src/api/userdata/`), z kopią
+  w IndexedDB/localStorage.
 - `src/stores/` — Zustand (ustawienia, bieżący lot, lot w toku). `src/i18n/` — słowniki PL/EN.
 - `tests/` — testy złote osiągów względem wyników poprzedniego planera (`tests/fixtures`), `e2e/` —
   Playwright (w tym offline, mapa, lot z symulowanym GPS).

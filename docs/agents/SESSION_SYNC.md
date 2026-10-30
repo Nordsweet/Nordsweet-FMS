@@ -8,12 +8,13 @@ opaque JSON per user; this app owns the schemas and the merging). Code: `nextjs/
 
 | collection        | id          | local working copy                                  |
 | ----------------- | ----------- | --------------------------------------------------- |
-| `settings`        | `main`      | `stores/settings.ts` (without `checklistVoiceUris`) |
-| `aircraft-state`  | `main`      | `stores/aircraft-state.ts`                          |
-| `custom-aircraft` | `main`      | `api/aircraft.ts` drafts, as `{ drafts }`           |
+| `settings`        | `main`      | the pilot surname only, `stores/settings.ts`        |
 | `draft`           | `main`      | `stores/flight.ts` (the flight being planned)       |
-| `flights`         | flight UUID | IndexedDB library, `api/flights.ts`                 |
 | `live-flight`     | `current`   | `stores/inflight.ts` + `stores/flight.ts` snapshot  |
+
+Saved flights, custom aircraft, the rest of the settings, favorites and the airframe state used to
+travel here too; they now use the typed user-data routes (USER_DATA.md). The `flights`,
+`custom-aircraft` and `aircraft-state` collections of this store are no longer written by the app.
 
 Device-local, never synced: map view, GPS source, terrain/tile caches, traffic history, ATIS reporter
 id, voice URIs, the full GPS track (`live-flight` carries the last 60 fixes; the track itself stays
@@ -48,9 +49,6 @@ The local copy stays the source of truth and the app works offline; sync mirrors
 
 - `settings`, `draft`: per field; both changed → local wins. First sync of a device adopts the server's
   copy (local defaults never overwrite it).
-- `aircraft-state`: per airframe; both changed → the later `updatedAt` (tie: the server's).
-- `custom-aircraft`: per aircraft (`baseId`, else `own:<type>`); both changed → local.
-- `flights`: per flight; both changed → union of fields, local on the same field.
 - `live-flight` is never merged. A flight from another device is offered ("take over here" /
   "keep this device"); nothing is applied or deleted until the pilot answers. Taking over uploads at
   once, so the other device is asked in turn. A remote delete (flight finished elsewhere) stops the

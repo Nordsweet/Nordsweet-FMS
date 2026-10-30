@@ -22,6 +22,14 @@ the source of truth). After backend changes to `/traffic`, `/stream` or `/status
 client and tests here. If the frontend needs a new field, change the API repo and its `docs/API.md` in
 the same piece of work.
 
+## User data
+
+What a pilot creates (saved flights, custom aircraft, airframe hours and fuel, finished flights,
+settings, favorites) lives on the Aviation API; the browser keeps an offline copy and renders from
+it. Contract: `~/Developer/aviation-api-collector/docs/API.md`, section "User data"; design and
+limits: [docs/agents/USER_DATA.md](docs/agents/USER_DATA.md). Code: `nextjs/src/api/userdata/`. Never
+change the backend from here: list what is missing as a backend request in USER_DATA.md.
+
 ## Tooling in this repo
 
 Ponytail, Karpathy guidelines and Superpowers are declared for the team in `.claude/settings.json`;

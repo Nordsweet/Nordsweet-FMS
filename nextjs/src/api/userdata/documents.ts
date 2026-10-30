@@ -63,7 +63,8 @@ export function documentSyncApi(
         );
         return {
           items: page.items.map((row) => toItem(collection, row)),
-          cursor: page.cursor,
+          // No cursor yet (a new user's first pull): stay at "never pulled".
+          cursor: page.cursor ?? since,
           has_more: page.has_more,
         };
       }),

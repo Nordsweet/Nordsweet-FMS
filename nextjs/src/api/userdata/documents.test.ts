@@ -50,9 +50,8 @@ function fakeServer() {
       return {
         items,
         has_more: false,
-        cursor: items.length
-          ? changedAt.get(items.at(-1)!.id)!
-          : (cursor ?? ""),
+        // As the server does: null when nothing changed and no cursor was sent.
+        cursor: items.length ? changedAt.get(items.at(-1)!.id)! : cursor,
       };
     },
     put: async (
@@ -139,6 +138,15 @@ describe("document sync queue", () => {
     await engine.sync();
     expect(server.pulls.at(-1)).toBe(cursor);
     expect(await kv.get("cursor")).toBe("2026-10-30T10:00:00.000002Z");
+  });
+
+  it("a new user's first pull has no cursor yet: it stays at never-pulled and asks for the full state again", async () => {
+    const { server, kv, engine } = setup();
+    await engine.sync(); // nothing on the server: it answers cursor null
+    expect(server.pulls).toEqual([null]);
+    expect(await kv.get("cursor")).toBe(0);
+    await engine.sync();
+    expect(server.pulls).toEqual([null, null]);
   });
 
   it("keeps edits made offline queued, then pulls first and pushes them (version 0 creates)", async () => {

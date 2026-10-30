@@ -126,7 +126,10 @@ export function startAirframeSync({
     used: a.state?.fuel_used_l ?? null,
   });
 
-  /** A key this device never accounted for whose values the server already holds (the import put them there). */
+  /**
+   * A key this device never accounted for whose values the server already holds (the import put them
+   * there), or whose latest reading is not older than the local one: nothing to send for it.
+   */
   function seedBase(server: Airframe[]) {
     const { states } = store.getState();
     for (const a of server) {
@@ -134,11 +137,14 @@ export function startAirframeSync({
       saved.ids[c] = a.id;
       const key = Object.keys(states).find((k) => canonicalKey(k) === c);
       if (!key || saved.base[c]) continue;
-      if (same(valuesOf(snapOf(states[key]!)), valuesOf(serverSnap(a))))
-        saved.base[c] = {
-          ...snapOf(states[key]!),
-          mode: a.fuel_indication_mode,
-        };
+      const local = states[key]!;
+      const held = same(valuesOf(snapOf(local)), valuesOf(serverSnap(a)));
+      const superseded =
+        a.state !== null &&
+        local.updatedAt !== null &&
+        local.updatedAt <= Date.parse(a.state.recorded_at);
+      if (held || superseded)
+        saved.base[c] = { ...snapOf(local), mode: a.fuel_indication_mode };
     }
   }
 

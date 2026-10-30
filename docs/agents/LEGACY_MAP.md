@@ -54,11 +54,12 @@ State defaults: the `state = {…}` object (~line 1500). DOM refs: `refs = {…}
 | `nordsweet.flight*`, `savedFlights.v1`                                                | —                                                   | **open** — check what they hold                              |
 | `nordsweet.avwxToken.v1`, `notamifyToken.v1`                                          | —                                                   | dropped on purpose (collector holds tokens)                  |
 | `nordsweet.deviceId.v1`, `syncOwner.v1`, IndexedDB `nordsweet-sync-<user>`            | —                                                   | session sync state (SESSION_SYNC.md)                         |
+| `nordsweet.userDataImported.<user>.v1`, `airframes.<user>.v1`, `favoritesBase.<user>.v1`, `settingsPending.<user>.v1`, IndexedDB `nordsweet-userdata-<user>-<collection>`, `nordsweet-flight-logs-<user>` | — | user-data sync state (USER_DATA.md) |
 | `nordsweet.companyAuth.v1`, `frequencyEditorDraft.v1`                                 | —                                                   | out of scope                                                 |
 
 ## 4. Work board
 
-User data on the backend — in progress, Claude 2026-10-30. Typed `/flights`, `/aircraft/custom`, `/me/settings`, `/me/favorites`, `/airframes`, `/flight-logs`, `/import` and `DELETE /me/data` replace the `/sync` collections `flights`, `custom-aircraft`, `settings` and `aircraft-state` (`draft`, `live-flight` and `pilotSurname` stay on `/sync`). Touches `src/api/userdata/`, `src/api/sync/`, `stores/aircraft-state.ts`, `api/aircraft.ts`, Settings. Contract: aviation-api-collector `docs/API.md` "User data".
+User data on the backend — done locally, Claude 2026-10-30 (see USER_DATA.md). Typed `/flights`, `/aircraft/custom`, `/me/settings`, `/me/favorites`, `/airframes`, `/flight-logs`, `/import` and `DELETE /me/data` replace the `/sync` collections `flights`, `custom-aircraft`, `settings` and `aircraft-state` (`draft`, `live-flight` and `pilotSurname` stay on `/sync`). Touches `src/api/userdata/`, `src/api/sync/`, `stores/aircraft-state.ts`, `api/aircraft.ts`, Settings. Contract: aviation-api-collector `docs/API.md` "User data".
 
 Controlled-airspace transition alerts — done locally, Codex 2026-10-30. TMA shelves share clearance; transitions from controlled airspace and FIR approaches use information-only notifications. Airspace unit and browser scenarios pass; full browser suite 184 passed.
 

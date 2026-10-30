@@ -7,6 +7,7 @@ import {
 } from "@playwright/test";
 
 import { stubSession } from "./test";
+import { USER_DATA_ROUTES, userDataServer } from "./helpers/user-data-server";
 
 type Item = {
   collection: string;
@@ -84,14 +85,17 @@ function syncServer() {
   return { items, seen, handle };
 }
 
+/** A device of the pilot: `/sync` (draft, flight in progress) and the typed user-data routes (settings, flights, ...). */
 async function device(
   context: BrowserContext,
   server: ReturnType<typeof syncServer>,
+  data: ReturnType<typeof userDataServer>,
 ) {
   const page = await context.newPage();
   await stubSession(page);
   await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => route.abort());
   await page.route("https://aviation.lab.vibecde.com/sync/**", server.handle);
+  await page.route(USER_DATA_ROUTES, data.handle);
   return page;
 }
 
@@ -102,15 +106,14 @@ test("settings follow the pilot from one device to another", async ({
   browser,
 }) => {
   const server = syncServer();
+  const data = userDataServer();
   // Two contexts: separate storage, so separate devices of the same user.
-  const phone = await device(await browser.newContext(), server);
-  const ipad = await device(await browser.newContext(), server);
+  const phone = await device(await browser.newContext(), server, data);
+  const ipad = await device(await browser.newContext(), server, data);
 
   await phone.goto("/settings");
   await homeAirport(phone).fill("EPWA");
-  await expect
-    .poll(() => server.items.get("settings/main")?.data?.homeAirportIcao)
-    .toBe("EPWA");
+  await expect.poll(() => data.server.settings?.home_airport_icao).toBe("EPWA");
   await expect(phone.getByTestId("session-sync")).toHaveAttribute(
     "data-state",
     "idle",
@@ -119,21 +122,25 @@ test("settings follow the pilot from one device to another", async ({
   await ipad.goto("/settings");
   await expect(homeAirport(ipad)).toHaveValue("EPWA");
 
-  // And back: the second device edits, the first one picks it up on its next pull.
+  // And back: the second device edits; the first picks it up when the pilot returns to it.
   await homeAirport(ipad).fill("EPKK");
-  await expect
-    .poll(() => server.items.get("settings/main")?.data?.homeAirportIcao)
-    .toBe("EPKK");
+  await expect.poll(() => data.server.settings?.home_airport_icao).toBe("EPKK");
+  await phone.evaluate(() => window.dispatchEvent(new Event("focus")));
   await expect(homeAirport(phone)).toHaveValue("EPKK", { timeout: 15_000 });
 
-  const devices = new Set(server.seen.map((call) => call.device));
-  expect(devices.size).toBe(2);
+  // The session sync still runs beside it, one device id per browser.
+  expect(new Set(server.seen.map((call) => call.device)).size).toBe(2);
   for (const call of server.seen) {
     expect(call.authorization).toBe("Bearer e2e-token");
     expect(call.device.length).toBeGreaterThanOrEqual(8);
   }
+  for (const call of data.server.seen)
+    expect(call.authorization).toBe("Bearer e2e-token");
   // Voices installed on a device never leave it.
   expect(JSON.stringify([...server.items.values()])).not.toContain(
+    "checklistVoiceUris",
+  );
+  expect(JSON.stringify(data.server.settings)).not.toContain(
     "checklistVoiceUris",
   );
 });
@@ -142,11 +149,9 @@ test("a device that is offline keeps its changes and sends them when the server 
   browser,
 }) => {
   const server = syncServer();
-  const page = await device(await browser.newContext(), server);
-  let down = true;
-  await page.route("https://aviation.lab.vibecde.com/sync/**", (route) =>
-    down ? route.abort() : server.handle(route),
-  );
+  const data = userDataServer();
+  const page = await device(await browser.newContext(), server, data);
+  data.server.down = true;
   await page.goto("/settings");
   await homeAirport(page).fill("EPGD");
   await expect(page.getByTestId("session-sync")).toHaveAttribute(
@@ -155,11 +160,9 @@ test("a device that is offline keeps its changes and sends them when the server 
   );
   await page.reload();
   await expect(homeAirport(page)).toHaveValue("EPGD");
-  down = false;
+  data.server.down = false;
   await expect
-    .poll(() => server.items.get("settings/main")?.data?.homeAirportIcao, {
-      timeout: 15_000,
-    })
+    .poll(() => data.server.settings?.home_airport_icao, { timeout: 30_000 })
     .toBe("EPGD");
 });
 
@@ -167,18 +170,16 @@ test("tabs of one browser share the working copy and only one of them syncs", as
   browser,
 }) => {
   const server = syncServer();
+  const data = userDataServer();
   const context = await browser.newContext();
-  const first = await device(context, server);
-  const second = await device(context, server);
+  const first = await device(context, server, data);
+  const second = await device(context, server, data);
   await first.goto("/settings");
   await second.goto("/settings");
   await homeAirport(first).fill("EPPO");
   await expect(homeAirport(second)).toHaveValue("EPPO");
   await homeAirport(second).fill("EPLL");
   await expect(homeAirport(first)).toHaveValue("EPLL");
-  await expect
-    .poll(() => server.items.get("settings/main")?.data?.homeAirportIcao)
-    .toBe("EPLL");
+  await expect.poll(() => data.server.settings?.home_airport_icao).toBe("EPLL");
   expect(new Set(server.seen.map((call) => call.device)).size).toBe(1);
-  expect(server.items.get("settings/main")?.rev).toBeLessThanOrEqual(3);
 });

@@ -41,8 +41,9 @@ export async function clearUserData(previousOwner: string) {
   indexedDB.deleteDatabase(`nordsweet-flight-logs-${previousOwner}`);
   useAircraftState.setState({ states: {}, covered: {} });
   useInspiration.setState({ favorites: [] });
+  // The per-user keys of this folder: nordsweet.<what>.<username>.v1
   for (const key of Object.keys(localStorage))
-    if (key.includes(`.${previousOwner}.`) && key.startsWith("nordsweet."))
+    if (key.startsWith("nordsweet.") && key.endsWith(`.${previousOwner}.v1`))
       localStorage.removeItem(key);
 }
 
