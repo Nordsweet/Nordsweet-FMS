@@ -1,7 +1,8 @@
 # Agents working on Nordsweet FMS
 
-The app is being ported from the legacy planner (branch `main`, untouched reference) to the typed
-Next.js/T3 app in `nextjs/` (branch `develop`, auto-deploys to dev.fms.lab.vibecde.com).
+The app was ported from the legacy planner (the git tag `legacy-planner`, untouched reference) to the
+typed Next.js/T3 app in `nextjs/`. `develop` is where all work happens and auto-deploys to
+dev.fms.lab.vibecde.com; `main` holds the same app and is only moved when the user asks.
 
 Before changing anything, read:
 
@@ -11,7 +12,9 @@ Before changing anything, read:
    and the work board: claim your area there first.
 
 Gates (from `nextjs/`): `pnpm format:write && pnpm check && pnpm build && pnpm test:e2e`.
-Never commit to `main`; never force-push `develop`.
+Commit and push to `develop`. Commit or push to `main` (merge, fast-forward, anything) **only when the
+user explicitly asks for it in that thread**; a standing instruction to "finish work" or "push" means
+`develop`. Never force-push `develop` or `main`.
 
 Finish every piece of work by pushing it to `develop` (run the gates first; merge `origin/develop`
 before pushing). Stage only your own files: other agents may have uncommitted work in the same

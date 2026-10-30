@@ -5,8 +5,8 @@ Planowanie lotu VFR, osiągi, pogoda, mapa i nawigacja w locie — aplikacja Nex
 
 | Gałąź | Rola |
 |---|---|
-| `develop` | przedprodukcyjna — https://dev.fms.lab.vibecde.com (tylko Tailscale, brak uwierzytelniania), wdrażana automatycznie ([`deploy/`](deploy/README.md)) |
-| `main` | produkcja (poprzednia wersja do czasu przełączenia) |
+| `develop` | gałąź robocza; przedprodukcyjna — https://dev.fms.lab.vibecde.com (tylko Tailscale, brak uwierzytelniania), wdrażana automatycznie ([`deploy/`](deploy/README.md)) |
+| `main` | ta sama aplikacja co `develop`; przesuwana tylko na wyraźną prośbę właściciela. Stary planer HTML: tag `legacy-planner` |
 
 ```sh
 cd nextjs

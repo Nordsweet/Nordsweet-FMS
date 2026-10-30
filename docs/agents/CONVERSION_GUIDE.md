@@ -1,6 +1,6 @@
 # Converting legacy Nordsweet code to the T3 app — guide for agents
 
-You are one of several agents porting the legacy planner (branch `main`, a pile of HTML/JS runtimes
+You are one of several agents porting the legacy planner (git tag `legacy-planner`, the old `main`, a pile of HTML/JS runtimes
 wrapped in Next.js) to the typed app on `develop` (`nextjs/`). Read this whole file before you
 start, then claim your area in [LEGACY_MAP.md](LEGACY_MAP.md).
 
@@ -70,12 +70,12 @@ Rules that keep it consistent:
 
 ```bash
 cd nextjs
-scripts/legacy/extract-main.sh          # origin/main -> /tmp/nordsweet-legacy (LEGACY_DIR)
+scripts/legacy/extract-main.sh          # tag legacy-planner -> /tmp/nordsweet-legacy (LEGACY_DIR)
 node scripts/legacy/dump-profiles.cjs   # merged aircraft profiles as legacy sees them
 ```
 
-`main` is still being changed by another developer. Re-run `extract-main.sh` before you start and
-note the `main` commit you ported from in your commit message.
+The `legacy-planner` tag is the frozen old `main`. Run `extract-main.sh` before you start and note
+that tag in your commit message.
 
 ### 3.2 Inventory the live screen
 
@@ -90,7 +90,7 @@ a full-page screenshot in `$LEGACY_DIR`. Crawl **every state**: empty, filled, e
 your hand-off note) — it is your acceptance checklist. The `LD_LIBRARY_PATH` is needed only on the
 owner's homelab machine (Chromium libs).
 
-Production may lag `main` (e.g. it doesn't load the `C172.SP-ANT` data file). `main` is the
+Production may lag the legacy planner (e.g. it doesn't load the `C172.SP-ANT` data file). The `legacy-planner` tag is the
 reference; note differences.
 
 ### 3.3 Find the legacy code
@@ -157,11 +157,11 @@ pnpm build                         # static export
 LD_LIBRARY_PATH=/tmp/libs/root/usr/lib/x86_64-linux-gnu pnpm test:e2e
 ```
 
-All four must pass. Commit per area/tab with a message that says what was ported and the `main`
-commit it came from. `develop` is pre-production: every push auto-deploys to
+All four must pass. Commit per area/tab with a message that says what was ported (and the
+`legacy-planner` reference it came from). `develop` is pre-production: every push auto-deploys to
 <https://dev.fms.lab.vibecde.com> (Tailscale-only) within ~2 minutes via the homelab timer
 (`deploy/`). Never push a red build there. Work on your own branch and rebase onto `develop`
-before pushing; never force-push `develop`; never commit to `main`.
+before pushing; never force-push `develop` or `main`; commit to `main` only when the user explicitly asks.
 
 Commits are authored as the owner and end with the agent trailer the harness gives you, e.g.:
 
