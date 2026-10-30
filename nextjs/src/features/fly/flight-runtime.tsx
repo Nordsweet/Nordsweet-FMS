@@ -32,13 +32,20 @@ export function FlightRuntime() {
   useWindEstimation();
   useAirrepUpload();
   useEmergencyTelemetry();
-  const flight = useInFlight();
+  // Only what this component reads: the store changes on every GPS fix and every second.
+  const startedAt = useInFlight((s) => s.startedAt);
+  const phase = useInFlight((s) => s.phase);
+  const holding = useInFlight((s) => s.holding);
+  const route = useInFlight((s) => s.route);
+  const activeLeg = useInFlight((s) => s.activeLeg);
   const plan = useFlight((s) => s.flight);
   const observeGps = useMapSettings((s) => s.observeGps);
   const enabled = useMapSettings((s) => s.gpsEnabled);
-  const { fix, error } = useGps(enabled || flight.startedAt !== null);
-  const turns = useTurnPerformance(flight.startedAt ? fix : null);
-  const { record, setActiveLeg, observe, tick, setFredaAvailable } = flight;
+  const { fix, error } = useGps(enabled || startedAt !== null);
+  const turns = useTurnPerformance(startedAt ? fix : null);
+  // Actions never change identity.
+  const { record, setActiveLeg, observe, tick, setFredaAvailable } =
+    useInFlight.getState();
   const [now, setNow] = useState(() => Date.now());
   const departure = useAirport(plan.departure?.ident);
   const groundData = useQuery({
@@ -48,7 +55,7 @@ export function FlightRuntime() {
     enabled: !!plan.departure,
   }).data;
   const airports = useQuery(api.airports.list.queryOptions(undefined)).data;
-  const flying = flight.startedAt !== null;
+  const flying = startedAt !== null;
   const fresh =
     fix &&
     !error &&
@@ -57,12 +64,12 @@ export function FlightRuntime() {
       ? fix
       : null;
   const height = useTerrainHeight(
-    ["descent", "landing", "taxiin"].includes(flight.phase) ? fresh : null,
+    ["descent", "landing", "taxiin"].includes(phase) ? fresh : null,
   );
   useEffect(() => {
     useEngineTimers.getState().observe({
-      session: flight.startedAt,
-      phase: flight.phase,
+      session: startedAt,
+      phase,
       now,
       sample: fresh
         ? {
@@ -73,18 +80,18 @@ export function FlightRuntime() {
           }
         : null,
     });
-  }, [flight.startedAt, flight.phase, now, fresh]);
+  }, [startedAt, phase, now, fresh]);
   useEffect(() => {
     setFredaAvailable(
       fredaAvailable(
-        flight.phase,
+        phase,
         height.mslFt,
         height.aglFt,
         plan.cruiseAltitudeFt,
       ),
     );
   }, [
-    flight.phase,
+    phase,
     setFredaAvailable,
     height.mslFt,
     height.aglFt,
@@ -93,16 +100,16 @@ export function FlightRuntime() {
   useEffect(() => {
     const now = Date.now();
     const available =
-      !error && flightGuidanceAvailable({ now, phase: flight.phase, fix });
+      !error && flightGuidanceAvailable({ now, phase, fix });
     useCruiseAltitude.getState().observe(
       {
-        session: flight.startedAt,
+        session: startedAt,
         plannedFt: plan.cruiseAltitudeFt,
-        phase: flight.phase,
+        phase,
         source: fix?.source ?? "gps",
         blocked:
-          (!!flight.holding && flight.holding.phase !== "armed") ||
-          !!flight.route[flight.activeLeg + 1]?.patternId,
+          (!!holding && holding.phase !== "armed") ||
+          !!route[activeLeg + 1]?.patternId,
         sample:
           available && fix?.altitudeFt != null
             ? {
@@ -117,11 +124,11 @@ export function FlightRuntime() {
   }, [
     fix,
     error,
-    flight.startedAt,
-    flight.phase,
-    flight.holding,
-    flight.route,
-    flight.activeLeg,
+    startedAt,
+    phase,
+    holding,
+    route,
+    activeLeg,
     plan.cruiseAltitudeFt,
   ]);
   useEffect(() => {
@@ -142,9 +149,9 @@ export function FlightRuntime() {
     )
       return;
     observeGps(fix);
-    if (!flight.startedAt) return;
-    flight.observePattern(fix, turns);
-    flight.observeHolding(fix, Date.now());
+    if (!startedAt) return;
+    useInFlight.getState().observePattern(fix, turns);
+    useInFlight.getState().observeHolding(fix, Date.now());
     const current = useInFlight.getState();
     const progress = navigationProgress(
       current.route,
@@ -155,7 +162,7 @@ export function FlightRuntime() {
     );
     if (progress && progress.activeLeg > current.activeLeg) {
       for (let i = current.activeLeg + 1; i <= progress.activeLeg; i++)
-        recordAirrep(flight.startedAt, current.route, i, fix);
+        recordAirrep(startedAt, current.route, i, fix);
     }
     const last = current.route.at(-1);
     if (
@@ -164,12 +171,12 @@ export function FlightRuntime() {
       distanceNm(last, fix) <= 0.3
     )
       recordAirrep(
-        flight.startedAt,
+        startedAt,
         current.route,
         current.route.length - 1,
         fix,
       );
-    if (progress && progress.activeLeg !== flight.activeLeg)
+    if (progress && progress.activeLeg !== activeLeg)
       setActiveLeg(progress.activeLeg);
     record({
       lat: fix.lat,
