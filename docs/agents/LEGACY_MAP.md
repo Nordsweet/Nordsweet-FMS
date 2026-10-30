@@ -58,6 +58,8 @@ State defaults: the `state = {…}` object (~line 1500). DOM refs: `refs = {…}
 
 ## 4. Work board
 
+User data on the backend — in progress, Claude 2026-10-30. Typed `/flights`, `/aircraft/custom`, `/me/settings`, `/me/favorites`, `/airframes`, `/flight-logs`, `/import` and `DELETE /me/data` replace the `/sync` collections `flights`, `custom-aircraft`, `settings` and `aircraft-state` (`draft`, `live-flight` and `pilotSurname` stay on `/sync`). Touches `src/api/userdata/`, `src/api/sync/`, `stores/aircraft-state.ts`, `api/aircraft.ts`, Settings. Contract: aviation-api-collector `docs/API.md` "User data".
+
 Controlled-airspace transition alerts — done locally, Codex 2026-10-30. TMA shelves share clearance; transitions from controlled airspace and FIR approaches use information-only notifications. Airspace unit and browser scenarios pass; full browser suite 184 passed.
 
 FIS ceiling and radar sector guidance — done locally, Codex 2026-10-30. Warsaw LOW sector primary frequencies use AIRAC-limited, conservatively bounded geometry and optional Connector pressure altitude; ATC confirmation and missing-pressure limitations are shown. Format, lint, types, 809 unit tests plus the targeted regression, production build and 184 browser tests passed. Connector demo and smoke tests passed; live P3D verification is outstanding.
