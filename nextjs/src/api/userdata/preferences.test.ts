@@ -46,7 +46,7 @@ describe("settings sync", () => {
     };
     const report = vi.fn();
     const start = () =>
-      startSettingsSync({ api: api as never, username: "pilot", report });
+      startSettingsSync({ api: api, username: "pilot", report });
     return { api, report, start };
   };
 
@@ -147,7 +147,7 @@ describe("favorites sync", () => {
     };
     const start = () =>
       startFavoritesSync({
-        api: api as never,
+        api: api,
         username: "pilot",
         report: vi.fn(),
       });

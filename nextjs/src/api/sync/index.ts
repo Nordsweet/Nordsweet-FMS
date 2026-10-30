@@ -6,7 +6,12 @@ import { useInspiration } from "~/stores/inspiration";
 import { useSettings } from "~/stores/settings";
 import { useSyncStatus } from "~/stores/sync-status";
 
-import { clearUserData, documentAdapters, startUserData } from "../userdata";
+import {
+  clearUserData,
+  documentAdapters,
+  startFlightLogCapture,
+  startUserData,
+} from "../userdata";
 import { syncAdapters } from "./adapters";
 import { createSyncApi, deviceId } from "./client";
 import { type Collection } from "./contract";
@@ -74,13 +79,7 @@ async function begin(username: string, queryClient: QueryClient) {
       return () => unsubscribe.forEach((u) => u());
     },
   });
-  const stopUserData = startUserData(username, {
-    onLogPosted: () =>
-      void queryClient.invalidateQueries({
-        predicate: (query) =>
-          String(query.queryKey[0]).startsWith("flightLogs."),
-      }),
-  });
+  const stopUserData = startUserData(username);
   return {
     engine,
     stop: () => {
@@ -104,6 +103,13 @@ export const answerOffer = (
  */
 export function startSync(username: string, queryClient: QueryClient) {
   const stopFollowing = followOtherTabs();
+  const stopLogs = startFlightLogCapture(username, {
+    onLogPosted: () =>
+      void queryClient.invalidateQueries({
+        predicate: (query) =>
+          String(query.queryKey[0]).startsWith("flightLogs."),
+      }),
+  });
   const stopRefreshing = [...syncAdapters, ...documentAdapters].flatMap(
     (adapter) => {
       const keys = staleQueries[adapter.collection];
@@ -142,6 +148,7 @@ export function startSync(username: string, queryClient: QueryClient) {
     : hold();
   locked.catch(() => undefined); // an aborted wait for the lock is a normal stop
   return () => {
+    stopLogs();
     stopFollowing();
     stopRefreshing.forEach((stop) => stop());
     cancelled.abort();

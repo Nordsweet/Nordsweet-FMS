@@ -35,8 +35,9 @@ export const aircraftStateKey = (type: string, registration: string) =>
 type Store = {
   states: Record<string, AircraftState>;
   /**
-   * Not persisted. `updatedAt` of a `record` whose reading travels inside the flight log
-   * (`POST /flight-logs`), so the airframe sync must not send it a second time.
+   * `updatedAt` of a `record` whose reading travels inside the flight log (`POST /flight-logs`), so
+   * the airframe sync must not send it a second time. Persisted: the tab that runs the sync is not
+   * always the tab where the debrief was accepted.
    */
   covered: Record<string, number>;
   models: Record<string, string>;
@@ -162,9 +163,16 @@ export const useAircraftState = create<Store>()(
       name: "nordsweet.aircraftState.v2",
       version: 1,
       storage: createJSONStorage(() => localStorage),
-      partialize: ({ states, models }) => ({ states, models }),
+      partialize: ({ states, models, covered }) => ({
+        states,
+        models,
+        covered,
+      }),
       merge: (persisted, current) => ({
         ...current,
+        covered:
+          (persisted as { covered?: Record<string, number> } | undefined)
+            ?.covered ?? {},
         models:
           (persisted as { models?: Record<string, string> } | undefined)
             ?.models ?? {},

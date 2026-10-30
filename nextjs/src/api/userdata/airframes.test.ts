@@ -47,16 +47,20 @@ const serverAirframe = (state: object | null, mode: string | null = null) => ({
   },
 });
 
+type ReadingResult = {
+  reading: { id: string };
+  warnings: { code: string; previous_mth?: number }[];
+};
+
 function setup(server: ReturnType<typeof serverAirframe>[] = []) {
   const api = {
     airframes: vi.fn(async () => ({ items: server, has_more: false })),
     resolveAirframe: vi.fn(async () => server[0] ?? serverAirframe(null)),
     addReading: vi.fn(
-      async (_id: string, _body: Record<string, unknown>) =>
-        ({ reading: { id: "r" }, warnings: [] }) as {
-          reading: { id: string };
-          warnings: { code: string; previous_mth?: number }[];
-        },
+      async (
+        _id: string,
+        _body: Record<string, unknown>,
+      ): Promise<ReadingResult> => ({ reading: { id: "r" }, warnings: [] }),
     ),
     setFuelIndicationMode: vi.fn(async () => serverAirframe(null)),
   };

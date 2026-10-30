@@ -130,10 +130,7 @@ async function importOnce(username: string, api: UserDataApi) {
  * custom aircraft (versioned documents), settings, favorites, airframe readings and finished flight logs.
  * Call it from the one tab that holds the sync lock (`api/sync`). Returns the function that stops it.
  */
-export function startUserData(
-  username: string,
-  { onLogPosted = () => undefined }: { onLogPosted?: () => void } = {},
-) {
+export function startUserData(username: string) {
   const api = createUserDataApi();
   const status = useUserDataStatus.getState();
   const stops: (() => void)[] = [];
@@ -157,13 +154,6 @@ export function startUserData(
         report: reportTo("airframes"),
         notify: status.notify,
       }),
-      startFlightLogs({
-        api,
-        username,
-        report: reportTo("flight-logs"),
-        notify: status.notify,
-        posted: onLogPosted,
-      }),
     );
   })();
   return () => {
@@ -171,4 +161,23 @@ export function startUserData(
     stops.forEach((stop) => stop());
     useUserDataStatus.getState().reset();
   };
+}
+
+/**
+ * Queues a finished flight's log when its debrief is accepted, and posts it. Runs in every tab, not
+ * only the one that holds the sync lock: the flight is flown (and its debrief accepted) in whichever
+ * tab the pilot uses, and the in-flight state is not shared between tabs. Two tabs posting the same
+ * log is harmless: the server keeps the first (the log id is the same).
+ */
+export function startFlightLogCapture(
+  username: string,
+  { onLogPosted = () => undefined }: { onLogPosted?: () => void } = {},
+) {
+  return startFlightLogs({
+    api: createUserDataApi(),
+    username,
+    report: reportTo("flight-logs"),
+    notify: useUserDataStatus.getState().notify,
+    posted: onLogPosted,
+  });
 }

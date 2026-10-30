@@ -32,7 +32,9 @@ preferences, position source URL and token, terrain tiles and the query cache.
 
 - `api/userdata/index.ts` `startUserData(username)` runs inside the tab that holds the sync lock
   (`api/sync/index.ts`). Order: import once, then one sync per source. The bearer token and the 401
-  handling are `aviationFetch`'s; nothing here reads the token.
+  handling are `aviationFetch`'s; nothing here reads the token. Flight-log capture
+  (`startFlightLogCapture`) is the exception and runs in **every** tab: the flight is flown in
+  whichever tab the pilot uses and the in-flight state is not shared between tabs.
 - **Import** (`import.ts`): once per user and device (`nordsweet.userDataImported.<user>.v1`, set only
   after every batch was answered), batches within the documented limits. Flights go as
   `{id: flight.id, document}`; drafts get a `crypto.randomUUID()` stored beside the draft
@@ -75,6 +77,9 @@ preferences, position source URL and token, terrain tiles and the query cache.
 
 ## Known limits
 
+- A brand-new device (no local data) shows nothing until an existing device has run this release and
+  uploaded its copy: data that only lives in the old `/sync` items is not read back. A one-off
+  migration from `/sync` on the server would remove that (backend request, optional).
 - Other devices' changes arrive on start, focus and reconnect, not live (no push channel on these routes).
 - Airframe state: "newer" compares the reading's `recorded_at` with this device's clock; a wrong clock
   can lose that race. Two pilots' readings are both kept on the server (append-only).

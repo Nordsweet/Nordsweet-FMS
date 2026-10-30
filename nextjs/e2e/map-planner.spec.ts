@@ -9,7 +9,7 @@ test("preparation navigation includes Logbook and shares the map plan with the f
   });
   await page.goto("/");
   const navigation = page.locator("header nav");
-  await expect(navigation.getByRole("link")).toHaveCount(6);
+  await expect(navigation.getByRole("link")).toHaveCount(7);
   await expect(navigation.getByRole("button")).toHaveCount(0);
   await expect(
     navigation.getByRole("link", { name: "Settings", exact: true }),
