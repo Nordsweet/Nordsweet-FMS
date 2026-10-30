@@ -3,7 +3,10 @@ import { aircraftSchema } from "~/api/aviation/schemas";
 import { useMapAnimation } from "~/features/map/use-map-animation";
 import type { DeckMap, DeckScene } from "~/features/map/deck";
 
-vi.mock("react", () => ({ useEffect: (effect: () => void) => effect() }));
+vi.mock("react", () => ({
+  useEffect: (effect: () => void) => effect(),
+  useRef: <T>(current: T) => ({ current }),
+}));
 afterEach(() => vi.unstubAllGlobals());
 
 test.each([

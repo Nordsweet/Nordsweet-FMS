@@ -116,8 +116,7 @@ export function captureFlight(): PendingFlight | null {
   };
   // Points are only ever appended, so length and the last point say whether the tail changed.
   if (
-    !previous ||
-    previous.track.length !== next.track.length ||
+    previous?.track.length !== next.track.length ||
     !samePoint(previous.track.at(-1), next.track.at(-1)) ||
     JSON.stringify({ ...previous, track: null }) !==
       JSON.stringify({ ...next, track: null })
@@ -136,7 +135,10 @@ export async function checkPreviousFlight() {
     });
   }
   const saved = captureFlight();
-  const local = withWholeTrack(saved ?? undefined, useInFlight.getState().track);
+  const local = withWholeTrack(
+    saved ?? undefined,
+    useInFlight.getState().track,
+  );
   let candidate = local?.snapshot.inflight.startedAt ? local : null;
   try {
     const token = useFlightSync.getState().token;

@@ -83,12 +83,7 @@ export function FlightRuntime() {
   }, [startedAt, phase, now, fresh]);
   useEffect(() => {
     setFredaAvailable(
-      fredaAvailable(
-        phase,
-        height.mslFt,
-        height.aglFt,
-        plan.cruiseAltitudeFt,
-      ),
+      fredaAvailable(phase, height.mslFt, height.aglFt, plan.cruiseAltitudeFt),
     );
   }, [
     phase,
@@ -99,8 +94,7 @@ export function FlightRuntime() {
   ]);
   useEffect(() => {
     const now = Date.now();
-    const available =
-      !error && flightGuidanceAvailable({ now, phase, fix });
+    const available = !error && flightGuidanceAvailable({ now, phase, fix });
     useCruiseAltitude.getState().observe(
       {
         session: startedAt,
@@ -170,12 +164,7 @@ export function FlightRuntime() {
       current.activeLeg === current.route.length - 2 &&
       distanceNm(last, fix) <= 0.3
     )
-      recordAirrep(
-        startedAt,
-        current.route,
-        current.route.length - 1,
-        fix,
-      );
+      recordAirrep(startedAt, current.route, current.route.length - 1, fix);
     if (progress && progress.activeLeg !== activeLeg)
       setActiveLeg(progress.activeLeg);
     record({

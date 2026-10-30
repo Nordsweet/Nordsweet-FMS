@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import vm from "node:vm";
 import { describe, expect, it, vi } from "vitest";
 
 /** Just enough of the Cache API: a cache is a map of URL to Response. */
@@ -37,13 +38,13 @@ async function install(
       listeners.set(type, fn),
     skipWaiting: vi.fn(),
   };
-  new Function("self", "caches", "importScripts", "Response", "URL", script)(
+  vm.runInNewContext(script, {
     self,
     caches,
-    () => undefined,
+    importScripts: () => undefined,
     Response,
     URL,
-  );
+  });
   let done: Promise<unknown> = Promise.resolve();
   listeners.get("install")!({ waitUntil: (p: Promise<unknown>) => (done = p) });
   await done;
