@@ -1,4 +1,4 @@
-import { get, setMany, keys, del, createStore } from "idb-keyval";
+import { get, set, setMany, keys, del, createStore } from "idb-keyval";
 import {
   geoidSchema,
   type TerrainTile,
@@ -38,6 +38,52 @@ const terrainDb = () => createStore("nordsweet-terrain-v1", "tiles");
 let database: ReturnType<typeof createStore> | undefined;
 const db = () => (database ??= terrainDb());
 
+/** 256 KB per tile in the browser database: about 98 MB at the limit. */
+export const MAX_STORED_TILES = 384;
+/** Tile key -> last time it was written or read. The tile database lists keys alphabetically, not by age. */
+let usedDatabase: ReturnType<typeof createStore> | undefined;
+const usedDb = () =>
+  (usedDatabase ??= createStore("nordsweet-terrain-used-v1", "used"));
+const USED_KEY = "lastUsed";
+let used: Promise<Map<string, number>> | undefined;
+const loadUsed = () =>
+  (used ??= get<Record<string, number>>(USED_KEY, usedDb())
+    .then((stored) => new Map(Object.entries(stored ?? {})))
+    // Private browsing can disable IndexedDB: no times, so nothing is known to be old.
+    .catch(() => new Map<string, number>()));
+const saveUsed = (times: Map<string, number>) =>
+  set(USED_KEY, Object.fromEntries(times), usedDb()).catch(() => undefined);
+
+/** A tile read from the disk cache counts as used; the times are saved at most every 5 s. */
+let usedTimer: ReturnType<typeof setTimeout> | undefined;
+async function markUsed(key: string) {
+  const times = await loadUsed();
+  times.set(key, Date.now());
+  usedTimer ??= setTimeout(() => {
+    usedTimer = undefined;
+    void saveUsed(times);
+  }, 5000);
+}
+
+/**
+ * The tiles to delete so `max` remain: the least recently used. A tile with no time (stored before
+ * times were kept) counts as the oldest. Ties go in key order so the result is stable.
+ */
+export function tilesToEvict(
+  stored: readonly string[],
+  lastUsed: ReadonlyMap<string, number>,
+  max: number,
+) {
+  if (stored.length <= max) return [];
+  return [...stored]
+    .sort(
+      (a, b) =>
+        (lastUsed.get(a) ?? 0) - (lastUsed.get(b) ?? 0) ||
+        (a < b ? -1 : a > b ? 1 : 0),
+    )
+    .slice(0, stored.length - max);
+}
+
 export async function loadGeoid() {
   const response = await fetch("/data/egm96.json");
   if (!response.ok) throw Error("EGM96 unavailable");
@@ -55,11 +101,19 @@ function flushTerrainWrites(force = false) {
   pendingWrites.clear();
   const write = setMany(entries, db())
     .then(async () => {
-      const stored = await keys(db());
-      if (stored.length > 384)
-        await Promise.all(
-          stored.slice(0, stored.length - 384).map((key) => del(key, db())),
-        );
+      const times = await loadUsed();
+      const now = Date.now();
+      for (const [key] of entries) times.set(key, now);
+      const stored = (await keys(db())).filter(
+        (key): key is string => typeof key === "string",
+      );
+      const doomed = tilesToEvict(stored, times, MAX_STORED_TILES);
+      await Promise.all(doomed.map((key) => del(key, db())));
+      // Forget times of tiles that are gone, whatever removed them.
+      const kept = new Set(stored);
+      for (const key of doomed) kept.delete(key);
+      for (const key of times.keys()) if (!kept.has(key)) times.delete(key);
+      await saveUsed(times);
     })
     .catch(() => {
       /* Optional cache: a full/denied store cannot discard decoded terrain. */
@@ -84,7 +138,10 @@ export async function loadTerrainTile(tile: {
       } catch {
         /* Private browsing can disable IndexedDB. */
       }
-      if (cached?.heights.length === 65536) return cached;
+      if (cached?.heights.length === 65536) {
+        void markUsed(key);
+        return cached;
+      }
       const response = await fetch(tileUrl(tile), {
         signal: AbortSignal.timeout(15_000),
         mode: "cors",
