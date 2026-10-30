@@ -1,4 +1,4 @@
-import { useEffect, type RefObject } from "react";
+import { useEffect, useRef, type RefObject } from "react";
 import { type TrafficAircraft } from "~/api/aviation/schemas";
 import { destinationPoint } from "~/domain/geo";
 import { mapLabelVisibility } from "~/domain/map-labels";
@@ -39,17 +39,24 @@ export function useMapAnimation({
   directRoute: { lat: number; lon: number }[] | null;
   ownIdentity: AircraftIdentity;
 }) {
+  // What the scene already shows. The effect restarts on every GPS fix and traffic poll, but the
+  // scene keeps its data in between, so only a new scene starts with an empty record.
+  const shown = useRef<{ scene: DeckScene; sent: Map<string, string> } | null>(
+    null,
+  );
   useEffect(() => {
     const map = mapRef.current,
       scene = sceneRef.current;
     if (!ready || !map || !scene) return;
+    if (shown.current?.scene !== scene)
+      shown.current = { scene, sent: new Map() };
     let request = 0,
       lastFrame = 0,
       lastTraffic = -Infinity,
       lastCamera = "",
       trafficClock = false;
     // Identical data is skipped: every update re-uploads to the GPU and redraws the whole map.
-    const sent = new Map<string, string>();
+    const sent = shown.current.sent;
     let patch: Partial<Scene> = {};
     const put = <K extends keyof Scene>(key: K, value: Scene[K]) => {
       const json = JSON.stringify(value);
