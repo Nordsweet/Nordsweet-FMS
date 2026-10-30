@@ -33,6 +33,7 @@ import {
   legacyDraft,
 } from "./flights";
 import { cachedRemote, replaceCachedRemote } from "./remote-cache";
+import { createUserDataApi } from "./userdata/client";
 import { findAirport, searchAirports, searchNavpoints } from "./search";
 import { vfrPointToNavpoint } from "./vfr-points";
 import {
@@ -101,6 +102,8 @@ const loadAirports = async () => {
 /** Refresh no faster than the API's own cache (see its /llms.txt). */
 const live = (staleTime: number) => ({ staleTime });
 
+const userData = createUserDataApi();
+
 const loadVfrPoints = () =>
   cachedRemote("aviation-api.vfr-points.v2", 24 * HOUR, async () =>
     (await aviationApi.places({ kinds: ["vfr_point"] })).places.map(
@@ -112,6 +115,32 @@ type Search = { query: string; limit?: number };
 type Icao = { icao: string };
 
 export const api = {
+  /** The signed-in user's server-side data (docs/API.md, "User data"). */
+  userData: {
+    me: query("userData.me", () => userData.me(), live(MINUTE)),
+    deleteAll: mutation("userData.deleteAll", (confirm: string) =>
+      userData.deleteMyData(confirm),
+    ),
+  },
+  /** Finished flights; keys start with "flightLogs." so the offline query cache leaves them (and their GPS tracks) out. */
+  flightLogs: {
+    page: query(
+      "flightLogs.page",
+      ({ offset }: { offset: number }) => userData.flightLogs(offset),
+      { staleTime: 0 },
+    ),
+    get: query("flightLogs.get", ({ id }: { id: string }) =>
+      userData.flightLog(id),
+    ),
+    track: query(
+      "flightLogs.track",
+      ({ id }: { id: string }) => userData.flightLogTrack(id),
+      { gcTime: MINUTE },
+    ),
+    remove: mutation("flightLogs.remove", ({ id }: { id: string }) =>
+      userData.removeFlightLog(id),
+    ),
+  },
   auth: {
     // An initial password: never in the persisted query cache.
     createUser: mutation("auth.createUser", aviationApi.createZitadelUser),

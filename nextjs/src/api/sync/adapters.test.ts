@@ -12,7 +12,6 @@ vi.stubGlobal("window", {
 });
 
 import { newFlight } from "~/data/flight";
-import { useAircraftState } from "~/stores/aircraft-state";
 import { useFlight } from "~/stores/flight";
 import { useInFlight } from "~/stores/inflight";
 import { settingsDefaults, useSettings } from "~/stores/settings";
@@ -26,103 +25,34 @@ const adapter = (name: string) =>
 beforeEach(() => {
   values.clear();
   useSettings.setState(settingsDefaults);
-  useAircraftState.setState({ states: {} });
   useFlight.getState().reset();
 });
 
 describe("settings", () => {
-  it("leaves this device's voices out and keeps them when remote settings arrive", async () => {
+  it("carries only the pilot surname (the rest travels through /me/settings) and keeps local fields", async () => {
     const settings = adapter("settings");
     useSettings.setState({
       language: "en",
+      pilotSurname: "Kowalski",
       checklistVoiceUris: { "female.pl-pl": "voice://x" },
     });
-    const local = (await settings.get("main"))!;
-    expect(local.language).toBe("en");
-    expect(local).not.toHaveProperty("checklistVoiceUris");
-    const remote = settings.parse({ language: "pl", pilotWeightKg: 80 }, 1)!;
-    expect(remote).toEqual({ language: "pl", pilotWeightKg: 80 }); // missing keys stay local
+    expect(await settings.get("main")).toEqual({ pilotSurname: "Kowalski" });
+    // Fields of an item written by an older release are ignored, not applied.
+    const remote = settings.parse(
+      { language: "pl", pilotWeightKg: 80, pilotSurname: "Nowak" },
+      1,
+    )!;
+    expect(remote).toEqual({ pilotSurname: "Nowak" });
     await settings.put("main", remote);
     expect(useSettings.getState()).toMatchObject({
-      language: "pl",
-      pilotWeightKg: 80,
+      language: "en",
+      pilotSurname: "Nowak",
       checklistVoiceUris: { "female.pl-pl": "voice://x" },
     });
   });
 
   it("refuses data of the wrong shape", () => {
-    expect(adapter("settings").parse({ language: "xx" }, 1)).toBeNull();
-  });
-});
-
-describe("aircraft-state", () => {
-  const frame = (mth: string, updatedAt: number | null) => ({
-    fuelIndicationMode: null,
-    mth,
-    fuelRemainingL: null,
-    fuelAddedL: null,
-    fuelUsedL: null,
-    updatedAt,
-  });
-  it("merges per airframe and prefers the later reading", () => {
-    const merged = adapter("aircraft-state").merge(
-      { states: { "P2006T::SP-A": frame("1.0", 1) } },
-      {
-        states: {
-          "P2006T::SP-A": frame("1.5", 5),
-          "P2006T::SP-B": frame("9.0", 2),
-        },
-      },
-      {
-        states: {
-          "P2006T::SP-A": frame("1.2", 3),
-          "C172::DEFAULT": frame("4.0", 1),
-        },
-      },
-    ) as { states: Record<string, { mth: string }> };
-    expect(
-      Object.fromEntries(
-        Object.entries(merged.states).map(([k, v]) => [k, v.mth]),
-      ),
-    ).toEqual({
-      "P2006T::SP-A": "1.5",
-      "P2006T::SP-B": "9.0",
-      "C172::DEFAULT": "4.0",
-    });
-  });
-
-  it("is not uploaded while empty", async () => {
-    expect(await adapter("aircraft-state").ids()).toEqual([]);
-  });
-});
-
-describe("custom-aircraft", () => {
-  const draft = (type: string, extra: object = {}) => ({
-    baseId: null,
-    type,
-    ...extra,
-  });
-  it("wraps the list in an object and merges drafts by aircraft", () => {
-    const merged = adapter("custom-aircraft").merge(
-      { drafts: [draft("A", { n: 1 })] },
-      { drafts: [draft("A", { n: 2 }), draft("B")] },
-      { drafts: [draft("A", { n: 1 }), draft("C")] },
-    ) as { drafts: { type: string; n?: number }[] };
-    expect(merged.drafts.map((d) => `${d.type}${d.n ?? ""}`).sort()).toEqual([
-      "A2",
-      "B",
-      "C",
-    ]);
-  });
-
-  it("round-trips through the local copy", async () => {
-    const a = adapter("custom-aircraft");
-    expect(await a.ids()).toEqual([]);
-    await a.put("main", { drafts: [draft("Mine")] });
-    expect(await a.ids()).toEqual(["main"]);
-    expect(Array.isArray(await a.get("main"))).toBe(false);
-    await a.remove("main");
-    expect(await a.ids()).toEqual([]);
+    expect(adapter("settings").parse({ pilotSurname: 3 }, 1)).toBeNull();
   });
 });
 

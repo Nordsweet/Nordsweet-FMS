@@ -1,5 +1,6 @@
 import {
   type Collection,
+  type Cursor,
   MAX_ITEM_BYTES,
   type SyncApi,
   SyncError,
@@ -270,7 +271,7 @@ export function createEngine({
   }
 
   async function pull() {
-    let cursor = (await kv.get<number>("cursor")) ?? 0;
+    let cursor: Cursor = (await kv.get<Cursor>("cursor")) ?? 0;
     for (;;) {
       let page;
       try {

@@ -81,6 +81,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
             query.queryKey[0] !== "terrain.region" &&
             query.queryKey[0] !== "charts.pdf" &&
             query.queryKey[0] !== "atisCalls.account" &&
+            // Finished flights hold GPS tracks: read from the server, never kept in the offline cache.
+            !String(query.queryKey[0]).startsWith("flightLogs.") &&
             defaultShouldDehydrateQuery(query),
         },
         maxAge: DAY_MS,

@@ -45,6 +45,8 @@ export type DistanceDraft = {
 };
 
 export type AircraftDraft = {
+  /** Minted by the app when the draft is first stored (`api/aircraft.ts`): the server's id for it. */
+  id?: string;
   /** Id of the built-in aircraft this overrides; null for an aircraft of your own. */
   baseId: string | null;
   /** JSON text per section of a built-in; a section missing here is kept as bundled. */

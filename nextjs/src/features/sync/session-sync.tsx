@@ -2,7 +2,7 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { Cloud, CloudOff, RefreshCw, TriangleAlert } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 
 import { answerOffer, startSync } from "~/api/sync";
 import { type LiveFlight } from "~/api/sync";
@@ -17,6 +17,9 @@ import { useLocale, useT } from "~/i18n/use-t";
 import { useAuth } from "~/stores/auth";
 import { useInFlight } from "~/stores/inflight";
 import { useSyncStatus } from "~/stores/sync-status";
+import { summarize, useUserDataStatus, worst } from "~/stores/userdata-status";
+
+import { UserDataNotices } from "./userdata-notices";
 
 const icons = {
   idle: Cloud,
@@ -29,7 +32,15 @@ const icons = {
 export function SessionSync() {
   const username = useAuth((s) => s.session?.username);
   const queryClient = useQueryClient();
-  const { state, reason, pending, rejected } = useSyncStatus();
+  const session = useSyncStatus();
+  const sources = useUserDataStatus((s) => s.sources);
+  // One indicator for the session sync and the typed user-data sync.
+  const data = useMemo(() => summarize(sources), [sources]);
+  const state = worst(session.state, data.state);
+  const reason =
+    data.state === state && data.reason ? data.reason : session.reason;
+  const pending = session.pending + data.pending;
+  const rejected = [...session.rejected, ...data.rejected];
   const t = useT();
   useEffect(
     () => (username ? startSync(username, queryClient) : undefined),
@@ -66,6 +77,7 @@ export function SessionSync() {
         <span className="max-sm:sr-only">{label}</span>
       </span>
       <FlightOffer />
+      <UserDataNotices />
     </>
   );
 }

@@ -3,6 +3,7 @@
 import {
   ClipboardList,
   BookOpen,
+  History,
   Compass,
   LogOut,
   type LucideIcon,
@@ -32,6 +33,7 @@ const nav: { href: string; label: MessageKey; icon: LucideIcon }[] = [
   { href: "/map", label: "nav.graphicalPlan", icon: MapIcon },
   { href: "/aircraft", label: "nav.aircraft", icon: Plane },
   { href: "/logbook", label: "nav.logbook", icon: BookOpen },
+  { href: "/history", label: "nav.history", icon: History },
   { href: "/inspire", label: "nav.inspire", icon: Compass },
 ];
 

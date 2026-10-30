@@ -25,6 +25,7 @@ import { debriefEn, debriefPl } from "./debrief";
 import { inspireEn, inspirePl } from "./inspire";
 import { authEn, authPl } from "./auth";
 import { sessionSyncEn, sessionSyncPl } from "./session-sync";
+import { userDataEn, userDataPl } from "./user-data";
 
 const pl = {
   ...chartsPl,
@@ -40,6 +41,7 @@ const pl = {
   ...inspirePl,
   ...authPl,
   ...sessionSyncPl,
+  ...userDataPl,
   ...debriefPl,
   ...aircraftReferencePl,
   ...flightPopupsPl,
@@ -925,6 +927,7 @@ const en: Record<MessageKey, Message> = {
   ...inspireEn,
   ...authEn,
   ...sessionSyncEn,
+  ...userDataEn,
   ...mapToolsEn,
   ...aircraftEditorEn,
   "maplegacy.airspace": "Airspaces",

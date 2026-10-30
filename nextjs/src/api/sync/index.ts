@@ -1,15 +1,17 @@
 import { type QueryClient } from "@tanstack/react-query";
-import { createStore, del, get, keys, set } from "idb-keyval";
 
 import { useAircraftState } from "~/stores/aircraft-state";
 import { useFlight } from "~/stores/flight";
+import { useInspiration } from "~/stores/inspiration";
 import { useSettings } from "~/stores/settings";
 import { useSyncStatus } from "~/stores/sync-status";
 
+import { clearUserData, documentAdapters, startUserData } from "../userdata";
 import { syncAdapters } from "./adapters";
 import { createSyncApi, deviceId } from "./client";
 import { type Collection } from "./contract";
-import { createEngine, type Engine, type Kv } from "./engine";
+import { createEngine, type Engine } from "./engine";
+import { idbKv } from "./kv";
 import { startRunner } from "./runner";
 
 export { deviceLabel } from "./device";
@@ -18,20 +20,10 @@ export { type LiveFlight } from "./adapters";
 const OWNER_KEY = "nordsweet.syncOwner.v1";
 const dbName = (username: string) => `nordsweet-sync-${username}`;
 
-function idbKv(username: string): Kv {
-  const store = createStore(dbName(username), "sync");
-  return {
-    get: <T>(key: string) => get<T>(key, store),
-    set: (key, value) => set(key, value, store),
-    del: (key) => del(key, store),
-    keys: async () => (await keys(store)).map(String),
-  };
-}
-
 /** Tabs of one browser share the local copy; a write by another tab reloads it here. */
 function followOtherTabs() {
   const reload = new Map(
-    [useSettings, useAircraftState, useFlight].map((store) => [
+    [useSettings, useAircraftState, useFlight, useInspiration].map((store) => [
       store.persist.getOptions().name ?? "",
       () => void store.persist.rehydrate(),
     ]),
@@ -54,18 +46,19 @@ async function claimDevice(username: string) {
   const owner = localStorage.getItem(OWNER_KEY);
   if (owner && owner !== username) {
     for (const adapter of syncAdapters) await adapter.clear();
+    await clearUserData(owner);
     indexedDB.deleteDatabase(dbName(owner));
   }
   localStorage.setItem(OWNER_KEY, username);
 }
 
-async function begin(username: string) {
+async function begin(username: string, queryClient: QueryClient) {
   await claimDevice(username);
   const device = deviceId();
   const api = createSyncApi({ device });
   const engine: Engine = createEngine({
     api,
-    kv: idbKv(username),
+    kv: idbKv(dbName(username)),
     device,
     adapters: syncAdapters,
     onStatus: (patch) => useSyncStatus.setState(patch),
@@ -81,7 +74,20 @@ async function begin(username: string) {
       return () => unsubscribe.forEach((u) => u());
     },
   });
-  return { engine, stop: stopRunner };
+  const stopUserData = startUserData(username, {
+    onLogPosted: () =>
+      void queryClient.invalidateQueries({
+        predicate: (query) =>
+          String(query.queryKey[0]).startsWith("flightLogs."),
+      }),
+  });
+  return {
+    engine,
+    stop: () => {
+      stopRunner();
+      stopUserData();
+    },
+  };
 }
 
 let active: Engine | null = null;
@@ -98,22 +104,25 @@ export const answerOffer = (
  */
 export function startSync(username: string, queryClient: QueryClient) {
   const stopFollowing = followOtherTabs();
-  const stopRefreshing = syncAdapters.flatMap((adapter) => {
-    const keys = staleQueries[adapter.collection];
-    return keys
-      ? [
-          adapter.subscribe(() =>
-            keys.forEach(
-              (key) => void queryClient.invalidateQueries({ queryKey: [key] }),
+  const stopRefreshing = [...syncAdapters, ...documentAdapters].flatMap(
+    (adapter) => {
+      const keys = staleQueries[adapter.collection];
+      return keys
+        ? [
+            adapter.subscribe(() =>
+              keys.forEach(
+                (key) =>
+                  void queryClient.invalidateQueries({ queryKey: [key] }),
+              ),
             ),
-          ),
-        ]
-      : [];
-  });
+          ]
+        : [];
+    },
+  );
   const cancelled = new AbortController();
   let end: (() => void) | undefined;
   const hold = async () => {
-    const running = await begin(username);
+    const running = await begin(username, queryClient);
     active = running.engine;
     await new Promise<void>((release) => {
       end = () => {

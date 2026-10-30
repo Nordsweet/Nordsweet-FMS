@@ -22,7 +22,8 @@ function fakeServer() {
     items.set(`${item.collection}/${item.id}`, { ...item, seq: ++seq });
   };
   const api = (device: string): SyncApi => ({
-    changes: async (since, limit = 100) => {
+    changes: async (cursor, limit = 100) => {
+      const since = Number(cursor);
       if (state.failWith) throw state.failWith;
       if (since > seq || since < state.history)
         throw new SyncError(410, "gone");

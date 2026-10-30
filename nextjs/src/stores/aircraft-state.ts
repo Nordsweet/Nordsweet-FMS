@@ -34,6 +34,11 @@ export const aircraftStateKey = (type: string, registration: string) =>
 
 type Store = {
   states: Record<string, AircraftState>;
+  /**
+   * Not persisted. `updatedAt` of a `record` whose reading travels inside the flight log
+   * (`POST /flight-logs`), so the airframe sync must not send it a second time.
+   */
+  covered: Record<string, number>;
   models: Record<string, string>;
   rememberModel: (registration: string, type: string) => void;
   /** Mode only: choosing it is a setting, not a recorded state. */
@@ -41,6 +46,7 @@ type Store = {
   record: (
     key: string,
     patch: Partial<Omit<AircraftState, "updatedAt">>,
+    options?: { viaFlightLog?: boolean },
   ) => void;
 };
 
@@ -118,6 +124,7 @@ export const useAircraftState = create<Store>()(
   persist(
     (set) => ({
       states: {},
+      covered: {},
       models: {},
       rememberModel: (registration, type) => {
         const key = normalizeRegistration(registration);
@@ -133,17 +140,23 @@ export const useAircraftState = create<Store>()(
             },
           },
         })),
-      record: (key, patch) =>
-        set((s) => ({
-          states: {
-            ...s.states,
-            [key]: {
-              ...(s.states[key] ?? emptyAircraftState),
-              ...patch,
-              updatedAt: Date.now(),
+      record: (key, patch, options) =>
+        set((s) => {
+          const updatedAt = Date.now();
+          return {
+            states: {
+              ...s.states,
+              [key]: {
+                ...(s.states[key] ?? emptyAircraftState),
+                ...patch,
+                updatedAt,
+              },
             },
-          },
-        })),
+            covered: options?.viaFlightLog
+              ? { ...s.covered, [key]: updatedAt }
+              : s.covered,
+          };
+        }),
     }),
     {
       name: "nordsweet.aircraftState.v2",

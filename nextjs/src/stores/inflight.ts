@@ -223,17 +223,17 @@ export const useInFlight = create<InFlight>()(
         };
         set({ debrief: accepted });
         if (debrief.aircraftType)
-          useAircraftState
-            .getState()
-            .record(
-              aircraftStateKey(debrief.aircraftType, debrief.registration),
-              {
-                mth: formatMth(String(result.mthAfter))!,
-                fuelRemainingL: result.fuelAfterL,
-                fuelUsedL: debriefStatistics(accepted).fuelUsedL,
-                fuelAddedL: 0,
-              },
-            );
+          useAircraftState.getState().record(
+            aircraftStateKey(debrief.aircraftType, debrief.registration),
+            {
+              mth: formatMth(String(result.mthAfter))!,
+              fuelRemainingL: result.fuelAfterL,
+              fuelUsedL: debriefStatistics(accepted).fuelUsedL,
+              fuelAddedL: 0,
+            },
+            // The server gets this reading inside the flight log (api/userdata/flight-logs.ts).
+            { viaFlightLog: true },
+          );
         return null;
       },
       startedAt: null,

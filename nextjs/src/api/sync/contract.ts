@@ -65,12 +65,15 @@ export class SyncError extends Error {
   }
 }
 
+/** `/sync` cursors are numbers; the typed user-data routes hand out opaque strings that are only echoed back. */
+export type Cursor = number | string;
+
 /** The calls the engine needs; the real one talks HTTP, tests use an in-memory server. */
 export type SyncApi = {
   changes: (
-    since: number,
+    since: Cursor,
     limit?: number,
-  ) => Promise<z.infer<typeof changesSchema>>;
+  ) => Promise<{ items: SyncItem[]; cursor: Cursor; has_more: boolean }>;
   put: (
     collection: string,
     id: string,

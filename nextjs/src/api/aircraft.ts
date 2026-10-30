@@ -14,7 +14,7 @@ export function readCustomDrafts(): AircraftDraft[] {
   try {
     const value: unknown = JSON.parse(localStorage.getItem(KEY) ?? "[]");
     // Drafts saved before a field existed get its empty default.
-    return Array.isArray(value)
+    const drafts = Array.isArray(value)
       ? (value as AircraftDraft[]).map((d) => ({
           ...emptyDraft(),
           ...d,
@@ -24,10 +24,21 @@ export function readCustomDrafts(): AircraftDraft[] {
             : { flapSpeeds: emptyDraft().flapSpeeds }),
         }))
       : [];
+    // Drafts predating the server's per-aircraft rows get their id now, so it never changes later.
+    if (drafts.some((d) => !d.id)) {
+      const identified = withIds(drafts);
+      localStorage.setItem(KEY, JSON.stringify(identified));
+      return identified;
+    }
+    return drafts;
   } catch {
     return [];
   }
 }
+
+/** The id the server stores a draft under; minted once, kept beside the draft. */
+const withIds = (drafts: AircraftDraft[]) =>
+  drafts.map((d) => (d.id ? d : { ...d, id: crypto.randomUUID() }));
 
 const listeners = new Set<() => void>();
 /** Called after the drafts change, here or in another tab of the same browser. */
@@ -44,7 +55,7 @@ export function subscribeCustomDrafts(listener: () => void) {
 }
 
 export function writeCustomDrafts(drafts: AircraftDraft[]) {
-  localStorage.setItem(KEY, JSON.stringify(drafts));
+  localStorage.setItem(KEY, JSON.stringify(withIds(drafts)));
   listeners.forEach((l) => l());
 }
 
