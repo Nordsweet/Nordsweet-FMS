@@ -106,10 +106,14 @@ describe("durable flight checkpoints", () => {
     expect(upload.mock.calls[1]![0].flight).toEqual(
       upload.mock.calls[0]![0].flight,
     );
-    expect(useFlightSync.getState().pending[0]!.track).toEqual([first, second]);
+    // The acknowledged first point left the saved copy; the newer one waits for its turn.
+    expect(useFlightSync.getState().pending[0]!.trackCount).toBe(1);
+    expect(useFlightSync.getState().pending[0]!.track).toEqual([second]);
     await flushFlights();
     expect(upload.mock.calls[2]![0].flight.trackCount).toBe(1);
+    expect(upload.mock.calls[2]![0].flight.track).toEqual([second]);
     expect(useFlightSync.getState().pending[0]!.trackCount).toBe(2);
+    expect(useFlightSync.getState().pending[0]!.track).toEqual([]);
   });
   it("keeps a completed flight queued until its final track and snapshot are acknowledged", async () => {
     const prior = captureFlight()!;
@@ -136,6 +140,38 @@ describe("durable flight checkpoints", () => {
     ).toBeNull();
     expect(useFlightSync.getState().pending[0]!.track).toEqual([first]);
     expect(useInFlight.getState().startedAt).toBeNull();
+  });
+  it("keeps only the points the server has not acknowledged, and reads the track by length and last point", async () => {
+    const points = Array.from({ length: 1200 }, (_, i) => ({
+      ...first,
+      lat: 50 + i / 10000,
+      time: new Date(Date.parse(first.time) + i * 5000).toISOString(),
+    }));
+    useInFlight.setState({ track: points });
+    captureFlight();
+    expect(useFlightSync.getState().pending[0]!.track).toHaveLength(1200);
+    const save = vi
+      .spyOn(api.flightSync.save, "call")
+      .mockResolvedValueOnce({ revision: 1, trackCount: 500 })
+      .mockResolvedValueOnce({ revision: 2, trackCount: 1000 });
+    await flushFlights();
+    await flushFlights();
+    expect(save.mock.calls[1]![0].flight.trackCount).toBe(500);
+    const saved = useFlightSync.getState().pending[0]!;
+    expect(saved.trackCount).toBe(1000);
+    expect(saved.track).toEqual(points.slice(1000));
+    // The next capture carries only what is still unsent.
+    useInFlight.setState({ track: [...points, second] });
+    expect(captureFlight()!.track).toEqual([...points.slice(1000), second]);
+  });
+  it("does not rewrite the saved checkpoint when nothing changed", () => {
+    captureFlight();
+    const before = useFlightSync.getState().pending;
+    captureFlight();
+    expect(useFlightSync.getState().pending).toBe(before);
+    useInFlight.setState({ track: [first, second] });
+    captureFlight();
+    expect(useFlightSync.getState().pending).not.toBe(before);
   });
   it("blocks conflicting writers instead of overwriting a newer checkpoint", async () => {
     captureFlight();
@@ -168,7 +204,7 @@ describe("durable flight checkpoints", () => {
     expect(useFlightSync.getState().upload).toBe(uncertain);
     await flushFlights();
     expect(upload.mock.calls[2]![0].flight).toEqual(uncertain);
-    expect(useFlightSync.getState().pending[0]!.track).toEqual([first, second]);
+    expect(useFlightSync.getState().pending[0]!.track).toEqual([second]);
   });
   it("does not offer a locally completed flight while its final checkpoint is still offline", async () => {
     const cloud = remote();

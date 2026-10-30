@@ -24,6 +24,12 @@ Frontend components use the existing `api.flightSync` boundary, never fetch from
   sending. Failed/lost requests are replayed identically. The next acknowledged revision then uploads
   any newer local tail. Active checkpoints remain local; final checkpoints leave the outbox only after
   their complete track and snapshot are acknowledged. New flights do not discard unfinished uploads.
+- The saved outbox entry and the saved request hold only the **unacknowledged tail**: `track` starts
+  at index `trackCount` (the points the server already has). The whole track stays in the in-flight
+  store and on the server, so a long flight is not rewritten to localStorage several times a second.
+  `captureFlight` decides whether anything changed from the tail length and last point. A recovery
+  candidate (`useFlightSync.candidate`) is the whole flight again (`withWholeTrack`) and is cut back
+  to its tail (`unsent`) before it is saved.
 - `pagehide` and hidden-page events attempt a final keepalive upload (under the browser's 64 KiB
   budget). Ongoing uploads provide crash protection without relying on unload. No browser can upload
   during a power loss or without network; the already acknowledged server prefix stays safe and

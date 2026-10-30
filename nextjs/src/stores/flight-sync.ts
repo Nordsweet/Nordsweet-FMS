@@ -7,6 +7,7 @@ import {
   type PendingFlight,
 } from "~/data/flight-session";
 import { flightTrackName, recoveredFlight } from "~/domain/flight-session";
+import { type TrackPoint } from "~/domain/track";
 import { useFlight } from "./flight";
 import { useInFlight } from "./inflight";
 
@@ -43,13 +44,45 @@ export const useFlightSync = create<SyncState>()(
   ),
 );
 
+/**
+ * The saved copies (`pending`, `upload`) hold only the points the server has not acknowledged:
+ * `track` starts at index `trackCount`. The acknowledged part stays in the in-flight store and on
+ * the server, so a 6 h flight is not rewritten to localStorage several times a second.
+ * A candidate offered for recovery is the whole flight again (`track` from index 0).
+ */
+const unsent = (flight: PendingFlight): PendingFlight => ({
+  ...flight,
+  track: flight.track.slice(flight.trackCount),
+});
+
+/** The whole flight again: the acknowledged part comes from `known` (the live track, or the server's). */
+function withWholeTrack(
+  saved: PendingFlight | undefined,
+  known: TrackPoint[],
+): PendingFlight | undefined {
+  if (!saved || known.length < saved.trackCount) return undefined;
+  return {
+    ...saved,
+    track: [...known.slice(0, saved.trackCount), ...saved.track],
+  };
+}
+
+const samePoint = (a?: TrackPoint, b?: TrackPoint) =>
+  a === b ||
+  (!!a &&
+    !!b &&
+    a.time === b.time &&
+    a.lat === b.lat &&
+    a.lon === b.lon &&
+    a.altitudeFt === b.altitudeFt);
+
 function replacePending(flight: PendingFlight) {
   useFlightSync.setState((s) => ({
     pending: [...s.pending.filter((p) => p.id !== flight.id), flight],
   }));
 }
 
-/** Capture only the fields already selected for durable in-flight persistence. */
+/** Capture only the fields already selected for durable in-flight persistence; `track` is the unsent tail. */
 export function captureFlight(): PendingFlight | null {
   const live = useInFlight.getState();
   const plan = useFlight.getState().flight;
@@ -79,9 +112,17 @@ export function captureFlight(): PendingFlight | null {
     revision: previous?.revision ?? 0,
     trackCount: previous?.trackCount ?? 0,
     snapshot,
-    track: live.track,
+    track: live.track.slice(previous?.trackCount ?? 0),
   };
-  if (JSON.stringify(previous) !== JSON.stringify(next)) replacePending(next);
+  // Points are only ever appended, so length and the last point say whether the tail changed.
+  if (
+    !previous ||
+    previous.track.length !== next.track.length ||
+    !samePoint(previous.track.at(-1), next.track.at(-1)) ||
+    JSON.stringify({ ...previous, track: null }) !==
+      JSON.stringify({ ...next, track: null })
+  )
+    replacePending(next);
   return next;
 }
 
@@ -94,7 +135,8 @@ export async function checkPreviousFlight() {
       token: Array.from(bytes, (n) => n.toString(16).padStart(2, "0")).join(""),
     });
   }
-  const local = captureFlight();
+  const saved = captureFlight();
+  const local = withWholeTrack(saved ?? undefined, useInFlight.getState().track);
   let candidate = local?.snapshot.inflight.startedAt ? local : null;
   try {
     const token = useFlightSync.getState().token;
@@ -107,7 +149,15 @@ export async function checkPreviousFlight() {
       candidate =
         pending?.snapshot.inflight.startedAt === null
           ? null
-          : recoveredFlight(remote, pending);
+          : recoveredFlight(
+              remote,
+              withWholeTrack(
+                pending,
+                pending?.startedAt === useInFlight.getState().startedAt
+                  ? useInFlight.getState().track
+                  : remote.track,
+              ),
+            );
     } else if (candidate) {
       const existing = await api.flightSync.get.call({
         token,
@@ -160,7 +210,7 @@ export async function continuePreviousFlight() {
         : null,
     patternPreviousFix: null,
   });
-  replacePending(flight);
+  replacePending(unsent(flight));
   useFlightSync.setState({ phase: "ready", candidate: null, busy: false });
 }
 
@@ -168,19 +218,21 @@ export async function continuePreviousFlight() {
 export function declinePreviousFlight() {
   const candidate = useFlightSync.getState().candidate;
   if (candidate) {
-    replacePending({
-      ...candidate,
-      snapshot: {
-        ...candidate.snapshot,
-        inflight: {
-          ...candidate.snapshot.inflight,
-          startedAt: null,
-          debrief: candidate.snapshot.inflight.debrief
-            ? { ...candidate.snapshot.inflight.debrief, endedAt: Date.now() }
-            : null,
+    replacePending(
+      unsent({
+        ...candidate,
+        snapshot: {
+          ...candidate.snapshot,
+          inflight: {
+            ...candidate.snapshot.inflight,
+            startedAt: null,
+            debrief: candidate.snapshot.inflight.debrief
+              ? { ...candidate.snapshot.inflight.debrief, endedAt: Date.now() }
+              : null,
+          },
         },
-      },
-    });
+      }),
+    );
   }
   if (useInFlight.getState().startedAt) useInFlight.getState().end();
   useFlightSync.setState({ phase: "ready", candidate: null, busy: false });
@@ -215,7 +267,7 @@ export async function flushFlights(keepalive = false) {
           latest.id !== flight.id
             ? [latest]
             : !latest.snapshot.inflight.startedAt &&
-                ack.trackCount === latest.track.length &&
+                ack.trackCount === latest.trackCount + latest.track.length &&
                 JSON.stringify(latest.snapshot) ===
                   JSON.stringify(flight.snapshot)
               ? []
@@ -224,6 +276,10 @@ export async function flushFlights(keepalive = false) {
                     ...latest,
                     revision: ack.revision,
                     trackCount: ack.trackCount,
+                    // Acknowledged points leave the saved copy.
+                    track: latest.track.slice(
+                      Math.max(0, ack.trackCount - latest.trackCount),
+                    ),
                   },
                 ],
         ),

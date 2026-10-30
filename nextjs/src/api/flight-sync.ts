@@ -49,7 +49,7 @@ export const flightSyncApi = {
       registration: flight.registration,
       revision: flight.revision + 1,
       offset: flight.trackCount,
-      points: flight.track.slice(flight.trackCount, flight.trackCount + 500),
+      points: flight.track.slice(0, 500),
       snapshot: flight.snapshot,
       ended: flight.snapshot.inflight.startedAt === null,
     };
