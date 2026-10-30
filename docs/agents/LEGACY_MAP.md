@@ -59,6 +59,8 @@ State defaults: the `state = {…}` object (~line 1500). DOM refs: `refs = {…}
 
 ## 4. Work board
 
+Closed-route waypoint removal — claimed, Codex 2026-10-30. Preserve route order and both airport endpoints when removing a waypoint in Map during planning.
+
 User data on the backend — done locally, Claude 2026-10-30 (see USER_DATA.md). Typed `/flights`, `/aircraft/custom`, `/me/settings`, `/me/favorites`, `/airframes`, `/flight-logs`, `/import` and `DELETE /me/data` replace the `/sync` collections `flights`, `custom-aircraft`, `settings` and `aircraft-state` (`draft`, `live-flight` and `pilotSurname` stay on `/sync`). Touches `src/api/userdata/`, `src/api/sync/`, `stores/aircraft-state.ts`, `api/aircraft.ts`, Settings. Contract: aviation-api-collector `docs/API.md` "User data".
 
 Controlled-airspace transition alerts — done locally, Codex 2026-10-30. TMA shelves share clearance; transitions from controlled airspace and FIR approaches use information-only notifications. Airspace unit and browser scenarios pass; full browser suite 184 passed.
