@@ -21,8 +21,19 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   }, [queryClient]);
 
   useEffect(() => {
-    // A 401 ends the session in aviationFetch; offline or a server error keeps working offline.
-    if (token) void api.auth.me.call().catch(() => undefined);
+    // The role is the API's, so a grant changed since sign-in shows on the next load. A 401 ends the
+    // session in aviationFetch; offline or a server error keeps working offline.
+    if (token)
+      void api.auth.me
+        .call()
+        .then(({ username, role }) =>
+          useAuth.setState((s) =>
+            s.session?.token === token
+              ? { session: { ...s.session, username, role } }
+              : s,
+          ),
+        )
+        .catch(() => undefined);
   }, [token]);
 
   return token ? children : <LoginScreen />;

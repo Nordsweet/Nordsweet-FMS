@@ -107,3 +107,23 @@ test("an old password session is dropped", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("button", { name: "Zaloguj się" })).toBeVisible();
 });
+
+test("the role comes from /auth/me on every load, not from the stored session", async ({
+  page,
+}) => {
+  await page.addInitScript(() =>
+    localStorage.setItem(
+      "nordsweet.auth.v1",
+      JSON.stringify({
+        state: {
+          session: { token: "e2e-token", username: "admin", role: "user" },
+        },
+        version: 1,
+      }),
+    ),
+  );
+  await page.goto("/settings");
+  await expect(
+    page.getByRole("button", { name: "Utwórz użytkownika" }),
+  ).toBeVisible();
+});
