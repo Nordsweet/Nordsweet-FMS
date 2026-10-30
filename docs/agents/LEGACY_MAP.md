@@ -58,6 +58,8 @@ State defaults: the `state = {…}` object (~line 1500). DOM refs: `refs = {…}
 
 ## 4. Work board
 
+Controlled-airspace transition alerts — claimed, Codex 2026-10-30. Share clearance across sectors of the same TMA; notify without a clearance prompt between controlled areas, including FIR boundaries.
+
 FIS ceiling and radar sector guidance — claimed, Codex 2026-10-30. Investigate FL95 boundary and reliable position-dependent radar frequencies.
 
 Vertical deviation scale — done, Codex 2026-10-29. Flight map indicator compares AMSL altitude against the interpolated active FPL profile, with centre and ±500/±1000 ft marks and bounded pointer; unavailable positions, profile or datum hide the pointer. Screenshot inspected; unit interpolation, browser profile and full checks passed.
