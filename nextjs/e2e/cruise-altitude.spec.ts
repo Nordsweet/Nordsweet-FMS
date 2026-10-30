@@ -1,6 +1,7 @@
 import { expect, test } from "./test";
 import { newFlight } from "../src/data/flight";
 import { newTimers } from "../src/domain/flight-timers";
+import { settleStorage } from "./helpers/storage";
 
 for (const accept of [true, false])
   test(`higher cruise level asks after two minutes; ${accept ? "YES updates the plan" : "No retains the plan without repeated prompts"}`, async ({
@@ -93,6 +94,7 @@ for (const accept of [true, false])
       .getByRole("button", { name: accept ? "YES" : "No", exact: true })
       .click();
     await expect(popup).toHaveCount(0);
+    await settleStorage(page, { clock: true });
     const values = await page.evaluate(() => {
       const saved = JSON.parse(
         localStorage.getItem("nordsweet.flight.v2")!,

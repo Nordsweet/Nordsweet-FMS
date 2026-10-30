@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "./test";
 import { newFlight } from "../src/data/flight";
 import { newTimers } from "../src/domain/flight-timers";
+import { settleStorage } from "./helpers/storage";
 
 const route = [
   { ident: "AAAA", lat: 49.9, lon: 19.8 },
@@ -168,6 +169,7 @@ test("every FPL row has red remove and white options; options open the existing 
     .getByRole("button", { name: "Remove EPKK from route", exact: true })
     .click();
   await expect(fpl.getByRole("listitem")).toHaveCount(0);
+  await settleStorage(page);
   expect((await active(page)).routeHistory?.lastPassed.ident).toBe("BBBB");
   await page.reload();
   await page.getByRole("button", { name: "FPL", exact: true }).click();
@@ -307,6 +309,7 @@ test("Direct and Divert keep passed route geometry and its straight connector af
     "2",
   );
   await details.getByRole("button", { name: "Divert", exact: true }).click();
+  await settleStorage(page);
   expect((await active(page)).routeHistory).toEqual(direct.routeHistory);
   expect((await active(page)).divertAirport).toBe("EPKK");
   await page.reload();
