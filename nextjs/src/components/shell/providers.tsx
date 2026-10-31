@@ -1,16 +1,14 @@
 "use client";
 
 import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
-import {
-  QueryClient,
-  defaultShouldDehydrateQuery,
-} from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { del, get, set } from "idb-keyval";
 import { useEffect, useState, useSyncExternalStore } from "react";
 
 import { TooltipProvider } from "~/components/ui/tooltip";
 import { api } from "~/api";
+import { shouldPersistQuery } from "~/api/persist";
 import { useFlight } from "~/stores/flight";
 import { useSettings } from "~/stores/settings";
 
@@ -76,14 +74,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       persistOptions={{
         persister,
         dehydrateOptions: {
-          // DEM Float32Arrays have their own structured-clone IndexedDB cache.
-          shouldDehydrateQuery: (query) =>
-            query.queryKey[0] !== "terrain.region" &&
-            query.queryKey[0] !== "charts.pdf" &&
-            query.queryKey[0] !== "atisCalls.account" &&
-            // Finished flights hold GPS tracks: read from the server, never kept in the offline cache.
-            !String(query.queryKey[0]).startsWith("flightLogs.") &&
-            defaultShouldDehydrateQuery(query),
+          shouldDehydrateQuery: shouldPersistQuery,
         },
         maxAge: DAY_MS,
         buster: process.env.BUILD_ID ?? "dev",

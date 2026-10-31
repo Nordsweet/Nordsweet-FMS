@@ -1,7 +1,10 @@
 import { afterEach, expect, test, vi } from "vitest";
 import { retainPassedRoute, routeHistoryPaths } from "./route-history";
 import { flyByRoute } from "./fly-by";
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.useRealTimers();
+});
 
 const route = [
   { ident: "A", lat: 50, lon: 19 },
@@ -38,6 +41,7 @@ test("after passing another real fix, freezes the previous DCT portion without r
   expect(updated?.paths.flat()).not.toContainEqual(route[2]);
 });
 test("Direct and Divert retain history through persistence and a new flight clears it", async () => {
+  vi.useFakeTimers();
   const storage = new Map<string, string>();
   vi.stubGlobal("localStorage", {
     getItem: (key: string) => storage.get(key) ?? null,
@@ -53,6 +57,8 @@ test("Direct and Divert retain history through persistence and a new flight clea
   expect(useInFlight.getState().routeHistory?.lastPassed).toEqual(route[1]);
   store.divertTo({ ident: "OTHER", lat: 52, lon: 19 }, { lat: 50.6, lon: 20 });
   expect(useInFlight.getState().routeHistory?.lastPassed).toEqual(route[1]);
+  // The flight in progress is written at most every 2 s.
+  vi.advanceTimersByTime(2000);
   const saved = JSON.parse(storage.get("nordsweet.inflight.v1")!) as {
     state: { routeHistory: unknown };
   };

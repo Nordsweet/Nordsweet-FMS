@@ -159,8 +159,8 @@ LD_LIBRARY_PATH=/tmp/libs/root/usr/lib/x86_64-linux-gnu pnpm test:e2e
 
 All four must pass. Commit per area/tab with a message that says what was ported (and the
 `legacy-planner` reference it came from). `develop` is pre-production: every push auto-deploys to
-<https://dev.fms.lab.vibecde.com> (Tailscale-only) within ~2 minutes via the homelab timer
-(`deploy/`). Never push a red build there. Work on your own branch and rebase onto `develop`
+<https://dev.fms.lab.vibecde.com> (Tailscale-only) through Coolify
+(`.github/workflows/deploy-dev.yml`, `deploy/`). Never push a red build there. Work on your own branch and rebase onto `develop`
 before pushing; never force-push `develop` or `main`; commit to `main` only when the user explicitly asks.
 
 Commits are authored as the owner and end with the agent trailer the harness gives you, e.g.:

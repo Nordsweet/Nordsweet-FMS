@@ -9,6 +9,7 @@ import {
 import { type TrafficPattern } from "../src/data/traffic-pattern";
 import { destinationPoint, distanceNm } from "../src/domain/geo";
 import { flyByRoute } from "../src/domain/fly-by";
+import { settleStorage } from "./helpers/storage";
 const raw = JSON.parse(
   fs.readFileSync("public/data/airports.json", "utf8"),
 ) as { ident: string }[];
@@ -313,8 +314,9 @@ for (const active of [false, true]) {
         { airport, waypoint },
       );
     }
-    const saved = () =>
-      page.evaluate(() => {
+    const saved = async () => {
+      await settleStorage(page);
+      return page.evaluate(() => {
         const flight = (
           JSON.parse(localStorage.getItem("nordsweet.flight.v2")!) as {
             state: { flight: Flight };
@@ -329,6 +331,7 @@ for (const active of [false, true]) {
         )?.state;
         return { flight, route: navigation?.route };
       });
+    };
     await page.goto(active ? "/fly" : "/map");
     const departurePanel = await open(page, "EPNT", "Departure");
     await expect(
@@ -1120,6 +1123,7 @@ for (const gps of ["denied", "unavailable", "stale"] as const) {
     await expect(accept).toBeEnabled();
     await expect(page.locator("[data-pattern-preview='true']")).toBeVisible();
     await accept.click();
+    await settleStorage(page);
     const readActive = () =>
       page.evaluate(
         () =>

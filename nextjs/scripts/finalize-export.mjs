@@ -31,21 +31,30 @@ const precache = entries
       path.relative(root, f).split(path.sep).map(encodeURIComponent).join("/"),
   );
 precache.push("/");
+const read = (url) =>
+  fs.readFileSync(
+    path.join(
+      root,
+      decodeURIComponent((url === "/" ? "/index.html" : url).slice(1)),
+    ),
+  );
+// One hash per file lets a new release reuse the unchanged files of the previous cache.
+const hashes = Object.fromEntries(
+  precache.map((url) => [
+    url,
+    crypto.createHash("sha256").update(read(url)).digest("hex").slice(0, 16),
+  ]),
+);
 const digest = crypto.createHash("sha256");
-for (const url of precache) {
-  if (url !== "/")
-    digest
-      .update(url)
-      .update(
-        fs.readFileSync(path.join(root, decodeURIComponent(url.slice(1)))),
-      );
-}
+for (const url of precache)
+  if (url !== "/") digest.update(url).update(hashes[url]);
 fs.writeFileSync(
   path.join(root, "precache-manifest.js"),
   "self.NORDSWEET_PRECACHE=" +
     JSON.stringify({
       version: digest.digest("hex").slice(0, 16),
       urls: precache,
+      hashes,
     }) +
     ";\n",
 );

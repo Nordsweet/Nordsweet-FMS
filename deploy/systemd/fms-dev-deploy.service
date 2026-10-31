@@ -1,6 +1,0 @@
-[Unit]
-Description=Deploy Nordsweet FMS develop to dev.fms.lab.vibecde.com
-
-[Service]
-Type=oneshot
-ExecStart=/srv/stacks/fms-dev/repo/deploy/homelab-deploy.sh

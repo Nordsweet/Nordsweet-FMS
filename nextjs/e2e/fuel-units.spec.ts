@@ -1,6 +1,7 @@
 import { test, expect } from "./test";
 import { newFlight } from "../src/data/flight";
 import { newTimers } from "../src/domain/flight-timers";
+import { settleStorage } from "./helpers/storage";
 
 test.beforeEach(async ({ page }) => {
   await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (r) => r.abort());
@@ -174,6 +175,7 @@ test("C172S FREDA accepts gallons and logs the check in gallons", async ({
   await dialog.getByLabel("Left tank [US gal]").fill("10");
   await dialog.getByLabel("Right tank [US gal]").fill("11");
   await dialog.getByRole("button", { name: /Complete/i }).click();
+  await settleStorage(page);
   const state = await page.evaluate(
     () =>
       (

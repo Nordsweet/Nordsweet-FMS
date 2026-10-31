@@ -57,7 +57,7 @@ async function claimDevice(username: string) {
   localStorage.setItem(OWNER_KEY, username);
 }
 
-async function begin(username: string, queryClient: QueryClient) {
+async function begin(username: string) {
   await claimDevice(username);
   const device = deviceId();
   const api = createSyncApi({ device });
@@ -128,7 +128,7 @@ export function startSync(username: string, queryClient: QueryClient) {
   const cancelled = new AbortController();
   let end: (() => void) | undefined;
   const hold = async () => {
-    const running = await begin(username, queryClient);
+    const running = await begin(username);
     active = running.engine;
     await new Promise<void>((release) => {
       end = () => {

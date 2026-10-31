@@ -5,6 +5,7 @@ import { create } from "zustand";
 import { retainPassedRoute, type RouteHistory } from "~/domain/route-history";
 import { safeWaypointIndex } from "~/domain/waypoint-insertion";
 import { createJSONStorage, persist } from "zustand/middleware";
+import { throttledStorage } from "./throttled-storage";
 import { debriefSchema, type Debrief } from "~/data/debrief";
 import {
   validateDebrief,
@@ -823,7 +824,8 @@ export const useInFlight = create<InFlight>()(
     {
       name: "nordsweet.inflight.v1",
       version: 1,
-      storage: createJSONStorage(() => localStorage),
+      // Changes several times a second and holds the whole track: write at most every 2 s.
+      storage: createJSONStorage(() => throttledStorage(localStorage)),
       // Flights saved by an older release lack newer timer and CONFIG fields.
       merge: (persisted, current) => {
         const p = (persisted ?? {}) as Partial<InFlight>;

@@ -101,6 +101,15 @@ const loadAirports = async () => {
 };
 /** Refresh no faster than the API's own cache (see its /llms.txt). */
 const live = (staleTime: number) => ({ staleTime });
+/**
+ * Answers keyed by airport or aircraft pile up as the pilot browses, in memory and in the offline copy.
+ * Keep them for a working day's flying (briefing at home, fly later) rather than the default 24 h.
+ */
+const PER_ITEM_GC = 6 * HOUR;
+const perItem = (staleTime: number) => ({
+  staleTime,
+  gcTime: Math.max(staleTime, PER_ITEM_GC),
+});
 
 const userData = createUserDataApi();
 
@@ -234,7 +243,7 @@ export const api = {
     briefing: query(
       "airports.briefing",
       ({ icao }: Icao) => aviationApi.airport(icao),
-      live(2 * MINUTE),
+      perItem(2 * MINUTE),
     ),
   },
   navpoints: {
@@ -344,48 +353,56 @@ export const api = {
     briefing: query(
       "weather.briefing",
       ({ icao }: Icao) => aviationApi.briefing(icao),
-      live(2 * MINUTE),
+      perItem(2 * MINUTE),
     ),
     metarTaf: query(
       "weather.metarTaf",
       ({ icao }: Icao) => aviationApi.weather(icao),
-      live(2 * MINUTE),
+      perItem(2 * MINUTE),
     ),
     atis: query(
       "weather.atis",
       ({ icao }: Icao) => aviationApi.atis(icao),
-      live(2 * MINUTE),
+      perItem(2 * MINUTE),
     ),
     atisMessage: query(
       "weather.atisMessage",
       ({ icao, format }: Icao & { format: "text" | "datis" }) =>
         aviationApi.atisMessage(icao, format),
-      live(MINUTE),
+      perItem(MINUTE),
     ),
   },
   fuel: {
     byAirport: query(
       "fuel.byAirport",
       ({ icao }: Icao) => aviationApi.fuel(icao),
-      live(HOUR),
+      perItem(HOUR),
     ),
   },
   notams: {
     byAirport: query(
       "notams.byAirport",
       ({ icao }: Icao) => aviationApi.notams(icao),
-      live(10 * MINUTE),
+      perItem(10 * MINUTE),
     ),
   },
   traffic: {
     aircraftIdentity: query(
       "traffic.aircraftIdentity",
       trafficAircraftIdentity,
-      live(24 * HOUR),
+      perItem(24 * HOUR),
     ),
-    identifiers: query("traffic.identifiers", trafficIdentifiers, live(HOUR)),
-    destination: query("traffic.destination", trafficDestination, live(HOUR)),
-    history: query("traffic.history", trafficHistory, live(MINUTE)),
+    identifiers: query(
+      "traffic.identifiers",
+      trafficIdentifiers,
+      perItem(HOUR),
+    ),
+    destination: query(
+      "traffic.destination",
+      trafficDestination,
+      perItem(HOUR),
+    ),
+    history: query("traffic.history", trafficHistory, perItem(MINUTE)),
     around: query(
       "traffic.around",
       (around: TrafficAround) => aviationApi.traffic(around),

@@ -2,7 +2,27 @@
 importScripts('/precache-manifest.js');
 const CACHE_NAME='nordsweet-next-'+self.NORDSWEET_PRECACHE.version;
 self.addEventListener('message',event=>{if(event.data?.type==='SKIP_WAITING')self.skipWaiting();});
-self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(self.NORDSWEET_PRECACHE.urls)).then(()=>self.skipWaiting())));
+// Each complete cache carries the hash of every file in it; the next release copies the files whose hash did not change and downloads only the rest.
+const HASHES_KEY='/__precache-hashes';
+async function previousRelease(){
+  for(const key of await caches.keys()){
+    if(!key.startsWith('nordsweet-next-')||key===CACHE_NAME)continue;
+    const cache=await caches.open(key),record=await cache.match(HASHES_KEY);
+    if(record)return {cache,hashes:await record.json()};
+  }
+  return null;
+}
+async function precache(){
+  const {urls,hashes}=self.NORDSWEET_PRECACHE,cache=await caches.open(CACHE_NAME),old=await previousRelease(),missing=[];
+  for(const url of urls){
+    const kept=old&&old.hashes[url]===hashes[url]?await old.cache.match(url):undefined;
+    if(kept)await cache.put(url,kept);else missing.push(url);
+  }
+  await cache.addAll(missing);
+  // Written last: a cache without it was not finished and is never reused.
+  await cache.put(HASHES_KEY,new Response(JSON.stringify(hashes)));
+}
+self.addEventListener('install',event=>event.waitUntil(precache().then(()=>self.skipWaiting())));
 self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith('nordsweet-')&&key!==CACHE_NAME).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));
 const MAX_TILES=2000,EVICT_EVERY=200;
 let stored=0;const touched=new Map();
