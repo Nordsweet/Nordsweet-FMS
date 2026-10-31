@@ -25,7 +25,7 @@ jobs:
       - name: Trigger Coolify deploy
         env:
           COOLIFY_URL: https://coolify.lab.vibecde.com
-          COOLIFY_UUID: dhiyvd2qru4y2ika7qjeqoj8
+          COOLIFY_UUID: svgtoq9uaq4ognic2x7u9vhy
           COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
         run: |
           curl -sS --fail-with-body --retry 3 -X POST -H "Authorization: Bearer $COOLIFY_TOKEN" \
