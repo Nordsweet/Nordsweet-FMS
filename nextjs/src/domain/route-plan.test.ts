@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { anchoredWaypoint } from "./waypoint-insertion";
+import {
+  anchoredWaypoint,
+  waypointsAfterRouteRemoval,
+} from "./waypoint-insertion";
+import { navigationRoute } from "./navigation-route";
 import { routeEditKeys, clearedRoute } from "./route-edit";
 import { newFlight, flightSchema } from "~/data/flight";
 
@@ -82,6 +86,80 @@ describe("routeTokens", () => {
 });
 
 describe("buildRoutePlan", () => {
+  it("keeps a manual fix in order when removing its route-text anchor", () => {
+    const home = airport("DEPA", 50);
+    const h = { ident: home.ident, lat: home.lat, lon: home.lon };
+    const p1 = { ident: "P1", ...points.P1! },
+      p2 = { ident: "P2", ...points.P2! },
+      p3 = { ident: "P3", ...points.P3! };
+    const manual = anchoredWaypoint([h, p2, p3, h], p1, 1);
+    const request = input({
+      departure: home,
+      destination: home,
+      routeText: "P2 P3",
+      insertedWaypoints: [manual],
+    });
+    const before = buildRoutePlan(data, request)!;
+    const route = navigationRoute(before);
+    expect(route.map((p) => p.ident)).toEqual([
+      "DEPA",
+      "P1",
+      "P2",
+      "P3",
+      "DEPA",
+    ]);
+    const index = before.points.findIndex((p) => p.id === "P2");
+    const after = buildRoutePlan(data, {
+      ...request,
+      insertedWaypoints: waypointsAfterRouteRemoval(route, [manual], 2, -1),
+      removedRoutePoints: [routeEditKeys(before.points)[index]!],
+    })!;
+    expect(navigationRoute(after).map((p) => p.ident)).toEqual([
+      "DEPA",
+      "P1",
+      "P3",
+      "DEPA",
+    ]);
+  });
+
+  it("preserves a closed route when the removed fix was another waypoint's anchor", () => {
+    const home = airport("DEPA", 50);
+    const h = { ident: home.ident, lat: home.lat, lon: home.lon };
+    const p1 = { ident: "P1", ...points.P1! },
+      p2 = { ident: "P2", ...points.P2! };
+    const removed = anchoredWaypoint([h, h], p2, 1);
+    const survivor = anchoredWaypoint([h, p2, h], p1, 1);
+    const before = buildRoutePlan(
+      data,
+      input({
+        departure: home,
+        destination: home,
+        insertedWaypoints: [removed, survivor],
+      }),
+    )!;
+    const route = navigationRoute(before);
+    expect(route.map((p) => p.ident)).toEqual(["DEPA", "P1", "P2", "DEPA"]);
+    const waypoints = waypointsAfterRouteRemoval(
+      route,
+      [removed, survivor],
+      2,
+      0,
+    );
+    const after = buildRoutePlan(
+      data,
+      input({
+        departure: home,
+        destination: home,
+        insertedWaypoints: waypoints,
+      }),
+    )!;
+    expect(navigationRoute(after).map((p) => p.ident)).toEqual([
+      "DEPA",
+      "P1",
+      "DEPA",
+    ]);
+  });
+
   it("keeps an airway fix removed across recalculation without flattening the remaining route", () => {
     const request = input({ routeText: "P1 A1 P3" });
     const original = buildRoutePlan(data, request)!;

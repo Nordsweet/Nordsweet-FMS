@@ -5,6 +5,7 @@ import {
   optimalWaypointIndex,
   waypointInsertionIndex,
   waypointInsertionSlots,
+  waypointsAfterRouteRemoval,
   safeWaypointIndex,
 } from "./waypoint-insertion";
 import { useInFlight } from "~/stores/inflight";
@@ -14,6 +15,73 @@ const a = { ident: "A", lat: 50, lon: 19 },
   b = { ident: "B", lat: 51, lon: 19 },
   c = { ident: "C", lat: 52, lon: 19 };
 const point = { ident: "NEW", lat: 51.6, lon: 19.1 };
+
+test("removing a target fix from a round trip keeps the other fixes between the two airport occurrences", () => {
+  const home = { ident: "EPNT", lat: 49.46, lon: 20.05 };
+  const firstInserted = anchoredWaypoint([home, home], b, 1);
+  const secondInserted = anchoredWaypoint([home, b, home], c, 1);
+  const remaining = waypointsAfterRouteRemoval(
+    [home, c, b, home],
+    [firstInserted, secondInserted],
+    2,
+    0,
+  );
+  expect(
+    fallbackFlightRoute({
+      departure: home,
+      destination: home,
+      waypoints: remaining,
+    }).map((p) => p.ident),
+  ).toEqual(["EPNT", "C", "EPNT"]);
+  expect(remaining[0]!.anchor?.occurrence).toBe(1);
+});
+
+test("removing a route fix preserves the visible order of multiple manually inserted fixes", () => {
+  const home = { ident: "EPNT", lat: 49.46, lon: 20.05 };
+  const route = [home, a, b, c, home];
+  const saved = [
+    anchoredWaypoint([home, b, home], c, 1),
+    anchoredWaypoint([home, home], b, 1),
+    anchoredWaypoint([home, c, b, home], a, 1),
+  ];
+  const remaining = waypointsAfterRouteRemoval(route, saved, 2, 1);
+  expect(
+    fallbackFlightRoute({
+      departure: home,
+      destination: home,
+      waypoints: remaining,
+    }).map((p) => p.ident),
+  ).toEqual(["EPNT", "A", "C", "EPNT"]);
+});
+
+test.each([1, 2, 3])(
+  "a closed route retains both endpoints and the remaining order after removing fix %i",
+  (index) => {
+    const home = { ident: "EPNT", lat: 49.46, lon: 20.05 };
+    const visible = [home, a, b, c, home];
+    const waypoints = [
+      anchoredWaypoint([home, home], c, 1),
+      anchoredWaypoint([home, c, home], b, 1),
+      anchoredWaypoint([home, b, c, home], a, 1),
+    ];
+    const removed = waypoints.findIndex(
+      (p) => p.ident === visible[index]!.ident,
+    );
+    const remaining = waypointsAfterRouteRemoval(
+      visible,
+      waypoints,
+      index,
+      removed,
+    );
+    expect(
+      fallbackFlightRoute({
+        departure: home,
+        destination: home,
+        waypoints: remaining,
+      }).map((p) => p.ident),
+    ).toEqual(visible.filter((_, i) => i !== index).map((p) => p.ident));
+  },
+);
 
 const departureCircuit = ["EPNT THR12", "TPD1/EPNT", "TPX1/EPNT"].map(
   (ident, i) => ({
@@ -37,6 +105,52 @@ const arrivalCircuit = [
   patternId: "arrival",
   patternOperation: "join" as const,
 }));
+
+test("removing a fix preserves the remaining order between two traffic patterns", () => {
+  const displayed = [...departureCircuit, a, b, c, ...arrivalCircuit];
+  const saved = [
+    anchoredWaypoint([...departureCircuit, ...arrivalCircuit], c, 3),
+    anchoredWaypoint([...departureCircuit, c, ...arrivalCircuit], b, 3),
+    anchoredWaypoint([...departureCircuit, b, c, ...arrivalCircuit], a, 3),
+  ];
+  const remaining = waypointsAfterRouteRemoval(displayed, saved, 4, 1);
+  const placeholders = [departureCircuit[0]!, arrivalCircuit.at(-1)!];
+  const result: (FlightPoint & {
+    patternId?: string;
+    patternOperation?: "join" | "leave";
+  })[] = [...placeholders];
+  for (const waypoint of remaining)
+    result.splice(waypointInsertionIndex(result, waypoint), 0, waypoint);
+  expect(result.map((p) => p.ident)).toEqual([
+    placeholders[0]!.ident,
+    "A",
+    "C",
+    placeholders[1]!.ident,
+  ]);
+});
+
+test("a circuit departure and arrival at the same airport retain the second endpoint occurrence", () => {
+  const home = { ident: "EPNT", lat: 49.46, lon: 20.05 };
+  const leave = departureCircuit;
+  const join = arrivalCircuit.map((p, i) =>
+    i === arrivalCircuit.length - 1 ? { ...p, ...home } : p,
+  );
+  const shown = [...leave, a, b, c, ...join];
+  const saved = [
+    anchoredWaypoint([...leave, ...join], c, 3),
+    anchoredWaypoint([...leave, c, ...join], b, 3),
+    anchoredWaypoint([...leave, b, c, ...join], a, 3),
+  ];
+  const remaining = waypointsAfterRouteRemoval(shown, saved, 4, 1);
+  expect(remaining.map((p) => p.anchor?.occurrence)).toEqual([1, 1]);
+  expect(
+    fallbackFlightRoute({
+      departure: home,
+      destination: home,
+      waypoints: remaining,
+    }).map((p) => p.ident),
+  ).toEqual(["EPNT", "A", "C", "EPNT"]);
+});
 
 test("the first departure exit to arrival entry slot is the only choice for adjacent circuits", () => {
   const route = [...departureCircuit, ...arrivalCircuit];

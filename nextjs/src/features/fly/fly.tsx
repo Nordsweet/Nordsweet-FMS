@@ -797,6 +797,7 @@ export function FlyPage() {
               activeLeg={progress?.activeLeg ?? inFlight.activeLeg}
               fix={gpsError ? null : fix}
               holding={holdingActive}
+              phase={phase}
             />
           )}
           {inFlight.startedAt && !emergencyActive && (

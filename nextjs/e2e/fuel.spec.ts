@@ -49,6 +49,11 @@ test("fuel table matches the legacy planner and takes overrides", async ({
     "Fuel below minimum requirement by 8 L.",
   );
 
+  await expect(page.getByTestId("fuel-extra")).toHaveText("0");
+  await block.fill("180");
+  await block.blur();
+  await expect(page.getByTestId("fuel-extra")).toHaveText("22");
+
   // A typed value replaces the suggestion; clearing it brings the suggestion back.
   await cell("Start, Taxiing fuel litres").fill("10");
   await cell("Start, Taxiing fuel litres").blur();

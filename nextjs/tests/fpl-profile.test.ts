@@ -2,6 +2,7 @@ import { expect, test } from "vitest";
 import {
   flightPlanProfile,
   profileAircraftDistance,
+  showVerticalDeviation,
   terrainProfileSections,
 } from "~/domain/flight-plan-profile";
 import { buildRoutePlan, pointKey } from "~/domain/route-plan";
@@ -161,4 +162,24 @@ test("missing and invalid terrain creates gaps, not a filled safe-looking valley
     stations.slice(6),
   ]);
   expect(terrainProfileSections([{ terrainFt: null }])).toEqual([]);
+});
+
+test("vertical deviation appears one minute before TOD only in flight", () => {
+  const p = plan();
+  const profile = flightPlanProfile(
+    navigationRoute(p),
+    p,
+    { tasKt: 100 },
+    5000,
+  );
+  const tod = profile.rows.find((row) => row.event === "TOD");
+  expect(tod).toBeDefined();
+  const distance = tod!.distanceNm;
+  expect(showVerticalDeviation(profile, distance - 2, 100, true)).toBe(false);
+  expect(showVerticalDeviation(profile, distance - 1, 100, true)).toBe(true);
+  expect(showVerticalDeviation(profile, distance + 0.1, 100, true)).toBe(true);
+  expect(showVerticalDeviation(profile, distance, 100, false)).toBe(false);
+  expect(showVerticalDeviation(profile, distance - 0.1, null, true)).toBe(
+    false,
+  );
 });

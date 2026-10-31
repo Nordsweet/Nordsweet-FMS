@@ -262,6 +262,13 @@ export function FuelSection() {
                   plan.minimumL,
                   "fuel-minimum",
                 )}
+                {calculatedRow(
+                  "extra",
+                  t("plan.fuel.extra"),
+                  "",
+                  Math.max(0, marginL),
+                  "fuel-extra",
+                )}
                 <tr className="border-border border-t">
                   <td className="px-2 py-1 font-semibold">
                     {t("plan.fuel.block")}

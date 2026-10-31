@@ -165,6 +165,26 @@ export function profileAircraftDistance(
     : null;
 }
 
+/** Show descent guidance from one minute before TOD until the route ends. */
+export function showVerticalDeviation(
+  profile: ReturnType<typeof flightPlanProfile>,
+  distance: number,
+  groundSpeedKt: number | null,
+  airborne: boolean,
+) {
+  if (!airborne || !Number.isFinite(distance)) return false;
+  const tod = profile.rows.find((row) => row.event === "TOD");
+  if (!tod || distance > profile.totalNm) return false;
+  const remaining = tod.distanceNm - distance;
+  if (remaining <= 0) return true;
+  return (
+    groundSpeedKt !== null &&
+    Number.isFinite(groundSpeedKt) &&
+    groundSpeedKt > 0 &&
+    (remaining / groundSpeedKt) * 3600 <= 60
+  );
+}
+
 /** Interpolate the same planned altitude line shown in the FPL vertical profile. */
 export function profileAltitudeAtDistance(
   profile: ReturnType<typeof flightPlanProfile>,

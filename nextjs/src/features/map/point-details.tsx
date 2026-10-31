@@ -17,7 +17,11 @@ import {
   pointKey,
   altitudeRestriction,
 } from "~/domain/route-plan";
-import { sameFlightPoint } from "~/domain/waypoint-insertion";
+import {
+  sameFlightPoint,
+  waypointsAfterRouteRemoval,
+} from "~/domain/waypoint-insertion";
+import { routeEditKeys } from "~/domain/route-edit";
 import { type MessageKey } from "~/i18n/messages";
 import { useT } from "~/i18n/use-t";
 import { useFlight } from "~/stores/flight";
@@ -78,8 +82,25 @@ export function PointDetails({
   const activeIndex = navigation.startedAt
     ? navigation.route.findIndex((p) => sameFlightPoint(p, point))
     : -1;
+  const plannedIndex =
+    !navigation.startedAt && plan
+      ? plan.points.findIndex(
+          (p, i) =>
+            i > 0 &&
+            i < plan.points.length - 1 &&
+            !p.patternId &&
+            !p.isProfilePoint &&
+            sameFlightPoint({ ident: p.id, lat: p.lat, lon: p.lon }, point),
+        )
+      : -1;
+  const routeIndex = !navigation.startedAt
+    ? route.findIndex(
+        (p, i) => i > 0 && i < route.length - 1 && sameFlightPoint(p, point),
+      )
+    : -1;
   const removable =
     waypointIndex >= 0 ||
+    plannedIndex >= 0 ||
     (activeIndex > 0 && activeIndex < navigation.route.length - 1);
   const onRoute = displayedRoute.some((p) => sameFlightPoint(p, point));
   const routePoint = plan?.points.find(
@@ -252,7 +273,28 @@ export function PointDetails({
               size="sm"
               variant="outline"
               onClick={() => {
-                if (waypointIndex >= 0)
+                if (!navigation.startedAt && routeIndex >= 0) {
+                  const removed =
+                    plannedIndex >= 0 && waypointIndex < 0
+                      ? routeEditKeys(plan!.points)[plannedIndex]
+                      : undefined;
+                  update({
+                    waypoints: waypointsAfterRouteRemoval(
+                      route,
+                      flight.waypoints,
+                      routeIndex,
+                      waypointIndex,
+                    ),
+                    ...(removed
+                      ? {
+                          removedRoutePoints: [
+                            ...flight.removedRoutePoints,
+                            removed,
+                          ],
+                        }
+                      : {}),
+                  });
+                } else if (waypointIndex >= 0)
                   update({
                     waypoints: flight.waypoints.filter(
                       (_, i) => i !== waypointIndex,

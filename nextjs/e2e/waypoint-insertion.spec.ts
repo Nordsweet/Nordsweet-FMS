@@ -214,6 +214,101 @@ test("previews optimal insertion, allows before-row and move controls, and saves
   ]);
 });
 
+test("removing an anchor waypoint in a closed flight keeps the remaining route order after reload", async ({
+  page,
+}) => {
+  const home = { ident: "EPNT", lat: 49.462222, lon: 20.0525 };
+  const kelel = { ident: "KELEL", lat: 49.313611, lon: 20.175278 };
+  const meban = { ident: "MEBAN", lat: 49.455, lon: 19.646667 };
+  const target = {
+    ...kelel,
+    anchor: {
+      from: "EPNT",
+      to: "EPNT",
+      placement: "before",
+      occurrence: 1,
+      fromPosition: home,
+      toPosition: home,
+    },
+  };
+  const dependent = {
+    ...meban,
+    anchor: {
+      from: "EPNT",
+      to: "KELEL",
+      placement: "before",
+      occurrence: 0,
+      fromPosition: home,
+      toPosition: kelel,
+    },
+  };
+  await load(page, {
+    ...draft,
+    departure: home,
+    destination: home,
+    waypoints: [target, dependent],
+  });
+  await page.goto("/map");
+  await expect(page.locator("[data-route-marker]")).toHaveText([
+    "EPNT",
+    "MEBAN",
+    "KELEL",
+    "EPNT",
+  ]);
+  await page.locator('[data-route-marker="KELEL"]').click();
+  await page
+    .getByRole("dialog", { name: "Details", exact: true })
+    .getByRole("button", { name: "Remove from route", exact: true })
+    .click();
+  await expect(page.locator("[data-route-marker]")).toHaveText([
+    "EPNT",
+    "MEBAN",
+    "EPNT",
+  ]);
+  await page.reload();
+  await expect(page.locator("[data-route-marker]")).toHaveText([
+    "EPNT",
+    "MEBAN",
+    "EPNT",
+  ]);
+});
+
+test("a route-text fix can be removed from a closed flight on the map", async ({
+  page,
+}) => {
+  const home = { ident: "EPNT", lat: 49.462222, lon: 20.0525 };
+  await load(page, {
+    ...draft,
+    departure: home,
+    destination: home,
+    waypoints: [],
+    routeText: "KELEL MEBAN",
+  });
+  await page.goto("/map");
+  await expect(page.locator("[data-route-marker]")).toHaveText([
+    "EPNT",
+    "KELEL",
+    "MEBAN",
+    "EPNT",
+  ]);
+  await page.locator('[data-route-marker="KELEL"]').click();
+  await page
+    .getByRole("dialog", { name: "Details", exact: true })
+    .getByRole("button", { name: "Remove from route", exact: true })
+    .click();
+  await expect(page.locator("[data-route-marker]")).toHaveText([
+    "EPNT",
+    "MEBAN",
+    "EPNT",
+  ]);
+  await page.reload();
+  await expect(page.locator("[data-route-marker]")).toHaveText([
+    "EPNT",
+    "MEBAN",
+    "EPNT",
+  ]);
+});
+
 test("airport-based FPL keeps a manual position in the derived route and after reload", async ({
   page,
 }) => {

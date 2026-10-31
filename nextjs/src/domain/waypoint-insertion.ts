@@ -152,6 +152,60 @@ export function waypointInsertionIndex(
   return optimalWaypointIndex(route, point);
 }
 
+/** Re-anchor surviving manual fixes to the next retained route point after a deletion. */
+export function waypointsAfterRouteRemoval(
+  route: InsertionPoint[],
+  waypoints: FlightPoint[],
+  removedRouteIndex: number,
+  removedWaypointIndex: number,
+) {
+  const assigned = new Set<number>();
+  const ordered = waypoints
+    .flatMap((point, index) => {
+      if (index === removedWaypointIndex) return [];
+      const position = route.findIndex(
+        (candidate, i) =>
+          i > 0 &&
+          i < route.length - 1 &&
+          i !== removedRouteIndex &&
+          !assigned.has(i) &&
+          sameFlightPoint(candidate, point),
+      );
+      if (position < 0) return [];
+      assigned.add(position);
+      return [{ point, index, position }];
+    })
+    .sort((a, b) => a.position - b.position);
+  const base = route.flatMap((point, i) =>
+    i !== removedRouteIndex &&
+    !assigned.has(i) &&
+    (!point.patternId || i === 0 || i === route.length - 1)
+      ? [{ point, index: i }]
+      : [],
+  );
+  // Circuit waypoints are added only after manual fixes. Anchor against the
+  // retained airport endpoints rather than intermediate circuit positions.
+  const anchors = base.map((entry) => entry.point);
+  const first = anchors[0];
+  const last = anchors.at(-1);
+  if (
+    first?.patternOperation === "leave" &&
+    last &&
+    first.ident.toUpperCase().startsWith(`${last.ident.toUpperCase()} `)
+  )
+    anchors[0] = { ...first, ident: last.ident, lat: last.lat, lon: last.lon };
+  const pending = waypoints.filter(
+    (_, i) => i !== removedWaypointIndex && !ordered.some((p) => p.index === i),
+  );
+  return [
+    ...ordered.map(({ point, position }) => {
+      const next = base.findIndex((entry) => entry.index > position);
+      return anchoredWaypoint(anchors, point, next < 0 ? base.length : next);
+    }),
+    ...pending,
+  ];
+}
+
 /** Coordinate/GPX plans use the same explicit insertion anchors as airport-based plans. */
 export function fallbackFlightRoute(
   flight: Pick<Flight, "departure" | "destination" | "waypoints">,

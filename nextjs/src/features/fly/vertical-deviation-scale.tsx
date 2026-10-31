@@ -6,7 +6,9 @@ import {
   flightPlanProfile,
   profileAircraftDistance,
   profileAltitudeAtDistance,
+  showVerticalDeviation,
 } from "~/domain/flight-plan-profile";
+import type { FlightPhase } from "~/domain/flight-phase";
 import type { TurnPerformance } from "~/domain/fly-by";
 import type { NavPoint } from "~/domain/progress";
 import type { RoutePlan } from "~/domain/route-plan";
@@ -23,6 +25,7 @@ export function VerticalDeviationScale({
   activeLeg,
   fix,
   holding,
+  phase,
 }: {
   route: NavPoint[];
   plan: RoutePlan | null;
@@ -31,6 +34,7 @@ export function VerticalDeviationScale({
   activeLeg: number;
   fix: GpsFix | null;
   holding: boolean;
+  phase: FlightPhase;
 }) {
   const t = useT();
   const [now, setNow] = useState(() => Date.now());
@@ -79,6 +83,19 @@ export function VerticalDeviationScale({
           deviation: Math.round(deviation),
           altitude: Math.round(planned!),
         });
+  if (
+    !profile ||
+    !projection ||
+    !current ||
+    !showVerticalDeviation(
+      profile,
+      projection.distanceNm,
+      current.groundSpeedKt,
+      current.onGround !== true &&
+        ["climb", "cruise", "descent", "landing"].includes(phase),
+    )
+  )
+    return null;
   return (
     <div
       data-testid="vertical-deviation"
