@@ -1,7 +1,7 @@
 # Durable flight track and recovery
 
 The static Next export cannot write files on its nginx host. `server/flight_store.py` is a small
-same-origin persistence service behind `/flight-sync/`; `deploy/docker-compose.yml` starts it
+same-origin persistence service behind `/flight-sync/`; `deploy/docker-compose.prod.yml` starts it
 automatically alongside the app. No Aviation API Collector changes or upstream credentials are needed.
 Frontend components use the existing `api.flightSync` boundary, never fetch from UI code.
 
@@ -13,7 +13,7 @@ Frontend components use the existing `api.flightSync` boundary, never fetch from
 - This start is the app's Start flight action (recording starts before take-off); the existing
   take-off/off-block events remain in the checkpoint timers.
 - SQLite stores that name, registration, plan/runtime checkpoint and ordered track points in the
-  **`fms-dev_flight-data` named volume** (`/data/flights.sqlite3`). Track and checkpoint commit in one
+  **`<coolify resource uuid>_flight-data` named volume** (`svgtoq9uaq4ognic2x7u9vhy_flight-data` on develop; file `/data/flights.sqlite3`). Track and checkpoint commit in one
   transaction; WAL + synchronous FULL; only committed revisions are acknowledged. Do not run
   `docker compose down -v`. Back up with SQLite's backup API or stop the service before copying its
   database (including WAL if doing a live filesystem snapshot). Deployments never delete this volume.
