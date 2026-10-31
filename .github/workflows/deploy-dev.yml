@@ -1,8 +1,8 @@
 name: Deploy develop
 
 # Same mechanism as deploy-prod.yml: Coolify is Tailscale-only, so the runner joins the tailnet and
-# calls the Coolify API. COOLIFY_URL and COOLIFY_TOKEN are shared with production; the uuid below
-# is the develop resource (dev.fms.lab.vibecde.com), not a secret.
+# calls the Coolify API. COOLIFY_TOKEN is shared with production; the URL and uuid below
+# (the develop resource, dev.fms.lab.vibecde.com) are not secrets.
 on:
   push:
     branches: [develop]
@@ -24,9 +24,9 @@ jobs:
           tags: tag:ci
       - name: Trigger Coolify deploy
         env:
-          COOLIFY_URL: ${{ secrets.COOLIFY_URL }}
+          COOLIFY_URL: https://coolify.lab.vibecde.com
           COOLIFY_UUID: dhiyvd2qru4y2ika7qjeqoj8
           COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
         run: |
-          curl -fsS --retry 3 -H "Authorization: Bearer $COOLIFY_TOKEN" \
+          curl -sS --fail-with-body --retry 3 -H "Authorization: Bearer $COOLIFY_TOKEN" \
             "$COOLIFY_URL/api/v1/deploy?uuid=$COOLIFY_UUID"
