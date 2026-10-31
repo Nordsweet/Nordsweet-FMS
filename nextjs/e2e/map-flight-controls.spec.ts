@@ -1,4 +1,5 @@
 import { expect, test } from "./test";
+import { settleStorage } from "./helpers/storage";
 
 const a = { ident: "A", lat: 49, lon: 20 };
 const b = { ident: "B", lat: 50, lon: 20 };
@@ -69,6 +70,7 @@ test("the whole waypoint disk opens Details and removing its target starts a DCT
     .getByRole("button", { name: "Remove from route", exact: true })
     .click();
   await expect(page.locator("[data-route-marker]")).toHaveText(["DCT", "C"]);
+  await settleStorage(page);
   const saved = await page.evaluate(
     () =>
       JSON.parse(localStorage.getItem("nordsweet.inflight.v1")!) as {

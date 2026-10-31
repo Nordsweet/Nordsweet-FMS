@@ -899,6 +899,7 @@ test("accepting a Base join during flight preserves the flight and reports halfw
   await panel
     .getByRole("button", { name: "Accept traffic pattern", exact: true })
     .click();
+  await settleStorage(page);
   const active = await page.evaluate(
     () =>
       (
@@ -1005,6 +1006,7 @@ test("joining widens the circuit for touching fly-by arcs and keeps the remainin
   await panel
     .getByRole("button", { name: "Accept traffic pattern", exact: true })
     .click();
+  await settleStorage(page);
   const active = () =>
     page.evaluate(
       () =>
